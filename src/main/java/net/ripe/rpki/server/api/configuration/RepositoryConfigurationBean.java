@@ -1,11 +1,13 @@
 package net.ripe.rpki.server.api.configuration;
 
+import com.google.common.base.Verify;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.util.ConfigurationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
-import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.security.auth.x500.X500Principal;
@@ -18,6 +20,7 @@ import java.nio.file.Files;
 @Primary
 @Slf4j
 public class RepositoryConfigurationBean implements RepositoryConfiguration {
+    private static final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(14); // 14 rounds
 
     private static String adminPasswordHash;
 
@@ -46,7 +49,11 @@ public class RepositoryConfigurationBean implements RepositoryConfiguration {
         this.taRepositoryUri = makeUri(slashIt(taRepositoryUriString));
         this.localTrustAnchorRepositoryDirectory = validateLocalRepositoryDirectory(ConfigurationUtil.interpolate(localTrustAnchorRepositoryDirectoryString));
         this.publicRepositoryUri = makeUri(slashIt(publicRepositoryUriString));
+
         RepositoryConfigurationBean.adminPasswordHash = adminPasswordHash;
+        Verify.verifyNotNull(adminPasswordHash, "Administrator password hash can not be null.");
+        // password hash needs to be of the current type and correct number of rounds.
+        Verify.verify(!passwordEncoder.upgradeEncoding(adminPasswordHash));
     }
 
     private File validateLocalRepositoryDirectory(String localRepositoryDirectoryString) {
@@ -115,7 +122,8 @@ public class RepositoryConfigurationBean implements RepositoryConfiguration {
     }
 
     public static boolean checkAdminPassword(String password) {
-        return adminPasswordHash != null && BCrypt.checkpw(password, adminPasswordHash);
+        Verify.verifyNotNull(adminPasswordHash);
+        return passwordEncoder.matches(password, adminPasswordHash);
     }
 
 }

@@ -1,81 +1,41 @@
 package net.ripe.rpki.server.api.configuration;
 
-import org.apache.commons.io.FileUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import com.google.common.base.VerifyException;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.io.File;
-import java.net.URI;
-import java.nio.file.Files;
-import java.util.Properties;
+import java.nio.file.Path;
+import java.util.function.Function;
 
-import static net.ripe.rpki.server.api.configuration.RepositoryConfiguration.*;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@Ignore
 public class RepositoryConfigurationBeanTest {
-
     private RepositoryConfigurationBean subject;
 
-    private static final String LOCAL_REPO_DIR_NAME = "/tmp/prod";
-
-    @Before
-    public void setUp() throws Exception {
-
-        File localRepoDir = new File(LOCAL_REPO_DIR_NAME);
-        Files.createDirectories(localRepoDir.toPath());
-
-//        subject = new SharedConfigurationBean("configuration/certification-valid.properties");
-    }
-
-
-
-    @After
-    public void tearDown() throws Exception {
-        FileUtils.deleteDirectory(new File(LOCAL_REPO_DIR_NAME));
-    }
-
     @Test
-    public void shouldAddTrailingSlashToPublicRepositoryUri() {
-        Properties props = new Properties();
-        props.put(ONLINE_REPOSITORY_BASE_URI, "rsync://localhost/certrepo");
-//        subject.configurePublicRepositoryUri(props);
-        assertEquals(URI.create("rsync://localhost/certrepo/"), subject.getPublicRepositoryUri());
+    public void testValidatesHashType(@TempDir Path baseDirectory) {
+        final Function<String, RepositoryConfigurationBean> configWithHash = (hash) -> new RepositoryConfigurationBean(
+                "https://rrdp.example.org/notification.xml",
+                "rsync://rpki.example.org/repository/",
+                baseDirectory.resolve("repository").toString(),
+                "rsync://rpki.example.org/ta/",
+                baseDirectory.resolve("ta").toString(),
+                "CN=ALL Resources,O=RIPE NCC,C=NL",
+                "CN=RIPE NCC Resources,O=RIPE NCC,C=NL",
+                hash
+        );
+
+
+        assertThatThrownBy(() -> configWithHash.apply(null))
+                .isInstanceOf(VerifyException.class);
+        assertThatThrownBy(() -> configWithHash.apply("this_is_not_a_bcrypt_hash"))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        // bcrypt.using(rounds=14).hash(plaintext)
+        final RepositoryConfigurationBean config = configWithHash.apply("$2b$14$LKU8uOslBN7Y8.29tIuq7.yNQq6w1LpfvYtC5OQRiGcVC4LPfPnYW");
+
+        assertThat(RepositoryConfigurationBean.checkAdminPassword("plaintext")).isTrue();
+        assertThat(RepositoryConfigurationBean.checkAdminPassword("othertext")).isFalse();
     }
-
-    @Test(expected=CertificationConfigurationException.class)
-    public void shouldRequirePublicRepositoryUriWithRsyncScheme() {
-        Properties props = new Properties();
-        props.put(ONLINE_REPOSITORY_BASE_URI, "http://localhost/certrepo");
-//        subject.configurePublicRepositoryUri(props);
-    }
-
-    @Test(expected=CertificationConfigurationException.class)
-    public void shouldFailIfPublicRepositoryUriIsInvalid() {
-        Properties props = new Properties();
-        props.put(ONLINE_REPOSITORY_BASE_URI, "foo bar");
-//        subject.configurePublicRepositoryUri(props);
-    }
-
-//    @Test(expected=CertificationConfigurationException.class)
-//    public void shouldRequireLocalRepositoryDirectory() {
-//        subject.validateLocalRepositoryDirectory(new Properties());
-//    }
-//
-//    @Test(expected=CertificationConfigurationException.class)
-//    public void shouldRequireExistingLocalRepositoryDirectory() {
-//        Properties props = new Properties();
-//        props.put(ONLINE_REPOSITORY_BASE_DIRECTORY, "/non-existent-directory");
-//        subject.validateLocalRepositoryDirectory(new Properties());
-//    }
-//
-//    @Test(expected=CertificationConfigurationException.class)
-//    public void shouldRequirePublicRepositoryUri() {
-//        subject.configurePublicRepositoryUri(new Properties());
-//    }
-//
-
-
 }

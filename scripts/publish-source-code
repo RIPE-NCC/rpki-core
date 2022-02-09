@@ -16,12 +16,14 @@ Usage:
     $PROGRAM <oldbase> [<newbase>]
 
 Options:
-    -h, --help      Print this message.
-    --no-push       Do not push the new branch to the origin.
-    --repository    Remote URL for publication. Defaults to $REPOSITORY
-    --upstream      Upstream branch to publish changes onto. Defaults to $UPSTREAM.
-    --local-branch  Local branch name used to track upstream. Defaults to $LOCAL_BRANCH
-    --local-remote  Local name of remote repository. Defaults to $LOCAL_REMOTE
+    -h, --help         Print this message.
+    --no-push          Do not push the new branch to the origin.
+    --repository       Remote URL for publication. Defaults to $REPOSITORY
+    --upstream         Upstream branch to publish changes onto. Defaults to $UPSTREAM.
+    --local-branch     Local branch name used to track upstream. Defaults to $LOCAL_BRANCH.
+    --local-remote     Local name of remote repository. Defaults to $LOCAL_REMOTE.
+    --committer-name   Committer name to override 'user.name'.
+    --committer-email  Committer email to override 'user.email'.
 
 EOF
 }
@@ -32,6 +34,10 @@ check_dependencies() {
 
 rev_parse() {
     $GIT rev-parse --quiet --revs-only --verify --short "$1" || oops "$1: unknown revision"
+}
+
+check_commit() {
+    [ "$($GIT cat-file -t "$1" 2>/dev/null)" == "commit" ] || oops "$1: not a commit"
 }
 
 branch_exists() {
@@ -59,6 +65,16 @@ main() {
             --upstream) shift; UPSTREAM=$1; shift ;;
             --local-branch) shift; LOCAL_BRANCH=$1; shift ;;
             --local-remote) shift; LOCAL_REMOTE=$1; shift ;;
+            --committer-name)
+                shift
+                export GIT_AUTHOR_NAME=$1
+                export GIT_COMMITTER_NAME=$1
+                shift ;;
+            --committer-email)
+                shift
+                export GIT_AUTHOR_EMAIL=$1
+                export GIT_COMMITTER_EMAIL=$1
+                shift ;;
             --) shift; break ;;
             -*) oops "$1: unknown option" ;;
             *) break ;;
@@ -73,6 +89,9 @@ main() {
     newbase=$(rev_parse "${2:-HEAD}")
     branch=$LOCAL_BRANCH
     remote=$LOCAL_REMOTE
+
+    check_commit "$oldbase"
+    check_commit "$newbase"
 
     changelog=$($GIT log --no-merges --format='* %s [%h]' "$oldbase..$newbase")
     if [ -z "$changelog" ]; then
@@ -94,7 +113,7 @@ EOF
     echo "Squashing changes between $oldbase and $newbase"
     $GIT switch --quiet --no-track -c "$branch" "$oldbase"
     $GIT merge --quiet --squash "$newbase" >/dev/null
-    $GIT commit --quiet -F- <<EOF
+    $GIT commit --quiet --no-gpg-sign -F- <<EOF
 RIPE NCC has merged $newbase
 
 $changelog
@@ -104,8 +123,8 @@ EOF
     $GIT branch --quiet -D "$branch"
 
     echo "Applying $rev on top of upstream"
-    $GIT switch --quiet --no-track -c "$branch" "$remote/$UPSTREAM"
-    $GIT cherry-pick "$rev" ||
+    $GIT switch --quiet --no-track --create "$branch" "$remote/$UPSTREAM"
+    $GIT cherry-pick --no-gpg-sign "$rev" ||
         ($GIT cherry-pick --abort && oops "Failed to apply changes on top of upstream")
     echo
 

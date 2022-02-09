@@ -15,6 +15,7 @@ stages:
   - qa
   - package
   - deploy
+  - publish
 
 include:
   # Use gitlab security scanning
@@ -197,7 +198,6 @@ docker_deploy_uncore_prepdev:
   needs: ["build"]
   image: $CI_REGISTRY/swe/delivr:latest
   script:
-  script:
     - echo "Checking environment name $CI_ENVIRONMENT_NAME"
     - echo "Check build number $BUILD_NUMBER"
     - delivr --application rpki-core --environment $CI_ENVIRONMENT_NAME \
@@ -229,3 +229,22 @@ pilot:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
       when: never
     - when: manual
+
+publish-to-github:
+  stage: publish
+  image: alpine:latest
+  needs:
+    - production
+  before_script:
+    - apk add --virtual runtime-deps bash git openssh-client
+  script: |
+    [ -n "$GITHUB_DEPLOY_KEY" ] || ( echo "GITHUB_DEPLOY_KEY is not set"; exit 1 )
+    [ -n "$GITHUB_KNOWN_HOSTS" ] || ( echo "GITHUB_KNOWN_HOSTS is not set"; exit 1 )
+    mkdir ~/.ssh && chmod 700 ~/.ssh && echo $GITHUB_KNOWN_HOSTS > ~/.ssh/known_hosts
+    eval $(ssh-agent -s)
+    ssh-add <(echo "$GITHUB_DEPLOY_KEY")
+    ./scripts/publish-source-code --no-push --committer-name 'RPKI Team at RIPE NCC' --committer-email 'rpki@ripe.net' -- $CI_COMMIT_BEFORE_SHA $CI_COMMIT_SHA
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: on_success
+    - when: never

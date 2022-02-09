@@ -17,8 +17,6 @@ resource.services.url: https://rsng.ripe.net/resource-services
 #
 # Application specific settings
 #
-admin.password.hash: $2a$12$kPTg/4Zf/pza9j15JI6d4eCIzxopN5HQRU7vwcAa2BqpFnnGe9ks2
-
 key.management.data:
     archive.directory: /cert/hsmkeys/shared-keys.archive
     directory: /cert/hsmkeys/shared-keys

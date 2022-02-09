@@ -1,0 +1,2 @@
+alter table keypair_statushistory drop constraint keypair_statushistory_pkey;
+create index keypair_statushistory_keypair_id on keypair_statushistory(keypair_id);

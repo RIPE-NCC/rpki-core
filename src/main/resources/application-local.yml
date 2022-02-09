@@ -1,0 +1,86 @@
+logging.config: classpath:logback/logback-local.xml
+
+signature:
+    provider: SunRsaSign
+
+keystore:
+    provider: SUN
+    type: JKS
+
+# local setup should not be able to deliver mail by default.
+mail:
+    host: localhost
+    port: 1025
+
+spring.datasource:
+    password: certdb
+    url: jdbc:postgresql://localhost:5432/certdb
+
+#
+# Integrations
+#
+auth.service:
+    url: https://ba-apps.prepdev.ripe.net/authorisation-service
+    api.key: BAD-TEST-D2Shtf2n5Bwh02P7
+
+customer.service:
+    url: https://ba-apps.prepdev.ripe.net/customer-service
+    api.key: BAD-TEST-D2Shtf2n5Bwh02P7
+
+resource.services:
+    apiKey: BAD-TEST-D2Shtf2n5Bwh02P7
+    url: https://rsng.prepdev.ripe.net/resource-services
+
+#
+# Application specific settings
+#
+admin.password.hash: $2a$10$xZzD2RK7l9FO6/2tftmom.Js/iRE2qF2JgHHQftqmCF1NqKhtKIK2
+api-keys.properties: "classpath:/test-api-keys.properties"
+
+autokeyrollover:
+    maxage.days: 0
+    update.interval.hours: 240
+
+
+key.management.data:
+    archive.directory: /tmp
+    directory: /tmp
+
+# lower these intervals for local environment
+keypair:
+    activation:
+        delay.hours: 0
+        interval.hours: 240
+    revocation.interval.hours: 240
+    generator.provider: SunRsaSign
+
+random.serial.increment: 1
+
+online.repository:
+    notification.uri: https://localhost:7788/notification.xml
+    directory: ${HOME}/export/bad/certification/repository/online
+    uri: rsync://localhost:10873/repository/
+
+provisioning.base.url: http://localhost.ripe.net:8080/certification/updown
+
+manifest.crl.update.interval.minutes: 10
+
+# Write rsync more frequently locally
+public.repository.rsync.interval.minutes: 5
+
+publication:
+    client:
+        keystore: ${RIPE_PUBLICATION_SERVER_SRC_PATH:${HOME}/src/ripe/rpki/rpki-publication-server}/src/test/resources/certificates/clientKeyStore.ks
+        keystore.password: 123456
+        truststore: ${RIPE_PUBLICATION_SERVER_SRC_PATH:${HOME}/src/ripe/rpki/rpki-publication-server}/src/test/resources/certificates/clientTrustStore.ks
+        truststore.password: 123456
+    server.url: https://localhost:7766/
+
+riswhoisdump:
+    base.url: http://localhost:8080/certification/static/dev-ris
+    update.interval.hours: 1
+
+static.image.deployment.environment: static/images/cert_development.png
+ta.repository:
+    directory: ${HOME}/export/bad/certification/repository/ta
+    uri: rsync://localhost:10873/ta/

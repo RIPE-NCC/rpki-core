@@ -1,0 +1,1 @@
+ALTER TABLE down_stream_provisioning_communicator DROP COLUMN last_issued_serial;

@@ -1,0 +1,4 @@
+rootProject.name = 'rpki-ripe-ncc'
+
+include 'hsm'
+project(':hsm').projectDir = new File('./hsm')

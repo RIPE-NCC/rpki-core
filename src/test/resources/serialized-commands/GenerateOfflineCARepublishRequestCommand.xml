@@ -1,0 +1,4 @@
+<commands.GenerateOfflineCARepublishRequestCommand>
+  <certificateAuthorityId>100001:3492</certificateAuthorityId>
+  <commandGroup>USER</commandGroup>
+</commands.GenerateOfflineCARepublishRequestCommand>

@@ -1,0 +1,27 @@
+<commands.ActivatePendingKeypairCommand>
+    <certificateAuthorityId>42:0</certificateAuthorityId>
+    <commandGroup>SYSTEM</commandGroup>
+    <keypair>
+        <name>TEST-KEY</name>
+        <keystoreName>KEYSTORE_NAME</keystoreName>
+        <status>CURRENT</status>
+        <creationDate>2013-09-27T09:17:07Z</creationDate>
+        <statusChangedTimestamps class="tree-map">
+            <entry>
+                <KeyPairStatus>NEW</KeyPairStatus>
+                <datetime>2013-09-27T09:17:07Z</datetime>
+            </entry>
+            <entry>
+                <KeyPairStatus>PENDING</KeyPairStatus>
+                <datetime>2013-09-27T09:17:07Z</datetime>
+            </entry>
+            <entry>
+                <KeyPairStatus>CURRENT</KeyPairStatus>
+                <datetime>2013-09-27T09:17:07Z</datetime>
+            </entry>
+        </statusChangedTimestamps>
+        <crlFilename>TEST-KEY.crl</crlFilename>
+        <manifestFilename>TEST-KEY.mft</manifestFilename>
+        <certificateRepositoryLocation>rsync://localhost:20873/repository/</certificateRepositoryLocation>
+    </keypair>
+</commands.ActivatePendingKeypairCommand>

@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+
+PROGRAM="publish-source-code"
+
+set -eo pipefail
+
+oops() {
+    echo "$PROGRAM: $*" >&2
+    exit 1
+}
+
+show_usage() {
+    cat <<EOF
+Usage:
+    $PROGRAM <oldbase> [<newbase>]
+
+Options:
+    -h, --help      Print this message.
+    --no-push       Do not push the new branch to the origin.
+    --repository    Remote URL for publication. Defaults to $REPOSITORY
+    --upstream      Upstream branch to publish changes onto. Defaults to $UPSTREAM.
+    --local-branch  Local branch name used to track upstream. Defaults to $LOCAL_BRANCH
+    --local-remote  Local name of remote repository. Defaults to $LOCAL_REMOTE
+
+EOF
+}
+
+check_dependencies() {
+    GIT=$(command -v git) || oops "command not found: git"
+}
+
+rev_parse() {
+    $GIT rev-parse --quiet --revs-only --verify --short "$1" || oops "$1: unknown revision"
+}
+
+branch_exists() {
+    $GIT rev-parse --quiet --verify "$1" &>/dev/null
+}
+
+remote_exists() {
+    $GIT remote | grep -e "^${1}\$" &>/dev/null
+}
+
+REPOSITORY="git@github.com:RIPE-NCC/rpki-core.git"
+PUSH=1
+UPSTREAM=main
+LOCAL_BRANCH=proscribo
+LOCAL_REMOTE=publicus
+
+main() {
+    check_dependencies
+
+    while true; do
+        case $1 in
+            -h|--help) show_usage; exit 0 ;;
+            --no-push) shift; PUSH=0 ;;
+            --repository) shift; REPOSITORY=$1; shift ;;
+            --upstream) shift; UPSTREAM=$1; shift ;;
+            --local-branch) shift; LOCAL_BRANCH=$1; shift ;;
+            --local-remote) shift; LOCAL_REMOTE=$1; shift ;;
+            --) shift; break ;;
+            -*) oops "$1: unknown option" ;;
+            *) break ;;
+        esac
+    done
+
+    [ -n "$1" ] || oops "<oldbase> is not specified"
+    remote_exists "$LOCAL_REMOTE" && oops "local remote $LOCAL_REMOTE already exists"
+    branch_exists "$LOCAL_BRANCH" && oops "local branch $LOCAL_BRANCH already exists"
+
+    oldbase=$(rev_parse "$1")
+    newbase=$(rev_parse "${2:-HEAD}")
+    branch=$LOCAL_BRANCH
+    remote=$LOCAL_REMOTE
+
+    changelog=$($GIT log --no-merges --format='* %s [%h]' "$oldbase..$newbase")
+    if [ -z "$changelog" ]; then
+        echo "No changes found between $1 and ${2:-HEAD}; nothing to publish."
+        exit 0
+    fi
+    cat <<EOF
+Changelog:
+
+$changelog
+
+EOF
+
+    echo "Adding remote repository"
+    $GIT remote add "$remote" "$REPOSITORY"
+    $GIT fetch --quiet "$remote"
+    echo
+
+    echo "Squashing changes between $oldbase and $newbase"
+    $GIT switch --quiet --no-track -c "$branch" "$oldbase"
+    $GIT merge --quiet --squash "$newbase" >/dev/null
+    $GIT commit --quiet -F- <<EOF
+RIPE NCC has merged $newbase
+
+$changelog
+EOF
+    rev=$(rev_parse HEAD)
+    $GIT switch --quiet --detach "$rev"
+    $GIT branch --quiet -D "$branch"
+
+    echo "Applying $rev on top of upstream"
+    $GIT switch --quiet --no-track -c "$branch" "$remote/$UPSTREAM"
+    $GIT cherry-pick "$rev" ||
+        ($GIT cherry-pick --abort && oops "Failed to apply changes on top of upstream")
+    echo
+
+    if [ "$PUSH" -eq 1 ]; then
+        echo "Pushing to $UPSTREAM in remote repository"
+        $GIT push --quiet "$remote" HEAD:"$UPSTREAM"
+    else
+        cat <<EOF
+Skip pushing to $UPSTREAM in remote repository. To manually push these changes you can run:
+
+  $GIT push '$remote' HEAD:$UPSTREAM"
+
+EOF
+    fi
+}
+
+main "${@}"

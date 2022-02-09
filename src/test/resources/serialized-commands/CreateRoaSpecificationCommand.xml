@@ -1,0 +1,14 @@
+<commands.CreateRoaSpecificationCommand>
+  <certificateAuthorityId>2371346:566</certificateAuthorityId>
+  <commandGroup>USER</commandGroup>
+  <roaSpecificationData>
+    <name>O-PI</name>
+    <validityPeriod/>
+    <asn>AS59676</asn>
+    <prefixes>
+      <RoaPrefix>
+        <prefix>193.105.150.0/24</prefix>
+      </RoaPrefix>
+    </prefixes>
+  </roaSpecificationData>
+</commands.CreateRoaSpecificationCommand>

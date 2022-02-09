@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:wicket="http://wicket.apache.org/dtds.data/wicket-xhtml1.4-strict.dtd" xml:lang="en" lang="en">
+
+<wicket:extend>
+    <div wicket:id="feedback"></div>
+
+    <div wicket:id="commandListPanel"></div>
+
+    <form wicket:id="caNameForm">
+        <table class="table-condensed">
+            <tbody>
+                <tr>
+                    <td><b>Certificate Authority Name</b></td>
+                    <td><input type="text" wicket:id="caName" /></td>
+                </tr>
+            </tbody>
+        </table>
+        <input type="submit" wicket:id="findButton" value="Find CA" class="btn"/>
+    </form>
+
+    <form wicket:id="deleteForm">
+        <input type="submit" wicket:id="deleteButton" value="Delete Certificate Authority" class="btn btn-primary" />
+        <input type="submit" wicket:id="backButton" value="Back" class="btn" />
+    </form>
+</wicket:extend>
+
+</html>

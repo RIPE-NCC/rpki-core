@@ -1,0 +1,79 @@
+<configuration>
+    <include resource="logback/defaults.xml"/>
+
+    <springProperty scope="context" name="rpki-ripe-ncc" source="spring.application.name"/>
+
+    <appender name="certification-log" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
+        <file>../logs/certification.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>../logs/certification.log.%d{yyyy-MM-dd}</fileNamePattern>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="email-log" class="ch.qos.logback.classic.net.SMTPAppender">
+        <smtpHost>localhost</smtpHost>
+        <to>bad-errs@ripe.net</to>
+        <from>unread@ripe.net</from>
+        <subject>RPKI errors on ${instance.name}</subject>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%date %-5level %logger{35} - %message%n</pattern>
+        </layout>
+    </appender>
+
+    <appender name="audit-log" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
+        <file>../logs/audit.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>../logs/audit.log.%d{yyyy-MM-dd}</fileNamePattern>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="provisioning-log" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
+        <file>../logs/provisioning.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>../logs/provisioning.log.%d{yyyy-MM-dd}</fileNamePattern>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <timestampPattern>yyyy-MM-dd' 'HH:mm:ss.SSS</timestampPattern>
+            <timeZone>UTC</timeZone>
+        </encoder>
+    </appender>
+
+    <logger name="net.ripe.rpki.application.impl.CommandAuditServiceBean" level="info" additivity="false">
+        <appender-ref ref="audit-log"/>
+    </logger>
+
+    <logger name="root" level="info" additivity="false">
+        <appender-ref ref="certification-log"/>
+    </logger>
+    <logger name="root" level="info">
+        <appender-ref ref="email-log"/>
+    </logger>
+    <logger name="net.ripe" level="info" additivity="false">
+        <appender-ref ref="certification-log"/>
+    </logger>
+    <logger name="org.quartz" level="warn" additivity="false">
+        <appender-ref ref="certification-log"/>
+    </logger>
+    <logger name="org.apache.wicket" level="warn" additivity="false">
+        <appender-ref ref="certification-log"/>
+    </logger>
+    <logger name="org.hibernate" level="error" additivity="false">
+        <appender-ref ref="certification-log"/>
+    </logger>
+    <logger name="org.springframework" level="warn" additivity="false">
+        <appender-ref ref="certification-log"/>
+    </logger>
+
+    <logger name="provisioning-logger" level="info" additivity="false">
+        <appender-ref ref="provisioning-log"/>
+    </logger>
+
+</configuration>

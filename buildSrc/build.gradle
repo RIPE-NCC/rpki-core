@@ -1,0 +1,18 @@
+plugins {
+    id 'groovy-gradle-plugin'
+}
+
+repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+}
+
+dependencies {
+    implementation 'io.freefair.lombok:io.freefair.lombok.gradle.plugin:6.3.0'
+    implementation('com.gorylenko.gradle-git-properties:com.gorylenko.gradle-git-properties.gradle.plugin:2.3.1') {
+        exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit'
+    }
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:5.13.0.202109080827-r'
+    implementation 'org.sonarqube:org.sonarqube.gradle.plugin:3.3'
+}

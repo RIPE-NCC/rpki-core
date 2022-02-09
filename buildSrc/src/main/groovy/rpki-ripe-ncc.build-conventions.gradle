@@ -1,0 +1,62 @@
+plugins {
+    id 'java'
+    id 'io.freefair.lombok'
+    id 'com.gorylenko.gradle-git-properties'
+    id 'jacoco'
+    id 'org.sonarqube'
+}
+
+group = 'net.ripe.rpki-ripe-ncc'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+
+    maven {
+        url = uri('https://oss.sonatype.org/content/repositories/releases')
+    }
+    maven {
+        url = uri('https://oss.sonatype.org/content/repositories/snapshots')
+    }
+
+    maven {
+        url = uri('https://maven.nexus.ripe.net/repository/maven-third-party')
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-Xlint:all'
+                         << '-Xlint:-processing'
+                         << '-Xlint:-serial'
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+gitProperties {
+    extProperty = 'gitProps'
+}
+
+jacocoTestReport {
+    // XML report for SonarQube
+    reports {
+        xml.required = true
+    }
+}
+
+sonarqube {
+    properties {
+        property 'sonar.exclusions', 'src/main/java/db/migration/V*.java'
+        property 'sonar.qualitygate.wait', 'true'
+        property 'sonar.qualitygate.timeout', System.getenv('SONAR_QUALITYGATE_TIMEOUT') ?: '300'
+    }
+}

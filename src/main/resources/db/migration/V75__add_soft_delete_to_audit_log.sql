@@ -1,0 +1,2 @@
+ALTER TABLE commandaudit
+    ADD deleted_at          TIMESTAMP WITH TIME ZONE NULL DEFAULT NULL;

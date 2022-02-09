@@ -1,0 +1,159 @@
+---
+elements:
+  -
+    type: Person
+    name: 'Network Operator'
+    description: 'Validate BGP Announcements'
+    tags: ""
+    position: '1205,1755'
+  -
+    type: Person
+    name: 'RIPE Members'
+    description: 'Manage RPKI Objects'
+    tags: ""
+    position: '175,1770'
+  -
+    type: 'Software System'
+    name: 'RPKI Core'
+    description: 'Core RPKI System'
+    tags: Internal
+    position: '120,570'
+  -
+    type: 'Software System'
+    name: 'RPKI Dashboard'
+    description: 'In RIPE Portal, members can create certificate, ROAs, receive alerts on BGP Announcements.'
+    tags: Internal
+    position: '125,1185'
+  -
+    type: 'Software System'
+    name: 'RPKI Repository'
+    description: 'Publication repository where we store validated certificates and signed object (valid roas, manifest, ghost buster)'
+    tags: ""
+    position: '665,10'
+  -
+    type: 'Software System'
+    name: 'RPKI Stat'
+    description: 'Generating statistics about adoption and activation'
+    tags: Internal
+    position: '1785,1020'
+  -
+    type: 'Software System'
+    name: 'RPKI Validator'
+    description: 'Validating published objects, from the trust anchor down to each members/end user and its signed objects.'
+    tags: Internal
+    position: '1165,560'
+  -
+    type: 'Software System'
+    name: RSNG
+    description: 'Member''s resources ownership information'
+    tags: ""
+    position: '125,15'
+  -
+    type: 'Software System'
+    name: 'RTR Server'
+    description: 'Network operator can connect to their routers to validate BGP announcements'
+    tags: Internal
+    position: '1150,1025'
+relationships:
+  -
+    source: 'Network Operator'
+    description: 'Connect routers to validate BGP Announcements'
+    technology: ""
+    destination: 'RTR Server'
+    tags: ""
+  -
+    source: 'RIPE Members'
+    description: 'Managed RPKI Objects'
+    technology: ""
+    destination: 'RPKI Dashboard'
+    tags: ""
+  -
+    source: 'RPKI Core'
+    description: 'Publish/withdraw certificates and signed objects  (ROA, Manifest, Ghostbuster records)'
+    technology: ""
+    destination: 'RPKI Repository'
+    tags: ""
+    vertices:
+      - '725,725'
+      - '735,405'
+  -
+    source: 'RPKI Core'
+    description: 'Fetch the latest status of delegated resources and its holders'
+    technology: ""
+    destination: RSNG
+    tags: ""
+  -
+    source: 'RPKI Dashboard'
+    description: 'Manages RPKI Objects: Certificates, ROA Configurations, Announcements Alerts'
+    technology: ""
+    destination: 'RPKI Core'
+    tags: ""
+  -
+    source: 'RPKI Stat'
+    description: 'Fetch validated ROAs, valid certificates, calculate adoption, activation, coverage.'
+    technology: ""
+    destination: 'RPKI Validator'
+    tags: ""
+    vertices:
+      - '2000,710'
+  -
+    source: 'RPKI Validator'
+    description: 'Fetch and verify published data via Rsync/RRDP'
+    technology: ""
+    destination: 'RPKI Repository'
+    tags: ""
+    vertices:
+      - '980,730'
+      - '985,415'
+      - '935,345'
+  -
+    source: 'RTR Server'
+    description: 'Fetch validated ROAs'
+    technology: ""
+    destination: 'RPKI Validator'
+    tags: ""
+styles:
+  -
+    type: element
+    tag: Internal
+    width: ""
+    height: ""
+    background: '#005493'
+    color: ""
+    border: ""
+    opacity: ""
+    fontSize: ""
+    shape: ""
+    metadata: ""
+    description: ""
+  -
+    type: element
+    tag: Person
+    width: ""
+    height: ""
+    background: '#009193'
+    color: ""
+    border: ""
+    opacity: ""
+    fontSize: ""
+    shape: Robot
+    metadata: ""
+    description: ""
+  -
+    type: element
+    tag: 'Software System'
+    width: ""
+    height: ""
+    background: '#009193'
+    color: ""
+    border: ""
+    opacity: ""
+    fontSize: ""
+    shape: RoundedBox
+    metadata: ""
+    description: ""
+type: 'System Landscape'
+scope: 'RPKI Ecosystem'
+description: 'RPKI and its related systems'
+size: A3_Landscape
+

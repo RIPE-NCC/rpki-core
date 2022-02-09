@@ -1,0 +1,5 @@
+<commands.UnsubscribeFromRoaAlertCommand>
+  <certificateAuthorityId>1355222:2488</certificateAuthorityId>
+  <commandGroup>USER</commandGroup>
+  <email>registry@example.com</email>
+</commands.UnsubscribeFromRoaAlertCommand>

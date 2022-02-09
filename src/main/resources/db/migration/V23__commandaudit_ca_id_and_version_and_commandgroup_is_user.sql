@@ -1,0 +1,1 @@
+CREATE index commandaudit_ca_id_and_version_and_commandgroup_is_user_idx ON commandaudit(ca_id, commandgroup, ca_version) WHERE (commandgroup='USER');

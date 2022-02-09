@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:wicket="http://wicket.apache.org/dtds.data/wicket-xhtml1.4-strict.dtd" xml:lang="en" lang="en">
+
+<wicket:extend>
+    <div wicket:id="feedback"></div>
+
+    <h1>Configuration Parameters</h1>
+    <table class="table table-condensed table-striped table-bordered">
+        <thead>
+            <tr>
+                <td><strong>Parameter</strong></td>
+                <td><strong>Value</strong></td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Local Repository Directory</strong></td>
+                <td><span wicket:id="localRepositoryDirectory">/tmp</span></td>
+            </tr>
+            <tr>
+                <td><strong>Public Repository URI</strong></td>
+                <td><span wicket:id="publicRepositoryUri">rsync://localhost:873/foo</span></td>
+            </tr>
+            <tr>
+                <td><strong>Instance Name</strong></td>
+                <td><span wicket:id="instancename" class="instanceName">armyant</span>&nbsp;&nbsp;&nbsp;<img wicket:id="activeNodeImage"/></td>
+            </tr>
+            <form wicket:id="activeNodeForm">
+                <tr>
+                    <td><strong>Active node</strong></td>
+                    <td>
+                        <input type="text" wicket:id="activeNode" class="activeNodeField" />&nbsp;
+                        <input type="submit" value="Update" class="btn-small submitUpdateActiveNode" />
+                    </td>
+                </tr>
+            </form>
+            <tr>
+                <td><strong>Troubleshooting</strong></td>
+                <td><a href="monitoring/healthcheck">RPKI monitoring page</a></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h1>RIPE NCC Background Services</h1>
+    <table class="table table-condensed table-striped table-bordered">
+        <thead>
+            <tr>
+                <td><strong>Service</strong></td>
+                <td><strong>Status</strong></td>
+                <td><strong>Action</strong></td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Manifest/CRL Update Service</strong></td>
+                <td><span wicket:id="repositoryServiceStatus">OFF</span></td>
+                <td><a href="#" wicket:id="updateManifestLink" class="updateResourcesLink">Update manifests and CRLs</a></td>
+            </tr>
+            <tr>
+                <td><strong>RPKI Object Publication Status Service</strong></td>
+                <td><span wicket:id="repositoryPublicationStatus">OFF</span></td>
+                <td><a href="#" wicket:id="updatePublicationStatusLink" class="updateResourcesLink">Prepare RPKI objects for publishing</a></td>
+            </tr>
+            <tr>
+                <td><strong>Rsync Repository Service</strong></td>
+                <td><span wicket:id="repositoryRsyncStatus">OFF</span></td>
+                <td><a href="#" wicket:id="updateRsyncLink" class="updateResourcesLink">Publish RPKI objects to the RSYNC repository</a></td>
+            </tr>
+            <tr>
+                <td><strong>RRDP Publication Service Service</strong></td>
+                <td><span wicket:id="repositoryRrdpStatus">OFF</span></td>
+                <td><a href="#" wicket:id="updateRrdpLink" class="updateResourcesLink">Publish RPKI objects to the RRDP publication server</a></td>
+            </tr>
+            <tr>
+                <td><strong>Member Certificate Update Service</strong></td>
+                <td><span wicket:id="allCertificateUpdateServiceStatus">OFF</span></td>
+                <td><a href="#" wicket:id="updateResourcesLink" class="updateResourcesLink">Update Certificates for all CAs</a></td>
+            </tr>
+            <tr>
+                <td><strong>Key Pair Activation Service</strong></td>
+                <td><span wicket:id="keyPairActivationServiceStatus">OFF</span></td>
+                <td><a href="#" wicket:id="activatePendingKeyPairsLink" class="activatePendingKeyPairsLink">Activate pending key pairs</a></td>
+            </tr>
+            <tr>
+                <td><strong>Key Pair Revocation Service</strong></td>
+                <td><span wicket:id="keyPairRevocationServiceStatus">OFF</span></td>
+                <td><a href="#" wicket:id="revokeOldKeyPairsLink" class="revokeOldKeyPairsLink">Revoke old key pairs</a></td>
+            </tr>
+            <tr>
+                <td><strong>Member Key Roll-over Service</strong></td>
+                <td><span wicket:id="memberKeyRolloverServiceStatus">OFF</span></td>
+                <td><a href="#" wicket:id="memberRollOverLink" class="emberRollOverLink">Force member roll over job *now*</a></td>
+            </tr>
+            <tr>
+                <td><strong>Production CA Key Roll-over Service</strong></td>
+                <td><span wicket:id="productionKeyRolloverServiceStatus">OFF</span></td>
+                <td><a href="#" wicket:id="productionCaRollOverLink" class="emberRollOverLink">Force Production CA roll over job *now*</a></td>
+            </tr>
+            <tr>
+                <td><strong>Certificate Expiration Service</strong></td>
+                <td><span wicket:id="certificateExpirationServiceStatus">OFF</span></td>
+                <td><a href="#" wicket:id="certificateExpirationServiceLink" class="certificateExpirationServiceLink">Expire certificates that are no longer valid</a></td>
+            </tr>
+            <tr>
+                <td><strong>BGP RIS Update Service</strong></td>
+                <td><span wicket:id="bgpRisUpdateServiceStatus">OFF</span></td>
+                <td><a href="#" wicket:id="bgpRisUpdateLink" class="bgpRisUpdateLink">Update BGP RIS</a></td>
+            </tr>
+            <tr>
+                <td><strong>ROA Alert Service</strong></td>
+                <td><span wicket:id="roaAlertBackgroundServiceStatus">OFF</span></td>
+                <td><a href="#" wicket:id="roaAlertBackgroundServiceLink" class="roaAlertBackgroundServiceLink">Run NOW</a></td>
+            </tr>
+            <tr>
+                <td><strong>Resource Cache Update Service</strong></td>
+                <td><span wicket:id="resourceCacheUpdateServiceStatus">OFF</span></td>
+                <td><a href="#" wicket:id="resourceCacheUpdateServiceLink" class="resourceCacheUpdateServiceLink">Run NOW</a></td>
+            </tr>
+            <tr>
+                <td><strong>Published Object Cleanup Service</strong></td>
+                <td><span wicket:id="publishedObjectCleanUpServiceStatus">OFF</span></td>
+                <td><a href="#" wicket:id="publishedObjectCleanUpServiceLink" class="publishedObjectCleanUpServiceLink">Run NOW</a></td>
+            </tr>
+        </tbody>
+    </table>
+</wicket:extend>
+
+</html>

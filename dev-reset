@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# Reset the developer environment.
+#
+# We simply:
+#  - Erase the contents of the /export directories.
+#  - Drop and recreate the database.
+
+# Abort on first error.
+set -e
+
+rm -rf /export/bad/certification/repository/ta/published/* &
+rm -rf /export/bad/certification/repository/online/published/* &
+rm -rf /export/bad/certification/ta/data/* &
+rm -rf /export/bad/certification/ta/requests/* &
+rm -rf /export/bad/certification/ta/responses/* &
+dropdb certdb && createdb -O certdb certdb &
+
+wait

@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC
+  "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+
+<wicket:head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <!-- Forces IE8+ into newest rendering engine even if on an intranet. This has to be defined before any script/style tags. -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <script type="text/javascript" src="/certification/portal-theme/js/ba/min/ie11-console-fix.js"></script>
+
+    <style type="text/css" media="screen">
+        @import url(/certification/portal-theme/css/portal.unified.css);
+        @import url(/certification/portal-theme/css/portal.minimal.css);
+        @import url(/certification/portal-theme/css/font-awesome.min.css);
+    </style>
+    
+    <title wicket:id="pageTitle">RPKI Administrative Interface</title>
+
+</wicket:head>
+
+
+<body class="template-template portaltype-externalapplication section-lir-services colorBlue" dir="ltr">
+
+
+    <div id="collapse-button"></div>
+
+
+    <div id="visual-portal-wrapper">
+
+        <!-- End of header -->
+                                    
+        <div id="portal-columns">
+
+            <div id="portal-column-content" class="">
+                <div class="visualPadding">
+
+                    <div id="viewlet-above-content"></div>
+
+                    <div class="">
+
+                        <dl class="portalMessage info" id="kssPortalMessage" style="display: none">
+                            <dt>Info</dt>
+                            <dd></dd>
+                        </dl>
+
+                        <div id="content">
+
+                            <div>
+                                <div id="external">
+
+                                    <div id="portalLeftMenu">
+                                        <!-- LEFT NAVIGATION START --> <span wicket:id="leftNavigation" /> <!-- LEFT NAVIGATION END -->
+                                    </div>
+
+                                    <div class="portalLabel" id="takeTheTourLabel"><a href="#"><i class="fa fa-rocket"></i>&nbsp;Tour</a></div>
+                                    <div class="portalLabel" id="apiLabel"><a href="#"><i class="fa fa-cogs"></i>&nbsp;API</a></div>
+                                    <div id="portalContent">
+                                        <wicket:child>Child content goes here</wicket:child>
+                                    </div>
+
+                                    <div id="help" title="Dialog title">
+                                        <p>
+                                            <span id="message"></span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="viewlet-below-content"></div>
+                </div>
+            </div>
+            <div class="visualClear" />
+        </div>
+    </div>
+
+</body>
+</html>

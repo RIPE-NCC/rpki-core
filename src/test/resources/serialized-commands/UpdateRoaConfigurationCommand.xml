@@ -1,0 +1,11 @@
+<commands.UpdateRoaConfigurationCommand>
+  <certificateAuthorityId>13466999:5</certificateAuthorityId>
+  <commandGroup>USER</commandGroup>
+  <additions>
+    <RoaPrefixConfiguration>
+      <asn>AS29020</asn>
+      <prefix>188.253.60.0/22</prefix>
+    </RoaPrefixConfiguration>
+  </additions>
+  <deletions/>
+</commands.UpdateRoaConfigurationCommand>

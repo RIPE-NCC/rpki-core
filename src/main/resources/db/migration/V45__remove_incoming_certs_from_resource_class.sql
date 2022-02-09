@@ -1,0 +1,1 @@
+ALTER TABLE resourcecertificate DROP COLUMN receiving_ca_resource_class_id;

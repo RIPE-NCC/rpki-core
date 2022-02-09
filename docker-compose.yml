@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:11
+    # Uncomment to expose postgres instance
+    # ports:
+    #   - 5432:5432
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: 'certdb'
+      POSTGRES_USER: 'certdb'
+      POSTGRES_PASSWORD: 'certdb'
+
+  rsyncd:
+    image: vimagick/rsyncd
+    ports:
+      - 127.0.0.1:873:873
+    volumes:
+      - ./docker/rsyncd.conf:/etc/rsyncd.conf
+      - rpki_certification_data:/export/bad/certification
+
+  rpki-core:
+    image: docker-registry.ripe.net/rpki/rpki-ripe-ncc
+    ports:
+      - 8080:8080
+    links:
+      - postgres
+    volumes:
+      - rpki_certification_data:/export/bad/certification
+    environment:
+      SPRING_PROFILES_ACTIVE: 'local'
+      ONLINE_REPOSITORY_DIRECTORY: '/export/bad/certification/repository/online'
+      ONLINE_REPOSITORY_URI: 'rsync://localhost:873/repository/'
+      SPRING_DATASOURCE_URL: 'jdbc:postgresql://postgres:5432/certdb'
+      SPRING_DATASOURCE_USERNAME: 'certdb'
+      SPRING_DATASOURCE_PASSWORD: 'certdb'
+      LOGGING_CONFIG: 'classpath:logback/logback-docker.xml'
+      JAVA_OPTS: '-DAPPLICATION_ENVIRONMENT=local'
+
+volumes:
+  postgresql_data:
+    driver: local
+  rpki_certification_data:
+    driver: local

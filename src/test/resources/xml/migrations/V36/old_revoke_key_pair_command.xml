@@ -1,0 +1,5 @@
+<commands.RevokeKeyPairCommand>
+    <certificateAuthorityId>42:0</certificateAuthorityId>
+    <commandGroup>SYSTEM</commandGroup>
+    <name>old-key-name</name>
+</commands.RevokeKeyPairCommand>

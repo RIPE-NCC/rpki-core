@@ -1,0 +1,130 @@
+#
+# Structure:
+# - this file contains the defaults
+# - order:
+#    - system settings first,
+#    - then generic spring properties,
+#    - then third party spring components
+#    - followed by RIPE NCC integration properties, and
+#    - finally application settings.
+#
+server:
+    servlet:
+        session.tracking-modes: cookie
+        context-path: /certification
+    shutdown: graceful
+
+spring:
+    main.banner-mode: 'off'
+    datasource:
+        driver-class-name: org.postgresql.Driver
+        username: certdb
+        hikari.maximum-pool-size: 90
+    jpa:
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+        generate-ddl: false
+        hibernate.ddl-auto: validate
+        open-in-view: false
+        properties.hibernate.jdbc.lob.non_contextual_creation: true
+        show-sql: false
+
+
+    lifecycle.timeout-per-shutdown-phase: 5s
+    resources.static-locations: "classpath:/static/,classpath:/portal-theme:server"
+
+# Mail settings (SMTP)
+mail:
+    host: localhost
+    port: 25
+
+# do not expose the default endpoints for security.
+# opt-in to prometheus and info endpoint.
+management:
+    endpoints:
+        enabled-by-default: false
+        web.exposure.include: info,prometheus
+    endpoint:
+        info.enabled: true
+        prometheus.enabled: true
+
+#
+# Third party spring managed components
+#
+
+springdoc:
+    packagesToScan: net.ripe.rpki.rest
+    pathsToMatch: /api/**
+    swagger-ui.disable-swagger-default-url: true
+
+sentry:
+    environment: ${APPLICATION_ENVIRONMENT}
+    logging.minimum-event-level: error
+    # Ensure Sentry can report before other exception handlers swallow the exception.
+    exception-resolver-order: -2147483647
+    # Set traces-sample-rate to 1%, if all environments have it enabled, we use
+    # ~100K events/day with a cost of ~400/month. This should catch performance issues.
+    traces-sample-rate: 0.01
+
+#
+# Integrations
+#
+iana:
+    ASN.delegations: https://www.iana.org/assignments/as-numbers/as-numbers.xml
+    IPv4.delegations: https://www.iana.org/assignments/ipv4-address-space/ipv4-address-space.xml
+    IPv6.delegations: http://www.iana.org/assignments/ipv6-unicast-address-assignments/ipv6-unicast-address-assignments.xml
+
+riswhoisdump:
+    base.url: https://www.ris.ripe.net/dumps/
+    update.interval.hours: 1
+
+auth.service:
+    connect.timeout.milliseconds: 5000
+    read.timeout.milliseconds: 10000
+
+customer.service:
+    connect.timeout.milliseconds: 10000
+    read.timeout.milliseconds: 30000
+
+resource:
+    update.interval.hours: 1
+    services.enable.asn: true
+
+#
+# Application specific settings
+#
+all.resources.ca.name: "CN=ALL Resources,O=RIPE NCC,C=NL"
+production.ca.name: "CN=RIPE NCC Resources,O=RIPE NCC,C=NL"
+
+# Should the instance accept the first rejected resource cache update it encounters?
+# (used to override the acceptance of big resource cache updates)
+accept.one.rejected.resource.cache.update: false
+
+private.asns.ranges: 112, 23456, 64496-64511, 64512-65534, 65535, 65536-65551, 4200000000-4294967294, 4294967295
+
+#
+# Make the key roll services fully manual, i.e.
+#  1) do not run automatically
+#  2) use 0 days / hours so a manual run always works
+autokeyrollover:
+    update.interval.hours: 8760
+    maxage.days: 0
+
+# How often are repositories (rsync on disk, publication servers) contacted
+public.repository:
+    publication.interval.minutes: 1
+    rrdp.interval.minutes: 1
+    rsync.interval.minutes: 15
+
+keypair:
+    activation:
+        interval.hours: 8760
+        delay.hours: 0
+    revocation.interval.hours: 8760
+
+manifest.crl.update.interval.minutes: 10
+
+# Certificate serial number generation. A new certificate's serial number is calculated using
+# lastSerialNumber + random(1 .. max.serial.increment)
+max.serial.increment: 100000
+# TODO: check if this is actuall unused. Seems that `max.serial.increment` is used to set the random serial increment on CAs.
+random.serial.increment: 100000

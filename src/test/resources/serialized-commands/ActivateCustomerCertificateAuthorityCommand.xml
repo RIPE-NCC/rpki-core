@@ -1,0 +1,9 @@
+<commands.ActivateCustomerCertificateAuthorityCommand>
+  <certificateAuthorityId>13466999:-1</certificateAuthorityId>
+  <commandGroup>USER</commandGroup>
+  <name>CN=4766</name>
+  <resourceClasses>
+    <class name="RIPE">46.249.96.0/19, 77.237.160.0/19, 82.115.0.0/19, 109.125.128.0/18, 188.253.0.0/17, 212.95.128.0/19, 2001:16c0::/32</class>
+  </resourceClasses>
+  <parentId>100001</parentId>
+</commands.ActivateCustomerCertificateAuthorityCommand>

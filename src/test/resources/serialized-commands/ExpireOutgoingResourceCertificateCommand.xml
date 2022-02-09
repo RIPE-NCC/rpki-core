@@ -1,0 +1,4 @@
+<commands.ExpireOutgoingResourceCertificatesCommand>
+  <certificateAuthorityId>4390283:2729</certificateAuthorityId>
+  <commandGroup>SYSTEM</commandGroup>
+</commands.ExpireOutgoingResourceCertificatesCommand>

@@ -1,0 +1,1 @@
+ALTER TABLE ca_child DROP CONSTRAINT "ca_child_child_ca_id_fkey";

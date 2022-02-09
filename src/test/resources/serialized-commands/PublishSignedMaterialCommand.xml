@@ -1,0 +1,4 @@
+<commands.PublishSignedMaterialCommand>
+  <certificateAuthorityId>1083844:4017</certificateAuthorityId>
+  <commandGroup>SYSTEM</commandGroup>
+</commands.PublishSignedMaterialCommand>

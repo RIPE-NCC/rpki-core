@@ -1,0 +1,3 @@
+ALTER TABLE published_object
+    ADD validity_not_before TIMESTAMP WITH TIME ZONE NULL DEFAULT NULL,
+    ADD validity_not_after TIMESTAMP WITH TIME ZONE NULL DEFAULT NULL;

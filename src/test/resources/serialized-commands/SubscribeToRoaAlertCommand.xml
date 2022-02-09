@@ -1,0 +1,9 @@
+<commands.SubscribeToRoaAlertCommand>
+  <certificateAuthorityId>1052357:3914</certificateAuthorityId>
+  <commandGroup>USER</commandGroup>
+  <email>registry@example.com</email>
+  <routeValidityStates class="sorted-set">
+    <RouteValidityState>INVALID</RouteValidityState>
+    <RouteValidityState>UNKNOWN</RouteValidityState>
+  </routeValidityStates>
+</commands.SubscribeToRoaAlertCommand>

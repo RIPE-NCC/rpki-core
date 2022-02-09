@@ -1,0 +1,47 @@
+logging.config: classpath:logback/logback-pilot.xml
+
+keystore:
+    provider: SUN
+    type: JKS
+
+signature:
+    provider: SunRsaSign
+
+#
+# Integrations
+#
+auth.service.url: https://ba-apps.ripe.net/authorisation-service
+customer.service.url: https://ba-apps.ripe.net/customer-service
+resource.services.url: https://rsng.ripe.net/resource-services
+
+#
+# Application specific settings
+#
+admin.password.hash: $2a$12$kPTg/4Zf/pza9j15JI6d4eCIzxopN5HQRU7vwcAa2BqpFnnGe9ks2
+
+key.management.data:
+    archive.directory: /cert/hsmkeys/shared-keys.archive
+    directory: /cert/hsmkeys/shared-keys
+
+keypair.generator.provider: SunRsaSign
+
+online.repository:
+    directory: /cert/repository/repository
+    notification.uri: https://localcert.ripe.net/rrdp/notification.xml
+    uri: rsync://localcert.ripe.net/repository/
+
+provisioning.base.url: http://localcert.ripe.net/certification/updown
+
+publication:
+    client:
+        keystore: /cert/shared/clientKeyStore.ks
+        truststore: /cert/shared/clientTrustStore.ks
+    server.url: https://localhost:7766/
+
+static.image.deployment.environment: static/images/cert_sandbox.png
+
+ta.repository:
+    directory: /cert/repository/ta
+    uri: rsync://localcert.ripe.net/ta/
+
+api-keys.properties: file:///cert/shared/rpki-api-keys.properties

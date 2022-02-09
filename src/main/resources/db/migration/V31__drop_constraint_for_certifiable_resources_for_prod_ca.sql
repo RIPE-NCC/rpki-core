@@ -1,0 +1,2 @@
+ALTER TABLE certificateauthority DROP CONSTRAINT "root_ca_has_certifiable_resources";
+ALTER TABLE certificateauthority DROP COLUMN certifiable_resources;

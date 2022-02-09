@@ -1,0 +1,149 @@
+RESTORING CERTIFICATION DEV ENVIRONMENT FROM PRODUCTION DUMP
+============================================================
+
+
+* Stop all rpki software instances on sugarant.prepdev.ripe.net
+
+======================
+Restoring the database
+======================
+
+* Get a recent db dump from slaveant. The exact location may change over time but on the app-admin's crontab you'll find the backup command.
+  rsync -avzP --inplace slaveant:/export/backups/pgsql/slaveant_psqldump-2013-09-19T01\:27\:02+0200.bz2 .
+  Why not scp instead of rsync? Because the RIPE NCC network is unable to cope with copying large files so if it's bigger than a few hundred megabytes you'll have to use the rsync command above and fetch the file in chunks.
+
+* Copy the dump to the prepdev db machine:
+  mv slaveant_psqldump-2013-09-19T01\:27\:02+0200.bz2 dump.bz2
+  rsync -avzP --inplace dump.bz2 slaveant.prepdev.ripe.net:/export/tmp/
+
+* Restore the database from dump. If the dump was made with pg_dumpall and bzipped (which is the case at the moment) you can restore it as follows:
+  dropdb certdb
+  bzcat /export/tmp/dump.bz2 | psql -f - postgres
+
+======================
+Restoring the hsm keys
+======================
+
+* Precondition: the production security world is already restored
+
+* Create an hsmkeys tarball on the production server as app-admin:
+  cd /cert/hsmkeys
+  tar cvzf /cert/archive/hsmkeys-`date +%Y-%m-%d`.tar.gz shared-keys
+  then copy it to your local machine:
+  scp fireant:/cert/archive/hsmkeys-`date +%Y-%m-%d`.tar.gz .
+
+* Copy the keys on the prepdev machine:
+  scp hsmkeys-`date +%Y-%m-%d`.tar.gz sugarant.prepdev.ripe.net:/tmp/
+  cd /tmp
+  tar xvzf hsmkeys-`date +%Y-%m-%d`.tar.gz
+  then remove the existing keys (but not the module/world files!):
+  rm /opt/nfast/kmdata/local/key_jcecsp_*
+  then restore the production keys:
+  mv shared-keys/key_jcecsp_* /opt/nfast/kmdata/local/
+
+========================
+Restoring the repository
+========================
+
+This is not strictly necessary - you could just trigger a full update by manipulating the database. I prefer doing it this way.
+
+* Create a repository tarball on the production server as app-admin:
+  cd /cert/repository
+  tar cvzf /cert/archive/repository-`date +%Y-%m-%d`.tar.gz repository
+  tar cvzf /cert/archive/ta-`date +%Y-%m-%d`.tar.gz ta
+  then copy it to your local machine:
+  scp fireant:/cert/archive/repository-`date +%Y-%m-%d`.tar.gz .
+  scp fireant:/cert/archive/ta-`date +%Y-%m-%d`.tar.gz .
+
+* Copy the repository on the prepdev machine:
+  scp repository-`date +%Y-%m-%d`.tar.gz ta-`date +%Y-%m-%d`.tar.gz sugarant.prepdev.ripe.net:/tmp/
+  cd /tmp
+  tar xvzf repository-`date +%Y-%m-%d`.tar.gz
+  tar xvzf ta-`date +%Y-%m-%d`.tar.gz
+  then remove the existing content:
+  rm -rf /cert/repository/repository/published/*
+  rm -rf /cert/repository/ta/published/*
+  then restore the production repository files:
+  mv ta/published/* /cert/repository/ta/published/
+  mv repository/published/* /cert/repository/repository/published/
+
+=================================
+Restoring the shared config files
+=================================
+
+It may change over time what we store here. At the moment it's just 3 iana xml files.
+
+* scp fireant:/cert/shared/* .
+  scp as-numbers.xml ipv4-address-space.xml ipv6-unicast-address-assignments.xml sugarant.prepdev.ripe.net:/tmp/
+  cp /tmp/as-numbers.xml /cert/shared/as-numbers.xml.prod
+  cp /tmp/ipv6-unicast-address-assignments.xml /cert/shared/ipv6-unicast-address-assignments.xml.prod
+  cp /tmp/ipv4-address-space.xml /cert/shared/ipv4-address-space.xml.prod
+  ln -sf as-numbers.xml.prod as-numbers.xml
+  ln -sf ipv6-unicast-address-assignments.xml.prod ipv6-unicast-address-assignments.xml
+
+
+============================================
+Restoring the production software on prepdev
+============================================
+
+* Create a tarball on the production server and bring it over to the prepdev machine:
+  cd /usr/local/bad
+  tar cvzf /tmp/rpki-ripe-ncc-current.tar.gz `readlink /usr/local/bad/rpki-ripe-ncc-current`
+  scp fireant:/tmp/rpki-ripe-ncc-current.tar.gz .
+  scp rpki-ripe-ncc-current.tar.gz sugarant.prepdev.ripe.net:/tmp/
+  cd /export/bad/apps
+  tar xvzf /tmp/rpki-ripe-ncc-current.tar.gz
+  then make sure we have a copy in both node directories:
+  rsync -avP rpki-ripe-ncc-daemon-fix-cust-serial-1 rpki-ripe-ncc-node1/
+  mv rpki-ripe-ncc-daemon-fix-cust-serial-1 rpki-ripe-ncc-node2/
+  then adjust the current symlinks:
+  cd rpki-ripe-ncc-node1/
+  ln -sfn rpki-ripe-ncc-daemon-fix-cust-serial-1 current
+  cd ../rpki-ripe-ncc-node2/
+  ln -sfn rpki-ripe-ncc-daemon-fix-cust-serial-1 current
+
+* Make sure the prepdev configuration profile matches the productions one:
+  diff -Naur current/config/rpki-config-fireant.properties current/config/rpki-config-sugarant.properties
+  then make the necessary changes
+
+==============================================================
+Validate the repository (before starting up the rpki software)
+==============================================================
+
+* Make sure there is an rpki validator on prepdev (install if needed):
+  scp Downloads/rpki-validator-app-2.11.1-dist.tar.gz sugarant.prepdev.ripe.net:/tmp/
+  cd /export/bad/apps
+  tar xvzf /tmp/rpki-validator-app-2.11.1-dist.tar.gz
+  then remove the non-ripe tals:
+  rm rpki-validator-app-2.11.1/conf/tal/[^r]*
+
+* Start up the validator:
+  ./rpki-validator.sh start -h 8083
+
+* Set up a tunnel from your machine so that you can see the validator webpage:
+  ssh -L 8083:localhost:8083 sugarant.prepdev.ripe.net
+
+* Go to http://localhost:8083/trust-anchors and note the number of valid objects and the number of warnings/errors
+
+=====================================================================
+Start up the rpki sw and validate after background service executions
+=====================================================================
+
+* Start it up (one node at a time) and monitor the log file.
+  /export/bad/apps/rpki-ripe-ncc-node1/current/rpki-ripencc-init.sh start sugarant node1 8080
+  /export/bad/apps/rpki-ripe-ncc-node2/current/rpki-ripencc-init.sh start sugarant node2 8081
+
+* Go to the SystemStatusPage and change the active node so that you can run background services and run the necessary ones and finally republish
+
+* Run the validator again. Depending on how different the prepdev resource db content is from the production one you will see somewhat different numbers when you check the validator but the order should be the same.
+  Note: For some reason the validator reported inconsistent publication point for the prod ca until I forced a republication by doing:
+  update published_object set status = 'TO_BE_PUBLISHED' where status = 'PUBLISHED';
+
+=========================
+Upgrade the rpki software
+=========================
+
+* Copy the build artifact on the prepdev machine:
+  scp Downloads/rpki-ripe-ncc-daemon-962-dist.tar.gz sugarant.prepdev.ripe.net:/tmp/
+  tar xvzf /tmp/rpki-ripe-ncc-daemon-962-dist.tar.gz
+  ln -sfn rpki-ripe-ncc-daemon-962 current

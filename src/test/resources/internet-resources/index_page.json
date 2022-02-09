@@ -1,0 +1,34 @@
+{"response": {
+    "status": 200,
+    "message": "OK",
+    "totalSize": 1,
+    "links": [
+        {
+            "rel": "asn-delegations",
+            "href": "/resource-services/asn-delegations"
+        },
+        {
+            "rel": "ipv4-delegations",
+            "href": "/resource-services/ipv4-delegations"
+        },
+        {
+            "rel": "ipv6-delegations",
+            "href": "/resource-services/ipv6-delegations"
+        },
+        {
+            "rel": "member-resources",
+            "href": "/resource-services/member-resources"
+        }
+    ],
+    "linkTemplates": [
+        {
+            "rel": "member-resources",
+            "href": "/resource-services/member-resources/{membership%2did}"
+        },
+        {
+            "rel": "all-member-resources",
+            "href": "/resource-services/all-member-resources/{membership%2did}"
+        }
+    ],
+    "content": {}
+}}

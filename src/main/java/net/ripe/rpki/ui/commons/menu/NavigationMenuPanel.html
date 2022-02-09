@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<wicket:panel>
+    <div class="portalMenuGroup">
+        <dl class="portlet portletColor">
+            <dt class="portletHeader">
+            <div class="portletTopLeft"></div>
+            <div class="portletTopRight"></div>
+            </dt>
+            <dd class="portletItem odd">
+                <div class="portletMenuItem">
+                    <a href="/certification/SystemStatusPage" class="nav-left">System Status</a>
+                </div>
+                <div class="portletMenuItem">
+                    <a href="/certification/History" class="nav-left">Production CA History</a>
+                </div>
+                <div class="portletMenuItem">
+                    <a href="/certification/UpstreamCaManagementPage" class="nav-left">Upstream CA Management</a>
+                </div>
+                <div class="portletMenuItem">
+                    <a href="/certification/DeleteCAPage" class="nav-left">Delete CA</a>
+                </div>
+                <div class="portletMenuItem">
+                    <a href="/certification/provisioning-identity-details" class="nav-left">Provision</a>
+                </div>
+            </dd>
+            <dd class="portletFooter">
+                <div></div>
+            </dd>
+        </dl>
+    </div>
+    <script>
+        $(function () {
+            $(".portletMenuItem").each(function (index, item) {
+                var ajaxUrl = $(item).attr('data-ajax-url');
+                if (ajaxUrl) {
+                    $.ajax({
+                        "url": ajaxUrl,
+                        "type": "post",
+                        "dataType": "html",
+                        "data": $(item).html(),
+                        "success": function (data) {
+                            $(item).html(data);
+                        },
+                        "error": function (jqXHR, textStatus, errorThrown) {
+                            // do nothing
+                        }
+                    })
+                }
+            });
+        });
+    </script>
+</wicket:panel>
+</html>

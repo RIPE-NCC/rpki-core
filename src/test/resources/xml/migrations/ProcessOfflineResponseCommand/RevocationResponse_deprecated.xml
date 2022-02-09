@@ -1,0 +1,42 @@
+<commands.ProcessOfflineResponseCommand>
+  <certificateAuthorityId>100001:13597</certificateAuthorityId>
+  <commandGroup>USER</commandGroup>
+  <response>
+    <rtaSigningResponse>
+      <publishedObjects class="tree-map">
+        <no-comparator/>
+        <entry>
+          <string>ecbe0c00d4b26a204bba6f83410d7e279b9dc6b2.cer</string>
+          <X509ResourceCertificate>
+            <encoded>MIAGCy2AAAAAAAAA==</encoded>
+          </X509ResourceCertificate>
+        </entry>
+        <entry>
+          <string>ripe-ncc-ta.cer</string>
+          <X509ResourceCertificate>
+            <encoded>MIAGCy2AAAAAAAAA==</encoded>
+          </X509ResourceCertificate>
+        </entry>
+        <entry>
+          <string>ripe-ncc-ta.crl</string>
+          <X509Crl>
+              <encoded>MIIFWTCCBEGgAwIBAgIBAjANBgkqhkiG9w0BAQsFADAWMRQwEgYDVQQDEwtyaXBlLW5jYy10YTAe
+Fw0xMDEyMTUxMDI0MzZaFw0xNTEyMTUwOTUxNDdaMCYxJDAiBgNVBAMTGy1TbmRCTFZhRGNoem02
+sdfsdfsdfdsfdsfdsAAA==</encoded>
+          </X509Crl>
+        </entry>
+        <entry>
+          <string>ripe-ncc-ta.mft</string>
+          <ManifestCms>
+            <encoded>MIAGCy2AAAAAAAAA==</encoded>
+          </ManifestCms>
+        </entry>
+      </publishedObjects>
+      <newResourceCertificates/>
+      <encodeRevokedPubKeys>
+        <string>u75at9r0D4JbJ3_SFkZXD7C5dmg</string>
+      </encodeRevokedPubKeys>
+    </rtaSigningResponse>
+    <requestCreationTimeMillis>1351598299426</requestCreationTimeMillis>
+  </response>
+</commands.ProcessOfflineResponseCommand>

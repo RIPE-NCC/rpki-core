@@ -1,0 +1,14 @@
+<commands.DeleteRoaSpecificationCommand>
+  <certificateAuthorityId>2371346:568</certificateAuthorityId>
+  <commandGroup>USER</commandGroup>
+  <roaSpecificationData>
+    <name>AS-TEMP</name>
+    <validityPeriod/>
+    <asn>AS44574</asn>
+    <prefixes>
+      <RoaPrefix>
+        <prefix>193.105.150.0/24</prefix>
+      </RoaPrefix>
+    </prefixes>
+  </roaSpecificationData>
+</commands.DeleteRoaSpecificationCommand>

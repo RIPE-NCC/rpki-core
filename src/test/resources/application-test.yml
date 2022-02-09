@@ -1,0 +1,83 @@
+#
+# System settings, followed by Spring
+#
+keystore:
+    provider: SUN
+    type: JKS
+
+signature:
+    provider: SunRsaSign
+
+mail:
+    host: localhost
+    port: 1025
+
+spring:
+    datasource:
+        hikari.maximum-pool-size: 1
+        password: certdb
+        url: jdbc:postgresql://${pgHost:localhost}/certdb_test
+
+#
+# Integrations
+#
+auth.service:
+    url: http://ba-apps.prepdev.ripe.net/authorisation-service
+    api.key: BAD-TEST-D2Shtf2n5Bwh02P7
+
+customer.service:
+    url: http://ba-apps.prepdev.ripe.net/customer-service
+    api.key: BAD-TEST-D2Shtf2n5Bwh02P7
+
+resource.services:
+    url: https://rsng.prepdev.ripe.net/resource-services
+    apiKey: BAD-TEST-D2Shtf2n5Bwh02P7
+
+riswhoisdump:
+    base.url: http://localhost:8080/certification/static/dev-ris
+
+#
+# Application specific settings
+#
+admin.password.hash: 12345
+api-keys.properties: "classpath:/test-api-keys.properties"
+
+max.serial.increment: 1
+
+autokeyrollover:
+    maxage.days: 365
+    update.interval.hours: 240
+
+key.management.data:
+    archive.directory: /tmp
+    directory: /tmp
+
+keypair:
+    activation:
+        delay.hours: 24
+        interval.hours: 240
+    generator.provider: SunRsaSign
+    revocation.interval.hours: 240
+
+online.repository:
+    directory: /tmp/online
+    notification.uri: https://localhost:7788/notification.xml
+    uri: rsync://localhost/online/
+
+provisioning.base.url: http://localhost:8080/certification/updown
+
+public.repository.rsync.interval.minutes: 5
+
+publication:
+    client:
+        keystore: ''
+        keystore.password: ''
+        truststore: ''
+        truststore.password: ''
+    server.url: ''
+
+static.image.deployment.environment: static/images/cert_development.png
+
+ta.repository:
+    directory: /tmp/ta
+    uri: rsync://localhost:10873/ta/

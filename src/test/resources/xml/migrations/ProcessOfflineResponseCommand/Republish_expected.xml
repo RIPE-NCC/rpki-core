@@ -1,0 +1,38 @@
+<commands.ProcessTrustAnchorResponseCommand>
+  <certificateAuthorityId>100001:25383</certificateAuthorityId>
+  <commandGroup>USER</commandGroup>
+  <response>
+    <requestCreationTimestamp>1374052231717</requestCreationTimestamp>
+    <taResponses/>
+    <publishedObjects class="tree-map">
+      <entry>
+        <string>ecbe0c00d4b26a204bba6f83410d7e279b9dc6b2.cer</string>
+        <X509ResourceCertificate>
+          <encoded>MIIFWTCCBEGgAwIBAgIBAjANBgkqhkiG9w0BAQsFADAWMRQwEgYDVQQDEwtyaXBlLW5jYy10YTAe
+Fw0xMDEyMTUxMDI0MzZaFw0xNTEyMTUwOTUxNDdaMCYxJDAiBgNVBAMTGy1TbmRCTFZhRGNoem02
+sdfsdfsdfdsfdsfdsAAA==</encoded>
+        </X509ResourceCertificate>
+      </entry>
+      <entry>
+        <string>ripe-ncc-ta.cer</string>
+        <X509ResourceCertificate>
+          <encoded>MIIFWTCCBEGgAwIBAgIBAjANBgkqhkiG9w0BAQsFADAWMRQwEgYDVQQDEwtyaXBlLW5jYy10YTAe
+Fw0xMDEyMTUxMDI0MzZaFw0xNTEyMTUwOTUxNDdaMCYxJDAiBgNVBAMTGy1TbmRCTFZhRGNoem02
+sdfsdfsdfdsfdsfdsAAA==</encoded>
+        </X509ResourceCertificate>
+      </entry>
+      <entry>
+        <string>ripe-ncc-ta.crl</string>
+        <X509Crl>
+          <encoded>MIAGCy2AAAAAAAAA==</encoded>
+        </X509Crl>
+      </entry>
+      <entry>
+        <string>ripe-ncc-ta.mft</string>
+        <ManifestCms>
+          <encoded>MIAGCy2AAAAAAAAA==</encoded>
+        </ManifestCms>
+      </entry>
+    </publishedObjects>
+  </response>
+</commands.ProcessTrustAnchorResponseCommand>

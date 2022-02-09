@@ -1,0 +1,3 @@
+DROP TABLE down_stream_provisioning_communicator;
+DROP TABLE provisioning_audit_log;
+ALTER TABLE  certificateauthority DROP COLUMN down_stream_provisioning_communicator_id;

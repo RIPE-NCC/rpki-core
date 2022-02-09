@@ -1,0 +1,5 @@
+<commands.KeyManagementInitiateRollCommand>
+  <certificateAuthorityId>42:-1</certificateAuthorityId>
+  <commandGroup>SYSTEM</commandGroup>
+  <keyAgeThreshold>0</keyAgeThreshold>
+</commands.KeyManagementInitiateRollCommand>

@@ -1,0 +1,5 @@
+<commands.KeyManagementActivatePendingKeysCommand>
+    <certificateAuthorityId>42:0</certificateAuthorityId>
+    <commandGroup>SYSTEM</commandGroup>
+    <minStagingTimeMs>86400000</minStagingTimeMs>
+</commands.KeyManagementActivatePendingKeysCommand>

@@ -1,0 +1,57 @@
+<configuration>
+    <include resource="logback/defaults.xml"/>
+
+    <springProperty scope="context" name="rpki-ripe-ncc" source="spring.application.name"/>
+
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="audit-log" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
+        <file>../log/audit.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>../log/audit.log.%d{yyyy-MM-dd}</fileNamePattern>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="provisioning-log" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
+        <file>../log/provisioning.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>../log/provisioning.log.%d{yyyy-MM-dd}</fileNamePattern>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <timestampPattern>yyyy-MM-dd' 'HH:mm:ss.SSS</timestampPattern>
+            <timeZone>UTC</timeZone>
+        </encoder>
+    </appender>
+
+    <logger name="net.ripe.rpki.ui.admin.SystemStatusPage" level="info">
+        <appender-ref ref="audit-log"/>
+    </logger>
+    <logger name="root" level="info">
+        <appender-ref ref="stdout"/>
+    </logger>
+    <logger name="net.ripe" level="debug" additivity="false">
+        <appender-ref ref="stdout"/>
+    </logger>
+    <logger name="org.quartz" level="warn" additivity="false">
+        <appender-ref ref="stdout"/>
+    </logger>
+    <logger name="org.apache.wicket" level="warn" additivity="false">
+        <appender-ref ref="stdout"/>
+    </logger>
+
+    <logger name="provisioning-logger" level="info" additivity="false">
+        <appender-ref ref="provisioning-log"/>
+    </logger>
+    <!-- Output provisioning log to stdout in local development -->
+    <logger name="provisioning-logger" level="info" additivity="false">
+        <appender-ref ref="stdout"/>
+    </logger>
+</configuration>

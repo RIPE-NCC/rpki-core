@@ -1,0 +1,11 @@
+<commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand>
+  <certificateAuthorityId>13466999:6</certificateAuthorityId>
+  <commandGroup>USER</commandGroup>
+  <additions>
+    <AnnouncedRoute>
+      <originAsn>AS12880</originAsn>
+      <prefix>212.95.159.0/24</prefix>
+    </AnnouncedRoute>
+  </additions>
+  <deletions/>
+</commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand>

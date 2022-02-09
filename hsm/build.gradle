@@ -1,0 +1,34 @@
+plugins {
+    id 'rpki-ripe-ncc.build-conventions'
+}
+
+sourceSets {
+    thales {
+        java {
+            srcDir 'src/thales/java'
+        }
+    }
+}
+
+java {
+    registerFeature("apiOnly") {
+        usingSourceSet(sourceSets.main)
+        capability('net.ripe.rpki.hsm', 'api-only', '1.0')
+    }
+
+    registerFeature("thales") {
+        usingSourceSet(sourceSets.thales)
+        capability('net.ripe.rpki.hsm', 'thales', '1.0')
+    }
+}
+
+dependencies {
+    thalesApi (project(':hsm')) {
+        capabilities {
+            requireCapability('net.ripe.rpki.hsm:api-only')
+        }
+    }
+    thalesImplementation 'net.ripe.rpki:rpki-commons:1.25'
+    thalesImplementation 'com.thales:DBProvider:1.1'
+    thalesImplementation 'org.springframework:spring-context:5.3.13'
+}

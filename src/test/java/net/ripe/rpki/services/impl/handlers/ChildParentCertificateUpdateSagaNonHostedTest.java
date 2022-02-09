@@ -1,0 +1,314 @@
+package net.ripe.rpki.services.impl.handlers;
+
+import net.ripe.ipresource.IpResourceSet;
+import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
+import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
+import net.ripe.rpki.commons.provisioning.payload.issue.request.CertificateIssuanceRequestElement;
+import net.ripe.rpki.commons.provisioning.payload.issue.request.CertificateIssuanceRequestPayloadBuilder;
+import net.ripe.rpki.commons.provisioning.payload.revocation.CertificateRevocationKeyElement;
+import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
+import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.domain.CertificationDomainTestCase;
+import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.KeyPairEntity;
+import net.ripe.rpki.domain.NonHostedCertificateAuthority;
+import net.ripe.rpki.domain.OutgoingResourceCertificate;
+import net.ripe.rpki.domain.ProductionCertificateAuthority;
+import net.ripe.rpki.domain.PublicKeyEntity;
+import net.ripe.rpki.domain.PublicationStatus;
+import net.ripe.rpki.domain.TestObjects;
+import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
+import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
+import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
+import net.ripe.rpki.server.api.dto.KeyPairStatus;
+import net.ripe.rpki.server.api.ports.ResourceCache;
+import net.ripe.rpki.server.api.services.command.CommandStatus;
+import net.ripe.rpki.server.api.support.objects.CaName;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.joda.time.Duration;
+import org.junit.Before;
+import org.junit.Test;
+import org.opentest4j.AssertionFailedError;
+
+import javax.inject.Inject;
+import javax.security.auth.x500.X500Principal;
+import javax.transaction.Transactional;
+import java.net.URI;
+import java.security.PublicKey;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+
+@Transactional
+public class ChildParentCertificateUpdateSagaNonHostedTest extends CertificationDomainTestCase {
+
+    private static final long CHILD_CA_ID = 7L;
+
+    private static final X500Principal CHILD_CA_NAME = new X500Principal("CN=child");
+    public static final X509CertificateInformationAccessDescriptor[] SIA = {
+        new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_CA_REPOSITORY, URI.create("rsync://example.com/rpki/repository")),
+        new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST, URI.create("rsync://example.com/rpki/repository/manifest.mft")),
+    };
+
+    @Inject
+    private ResourceCache resourceCache;
+    @Inject
+    private CertificateRequestCreationService certificateRequestCreationService;
+
+    private ProductionCertificateAuthority parent;
+    private NonHostedCertificateAuthority child;
+
+    private static final PublicKey PUBLIC_KEY = TestObjects.createTestKeyPair().getPublicKey();
+    private PublicKeyEntity publicKeyEntity;
+
+    @Before
+    public void setUp() {
+        clearDatabase();
+
+        parent = createInitialisedProdCaWithRipeResources();
+        child = new NonHostedCertificateAuthority(CHILD_CA_ID, CHILD_CA_NAME, ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, parent);
+        publicKeyEntity = child.findOrCreatePublicKeyEntityByPublicKey(PUBLIC_KEY);
+        // Request all resources
+        publicKeyEntity.setLatestIssuanceRequest(new CertificateIssuanceRequestElement(), SIA);
+
+        certificateAuthorityRepository.add(child);
+    }
+
+    @Test
+    public void should_issue_certificate_for_non_hosted_child_certified_resources() {
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16"));
+        PublicKeyEntity publicKeyEntity = child.findOrCreatePublicKeyEntityByPublicKey(PUBLIC_KEY);
+
+        CommandStatus status = execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+
+        assertThat(status.isHasEffect()).as("command has effect").isTrue();
+
+        Collection<PublicKeyEntity> keyPairs = child.getPublicKeys();
+        assertThat(keyPairs).hasSize(1);
+
+        Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
+        assertThat(certificate).isPresent();
+        assertThat(certificate.get().getResources()).isEqualTo(resources("10.10.0.0/16"));
+
+        assertChildParentInvariants(child, parent);
+    }
+
+    @Test
+    public void should_keep_same_certificate_when_resources_are_unchanged() {
+        should_issue_certificate_for_non_hosted_child_certified_resources();
+        OutgoingResourceCertificate certificate = findCurrentResourceCertificate(child).orElseThrow(() -> new IllegalStateException("missing certificate"));
+
+        CommandStatus status = execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+
+        assertThat(status.isHasEffect()).isFalse();
+        assertThat(findCurrentResourceCertificate(child)).isPresent().hasValueSatisfying(v -> assertThat(v).isSameAs(certificate));
+        assertChildParentInvariants(child, parent);
+    }
+
+    @Test
+    public void should_revoke_issued_certificate_for_hosted_child_without_certifiable_resources() {
+        should_issue_certificate_for_non_hosted_child_certified_resources();
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources(""));
+
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+
+        Collection<PublicKeyEntity> publicKeys = child.getPublicKeys();
+        assertThat(publicKeys).hasSize(1);
+
+        Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
+        assertThat(certificate).isEmpty();
+
+        assertChildParentInvariants(child, parent);
+    }
+
+    @Test
+    public void should_revoke_issued_certificate_for_hosted_child_when_certifiable_resources_do_not_match_requested_resources() {
+        should_issue_certificate_for_non_hosted_child_certified_resources();
+        publicKeyEntity.setLatestIssuanceRequest(
+            new CertificateIssuanceRequestPayloadBuilder()
+                .withClassName("DEFAULT")
+                .withIpv4ResourceSet(IpResourceSet.parse("192.168.0.0/16"))
+                .withCertificateRequest(mock(PKCS10CertificationRequest.class))
+                .build().getRequestElement(),
+            SIA
+        );
+
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+
+        Collection<PublicKeyEntity> publicKeys = child.getPublicKeys();
+        assertThat(publicKeys).hasSize(1);
+
+        Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
+        assertThat(certificate).isEmpty();
+
+        assertChildParentInvariants(child, parent);
+    }
+
+    @Test
+    public void should_revoke_certificate_when_requested_by_child() {
+        should_issue_certificate_for_non_hosted_child_certified_resources();
+        publicKeyEntity.setLatestRevocationRequest(new CertificateRevocationKeyElement("DEFAULT", publicKeyEntity.getEncodedKeyIdentifier()));
+
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+
+        Collection<PublicKeyEntity> publicKeys = child.getPublicKeys();
+        assertThat(publicKeys).hasSize(1);
+
+        Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
+        assertThat(certificate).isEmpty();
+
+        assertChildParentInvariants(child, parent);
+    }
+
+    // Public keys should always have a certificate when the last request was a certificate issuance request. However,
+    // if a child no longer has any resources, the certificates get revoked. When they have resources again we re-issue
+    // the certificates using the information from the latest issuance request.
+    @Test
+    public void should_reissue_certificate_when_child_has_resources_again() {
+        should_revoke_issued_certificate_for_hosted_child_without_certifiable_resources();
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16"));
+
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+
+        Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
+        assertThat(certificate).hasValueSatisfying(cert -> {
+            assertThat(cert.getResources()).isEqualTo(resources("10.10.0.0/16"));
+        });
+
+        assertChildParentInvariants(child, parent);
+    }
+
+    @Test
+    public void should_keep_requested_resources_when_non_hosted_child_resources_expand() {
+        should_issue_certificate_for_non_hosted_child_certified_resources();
+        publicKeyEntity.setLatestIssuanceRequest(
+            new CertificateIssuanceRequestPayloadBuilder()
+                .withClassName("DEFAULT")
+                .withIpv4ResourceSet(IpResourceSet.parse("10.10.0.0/16"))
+                .withCertificateRequest(mock(PKCS10CertificationRequest.class))
+                .build().getRequestElement(),
+            SIA
+        );
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16, 10.20.0.0/16"));
+
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+
+        Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
+        assertThat(certificate).isPresent();
+        assertThat(certificate.get().getResources()).isEqualTo(resources("10.10.0.0/16"));
+
+        assertChildParentInvariants(child, parent);
+    }
+
+    @Test
+    public void should_update_certificates_resources_when_non_hosted_child_resources_expand_and_are_included_in_requested_resources() {
+        should_issue_certificate_for_non_hosted_child_certified_resources();
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16, 10.20.0.0/16"));
+
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+
+        Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
+        assertThat(certificate).isPresent();
+        assertThat(certificate.get().getResources()).isEqualTo(resources("10.10.0.0/16, 10.20.0.0/16"));
+
+        assertChildParentInvariants(child, parent);
+    }
+
+    @Test
+    public void should_issue_new_certificate_when_non_hosted_child_resources_contract() {
+        should_issue_certificate_for_non_hosted_child_certified_resources();
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/20"));
+
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+
+        Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
+        assertThat(certificate).isPresent();
+        assertThat(certificate.get().getResources()).isEqualTo(resources("10.10.0.0/20"));
+
+        assertChildParentInvariants(child, parent);
+    }
+
+    @Test
+    public void should_revoke_previous_certificate_and_issue_new_certificate_after_parent_key_rollover() {
+        // When the parent replaces the CURRENT key with a PENDING key (making the current key OLD and the PENDING key CURRENT)
+        // the outgoing child certificates issued by the OLD key should be replaced when the child certificate is re-issued by
+        // the PENDING (now CURRENT) key.
+        should_issue_certificate_for_non_hosted_child_certified_resources();
+        X509ResourceCertificate certificate1 = findCurrentResourceCertificate(child).get().getCertificate();
+        URI publicationUri1 = findCurrentResourceCertificate(child).get().getPublicationUri();
+
+        KeyPairEntity oldKeyPair = parent.getCurrentKeyPair();
+        KeyPairEntity newKeyPair = createInitialisedProductionCaKeyPair(certificateRequestCreationService, parent, "NEW-KEY");
+
+        assertThat(newKeyPair.getStatus()).isEqualTo(KeyPairStatus.PENDING);
+        assertChildParentInvariants(child, parent);
+
+        execute(KeyManagementActivatePendingKeysCommand.plannedActivationCommand(parent.getVersionedId(), Duration.ZERO));
+
+        assertThat(oldKeyPair.getStatus()).isEqualTo(KeyPairStatus.OLD);
+        assertThat(newKeyPair.getStatus()).isEqualTo(KeyPairStatus.CURRENT);
+        assertChildParentInvariants(child, parent);
+
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+
+        assertChildParentInvariants(child, parent);
+        OutgoingResourceCertificate certificate2 = findCurrentResourceCertificate(child).get();
+        assertThat(certificate1).isNotEqualTo(certificate2.getCertificate());
+        assertThat(publicationUri1).isEqualTo(certificate2.getPublicationUri());
+    }
+
+    private void assertChildParentInvariants(NonHostedCertificateAuthority child, HostedCertificateAuthority parent) {
+        // For every published, outgoing certificate in parent there should be a matching incoming certificate in child.
+        // A child should never be left without a published outgoing certificate for each of its publishable keys.
+        Set<PublicKey> childPublicKeys = child.getPublicKeys().stream()
+            .filter(x -> !x.isRevoked())
+            .map(PublicKeyEntity::getPublicKey)
+            .collect(Collectors.toSet());
+
+        Collection<OutgoingResourceCertificate> outgoingResourceCertificates = parent.getKeyPairs().stream()
+            .filter(KeyPairEntity::isPublishable)
+            .flatMap(kp -> resourceCertificateRepository.findAllBySigningKeyPair(kp).stream())
+            .filter(c -> c.isCurrent() && PublicationStatus.ACTIVE_STATUSES.contains(c.getPublishedObject().getStatus()))
+            .filter(c -> childPublicKeys.contains(c.getSubjectPublicKey()))
+            .collect(Collectors.toList());
+        Collection<OutgoingResourceCertificate> incomingResourceCertificates = child.getPublicKeys().stream()
+            .filter(x -> !x.isRevoked())
+            .flatMap(x -> x.findCurrentOutgoingResourceCertificate().map(Stream::of).orElse(Stream.empty()))
+            .collect(Collectors.toList());
+
+        // Not all non-hosted public keys will have a certificate after a certificate revocation request,
+        // so number of keys could be greater.
+        assertThat(childPublicKeys).hasSizeGreaterThanOrEqualTo(outgoingResourceCertificates.size());
+        assertThat(outgoingResourceCertificates).hasSize(incomingResourceCertificates.size());
+
+        outgoingResourceCertificates.forEach(outgoing -> {
+            OutgoingResourceCertificate incoming = incomingResourceCertificates.stream()
+                .filter(certificate -> outgoing.getSerial().equals(certificate.getSerial()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionFailedError("missing incoming certificate with serial " + outgoing.getSerial()));
+            assertThat(outgoing.getCertificate()).isEqualTo(incoming.getCertificate());
+        });
+    }
+
+    private Optional<OutgoingResourceCertificate> findCurrentResourceCertificate(NonHostedCertificateAuthority ca) {
+        return ca.getPublicKeys().iterator().next().findCurrentOutgoingResourceCertificate();
+    }
+
+    private static IpResourceSet resources(String resources) {
+        return IpResourceSet.parse(resources);
+    }
+
+    private CommandStatus execute(CertificateAuthorityCommand command) {
+        try {
+            return commandService.execute(command);
+        } finally {
+            entityManager.flush();
+        }
+    }
+}

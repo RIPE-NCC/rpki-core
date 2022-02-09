@@ -1,0 +1,57 @@
+# Maven
+target/
+
+# Gradle
+.gradle/
+build/
+
+# direnv
+.direnv
+
+# Intellij
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Eclipse
+*.settings/
+*.classpath
+*.project
+
+#Apple
+.DS_Store
+
+.clover
+.springBeans
+*.epoch
+tm.out*
+tmlog.lck
+velocity.log*
+*.log
+logfile
+
+ta/data
+ta/requests
+ta/responses
+
+rpki-ripe-ncc-core/src/test/resources/integration-test.properties
+rpki-ripe-ncc-ui/src/test/resources/certification.properties
+rpki-ripe-ncc-daemon/config/certification.properties
+
+rpki-ripe-ncc-daemon/logs
+rpki-ripe-ncc-daemon/src/main/scripts/localcert/backup/*
+rpki-ripe-ncc-ui/logs
+
+rpki-ripe-ncc-api/bin
+rpki-ripe-ncc-core/bin/
+rpki-ripe-ncc-daemon/bin/
+rpki-ripe-ncc-ui/bin/
+
+.pregenerated-test-key-pairs.keystore
+
+/data
+/tmp
+
+logfile
+.metals

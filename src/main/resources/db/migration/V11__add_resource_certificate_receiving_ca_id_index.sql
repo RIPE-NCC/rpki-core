@@ -1,0 +1,1 @@
+create index resourcecertificate_receiving_ca_id_fk on resourcecertificate (receiving_ca_id);

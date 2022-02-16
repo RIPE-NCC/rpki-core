@@ -89,7 +89,7 @@ public class ProvisioningRequestProcessorBean implements ProvisioningRequestProc
                 return buildError(NotPerformedError.UNRECOGNIZED_REQUEST_TYPE);
             }
         } catch (NotPerformedException e) {
-            return buildError(e.getNotPerformedError());
+            return buildErrorWithDescription(e.getNotPerformedError(), e.getMessage());
         } catch (CertificationResourceLimitExceededException e) {
             // Unfortunately RFC6492 does not define a more appropriate error code for this case.
             return buildErrorWithDescription(NotPerformedError.INTERNAL_SERVER_ERROR, e.getMessage());

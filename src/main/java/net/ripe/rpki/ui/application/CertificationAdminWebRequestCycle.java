@@ -1,6 +1,5 @@
 package net.ripe.rpki.ui.application;
 
-import net.ripe.rpki.server.api.services.command.CertificateAuthorityConcurrentModificationException;
 import net.ripe.rpki.ui.admin.ErrorPage;
 import org.apache.wicket.Page;
 import org.apache.wicket.WicketRuntimeException;
@@ -21,9 +20,6 @@ public class CertificationAdminWebRequestCycle extends WebRequestCycle {
     @Override
     public Page onRuntimeException(Page page, RuntimeException e) {
         Throwable cause = unwrapCause(e);
-        if (cause instanceof CertificateAuthorityConcurrentModificationException) {
-            return new CertificateAuthorityConcurrentModificationPage((CertificateAuthorityConcurrentModificationException) cause, page);
-        }
 
         if (e instanceof PageExpiredException) {
             return getPageExpiredErrorPage(e);

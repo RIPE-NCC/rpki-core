@@ -1,5 +1,6 @@
 package net.ripe.rpki.ripencc.provisioning;
 
+import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
@@ -13,6 +14,7 @@ import net.ripe.rpki.commons.provisioning.payload.issue.request.CertificateIssua
 import net.ripe.rpki.commons.provisioning.payload.issue.response.CertificateIssuanceResponseClassElement;
 import net.ripe.rpki.commons.provisioning.payload.issue.response.CertificateIssuanceResponsePayload;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
+import net.ripe.rpki.commons.provisioning.x509.pkcs10.RpkiCaCertificateRequestBuilder;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
@@ -31,6 +33,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.spec.RSAKeyGenParameterSpec;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -165,12 +170,136 @@ public class CertificateIssuanceProcessorTest {
         assertEquals(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST, ((RequestNotPerformedResponsePayload) response).getStatus());
     }
 
+    @Test
+    public void should_check_requested_resource_set_entries_limit() {
+        IpResourceSet tooBig = new IpResourceSet();
+        for (int i = 0; i <= CertificateIssuanceProcessor.RESOURCE_SET_ENTRIES_LIMIT; ++i) {
+            tooBig.add(new Asn(2 * i));
+        }
+
+        RequestedResourceSets requestedResources = new RequestedResourceSets(
+            Optional.of(tooBig),
+            Optional.of(IpResourceSet.parse("10/9")),
+            Optional.empty()
+        );
+        CertificateIssuanceRequestPayload requestPayload = createPayload(caRepositoryUri, requestedResources);
+        assertThat(processor.processRequestPayload(nonHostedCertificateAuthority, productionCA, requestPayload))
+            .isInstanceOfSatisfying(RequestNotPerformedResponsePayload.class, (response) -> {
+                assertThat(response.getStatus()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
+                assertThat(response.getDescription()).isEqualTo("requested resource set exceeds entry limit (100001 > 100000)");
+            });
+    }
+
+    @Test
+    public void should_check_sia_uri_scheme() {
+        CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create("foo://bar"));
+        assertThat(processor.processRequestPayload(nonHostedCertificateAuthority, productionCA, requestPayload))
+            .isInstanceOfSatisfying(RequestNotPerformedResponsePayload.class, (response) -> {
+                assertThat(response.getStatus()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
+                assertThat(response.getDescription()).isEqualTo("SIA URI scheme is not correct");
+            });
+    }
+
+    @Test
+    public void should_check_sia_uri_is_normalized() {
+        CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create("rsync://rpki.example.com/repository/../"));
+        assertThat(processor.processRequestPayload(nonHostedCertificateAuthority, productionCA, requestPayload))
+            .isInstanceOfSatisfying(RequestNotPerformedResponsePayload.class, (response) -> {
+                assertThat(response.getStatus()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
+                assertThat(response.getDescription()).isEqualTo("SIA URI is not normalized");
+            });
+    }
+
+    @Test
+    public void should_check_sia_uri_is_absolute() {
+        CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create("//rpki.example.com/repository/"));
+        assertThat(processor.processRequestPayload(nonHostedCertificateAuthority, productionCA, requestPayload))
+            .isInstanceOfSatisfying(RequestNotPerformedResponsePayload.class, (response) -> {
+                assertThat(response.getStatus()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
+                assertThat(response.getDescription()).isEqualTo("SIA URI is not absolute or is opaque");
+            });
+    }
+
+    @Test
+    public void should_check_sia_uri_is_not_opaque() {
+        CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create("rsync:repository/"));
+        assertThat(processor.processRequestPayload(nonHostedCertificateAuthority, productionCA, requestPayload))
+            .isInstanceOfSatisfying(RequestNotPerformedResponsePayload.class, (response) -> {
+                assertThat(response.getStatus()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
+                assertThat(response.getDescription()).isEqualTo("SIA URI is not absolute or is opaque");
+            });
+    }
+
+    @Test
+    public void should_check_sia_uri_does_not_try_to_escape_the_repository_directory() {
+        // Note that URIs with intermediate `..` segments are already handled by the `normalize` check.
+        CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create("rsync://rpki.example.com/../trying/to/escape/the/repository/"));
+        assertThat(processor.processRequestPayload(nonHostedCertificateAuthority, productionCA, requestPayload))
+            .isInstanceOfSatisfying(RequestNotPerformedResponsePayload.class, (response) -> {
+                assertThat(response.getStatus()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
+                assertThat(response.getDescription()).isEqualTo("SIA URI contains relative segments");
+            });
+    }
+
+    @Test
+    public void should_check_sia_uri_is_not_too_long() {
+        StringBuilder longString = new StringBuilder("rsync://rpki.example.com/");
+        for (int i = 0; i < 210; ++i) {
+            longString.append("directory/");
+        }
+
+        CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create(longString.toString()));
+        assertThat(processor.processRequestPayload(nonHostedCertificateAuthority, productionCA, requestPayload))
+            .isInstanceOfSatisfying(RequestNotPerformedResponsePayload.class, (response) -> {
+                assertThat(response.getStatus()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
+                assertThat(response.getDescription()).isEqualTo("maximum SIA URI length exceeded (2125 > 2048)");
+            });
+    }
+
+    @Test
+    public void should_check_public_key_length() throws Exception {
+        RSAKeyGenParameterSpec params = new RSAKeyGenParameterSpec(1024, RSAKeyGenParameterSpec.F4);
+        CertificateIssuanceRequestPayload requestPayload = createPayload(params);
+
+        assertThat(processor.processRequestPayload(nonHostedCertificateAuthority, productionCA, requestPayload))
+            .isInstanceOfSatisfying(RequestNotPerformedResponsePayload.class, (response) -> {
+                assertThat(response.getStatus()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
+                assertThat(response.getDescription()).isEqualTo("public key size is not 2048");
+            });
+    }
+
+    @Test
+    public void should_check_public_key_public_exponent() throws Exception {
+        RSAKeyGenParameterSpec params = new RSAKeyGenParameterSpec(2048, RSAKeyGenParameterSpec.F0);
+        CertificateIssuanceRequestPayload requestPayload = createPayload(params);
+
+        assertThat(processor.processRequestPayload(nonHostedCertificateAuthority, productionCA, requestPayload))
+            .isInstanceOfSatisfying(RequestNotPerformedResponsePayload.class, (response) -> {
+                assertThat(response.getStatus()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
+                assertThat(response.getDescription()).isEqualTo("public key exponent is not 65537");
+            });
+    }
+
+    private CertificateIssuanceRequestPayload createPayload(RSAKeyGenParameterSpec params) throws Exception {
+        final KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA", "SunRsaSign");
+        generator.initialize(params);
+        KeyPair keyPair = generator.generateKeyPair();
+
+        PKCS10CertificationRequest request = new RpkiCaCertificateRequestBuilder()
+            .withSubject(new X500Principal("CN=NON-HOSTED"))
+            .withCaRepositoryUri(caRepositoryUri)
+            .withManifestUri(URI.create("rsync://tmp/manifest"))
+            .build(keyPair);
+
+        return createPayload(request);
+    }
+
     private CertificateIssuanceRequestPayload createPayload(URI caRepositoryUri) {
         return createPayload(caRepositoryUri, new RequestedResourceSets());
     }
 
-    private CertificateIssuanceRequestPayload createPayload(PKCS10CertificationRequest invalidCertificate) {
-        return createPayload(invalidCertificate, new RequestedResourceSets());
+    private CertificateIssuanceRequestPayload createPayload(PKCS10CertificationRequest certificationRequest) {
+        return createPayload(certificationRequest, new RequestedResourceSets());
     }
 
     public CertificateIssuanceRequestPayload createPayload(URI caRepositoryUri, RequestedResourceSets resources) {

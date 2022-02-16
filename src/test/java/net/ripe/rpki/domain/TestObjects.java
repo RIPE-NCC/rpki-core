@@ -125,7 +125,11 @@ public class TestObjects {
         RpkiCaCertificateRequestBuilder requestBuilder = new RpkiCaCertificateRequestBuilder().withSubject(subject)
                 .withCaRepositoryUri(caRepositoryUri).withManifestUri(URI.create("rsync://tmp/manifest"));
 
-        KeyPair keyPair = createTestKeyPair("getPkcs10CertificationRequest:" + caRepositoryUri.toASCIIString().replaceAll("/", "-")).getKeyPair();
+        String name = "getPkcs10CertificationRequest:" + caRepositoryUri.toASCIIString().replaceAll("/", "-");
+        if (name.length() > 100) {
+            name = name.substring(0, 100);
+        }
+        KeyPair keyPair = createTestKeyPair(name).getKeyPair();
 
         return requestBuilder.build(keyPair);
     }

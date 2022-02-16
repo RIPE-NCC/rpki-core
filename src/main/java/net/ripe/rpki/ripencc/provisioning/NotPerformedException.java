@@ -10,6 +10,11 @@ public class NotPerformedException extends RuntimeException {
         this.notPerformedError = notPerformedError;
     }
 
+    public NotPerformedException(NotPerformedError notPerformedError, String message) {
+        super(message);
+        this.notPerformedError = notPerformedError;
+    }
+
     public NotPerformedError getNotPerformedError() {
         return notPerformedError;
     }

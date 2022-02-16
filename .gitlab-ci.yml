@@ -243,7 +243,7 @@ publish-to-github:
     mkdir ~/.ssh && chmod 700 ~/.ssh && echo $GITHUB_KNOWN_HOSTS > ~/.ssh/known_hosts
     eval $(ssh-agent -s)
     ssh-add <(echo "$GITHUB_DEPLOY_KEY")
-    ./scripts/publish-source-code --no-push --committer-name 'RPKI Team at RIPE NCC' --committer-email 'rpki@ripe.net' -- $CI_COMMIT_BEFORE_SHA $CI_COMMIT_SHA
+    ./scripts/publish-source-code --no-push --verify --committer-name 'RPKI Team at RIPE NCC' --committer-email 'rpki@ripe.net' -- $CI_COMMIT_BEFORE_SHA $CI_COMMIT_SHA
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: on_success

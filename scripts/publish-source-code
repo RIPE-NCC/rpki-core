@@ -17,7 +17,8 @@ Usage:
 
 Options:
     -h, --help         Print this message.
-    --no-push          Do not push the new branch to the origin.
+    --[no-]push        Enable/disable pushing the new branch to the origin.
+    --[no-]verify      Enable/disable verifying that the published ref is equivalent to <newbase>.
     --repository       Remote URL for publication. Defaults to $REPOSITORY
     --upstream         Upstream branch to publish changes onto. Defaults to $UPSTREAM.
     --local-branch     Local branch name used to track upstream. Defaults to $LOCAL_BRANCH.
@@ -48,8 +49,13 @@ remote_exists() {
     $GIT remote | grep -e "^${1}\$" &>/dev/null
 }
 
+check_no_diff() {
+    $GIT diff --quiet --exit-code "$1" "$2"
+}
+
 REPOSITORY="git@github.com:RIPE-NCC/rpki-core.git"
 PUSH=1
+VERIFY=0
 UPSTREAM=main
 LOCAL_BRANCH=proscribo
 LOCAL_REMOTE=publicus
@@ -60,7 +66,10 @@ main() {
     while true; do
         case $1 in
             -h|--help) show_usage; exit 0 ;;
-            --no-push) shift; PUSH=0 ;;
+            --push) PUSH=1; shift ;;
+            --no-push) PUSH=0; shift ;;
+            --verify) VERIFY=1; shift ;;
+            --no-verify) VERIFY=0; shift ;;
             --repository) shift; REPOSITORY=$1; shift ;;
             --upstream) shift; UPSTREAM=$1; shift ;;
             --local-branch) shift; LOCAL_BRANCH=$1; shift ;;
@@ -127,6 +136,10 @@ EOF
     $GIT cherry-pick --no-gpg-sign "$rev" ||
         ($GIT cherry-pick --abort && oops "Failed to apply changes on top of upstream")
     echo
+
+    if [ "$VERIFY" -eq 1 ]; then
+       check_no_diff "$newbase" "HEAD" || oops "Published code differs from $newbase after applying diff"
+    fi
 
     if [ "$PUSH" -eq 1 ]; then
         echo "Pushing to $UPSTREAM in remote repository"

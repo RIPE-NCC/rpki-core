@@ -19,14 +19,11 @@ public interface CommandService {
      * </p>
      * <p>
      * Certain command handlers may throw different runtime exceptions.
-     * A {@link CertificateAuthorityConcurrentModificationException} is thrown in case the certificate authority has been
-     * modified since the {@link VersionedId} mentioned in the command. This is indicative of concurrency issues.
      * </p>
      *
-     * @throws CertificateAuthorityConcurrentModificationException
      * @throws OfflineResponseProcessorException
      * @throws CertificateAuthorityNameNotUniqueException
      */
-    CommandStatus execute(CertificateAuthorityCommand command) throws CertificateAuthorityConcurrentModificationException, OfflineResponseProcessorException, CertificateAuthorityNameNotUniqueException;
+    CommandStatus execute(CertificateAuthorityCommand command) throws OfflineResponseProcessorException, CertificateAuthorityNameNotUniqueException;
 
 }

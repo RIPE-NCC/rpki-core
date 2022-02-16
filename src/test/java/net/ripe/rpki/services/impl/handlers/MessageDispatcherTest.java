@@ -4,7 +4,6 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.CertificateAuthorityModificationCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import org.junit.Test;
@@ -43,13 +42,13 @@ public class MessageDispatcherTest {
     }
 
     @Handler(order = 0)
-    private final class MyCertificateAuthorityConcurrentModificationHandler extends CertificateAuthorityConcurrentModificationHandler {
+    private final class MyCertificateAuthorityConcurrentModificationHandler extends CommandPersistenceHandler {
         public MyCertificateAuthorityConcurrentModificationHandler() {
-            super(certificateAuthorityRepository, null, new SimpleMeterRegistry());
+            super(certificateAuthorityRepository, null);
         }
 
         @Override
-        public void handle(CertificateAuthorityModificationCommand command, CommandStatus commandStatus) {
+        public void handle(CertificateAuthorityCommand command, CommandStatus commandStatus) {
             executedHandlers.add("Concurrency");
         }
     }
@@ -79,7 +78,7 @@ public class MessageDispatcherTest {
         KeyManagementInitiateRollCommandHandler autoRolloverChildCAsCommandHandler = new MyAutoRolloverChildCAsCommandHandler();
         beans.put("autoroll", autoRolloverChildCAsCommandHandler);
 
-        CertificateAuthorityConcurrentModificationHandler concurrentModificationHandler = new MyCertificateAuthorityConcurrentModificationHandler();
+        MyCertificateAuthorityConcurrentModificationHandler concurrentModificationHandler = new MyCertificateAuthorityConcurrentModificationHandler();
         beans.put("concurrent", concurrentModificationHandler);
 
         CommandPersistenceHandler commandPersistenceHandler = new MyCommandPersistenceHandler();

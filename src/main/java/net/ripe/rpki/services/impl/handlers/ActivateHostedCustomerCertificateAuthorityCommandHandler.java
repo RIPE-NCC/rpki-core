@@ -1,13 +1,11 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.rpki.application.CertificationConfiguration;
-import net.ripe.rpki.domain.*;
-import net.ripe.rpki.domain.archive.KeyPairDeletionService;
-import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
+import net.ripe.rpki.domain.CertificateAuthorityRepository;
+import net.ripe.rpki.domain.CustomerCertificateAuthority;
+import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.ActivateCustomerCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
-import net.ripe.rpki.util.DBComponent;
 import org.apache.commons.lang.Validate;
 
 import javax.inject.Inject;
@@ -17,33 +15,15 @@ import javax.inject.Inject;
 public class ActivateHostedCustomerCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<ActivateCustomerCertificateAuthorityCommand> {
 
     private final CertificationConfiguration certificationConfiguration;
-    private final KeyPairService keyPairService;
-    private final ResourceLookupService resourceLookupService;
-    private final KeyPairDeletionService keyPairDeletionService;
-    private final CertificateRequestCreationService certificateRequestCreationService;
-    private final PublishedObjectRepository publishedObjectRepository;
-    private final ResourceCertificateRepository resourceCertificateRepository;
-    private final DBComponent dbComponent;
+    private final ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga;
 
     @Inject
     ActivateHostedCustomerCertificateAuthorityCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
                                                              CertificationConfiguration certificationConfiguration,
-                                                             KeyPairService keyPairService,
-                                                             ResourceLookupService resourceLookupService,
-                                                             KeyPairDeletionService keyPairDeletionService,
-                                                             CertificateRequestCreationService certificateRequestCreationService,
-                                                             PublishedObjectRepository publishedObjectRepository,
-                                                             ResourceCertificateRepository resourceCertificateRepository,
-                                                             DBComponent dbComponent) {
+                                                             ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga) {
         super(certificateAuthorityRepository);
         this.certificationConfiguration = certificationConfiguration;
-        this.keyPairService = keyPairService;
-        this.resourceLookupService = resourceLookupService;
-        this.keyPairDeletionService = keyPairDeletionService;
-        this.certificateRequestCreationService = certificateRequestCreationService;
-        this.publishedObjectRepository = publishedObjectRepository;
-        this.resourceCertificateRepository = resourceCertificateRepository;
-        this.dbComponent = dbComponent;
+        this.childParentCertificateUpdateSaga = childParentCertificateUpdateSaga;
     }
 
     @Override
@@ -57,9 +37,7 @@ public class ActivateHostedCustomerCertificateAuthorityCommandHandler extends Ab
         HostedCertificateAuthority productionCa = lookupHostedCA(command.getParentId());
         CustomerCertificateAuthority memberCa = createMemberCA(command, productionCa);
 
-        new ChildParentCertificateUpdateSaga(keyPairDeletionService, certificateRequestCreationService,
-                publishedObjectRepository, resourceCertificateRepository, dbComponent)
-                .execute(productionCa, memberCa, resourceLookupService, keyPairService);
+        childParentCertificateUpdateSaga.execute(productionCa, memberCa, Integer.MAX_VALUE);
     }
 
     private CustomerCertificateAuthority createMemberCA(ActivateCustomerCertificateAuthorityCommand command, HostedCertificateAuthority parentCa) {

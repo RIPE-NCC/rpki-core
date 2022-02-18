@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
+import javax.security.auth.x500.X500Principal;
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.util.Collection;
@@ -38,6 +39,16 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
         query.setParameter("signingKeyPair", signingKeyPair.getId());
         query.setParameter("subjectPublicKey", subjectPublicKey.getEncoded());
         return (OutgoingResourceCertificate) findUniqueResult(query);
+    }
+
+    @Override
+    public int countNonExpiredOutgoingCertificates(PublicKey subjectPublicKey, KeyPairEntity signingKeyPair) {
+        Object count = createQuery("SELECT COUNT(*) FROM OutgoingResourceCertificate rc WHERE rc.status <> :expired AND rc.signingKeyPair = :signingKeyPair AND rc.encodedSubjectPublicKey = :subjectPublicKey")
+            .setParameter("expired", OutgoingResourceCertificateStatus.EXPIRED)
+            .setParameter("signingKeyPair", signingKeyPair)
+            .setParameter("subjectPublicKey", subjectPublicKey.getEncoded())
+            .getSingleResult();
+        return ((Number) count).intValue();
     }
 
     @SuppressWarnings("unchecked")

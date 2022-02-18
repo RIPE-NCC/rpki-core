@@ -23,6 +23,7 @@ import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
 import net.ripe.rpki.server.api.ports.ResourceCache;
+import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
@@ -42,7 +43,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static net.ripe.rpki.domain.NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 @Transactional
@@ -83,9 +86,8 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     @Test
     public void should_issue_certificate_for_non_hosted_child_certified_resources() {
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16"));
-        PublicKeyEntity publicKeyEntity = child.findOrCreatePublicKeyEntityByPublicKey(PUBLIC_KEY);
 
-        CommandStatus status = execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+        CommandStatus status = execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         assertThat(status.isHasEffect()).as("command has effect").isTrue();
 
@@ -104,7 +106,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         should_issue_certificate_for_non_hosted_child_certified_resources();
         OutgoingResourceCertificate certificate = findCurrentResourceCertificate(child).orElseThrow(() -> new IllegalStateException("missing certificate"));
 
-        CommandStatus status = execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+        CommandStatus status = execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         assertThat(status.isHasEffect()).isFalse();
         assertThat(findCurrentResourceCertificate(child)).isPresent().hasValueSatisfying(v -> assertThat(v).isSameAs(certificate));
@@ -116,7 +118,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         should_issue_certificate_for_non_hosted_child_certified_resources();
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources(""));
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         Collection<PublicKeyEntity> publicKeys = child.getPublicKeys();
         assertThat(publicKeys).hasSize(1);
@@ -139,7 +141,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
             SIA
         );
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         Collection<PublicKeyEntity> publicKeys = child.getPublicKeys();
         assertThat(publicKeys).hasSize(1);
@@ -155,7 +157,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         should_issue_certificate_for_non_hosted_child_certified_resources();
         publicKeyEntity.setLatestRevocationRequest(new CertificateRevocationKeyElement("DEFAULT", publicKeyEntity.getEncodedKeyIdentifier()));
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         Collection<PublicKeyEntity> publicKeys = child.getPublicKeys();
         assertThat(publicKeys).hasSize(1);
@@ -174,7 +176,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         should_revoke_issued_certificate_for_hosted_child_without_certifiable_resources();
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16"));
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
         assertThat(certificate).hasValueSatisfying(cert -> {
@@ -197,7 +199,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         );
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16, 10.20.0.0/16"));
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
         assertThat(certificate).isPresent();
@@ -211,7 +213,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         should_issue_certificate_for_non_hosted_child_certified_resources();
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16, 10.20.0.0/16"));
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
         assertThat(certificate).isPresent();
@@ -225,7 +227,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         should_issue_certificate_for_non_hosted_child_certified_resources();
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/20"));
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
         assertThat(certificate).isPresent();
@@ -255,12 +257,32 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         assertThat(newKeyPair.getStatus()).isEqualTo(KeyPairStatus.CURRENT);
         assertChildParentInvariants(child, parent);
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         assertChildParentInvariants(child, parent);
         OutgoingResourceCertificate certificate2 = findCurrentResourceCertificate(child).get();
         assertThat(certificate1).isNotEqualTo(certificate2.getCertificate());
         assertThat(publicationUri1).isEqualTo(certificate2.getPublicationUri());
+    }
+
+    @Test
+    public void should_limit_number_of_certificates_when_requested_by_non_hosted_ca() {
+        should_issue_certificate_for_non_hosted_child_certified_resources();
+        publicKeyEntity.setLatestIssuanceRequest(
+            new CertificateIssuanceRequestPayloadBuilder()
+                .withClassName("DEFAULT")
+                .withIpv4ResourceSet(IpResourceSet.parse("10.10.8.0/24"))
+                .withCertificateRequest(mock(PKCS10CertificationRequest.class))
+                .build().getRequestElement(),
+            SIA
+        );
+        OutgoingResourceCertificate certificate = findCurrentResourceCertificate(child).orElseThrow(() -> new IllegalStateException("missing certificate"));
+
+        assertThatThrownBy(() -> execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), 1)))
+            .isInstanceOf(CertificationResourceLimitExceededException.class);
+
+        assertThat(findCurrentResourceCertificate(child)).isPresent().hasValueSatisfying(v -> assertThat(v).isSameAs(certificate));
+        assertChildParentInvariants(child, parent);
     }
 
     private void assertChildParentInvariants(NonHostedCertificateAuthority child, HostedCertificateAuthority parent) {

@@ -31,7 +31,7 @@ public class LockCertificateAuthorityHandlerTest {
 
     @Test
     public void should_lock_ca_for_any_CertificateAuthorityCommand() {
-        subject.handle(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(123, 1)), CommandStatus.create());
+        subject.handle(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(123, 1), Integer.MAX_VALUE), CommandStatus.create());
 
         verify(entityManager).find(CertificateAuthority.class, 123L, LockModeType.PESSIMISTIC_WRITE);
     }

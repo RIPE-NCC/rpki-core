@@ -4,6 +4,7 @@ import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.PublicationStatus;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
@@ -16,9 +17,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.inject.Inject;
+import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 import java.util.Collections;
 
+import static net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest.TEST_KEY_PAIR;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JpaResourceCertificateRepositoryTest extends CertificationDomainTestCase {
@@ -120,5 +123,14 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     @Transactional
     public void deleteExpiredOutgoingResourceCertificates() {
         assertThat(subject.deleteExpiredOutgoingResourceCertificates(new DateTime(DateTimeZone.UTC).minusDays(1))).isEqualTo(0);
+    }
+
+    @Test
+    @Transactional
+    public void countNonExpiredOutgoingCertificates() {
+        ProductionCertificateAuthority ca = createInitialisedProdOrgCaWithRipeResources(certificateManagementService);
+        entityManager.persist(ca);
+
+        assertThat(subject.countNonExpiredOutgoingCertificates(TEST_KEY_PAIR.getPublic(), ca.getCurrentKeyPair())).isZero();
     }
 }

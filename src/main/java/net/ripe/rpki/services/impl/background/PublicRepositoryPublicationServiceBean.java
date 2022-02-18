@@ -3,11 +3,13 @@ package net.ripe.rpki.services.impl.background;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.commons.util.UTC;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
+import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.joda.time.Duration;
@@ -19,10 +21,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.persistence.EntityManager;
-import javax.persistence.LockModeType;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Collection;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_REPOSITORY_PUBLICATION_SERVICE;
 
@@ -93,10 +92,9 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
     }
 
     private void runTransaction() {
-        // TODO also include CAs with expiring CRLs or Manifests here. For now we'll keep doing these in a separate job.
-        List<HostedCertificateAuthority> pendingCertificateAuthorities = new ArrayList<>(certificateAuthorityRepository.findAllWithPendingPublications(LockModeType.NONE));
-        // Shuffle so we don't always repeat processing with the same CAs in case we cannot finish the job during this run.
-        Collections.shuffle(pendingCertificateAuthorities);
+        Collection<HostedCertificateAuthority> pendingCertificateAuthorities = certificateAuthorityRepository.findAllWithOutdatedManifests(
+            UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_HARD_LIMIT)
+        );
 
         certificateAuthorityCounter.increment(pendingCertificateAuthorities.size());
         log.info("Checking {} CAs for manifest updates with publishable objects", pendingCertificateAuthorities.size());
@@ -107,16 +105,22 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         entityManager.clear();
 
         Instant timeout = null;
-        long updated = 0;
+        long updateCountTotal = 0;
         for (HostedCertificateAuthority ca : pendingCertificateAuthorities) {
             // Associate with JPA session
             ca = entityManager.merge(ca);
             // Generate new CRL and manifest if needed
-            updated += certificateManagementService.updateManifestAndCrlIfNeeded(ca);
+            long updateCount = certificateManagementService.updateManifestAndCrlIfNeeded(ca);
+            if (updateCount > 0) {
+                // The manifest and CRL are now up-to-date and the CA is locked, so we clear the check needed flag.
+                ca.manifestAndCrlCheckCompleted();
+            }
+
+            updateCountTotal += updateCount;
 
             // Only after an actual update do we hold locks. To limit the locking duration we set a timeout
             // on the first updated CA.
-            if (timeout == null && updated > 0) {
+            if (timeout == null && updateCountTotal > 0) {
                 timeout = Instant.now().plus(Duration.standardSeconds(10));
             }
 
@@ -125,7 +129,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
 
             if (timeout != null && timeout.isBeforeNow()) {
                 // Process is taking too long, commit current results and wait for next run to process further CAs.
-                log.info("Updated {} manifests before running out of time, continuing during next run", updated);
+                log.info("Updated {} manifests before running out of time, continuing during next run", updateCountTotal);
                 return;
             }
         }
@@ -141,7 +145,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         if (count > 0) {
             log.info(
                 "Published/withdrawn {} objects after updating {} manifests while checking {} CAs",
-                count, updated, pendingCertificateAuthorities.size()
+                count, updateCountTotal, pendingCertificateAuthorities.size()
             );
         }
 

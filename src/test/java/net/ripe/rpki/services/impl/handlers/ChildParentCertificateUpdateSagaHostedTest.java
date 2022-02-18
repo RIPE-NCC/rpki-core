@@ -75,7 +75,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
     public void should_issue_certificate_for_hosted_child_certified_resources() {
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16"));
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
 
         assertThat(child.getCertifiedResources()).isEqualTo(resources("10.10.0.0/16"));
 
@@ -94,7 +94,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         should_issue_certificate_for_hosted_child_certified_resources();
         IncomingResourceCertificate certificate = child.getCurrentIncomingCertificate();
 
-        CommandStatus status = execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION)));
+        CommandStatus status = execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
 
         assertThat(status.isHasEffect()).isFalse();
         assertThat(child.getCurrentIncomingCertificate()).isSameAs(certificate);
@@ -106,7 +106,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         should_issue_certificate_for_hosted_child_certified_resources();
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources(""));
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
 
         Collection<KeyPairEntity> keyPairs = child.getKeyPairs();
         assertThat(keyPairs).isEqualTo(Collections.emptySet());
@@ -122,7 +122,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         should_issue_certificate_for_hosted_child_certified_resources();
         KeyPairEntity newKeyPair = child.createNewKeyPair(keyPairService);
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
 
         assertThat(newKeyPair.getStatus()).isEqualTo(KeyPairStatus.PENDING);
 
@@ -144,7 +144,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         child.activatePendingKeys(Duration.ZERO);
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16, 10.20.0.0/16"));
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
 
         Collection<KeyPairEntity> keyPairs = child.getKeyPairs();
         assertThat(keyPairs).hasSize(2);
@@ -161,7 +161,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         should_issue_certificate_for_hosted_child_certified_resources();
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16, 10.20.0.0/16"));
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
 
         Optional<IncomingResourceCertificate> maybeCertificate = resourceCertificateRepository.findIncomingResourceCertificateBySubjectKeyPair(child.getCurrentKeyPair());
         assertThat(maybeCertificate).isPresent();
@@ -176,7 +176,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         should_issue_certificate_for_hosted_child_certified_resources();
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/20"));
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
 
         Optional<IncomingResourceCertificate> maybeCertificate = resourceCertificateRepository.findIncomingResourceCertificateBySubjectKeyPair(child.getCurrentKeyPair());
         assertThat(maybeCertificate).isPresent();
@@ -308,7 +308,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         assertThat(newKeyPair.getStatus()).isEqualTo(KeyPairStatus.CURRENT);
         assertChildParentInvariants(child, parent);
 
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION)));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
 
         assertChildParentInvariants(child, parent);
         IncomingResourceCertificate certificate2 = child.getCurrentIncomingCertificate();

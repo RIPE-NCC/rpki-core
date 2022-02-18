@@ -1,10 +1,11 @@
 package net.ripe.rpki.services.impl.jpa;
 
+import net.ripe.rpki.commons.util.UTC;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import org.junit.Before;
 import org.junit.Test;
+import net.ripe.rpki.domain.manifest.ManifestEntity;
 
-import javax.persistence.LockModeType;
 import javax.transaction.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,8 +19,18 @@ public class JpaCertificateAuthorityRepositoryTest extends CertificationDomainTe
     }
 
     @Test
+    public void findAllWithOutdatedManifests() {
+        assertThat(certificateAuthorityRepository.findAllWithOutdatedManifests(
+            UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT)
+        )).isEmpty();
+    }
+
+    @Test
     public void findAllWithPendingPublications() {
-        assertThat(certificateAuthorityRepository.findAllWithPendingPublications(LockModeType.PESSIMISTIC_WRITE)).isEmpty();
+        assertThat(certificateAuthorityRepository.findAllWithManifestsExpiringBefore(
+            UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT),
+            100
+        )).isEmpty();
     }
 
     @Test

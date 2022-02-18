@@ -30,6 +30,7 @@ import net.ripe.rpki.ripencc.support.event.EventSubscription;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.KeyPairData;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
+import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.util.DBComponent;
 import org.apache.commons.lang.Validate;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -92,6 +93,19 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     @JoinColumn(name = "ca_id", nullable = false)
     private Set<KeyPairEntity> keyPairs = new HashSet<>();
 
+    /**
+     * Flag to indicate that the incoming certificate was updated and the manifest and CRL may need to be re-issued.
+     *
+     * Set whenever a new incoming resource certificate is received ({@link #processCertificateIssuanceRequest}),
+     * cleared once the manifest and CRL have been checked (and re-issued if needed), see
+     * {@link net.ripe.rpki.services.impl.handlers.IssueUpdatedManifestAndCrlCommandHandler IssueUpdatedManifestAndCrlCommandHandler} and
+     * {@link net.ripe.rpki.services.impl.background.PublicRepositoryPublicationServiceBean PublicRepositoryPublicationServiceBean}.
+     *
+     * Capital-B boolean to keep the database schema backwards compatible.
+     */
+    @Column(name = "manifest_and_crl_check_needed")
+    private Boolean manifestAndCrlCheckNeeded;
+
     protected HostedCertificateAuthority() {
     }
 
@@ -120,11 +134,14 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     }
 
 
-    public void removeKeyPair(String name) {
+    public void removeKeyPair(final String name) {
         Optional<KeyPairEntity> keyPair = findKeyPairByName(name);
-        Validate.isTrue(keyPair.isPresent(), "Key pair is not there '" + name + "'");
-        Validate.isTrue(keyPair.get().isRemovable(), "Key pair is in use '" + name + "'");
-        keyPairs.remove(keyPair.get());
+        Validate.isTrue(keyPair.isPresent(), "Key pair is not present '" + name + "'");
+
+        keyPair.ifPresent(kp -> {
+            Validate.isTrue(kp.isRemovable(), "Key pair is in use '" + name + "'");
+            keyPairs.remove(kp);
+        });
     }
 
     public Collection<KeyPairEntity> getKeyPairs() {
@@ -190,6 +207,14 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
 
     public void setLastIssuedSerial(BigInteger lastIssuedSerial) {
         this.lastIssuedSerial = lastIssuedSerial;
+    }
+
+    public boolean isManifestAndCrlCheckNeeded() {
+        return manifestAndCrlCheckNeeded == null || manifestAndCrlCheckNeeded;
+    }
+
+    public void manifestAndCrlCheckCompleted() {
+        this.manifestAndCrlCheckNeeded = false;
     }
 
     @Override
@@ -297,9 +322,14 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     @Override
     public CertificateIssuanceResponse processCertificateIssuanceRequest(CertificateIssuanceRequest request,
                                                                          ResourceCertificateRepository resourceCertificateRepository,
-                                                                         DBComponent dbComponent) {
+                                                                         DBComponent dbComponent,
+                                                                         int issuedCertificatesPerSignedKeyLimit) {
         Validate.isTrue(isProductionCa() || isAllResourcesCa(), "Must be Production or 'All Resources' CA");
         validateChildResourceSet(request.getResources());
+        int count = resourceCertificateRepository.countNonExpiredOutgoingCertificates(request.getSubjectPublicKey(), getCurrentKeyPair());
+        if (count >= issuedCertificatesPerSignedKeyLimit) {
+            throw new CertificationResourceLimitExceededException("number of issued certificates for public key exceeds the limit (" + count + " >= " + issuedCertificatesPerSignedKeyLimit + ")");
+        }
         return getCurrentKeyPair().processCertificateIssuanceRequest(request, dbComponent.nextSerial(this), resourceCertificateRepository);
     }
 
@@ -318,6 +348,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
             activatePendingKey(subjectKeyPair, getVersionedId());
         }
 
+        this.manifestAndCrlCheckNeeded = true;
         HostedCertificateAuthority.EVENTS.publish(this, new IncomingCertificateActivatedEvent(getVersionedId(), subjectKeyPair.getName()));
     }
 

@@ -17,8 +17,6 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import javax.persistence.CascadeType;
 import javax.persistence.CollectionTable;
@@ -35,7 +33,6 @@ import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
@@ -65,7 +62,6 @@ import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
  * A KeyPair is a link in a chain to a trust anchor (Trusted Third Party).
  * The key pair is part of the {@link HostedCertificateAuthority} aggregate.
  */
-@Component
 @Entity
 @Table(name = "keypair")
 @SequenceGenerator(name = "seq_keypair", sequenceName = "seq_all", allocationSize = 1)
@@ -114,10 +110,6 @@ public class KeyPairEntity extends EntitySupport {
     @NotNull
     @Column(name = "manifest_filename")
     private String manifestFilename;
-
-    @Autowired
-    @Transient
-    private ResourceCertificateRepository resourceCertificateRepository;
 
     protected KeyPairEntity() {
         setStatus(KeyPairStatus.NEW);

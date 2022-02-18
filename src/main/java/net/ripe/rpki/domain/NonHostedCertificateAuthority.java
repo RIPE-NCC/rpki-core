@@ -51,6 +51,18 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
      */
     public static final int PUBLIC_KEY_LIMIT = 20;
 
+    /**
+     * Maximum number of certificates issued by the parent for each public key. The limit only applies when the
+     * non-hosted CA performs an issuance request using the up-down protocol. The parent can always issue a new
+     * certificate, even when this limit is exceeded. This ensures registry resource changes are reflected on
+     * the issued certificates.
+     *
+     * Note that this limit is present to avoid non-hosted CAs asking for many certificates, each with different
+     * resources or SIA information, for the same key. Having too many certificates per key will result in bad
+     * JPA performance and can cause other Denial-of-Service attacks on the current core code.
+     */
+    public static final int INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT = 1000;
+
     @NotNull
     @Column(name = "identity_certificate")
     private String identityCertificate;

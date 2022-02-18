@@ -1,6 +1,8 @@
 package net.ripe.rpki.server.api.commands;
 
+import lombok.Getter;
 import net.ripe.rpki.commons.util.VersionedId;
+import org.apache.commons.lang3.Validate;
 
 /**
  * <p>
@@ -13,8 +15,13 @@ public class UpdateAllIncomingResourceCertificatesCommand extends CertificateAut
 
     private static final long serialVersionUID = 1L;
 
-    public UpdateAllIncomingResourceCertificatesCommand(VersionedId certificateAuthorityId) {
+    @Getter
+    private final int issuedCertificatesPerSignedKeyLimit;
+
+    public UpdateAllIncomingResourceCertificatesCommand(VersionedId certificateAuthorityId, int issuedCertificatesPerSignedKeyLimit) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.SYSTEM);
+        Validate.isTrue(issuedCertificatesPerSignedKeyLimit > 0, "issuedCertificatesPerSignedKeyLimit must be positive");
+        this.issuedCertificatesPerSignedKeyLimit = issuedCertificatesPerSignedKeyLimit;
     }
 
     @Override

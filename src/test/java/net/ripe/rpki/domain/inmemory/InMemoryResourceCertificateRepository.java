@@ -9,6 +9,7 @@ import net.ripe.rpki.ripencc.support.persistence.InMemoryRepository;
 import org.apache.commons.lang.NotImplementedException;
 import org.joda.time.DateTime;
 
+import javax.security.auth.x500.X500Principal;
 import java.security.PublicKey;
 import java.util.Collection;
 import java.util.Optional;
@@ -22,6 +23,11 @@ public class InMemoryResourceCertificateRepository extends InMemoryRepository<Re
 
     @Override
     public OutgoingResourceCertificate findLatestOutgoingCertificate(PublicKey subjectPublicKey, KeyPairEntity signingKeyPair) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int countNonExpiredOutgoingCertificates(PublicKey subjectPublicKey, KeyPairEntity signingKeyPair) {
         throw new UnsupportedOperationException();
     }
 

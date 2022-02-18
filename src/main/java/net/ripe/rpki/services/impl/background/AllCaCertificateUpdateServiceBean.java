@@ -83,7 +83,7 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
     private void updateProductionCa(CertificateAuthorityData productionCa) {
         // NOTE: There's no update of potentially over-claiming CAs happening here,
         // since we are updating all member CAs anyway.
-        commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(productionCa.getVersionedId()));
+        commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(productionCa.getVersionedId(), Integer.MAX_VALUE));
     }
 
     private void updateMemberCas(CertificateAuthorityData productionCa) {
@@ -112,7 +112,7 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
             return;
         }
         try {
-            CommandStatus status = commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(member.getVersionedId()));
+            CommandStatus status = commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(member.getVersionedId(), Integer.MAX_VALUE));
             if (status.isHasEffect()) {
                 updatedCounter.incrementAndGet();
             }

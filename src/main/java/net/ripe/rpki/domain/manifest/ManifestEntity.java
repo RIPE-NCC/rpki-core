@@ -11,7 +11,6 @@ import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.PublishedObject;
 import net.ripe.rpki.domain.ResourceCertificateInformationAccessStrategy;
-import net.ripe.rpki.domain.crl.CrlEntity;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import org.joda.time.DateTime;
@@ -51,9 +50,17 @@ public class ManifestEntity extends EntitySupport {
 
     /**
      * The minimum time the current manifest or CRL still needs to be valid before we update it anyway. This is to avoid
-     * not being on time to replace these objects.
+     * not being on time to replace these objects. When the time to next update is less than this hard limit, the system
+     * must issue a new manifest/CRL pair as soon as possible.
      */
-    public static final Period TIME_TO_NEXT_UPDATE_BEFORE_REPLACEMENT = CrlEntity.TIME_TO_NEXT_UPDATE_BEFORE_REPLACEMENT;
+    public static final Period TIME_TO_NEXT_UPDATE_HARD_LIMIT = Period.hours(12);
+
+    /**
+     * Manifests and CRLs are replaced as soon as the time to next update is less than this soft limit, but replacement
+     * is spread out over time to reduce the load on the system and avoid spikes where we would suddenly republish the
+     * majority of CRLs and manifests every 8 hours.
+     */
+    public static final Period TIME_TO_NEXT_UPDATE_SOFT_LIMIT = Period.hours(16);
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_manifestentity")
@@ -114,7 +121,7 @@ public class ManifestEntity extends EntitySupport {
 
     public boolean isUpdateNeeded(DateTime now, Map<String, byte[]> manifestEntries, IncomingResourceCertificate currentCertificate) {
         ManifestCms cms = getManifestCms();
-        return isNotYetPublished(cms)
+        return cms == null
                 || isCloseToNextUpdateTime(now, cms)
                 || parentCertificatePublicationLocationChanged(cms, currentCertificate)
                 || !cms.matchesFiles(manifestEntries);
@@ -156,16 +163,12 @@ public class ManifestEntity extends EntitySupport {
         return new CertificateIssuanceRequest(new IpResourceSet(), subject, eeKeyPair.getPublic(), sia);
     }
 
-    private boolean isNotYetPublished(ManifestCms cms) {
-        return cms == null;
-    }
-
     private boolean isCloseToNextUpdateTime(DateTime now, ManifestCms cms) {
-        return cms != null && cms.getNextUpdateTime().minus(TIME_TO_NEXT_UPDATE_BEFORE_REPLACEMENT).isBefore(now);
+        return cms.getNextUpdateTime().minus(TIME_TO_NEXT_UPDATE_SOFT_LIMIT).isBefore(now);
     }
 
     private boolean parentCertificatePublicationLocationChanged(ManifestCms cms, IncomingResourceCertificate incomingResourceCertificate) {
-        return cms != null && !incomingResourceCertificate.getPublicationUri().equals(cms.getParentCertificateUri());
+        return !incomingResourceCertificate.getPublicationUri().equals(cms.getParentCertificateUri());
     }
 
     public void withdraw() {

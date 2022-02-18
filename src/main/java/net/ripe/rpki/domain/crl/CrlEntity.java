@@ -10,7 +10,6 @@ import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
-import org.joda.time.Period;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -27,16 +26,12 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.util.Collection;
 
+import static net.ripe.rpki.domain.manifest.ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT;
+
 @Entity
 @Table(name = "crlentity")
 @SequenceGenerator(name = "seq_crlentity", sequenceName = "seq_all", allocationSize = 1)
 public class CrlEntity extends EntitySupport {
-
-    /**
-     * The minimum time the current manifest or CRL still needs to be valid before we update it anyway. This is to avoid
-     * not being on time to replace these objects.
-     */
-    public static final Period TIME_TO_NEXT_UPDATE_BEFORE_REPLACEMENT = Period.hours(16);
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_crlentity")
@@ -112,7 +107,7 @@ public class CrlEntity extends EntitySupport {
             return true;
         }
 
-        if (current.getNextUpdateTime().minus(TIME_TO_NEXT_UPDATE_BEFORE_REPLACEMENT).isBefore(now)) {
+        if (current.getNextUpdateTime().minus(TIME_TO_NEXT_UPDATE_SOFT_LIMIT).isBefore(now)) {
             return true;
         }
 

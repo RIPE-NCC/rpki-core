@@ -77,7 +77,7 @@ public class KeyPairActivationManagementServiceBean extends SequentialBackground
                                 case ALL_RESOURCES:
                                     throw new IllegalStateException("CA with type ALL_RESOURCES (" + childCA + ") should not be a child of " + parentCA);
                                 case ROOT: case HOSTED: case NONHOSTED:
-                                    commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(childCA.getVersionedId()));
+                                    commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(childCA.getVersionedId(), Integer.MAX_VALUE));
                                     break;
                                 default:
                                     throw new IllegalStateException("CA with unknown type " + childCA.getType());

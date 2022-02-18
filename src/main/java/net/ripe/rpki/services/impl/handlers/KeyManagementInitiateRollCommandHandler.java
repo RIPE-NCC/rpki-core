@@ -80,7 +80,7 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
         dbComponent.lockAndRefresh(ca.getParent());
         for (CertificateIssuanceRequest request : requests) {
             CertificateIssuanceResponse response = ca.getParent().processCertificateIssuanceRequest(
-                    request, resourceCertificateRepository, dbComponent);
+                    request, resourceCertificateRepository, dbComponent, Integer.MAX_VALUE);
             ca.processCertificateIssuanceResponse(response, resourceCertificateRepository);
         }
     }

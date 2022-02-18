@@ -4,7 +4,9 @@ import lombok.Value;
 import net.ripe.rpki.ripencc.support.persistence.Repository;
 import org.joda.time.DateTime;
 
+import javax.security.auth.x500.X500Principal;
 import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
 
@@ -21,6 +23,14 @@ public interface ResourceCertificateRepository extends Repository<ResourceCertif
      * @return
      */
     OutgoingResourceCertificate findLatestOutgoingCertificate(PublicKey subjectPublicKey, KeyPairEntity signingKeyPair);
+
+    /**
+     * Counts the number of outgoing resource certificates for the specific <code>subjectPublicKey</code>,
+     * and signed by <code>signingKeyPair</code>. This count is used to limit the number of certificates
+     * for a specific public key to avoid having too many and causing CRL bloat, this is why all non-expired
+     * certificates are included in the count.
+     */
+    int countNonExpiredOutgoingCertificates(PublicKey subjectPublicKey, KeyPairEntity signingKeyPair);
 
     Collection<OutgoingResourceCertificate> findAllBySigningKeyPair(KeyPairEntity signingKeyPairEntity);
 

@@ -37,7 +37,7 @@ public class CommandPersistenceHandlerTest {
 
     @Test
     public void shouldRecordEveryCommand() {
-        UpdateAllIncomingResourceCertificatesCommand command = new UpdateAllIncomingResourceCertificatesCommand(VERSIONED_CA_ID);
+        UpdateAllIncomingResourceCertificatesCommand command = new UpdateAllIncomingResourceCertificatesCommand(VERSIONED_CA_ID, Integer.MAX_VALUE);
 
         CertificateAuthority mockedCA = mock(CertificateAuthority.class);
         when(certificateAuthorityRepository.get(VERSIONED_CA_ID.getId())).thenReturn(mockedCA);

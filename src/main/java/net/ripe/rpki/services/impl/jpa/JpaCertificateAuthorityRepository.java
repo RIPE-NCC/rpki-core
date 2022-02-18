@@ -301,11 +301,13 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     }
 
     @Override
-    public Collection<HostedCertificateAuthority> findAllWithPendingPublications(LockModeType lockMode) {
+    public Collection<HostedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff) {
         return manager.createQuery(
             "SELECT ca " +
                 "  FROM HostedCertificateAuthority ca" +
-                " WHERE EXISTS (SELECT kp " +
+                // Incoming certificate was updated since last check, so publish might be needed
+                " WHERE COALESCE(ca.manifestAndCrlCheckNeeded, TRUE) = TRUE" +
+                "    OR EXISTS (SELECT kp " +
                 "                 FROM ca.keyPairs kp" +
                 "                 JOIN kp.incomingResourceCertificate incoming" +
                 // Key pair must be publishable and must have a current incoming certificate
@@ -315,21 +317,49 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
                 "                                        FROM PublishedObject po" +
                 "                                       WHERE po.issuingKeyPair = kp " +
                 "                                         AND po.status in :pending)" +
-                // No manifest, so publish needed
+                // No manifest, or manifest will expire soon, so publish needed
                 "                       OR NOT EXISTS (SELECT mft" +
-                "                                        FROM ManifestEntity mft" +
-                "                                       WHERE mft.certificate.signingKeyPair = kp)" +
-                // No CRL, so publish needed
+                "                                        FROM ManifestEntity mft " +
+                "                                        LEFT JOIN mft.publishedObject po " +
+                "                                       WHERE mft.certificate.signingKeyPair = kp" +
+                "                                         AND po.validityPeriod.notValidAfter > :nextUpdateCutoff)" +
+                // No CRL, or CRL will expire soon, so publish needed
                 "                       OR NOT EXISTS (SELECT crl" +
                 "                                        FROM CrlEntity crl" +
-                "                                       WHERE crl.keyPair = kp)))",
+                "                                        LEFT JOIN crl.publishedObject po " +
+                "                                       WHERE crl.keyPair = kp" +
+                "                                         AND po.validityPeriod.notValidAfter > :nextUpdateCutoff)))",
             HostedCertificateAuthority.class)
             // See KeyPairEntity.isPublishable for the next two parameters
             .setParameter("publishable", Arrays.asList(KeyPairStatus.PENDING, KeyPairStatus.CURRENT, KeyPairStatus.OLD))
             // Need to update when there are published object with pending status
             .setParameter("pending", PublicationStatus.PENDING_STATUSES)
-            .setLockMode(lockMode)
+            .setParameter("nextUpdateCutoff", nextUpdateCutoff)
             .getResultList();
+    }
+
+    @Override
+    public List<HostedCertificateAuthority> findAllWithManifestsExpiringBefore(DateTime notValidAfterCutoff, int maxResult) {
+        return manager.createQuery(
+                "SELECT DISTINCT ca, MIN(po.validityPeriod.notValidAfter) " +
+                    "  FROM HostedCertificateAuthority ca" +
+                    "  JOIN ca.keyPairs kp," +
+                    "       ManifestEntity mft" +
+                    "  JOIN mft.publishedObject po" +
+                    "  JOIN mft.certificate crt" +
+                    " WHERE kp.status IN :publishable" +
+                    "   AND crt.signingKeyPair = kp" +
+                    "   AND po.validityPeriod.notValidAfter < :notValidAfterCutoff" +
+                    " GROUP BY ca" +
+                    " ORDER BY MIN(po.validityPeriod.notValidAfter) ASC",
+                Object[].class)
+            // See KeyPairEntity.isPublishable for the next two parameters
+            .setParameter("publishable", Arrays.asList(KeyPairStatus.PENDING, KeyPairStatus.CURRENT, KeyPairStatus.OLD))
+            .setParameter("notValidAfterCutoff", notValidAfterCutoff)
+            .setMaxResults(maxResult)
+            .getResultStream()
+            .map((row) -> (HostedCertificateAuthority) row[0])
+            .collect(Collectors.toList());
     }
 
     @Override

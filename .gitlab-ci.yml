@@ -240,7 +240,8 @@ publish-to-github:
   script: |
     [ -n "$GITHUB_DEPLOY_KEY" ] || ( echo "GITHUB_DEPLOY_KEY is not set"; exit 1 )
     [ -n "$GITHUB_KNOWN_HOSTS" ] || ( echo "GITHUB_KNOWN_HOSTS is not set"; exit 1 )
-    mkdir ~/.ssh && chmod 700 ~/.ssh && echo $GITHUB_KNOWN_HOSTS > ~/.ssh/known_hosts
+    mkdir -m 700 -p ~/.ssh
+    cat >> ~/.ssh/known_hosts <(echo "$GITHUB_KNOWN_HOSTS")
     eval $(ssh-agent -s)
     ssh-add <(echo "$GITHUB_DEPLOY_KEY")
     ./scripts/publish-source-code --no-push --verify --committer-name 'RPKI Team at RIPE NCC' --committer-email 'rpki@ripe.net' -- $CI_COMMIT_BEFORE_SHA $CI_COMMIT_SHA

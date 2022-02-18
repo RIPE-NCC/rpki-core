@@ -104,14 +104,14 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
         subject.execute();
 
         verify(commandService, times(3)).execute(isA(UpdateAllIncomingResourceCertificatesCommand.class));
-        verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(productionCaMock.getVersionedId()));
-        verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa1.getVersionedId()));
-        verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa2.getVersionedId()));
+        verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(productionCaMock.getVersionedId(), Integer.MAX_VALUE));
+        verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa1.getVersionedId(), Integer.MAX_VALUE));
+        verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa2.getVersionedId(), Integer.MAX_VALUE));
     }
 
     @Test
     public void should_not_throw_exception_if_fails() {
-        doThrow(new RuntimeException("test")).when(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(PRODUCTION_CA_ID));
+        doThrow(new RuntimeException("test")).when(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(PRODUCTION_CA_ID, Integer.MAX_VALUE));
         subject.execute();
     }
 
@@ -120,6 +120,6 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
         subject.runService();
 
         verify(resourceCache, times(1)).verifyResourcesArePresent();
-        verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(productionCaMock.getVersionedId()));
+        verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(productionCaMock.getVersionedId(), Integer.MAX_VALUE));
     }
 }

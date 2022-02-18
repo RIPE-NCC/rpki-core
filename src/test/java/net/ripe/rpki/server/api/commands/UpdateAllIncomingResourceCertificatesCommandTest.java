@@ -12,7 +12,7 @@ public class UpdateAllIncomingResourceCertificatesCommandTest {
 
     @Before
     public void setUp() {
-        subject = new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(1));
+        subject = new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(1), Integer.MAX_VALUE);
     }
 
     @Test

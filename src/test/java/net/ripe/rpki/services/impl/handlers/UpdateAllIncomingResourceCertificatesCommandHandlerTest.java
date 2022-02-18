@@ -52,7 +52,7 @@ public class UpdateAllIncomingResourceCertificatesCommandHandlerTest {
         ));
 
         assertThrows(CommandWithoutEffectException.class, () ->
-            subject.handle(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CertificationDomainTestCase.ACA_ID, 1)))
+            subject.handle(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CertificationDomainTestCase.ACA_ID, 1), Integer.MAX_VALUE))
         );
     }
 

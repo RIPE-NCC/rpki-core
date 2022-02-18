@@ -90,7 +90,8 @@ public abstract class JpaRepository<T extends Entity> implements Repository<T> {
     }
 
     public int size() {
-        return (Integer) manager.createQuery("select count(e) from " + getEntityClass().getSimpleName() + " e").getSingleResult();
+        Number count = (Number) manager.createQuery("select count(e) from " + getEntityClass().getSimpleName() + " e").getSingleResult();
+        return count.intValue();
     }
 
     protected Query createQuery(String q) {

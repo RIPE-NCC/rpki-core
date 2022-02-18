@@ -33,7 +33,9 @@ public class IssueUpdatedManifestAndCrlCommandHandler extends AbstractCertificat
     public void handle(IssueUpdatedManifestAndCrlCommand command, CommandStatus commandStatus) {
         HostedCertificateAuthority hostedCa = lookupHostedCA(command.getCertificateAuthorityVersionedId().getId());
         long updateCount = certificateManagementService.updateManifestAndCrlIfNeeded(hostedCa);
-        if (updateCount == 0) {
+        if (hostedCa.isManifestAndCrlCheckNeeded()) {
+            hostedCa.manifestAndCrlCheckCompleted();
+        } else if (updateCount == 0) {
             throw new CommandWithoutEffectException(command);
         }
     }

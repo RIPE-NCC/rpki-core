@@ -39,7 +39,7 @@ public class CertificateRevocationProcessor extends AbstractProvisioningProcesso
 
         publicKeyEntity.setLatestRevocationRequest(keyElement);
 
-        commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(nonHostedCertificateAuthority.getVersionedId()));
+        commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(nonHostedCertificateAuthority.getVersionedId(), NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         CertificateRevocationResponsePayloadBuilder responsePayloadBuilder = new CertificateRevocationResponsePayloadBuilder();
         responsePayloadBuilder.withClassName(keyElement.getClassName());

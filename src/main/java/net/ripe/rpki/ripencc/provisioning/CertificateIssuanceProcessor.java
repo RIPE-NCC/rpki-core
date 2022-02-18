@@ -147,7 +147,7 @@ public class CertificateIssuanceProcessor extends AbstractProvisioningProcessor 
         X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(requestParser);
         publicKeyEntity.setLatestIssuanceRequest(request, sia);
 
-        commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(nonHostedCa.getVersionedId()));
+        commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(nonHostedCa.getVersionedId(), NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         return publicKeyEntity.findCurrentOutgoingResourceCertificate();
     }

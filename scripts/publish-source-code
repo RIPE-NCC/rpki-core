@@ -54,7 +54,7 @@ check_no_diff() {
 }
 
 REPOSITORY="git@github.com:RIPE-NCC/rpki-core.git"
-PUSH=1
+PUSH=0
 VERIFY=0
 UPSTREAM=main
 LOCAL_BRANCH=proscribo

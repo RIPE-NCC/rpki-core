@@ -38,7 +38,7 @@ public class CertificateAuthorityHistoryPageTest extends CertificationWicketTest
         expect(caViewService.findMostRecentMessagesForCa(anyString())).andReturn(Collections.emptyList());
 
         List<CommandAuditData> commandList = auditLog(
-                new UpdateAllIncomingResourceCertificatesCommand(PRODUCTION_CA_VERSIONED_ID),
+                new UpdateAllIncomingResourceCertificatesCommand(PRODUCTION_CA_VERSIONED_ID, Integer.MAX_VALUE),
                 KeyManagementActivatePendingKeysCommand.manualActivationCommand(PRODUCTION_CA_VERSIONED_ID),
                 new KeyManagementInitiateRollCommand(MEMBER_CA_VERSIONED_ID, 0),
                 new KeyManagementRevokeOldKeysCommand(MEMBER_CA_VERSIONED_ID),

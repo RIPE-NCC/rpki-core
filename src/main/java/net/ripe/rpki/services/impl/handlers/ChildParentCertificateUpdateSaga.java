@@ -11,12 +11,14 @@ import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.util.DBComponent;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Component
 public class ChildParentCertificateUpdateSaga {
 
     private final KeyPairDeletionService keyPairDeletionService;
@@ -25,32 +27,35 @@ public class ChildParentCertificateUpdateSaga {
     private final PublishedObjectRepository publishedObjectRepository;
     private final ResourceCertificateRepository resourceCertificateRepository;
     private final DBComponent dbComponent;
+    private final ResourceLookupService resourceLookupService;
+    private final KeyPairService keyPairService;
 
     public ChildParentCertificateUpdateSaga(KeyPairDeletionService keyPairDeletionService,
                                             CertificateRequestCreationService certificateRequestCreationService,
                                             PublishedObjectRepository publishedObjectRepository,
                                             ResourceCertificateRepository resourceCertificateRepository,
-                                            DBComponent dbComponent) {
+                                            DBComponent dbComponent,
+                                            ResourceLookupService resourceLookupService,
+                                            KeyPairService keyPairService) {
         this.keyPairDeletionService = keyPairDeletionService;
         this.certificateRequestCreationService = certificateRequestCreationService;
         this.publishedObjectRepository = publishedObjectRepository;
         this.resourceCertificateRepository = resourceCertificateRepository;
         this.dbComponent = dbComponent;
+        this.resourceLookupService = resourceLookupService;
+        this.keyPairService = keyPairService;
     }
 
-    public boolean execute(ParentCertificateAuthority parentCa, ChildCertificateAuthority childCa,
-                           ResourceLookupService resourceLookupService, KeyPairService keyPairService) {
+    public boolean execute(ParentCertificateAuthority parentCa, ChildCertificateAuthority childCa, int issuedCertificatesPerSignedKeyLimit) {
         Optional<IpResourceSet> childResources = childCa.lookupCertifiableIpResources(resourceLookupService);
         if (childResources.isPresent()) {
-            return execute(parentCa, childCa, childResources.get(), keyPairService);
+            return execute(parentCa, childCa, childResources.get(), issuedCertificatesPerSignedKeyLimit);
         }
         log.warn("Resource cache for CA is empty, exiting.");
         return false;
     }
 
-    private boolean execute(ParentCertificateAuthority parentCa, ChildCertificateAuthority childCa,
-                            IpResourceSet childResources, KeyPairService keyPairService) {
-
+    private boolean execute(ParentCertificateAuthority parentCa, ChildCertificateAuthority childCa, IpResourceSet childResources, int issuedCertificatesPerSignedKeyLimit) {
         // In the normal case there are no updates for incoming resource certificates, so check with the parent CA
         // without locking it (so we can check multiple child CAs concurrently using multiple threads).
         List<? extends CertificateProvisioningMessage> requests = checkIfUpdatedIsNeeded(parentCa, childCa, childResources, keyPairService);
@@ -67,7 +72,7 @@ public class ChildParentCertificateUpdateSaga {
         for (final CertificateProvisioningMessage request : requests) {
             if (request instanceof CertificateIssuanceRequest) {
                 final CertificateIssuanceResponse response = parentCa.processCertificateIssuanceRequest(
-                        (CertificateIssuanceRequest) request, resourceCertificateRepository, dbComponent);
+                    (CertificateIssuanceRequest) request, resourceCertificateRepository, dbComponent, issuedCertificatesPerSignedKeyLimit);
                 childCa.processCertificateIssuanceResponse(response, resourceCertificateRepository);
             } else if (request instanceof CertificateRevocationRequest) {
                 final CertificateRevocationResponse response = parentCa.processCertificateRevocationRequest(

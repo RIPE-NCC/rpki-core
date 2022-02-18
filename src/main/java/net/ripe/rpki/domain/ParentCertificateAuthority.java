@@ -21,7 +21,7 @@ public interface ParentCertificateAuthority extends Entity {
 
     CertificateIssuanceResponse processCertificateIssuanceRequest(CertificateIssuanceRequest request,
                                                                   ResourceCertificateRepository resourceCertificateRepository,
-                                                                  DBComponent dbComponent);
+                                                                  DBComponent dbComponent, int issuedCertificatesPerSignedKeyLimit);
 
     boolean isCertificateRevocationNeeded(CertificateRevocationRequest request, ResourceCertificateRepository resourceCertificateRepository);
 

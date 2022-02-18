@@ -1,0 +1,1 @@
+ALTER TABLE certificateauthority ADD COLUMN manifest_and_crl_check_needed BOOLEAN;

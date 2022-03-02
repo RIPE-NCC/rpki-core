@@ -2,6 +2,8 @@ plugins {
     id 'rpki-ripe-ncc.build-conventions'
 }
 
+apply from: "../dependencies.gradle"
+
 sourceSets {
     thales {
         java {
@@ -28,7 +30,7 @@ dependencies {
             requireCapability('net.ripe.rpki.hsm:api-only')
         }
     }
-    thalesImplementation 'net.ripe.rpki:rpki-commons:1.25'
+    thalesImplementation "net.ripe.rpki:rpki-commons:$rpki_commons_version"
     thalesImplementation 'com.thales:DBProvider:1.1'
     thalesImplementation 'org.springframework:spring-context:5.3.13'
 }

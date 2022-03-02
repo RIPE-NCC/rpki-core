@@ -85,3 +85,6 @@ static.image.deployment.environment: static/images/cert_development.png
 ta.repository:
     directory: ${HOME}/export/bad/certification/repository/ta
     uri: rsync://localhost:10873/ta/
+
+
+ca.cleanup.service.enabled: true

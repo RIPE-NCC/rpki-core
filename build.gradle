@@ -9,6 +9,8 @@ plugins {
 apply plugin: 'java'
 apply plugin: 'io.spring.dependency-management'
 
+apply from: "dependencies.gradle"
+
 // Use this style to override dependencies when needed:
 // ext['log4j2.version'] = '2.17.1'
 
@@ -34,7 +36,7 @@ dependencies {
     implementation 'io.sentry:sentry-spring-boot-starter'
     implementation 'io.sentry:sentry-logback'
 
-    implementation 'net.ripe.rpki:rpki-commons:1.28'
+    implementation "net.ripe.rpki:rpki-commons:$rpki_commons_version"
 
     implementation 'org.springdoc:springdoc-openapi-ui:1.6.2'
 
@@ -64,7 +66,7 @@ dependencies {
 
     testImplementation 'com.github.tomakehurst:wiremock-jre8:2.32.0'
     testImplementation 'com.pholser:junit-quickcheck-generators:1.0'
-    testImplementation 'net.ripe.rpki:rpki-commons:1.25:tests'
+    testImplementation "net.ripe.rpki:rpki-commons:$rpki_commons_version:tests"
     testImplementation 'org.easymock:easymock:4.3'
 
     implementation (project(':hsm')) {

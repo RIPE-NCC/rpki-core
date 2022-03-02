@@ -19,10 +19,10 @@ import net.ripe.rpki.server.api.dto.CaStatEvent;
 import net.ripe.rpki.server.api.dto.CaStatRoaEvent;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.springframework.stereotype.Repository;
@@ -368,12 +368,35 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
             .executeUpdate();
     }
 
+    @Override
+    public Collection<HostedCertificateAuthority> getCasWithoutKeyPairsOlderThenOneYear() {
+        final Query sql = manager.createQuery(
+            "SELECT ca FROM HostedCertificateAuthority ca " +
+                "WHERE ca.keyPairs IS EMPTY " +
+                "AND NOT EXISTS (" +
+                "   SELECT cau FROM CommandAudit cau " +
+                "   WHERE cau.certificateAuthorityId = ca.id" +
+                "   AND cau.commandGroup = :user " +
+                "   AND cau.executionTime > :threshold " +
+                ") " +
+                "AND NOT EXISTS (" +
+                "   SELECT rc FROM RoaConfiguration rc " +
+                "   WHERE rc.certificateAuthority = ca " +
+                "   AND rc.prefixes IS NOT EMPTY" +
+                ") " +
+                "AND NOT EXISTS (" +
+                "   SELECT rac FROM RoaAlertConfiguration rac " +
+                "   WHERE rac.certificateAuthority = ca" +
+                ")");
+        final DateTime yearAgo = new DateTime().minus(Duration.standardDays(366));
+        return sql
+            .setParameter("threshold", yearAgo)
+            .setParameter("user", "USER")
+            .getResultList();
+    }
+
     private static String inClause(final Collection<String> items) {
-        final List<String> safe = new ArrayList<>();
-        for (String item : items) {
-            safe.add("'" + item + "'");
-        }
-        return StringUtils.join(safe, ",");
+        return items.stream().collect(Collectors.joining(",", "'", "'"));
     }
 
     private static int countRoasUpdateSpecPattern(String summary) {

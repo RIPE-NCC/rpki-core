@@ -43,4 +43,6 @@ public interface CertificateAuthorityRepository extends Repository<CertificateAu
     Collection<HostedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff);
 
     int deleteNonHostedPublicKeysWithoutSigningCertificates();
+
+    Collection<HostedCertificateAuthority> getCasWithoutKeyPairsOlderThenOneYear();
 }

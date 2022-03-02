@@ -37,4 +37,9 @@ public class JpaCertificateAuthorityRepositoryTest extends CertificationDomainTe
     public void deleteNonHostedPublicKeysWithoutSigningCertificates() {
         assertThat(certificateAuthorityRepository.deleteNonHostedPublicKeysWithoutSigningCertificates()).isZero();
     }
+
+    @Test
+    public void getCasWithoutKeyPairsOlderThenOneYear() {
+        assertThat(certificateAuthorityRepository.getCasWithoutKeyPairsOlderThenOneYear()).isEmpty();
+    }
 }

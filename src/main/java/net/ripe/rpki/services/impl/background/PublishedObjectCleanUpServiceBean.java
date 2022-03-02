@@ -2,6 +2,7 @@ package net.ripe.rpki.services.impl.background;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.PublishedObjectRepository;
@@ -9,18 +10,17 @@ import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.inject.Inject;
 
-@Service("publishedObjectCleanUpService")
-public class PublishedObjectCleanUpServiceBean extends ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode {
+import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLISHED_OBJECT_CLEAN_UP_SERVICE;
 
-    private static final Logger LOG = LoggerFactory.getLogger(PublishedObjectCleanUpServiceBean.class);
+@Slf4j
+@Service(PUBLISHED_OBJECT_CLEAN_UP_SERVICE)
+public class PublishedObjectCleanUpServiceBean extends ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode {
 
     private final TransactionTemplate transactionTemplate;
     private final CertificateAuthorityRepository certificateAuthorityRepository;
@@ -46,7 +46,6 @@ public class PublishedObjectCleanUpServiceBean extends ConcurrentBackgroundServi
         this.deletedNonHostedPublicKeysCounter = Counter.builder("rpkicore.deleted.non.hosted.public.keys.without.signing.certificate")
             .description("The number of deleted non-hosted public keys without signing certificate")
             .register(meterRegistry);
-
     }
 
     @Override
@@ -54,14 +53,14 @@ public class PublishedObjectCleanUpServiceBean extends ConcurrentBackgroundServi
         DateTime expirationTime = new DateTime(DateTimeZone.UTC).minusDays(daysBeforeCleanUp);
         transactionTemplate.executeWithoutResult((status) -> {
             int certificateCount = resourceCertificateRepository.deleteExpiredOutgoingResourceCertificates(expirationTime);
-            LOG.info("Deleted {} expired certificates with not valid after before {}", certificateCount, expirationTime);
+            log.info("Deleted {} expired certificates with not valid after before {}", certificateCount, expirationTime);
 
             int publishedObjectCount = publishedObjectRepository.deleteExpiredObjects(expirationTime);
-            LOG.info("Deleted {} withdrawn published objects with not valid after before {}", publishedObjectCount, expirationTime);
+            log.info("Deleted {} withdrawn published objects with not valid after before {}", publishedObjectCount, expirationTime);
 
             int deletedNonHostedPublicKeyCount = certificateAuthorityRepository.deleteNonHostedPublicKeysWithoutSigningCertificates();
             deletedNonHostedPublicKeysCounter.increment(deletedNonHostedPublicKeyCount);
-            LOG.info("Deleted {} non-hosted public keys without signing certificates", deletedNonHostedPublicKeyCount);
+            log.info("Deleted {} non-hosted public keys without signing certificates", deletedNonHostedPublicKeyCount);
         });
     }
 

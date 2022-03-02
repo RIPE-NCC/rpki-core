@@ -43,8 +43,8 @@ public class PublishedObjectCleanUpServiceBeanTest {
 
     @Before
     public void setUp() {
-        service = new PublishedObjectCleanUpServiceBean(activeNodeService, certificateAuthorityRepository, publishedObjectRepository, resourceCertificateRepository,
-            transactionManager, new SimpleMeterRegistry());
+        service = new PublishedObjectCleanUpServiceBean(activeNodeService, certificateAuthorityRepository,
+            publishedObjectRepository, resourceCertificateRepository, transactionManager, new SimpleMeterRegistry());
         service.setDaysBeforeCleanUp(7);
     }
 
@@ -58,4 +58,5 @@ public class PublishedObjectCleanUpServiceBeanTest {
         verify(resourceCertificateRepository).deleteExpiredOutgoingResourceCertificates(expirationTime);
         verify(certificateAuthorityRepository).deleteNonHostedPublicKeysWithoutSigningCertificates();
     }
+
 }

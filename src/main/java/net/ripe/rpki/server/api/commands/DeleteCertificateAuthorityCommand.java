@@ -24,6 +24,6 @@ public class DeleteCertificateAuthorityCommand extends CertificateAuthorityComma
 
     @Override
     public String getCommandSummary() {
-        return "Deleted Certificate Authority '" + name + "' with roas: " + roaConfiguration.getPrefixes() + ".";
+        return "Deleted Certificate Authority '" + name + "' with ROAs: " + roaConfiguration.getPrefixes() + ".";
     }
 }

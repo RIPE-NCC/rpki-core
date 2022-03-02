@@ -47,6 +47,7 @@ public class BackgroundServices {
     public static final String KEY_PAIR_REVOCATION_MANAGEMENT_SERVICE = "keyPairRevocationManagementService";
     public static final String PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE = "productionCaKeyRolloverManagementService";
     public static final String PUBLISHED_OBJECT_CLEAN_UP_SERVICE = "publishedObjectCleanUpService";
+    public static final String CA_CLEAN_UP_SERVICE = "caCleanUpService";
     public static final String ROA_ALERT_BACKGROUND_SERVICE = "roaAlertBackgroundServiceDaily";
     public static final String ROA_ALERT_BACKGROUND_SERVICE_WEEKLY = "roaAlertBackgroundServiceWeekly";
 

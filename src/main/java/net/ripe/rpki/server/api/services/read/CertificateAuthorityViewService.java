@@ -2,6 +2,7 @@ package net.ripe.rpki.server.api.services.read;
 
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.server.api.dto.*;
+import org.joda.time.Instant;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
@@ -36,6 +37,11 @@ public interface CertificateAuthorityViewService {
      * @return non-null collection of hosted CA's
      */
     Collection<CertificateAuthorityData> findAllHostedCertificateAuthorities();
+
+    /**
+     * @return non-null collection of hosted CA's
+     */
+    Collection<CertificateAuthorityData> findAllHostedCasWithKeyPairsOlderThan(Instant oldestCreationTime);
 
     /**
      * Use this to find all the child CAs of the (1) Production CA in the system.

@@ -12,8 +12,8 @@ public interface CertificationConfiguration {
 	int getAutoKeyRolloverMaxAgeDays();
     Duration getStagingPeriod();
 
-    String getKeyManagementDataDirectoryOrNull();
-    String getKeyManagementDataArchiveDirectoryOrNull();
+    String getKeyManagementDataDirectory();
+    String getKeyManagementDataArchiveDirectory();
 
     Resource getApiKeys();
 }

@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import net.ripe.rpki.application.impl.CommandAuditServiceBean;
 import net.ripe.rpki.commons.provisioning.payload.PayloadMessageType;
 import net.ripe.rpki.domain.ProvisioningAuditLogEntity;
 import net.ripe.rpki.server.api.dto.ProvisioningAuditData;
@@ -65,7 +66,7 @@ public class ProvisioningAuditLogServiceBean implements ProvisioningAuditLogServ
             "select pal from ProvisioningAuditLogEntity pal " +
                 "where pal.nonHostedCaUUID = :caUUID", ProvisioningAuditLogEntity.class);
         query.setParameter("caUUID", caUUID);
-        query.setMaxResults(100);
+        query.setMaxResults(CommandAuditServiceBean.MAX_HISTORY_ENTRIES_RETURNED);
         List<ProvisioningAuditLogEntity> messages = query.getResultList();
         return messages.stream()
             .map(ProvisioningAuditLogEntity::toData)

@@ -7,7 +7,9 @@ import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.stereotype.Service;
 
-@Service("productionCaKeyRolloverManagementService")
+import static net.ripe.rpki.services.impl.background.BackgroundServices.PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE;
+
+@Service(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE)
 public class ProductionCaKeyRolloverManagementServiceBean extends AbstractKeyRolloverManagementServiceBean {
 
 

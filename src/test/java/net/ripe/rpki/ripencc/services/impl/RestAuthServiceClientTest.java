@@ -1,5 +1,6 @@
 package net.ripe.rpki.ripencc.services.impl;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.TestRpkiBootApplication;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,13 +21,13 @@ public class RestAuthServiceClientTest {
 
     @Test
     public void should_be_false_if_path_is_wrong() {
-        AuthServiceClient subject = new RestAuthServiceClient("http://ba-apps.ripe.net/some/wrong/path", 1000, 1000, TESTING_API_KEY);
+        AuthServiceClient subject = new RestAuthServiceClient("http://ba-apps.ripe.net/some/wrong/path", 1000, 1000, TESTING_API_KEY, new SimpleMeterRegistry());
         assertFalse(subject.isAvailable());
     }
 
     @Test
     public void should_be_false_if_host_is_wrong() {
-        AuthServiceClient subject = new RestAuthServiceClient("http://1.2.3.4.5/account-service/accounts/sso", 1000, 1000, TESTING_API_KEY);
+        AuthServiceClient subject = new RestAuthServiceClient("http://1.2.3.4.5/account-service/accounts/sso", 1000, 1000, TESTING_API_KEY, new SimpleMeterRegistry());
         assertFalse(subject.isAvailable());
     }
 }

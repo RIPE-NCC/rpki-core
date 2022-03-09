@@ -7,6 +7,8 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
+import org.joda.time.Duration;
+import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,26 +20,31 @@ import static net.ripe.rpki.server.api.security.RunAsUserHolder.asAdmin;
 
 public abstract class AbstractKeyRolloverManagementServiceBean extends SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProductionCaKeyRolloverManagementServiceBean.class);
+    private static final int MAX_ALLOWED_EXCEPTIONS = 10;
+
+    private final Logger log;
 
     private final CertificationConfiguration certificationConfiguration;
-
-    private static final int MAX_ALLOWED_EXCEPTIONS = 10;
-    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
     private final CertificateAuthorityViewService caViewService;
     private final CommandService commandService;
 
-    public AbstractKeyRolloverManagementServiceBean(ActiveNodeService activeNodeService, CertificationConfiguration certificationConfiguration, CertificateAuthorityViewService certificationService, CommandService commandService) {
+    public AbstractKeyRolloverManagementServiceBean(ActiveNodeService activeNodeService,
+                                                    CertificationConfiguration certificationConfiguration,
+                                                    CertificateAuthorityViewService certificationService,
+                                                    CommandService commandService) {
         super(activeNodeService);
         this.certificationConfiguration = certificationConfiguration;
         this.caViewService = certificationService;
         this.commandService = commandService;
+        this.log = LoggerFactory.getLogger(this.getClass());
     }
+
+    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     protected void runService(CertificateAuthorityType appliedCertificateAuthorityType) {
         final MaxExceptionsTemplate template = new MaxExceptionsTemplate(MAX_ALLOWED_EXCEPTIONS);
-        caViewService.findAllHostedCertificateAuthorities()
+        final Instant oldestCreationTime = Instant.now().minus(Duration.standardDays(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()));
+        caViewService.findAllHostedCasWithKeyPairsOlderThan(oldestCreationTime)
                 .stream()
                 .filter(ca -> ca.getType() == appliedCertificateAuthorityType)
                 .map(ca -> executor.submit(() -> template.wrap(new Command() {
@@ -50,7 +57,7 @@ public abstract class AbstractKeyRolloverManagementServiceBean extends Sequentia
 
                     @Override
                     public void onException(Exception e) {
-                        LOG.error("Could not publish material for CA " + ca.getName(), e);
+                        log.error("Could not publish material for CA " + ca.getName(), e);
                     }
                 })))
                 .collect(Collectors.toList())

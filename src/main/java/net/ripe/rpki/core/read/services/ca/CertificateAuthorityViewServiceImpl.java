@@ -12,6 +12,8 @@ import net.ripe.rpki.ripencc.provisioning.ProvisioningAuditLogService;
 import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
+import org.joda.time.Duration;
+import org.joda.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,7 @@ import javax.security.auth.x500.X500Principal;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 
 @Service
 @Transactional(readOnly=true)
@@ -94,6 +97,23 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     @Override
     public Collection<CertificateAuthorityData> findAllHostedCertificateAuthorities() {
         return findCertificateAuthoritiesMatchingType(CertificateAuthorityType.ROOT, CertificateAuthorityType.HOSTED, CertificateAuthorityType.ALL_RESOURCES);
+    }
+
+    @Override
+    public Collection<CertificateAuthorityData> findAllHostedCasWithKeyPairsOlderThan(final Instant oldestCreationTime) {
+        Stream<HostedCertificateAuthority> certificateAuthorities = entityManager.createQuery(
+            "SELECT DISTINCT ca " +
+                " FROM HostedCertificateAuthority ca " +
+                " JOIN ca.keyPairs kp " +
+                " WHERE kp.status = :current " +
+                " AND kp.createdAt < :maxAge",
+            HostedCertificateAuthority.class)
+            .setParameter("current", KeyPairStatus.CURRENT)
+            .setParameter("maxAge", oldestCreationTime)
+            .getResultStream();
+        return certificateAuthorities
+            .map(HostedCertificateAuthority::toData)
+            .collect(Collectors.toList());
     }
 
     private List<CertificateAuthorityData> findCertificateAuthoritiesMatchingType(CertificateAuthorityType... allowedType) {

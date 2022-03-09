@@ -40,6 +40,6 @@ public class JpaCertificateAuthorityRepositoryTest extends CertificationDomainTe
 
     @Test
     public void getCasWithoutKeyPairsOlderThenOneYear() {
-        assertThat(certificateAuthorityRepository.getCasWithoutKeyPairsOlderThenOneYear()).isEmpty();
+        assertThat(certificateAuthorityRepository.getCasWithoutKeyPairsOlderThanOneYear()).isEmpty();
     }
 }

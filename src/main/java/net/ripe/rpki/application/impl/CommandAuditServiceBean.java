@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CommandAuditServiceBean implements CommandAuditService {
 
-    private static final int MAX_MOST_RECENT_COMMANDS_COUNT = 30;
+    public static final int MAX_HISTORY_ENTRIES_RETURNED = 2500;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -47,7 +47,7 @@ public class CommandAuditServiceBean implements CommandAuditService {
 
         query.setParameter("caId", caId);
         query.setParameter("commandGroup", CertificateAuthorityCommandGroup.USER.toString());
-        query.setMaxResults(MAX_MOST_RECENT_COMMANDS_COUNT);
+        query.setMaxResults(MAX_HISTORY_ENTRIES_RETURNED);
         List<CommandAudit> commands = query.getResultList();
         return convertToData(commands);
     }

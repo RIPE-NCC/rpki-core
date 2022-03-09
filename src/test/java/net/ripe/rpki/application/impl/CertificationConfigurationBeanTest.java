@@ -37,8 +37,8 @@ public class CertificationConfigurationBeanTest {
         assertEquals("CN=RIPE NCC Resources,O=RIPE NCC,C=NL", repositoryConfiguration.getProductionCaPrincipal().getName());
         assertEquals(365, certificationConfiguration.getAutoKeyRolloverMaxAgeDays());
         assertEquals(Duration.standardHours(24), certificationConfiguration.getStagingPeriod());
-        assertEquals("/tmp", certificationConfiguration.getKeyManagementDataDirectoryOrNull());
-        assertEquals("/tmp", certificationConfiguration.getKeyManagementDataArchiveDirectoryOrNull());
+        assertEquals("/tmp", certificationConfiguration.getKeyManagementDataDirectory());
+        assertEquals("/tmp", certificationConfiguration.getKeyManagementDataArchiveDirectory());
     }
 
 }

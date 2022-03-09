@@ -369,7 +369,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     }
 
     @Override
-    public Collection<HostedCertificateAuthority> getCasWithoutKeyPairsOlderThenOneYear() {
+    public Collection<HostedCertificateAuthority> getCasWithoutKeyPairsOlderThanOneYear() {
         final Query sql = manager.createQuery(
             "SELECT ca FROM HostedCertificateAuthority ca " +
                 "WHERE ca.keyPairs IS EMPTY " +

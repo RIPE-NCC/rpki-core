@@ -18,8 +18,10 @@ import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
+import static net.ripe.rpki.services.impl.background.BackgroundServices.KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE;
+
 @Slf4j
-@Service("keyPairActivationManagementService")
+@Service(KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE)
 public class KeyPairActivationManagementServiceBean extends SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode {
 
     private final CertificateAuthorityViewService caViewService;

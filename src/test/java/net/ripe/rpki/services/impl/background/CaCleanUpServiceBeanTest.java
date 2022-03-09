@@ -10,7 +10,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.transaction.PlatformTransactionManager;
 
 import static org.mockito.Mockito.verify;
 
@@ -40,7 +39,7 @@ public class CaCleanUpServiceBeanTest {
     @Test
     public void should_delete_old_cas_without_keypairs() throws Exception {
         service.runService();
-        verify(certificateAuthorityRepository).getCasWithoutKeyPairsOlderThenOneYear();
+        verify(certificateAuthorityRepository).getCasWithoutKeyPairsOlderThanOneYear();
     }
 
 }

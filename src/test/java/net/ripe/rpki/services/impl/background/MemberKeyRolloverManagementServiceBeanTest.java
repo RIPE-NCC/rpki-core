@@ -6,19 +6,17 @@ import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.KeyPairData;
-import net.ripe.rpki.server.api.dto.ResourceClassData;
-import net.ripe.rpki.server.api.dto.ResourceClassDataSet;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
+import org.joda.time.Duration;
+import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import javax.security.auth.x500.X500Principal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -67,7 +65,7 @@ public class MemberKeyRolloverManagementServiceBeanTest {
     }
 
     @Test
-    public void shouldSkipTheProductionCA() throws InterruptedException, ExecutionException {
+    public void shouldSkipTheProductionCA() {
         when(certificationService.findAllHostedCertificateAuthorities()).thenReturn(Collections.singletonList(PROD_CA));
 
         subject.runService();
@@ -76,9 +74,10 @@ public class MemberKeyRolloverManagementServiceBeanTest {
     }
 
     @Test
-    public void shouldSendInitialiseKeyCommandToCAs() throws InterruptedException, ExecutionException {
-        when(certificationService.findAllHostedCertificateAuthorities()).thenReturn(Collections.singletonList(MEMBER_CA));
-        when(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()).thenReturn(365);
+    public void shouldSendInitialiseKeyCommandToCAs() {
+        int maxAge = 365;
+        when(certificationService.findAllHostedCasWithKeyPairsOlderThan(any())).thenReturn(Collections.singletonList(MEMBER_CA));
+        when(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()).thenReturn(maxAge);
 
         subject.runService();
 
@@ -87,7 +86,7 @@ public class MemberKeyRolloverManagementServiceBeanTest {
 
         KeyManagementInitiateRollCommand command = commandCaptor.getValue();
         assertEquals(MEMBER_CA.getVersionedId(), command.getCertificateAuthorityVersionedId());
-        assertEquals(365, command.getMaxAgeDays());
+        assertEquals(maxAge, command.getMaxAgeDays());
     }
 
 

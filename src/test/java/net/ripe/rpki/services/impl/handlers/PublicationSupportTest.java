@@ -1,5 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import junit.framework.TestCase;
 import net.ripe.rpki.domain.PublishedObjectData;
@@ -24,6 +25,7 @@ import java.util.List;
 import static net.ripe.rpki.domain.CertificationDomainTestCase.BASE_URI;
 import static net.ripe.rpki.services.impl.handlers.PublicationSupport.CORE_CLIENT_ID;
 import static net.ripe.rpki.services.impl.handlers.PublicationSupport.objectHash;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -49,6 +51,7 @@ public class PublicationSupportTest extends TestCase {
     private PublicationSupport subject;
     private PublishedObjectData published1;
     private PublishedObjectData published2;
+    private SimpleMeterRegistry meterRegistry;
 
     @Before
     public void setUp() throws SecurityException, URISyntaxException {
@@ -57,7 +60,8 @@ public class PublicationSupportTest extends TestCase {
 
         when(publishedObjectRepository.findCurrentlyPublishedObjects()).thenReturn(Arrays.asList(published1, published2));
 
-        subject = new PublicationSupport(publishingServerClient, new SimpleMeterRegistry(), Collections.singletonList(PUBLICATION_SERVER_URL));
+        meterRegistry = new SimpleMeterRegistry();
+        subject = new PublicationSupport(publishingServerClient, meterRegistry, Collections.singletonList(PUBLICATION_SERVER_URL));
     }
 
     @Test
@@ -143,5 +147,28 @@ public class PublicationSupportTest extends TestCase {
         final byte[] bytes = "sample text".getBytes(StandardCharsets.US_ASCII);
         // echo -n "sample text" | openssl dgst -sha256 -hex | tr a-f A-F
         assertEquals("BC658C641EF71739FB9995BDED59B21150BBFF4367F6E4E4C7934B489B9D2C00", objectHash(bytes));
+    }
+
+    @Test
+    public void should_count_successful_publications() {
+        final String listResponse = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenReturn(listResponse);
+
+        subject.publishAllObjects(Collections.emptyList());
+
+        assertThat(meterRegistry.get("rpkicore.publication.total").tag("status", "success").counter()).satisfies((counter) -> {
+            assertThat(counter.count()).isEqualTo(1);
+        });
+    }
+
+    @Test
+    public void should_count_failed_publications() {
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenThrow(new RuntimeException("unit testing"));
+
+        subject.publishAllObjects(Collections.emptyList());
+
+        assertThat(meterRegistry.get("rpkicore.publication.total").tag("status", "failed").counter()).satisfies((counter) -> {
+            assertThat(counter.count()).isEqualTo(1);
+        });
     }
 }

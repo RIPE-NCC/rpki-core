@@ -3,6 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 import com.google.common.io.BaseEncoding;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.domain.PublishedObjectData;
@@ -49,6 +50,8 @@ public class PublicationSupport {
 
     private final List<ExternalPublishingServer> externalPublishingServers;
     private final ForkJoinPool forkJoinPool;
+    private final Counter rrdpPublicationSuccesses;
+    private final Counter rrdpPublicationFailures;
 
     @Inject
     public PublicationSupport(
@@ -62,16 +65,40 @@ public class PublicationSupport {
             .map(uri -> new ExternalPublishingServer(publishingServerClient, meterRegistry, uri))
             .collect(Collectors.toList());
         forkJoinPool = new ForkJoinPool(Math.max(1, externalPublishingServers.size()));
+
+        rrdpPublicationSuccesses = Counter.builder("rpkicore.publication.total")
+            .description("The total number of successful RRDP publications")
+            .tag("status", "success")
+            .tag("publication", "rrdp")
+            .register(meterRegistry);
+        rrdpPublicationFailures = Counter.builder("rpkicore.publication.total")
+            .description("The total number of failed RRDP publications")
+            .tag("status", "failed")
+            .tag("publication", "rrdp")
+            .register(meterRegistry);
     }
 
     public void publishAllObjects(List<PublishedObjectData> publishedObjects) {
-        forkJoinPool.submit(() -> externalPublishingServers.parallelStream().forEach(externalPublishingServer -> {
-            try {
-                publishObjects(externalPublishingServer, publishedObjects, CORE_CLIENT_ID);
-            } catch (Exception e) {
-                log.error("Publication to external publication server {} failed:", externalPublishingServer.getPublishingServerUrl(), e);
-            }
-        })).join();
+        boolean success = false;
+        try {
+            success = forkJoinPool.submit(() -> externalPublishingServers.parallelStream().allMatch(externalPublishingServer -> {
+                try {
+                    publishObjects(externalPublishingServer, publishedObjects, CORE_CLIENT_ID);
+                    return true;
+                } catch (Exception e) {
+                    log.error("Publication to external publication server {} failed:", externalPublishingServer.getPublishingServerUrl(), e);
+                    return false;
+                }
+            })).join();
+        } catch (Exception e) {
+            log.error("Publication to external publication servers failed", e);
+        }
+
+        if (success) {
+            rrdpPublicationSuccesses.increment();
+        } else {
+            rrdpPublicationFailures.increment();
+        }
     }
 
     private void publishObjects(ExternalPublishingServer externalPublishingServer, List<PublishedObjectData> publishedObjects, String clientId) {

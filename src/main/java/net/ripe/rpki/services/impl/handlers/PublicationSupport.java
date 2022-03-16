@@ -21,13 +21,7 @@ import javax.inject.Inject;
 import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -81,7 +75,7 @@ public class PublicationSupport {
     public void publishAllObjects(List<PublishedObjectData> publishedObjects) {
         boolean success = false;
         try {
-            success = forkJoinPool.submit(() -> externalPublishingServers.parallelStream().allMatch(externalPublishingServer -> {
+            success = forkJoinPool.submit(() -> externalPublishingServers.parallelStream().map(externalPublishingServer -> {
                 try {
                     publishObjects(externalPublishingServer, publishedObjects, CORE_CLIENT_ID);
                     return true;
@@ -89,7 +83,7 @@ public class PublicationSupport {
                     log.error("Publication to external publication server {} failed:", externalPublishingServer.getPublishingServerUrl(), e);
                     return false;
                 }
-            })).join();
+            })).join().allMatch(Boolean::booleanValue);
         } catch (Exception e) {
             log.error("Publication to external publication servers failed", e);
         }

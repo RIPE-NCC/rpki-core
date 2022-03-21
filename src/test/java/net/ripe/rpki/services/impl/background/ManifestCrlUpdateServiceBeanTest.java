@@ -70,7 +70,7 @@ public class ManifestCrlUpdateServiceBeanTest {
         when(certificateAuthorityRepository.findAllWithOutdatedManifests(any())).thenReturn(caData);
 
         BackgroundServiceException backgroundServiceException = assertThrows(BackgroundServiceException.class, () -> subject.runService());
-        assertEquals("Too many exceptions encountered running job: 'Public Repository Management Service'. Suspecting problems that affect ALL CAs.", backgroundServiceException.getMessage());
+        assertEquals("Too many exceptions encountered running job: 'Manifest and CRL Update Service'. Suspecting problems that affect ALL CAs.", backgroundServiceException.getMessage());
     }
 
     private List<HostedCertificateAuthority> createCertificateAuthorityDataMocks(int count) {

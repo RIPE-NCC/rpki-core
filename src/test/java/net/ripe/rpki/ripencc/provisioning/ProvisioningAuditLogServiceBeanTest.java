@@ -16,6 +16,7 @@ import javax.persistence.TypedQuery;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,7 +32,7 @@ public class ProvisioningAuditLogServiceBeanTest {
 
     private EntityManager entityManager;
 
-    private static final String TEST_USER_UUID = "6e80bc78-7f56-407a-be41-3d3f76af2919";
+    private static final UUID TEST_USER_UUID = UUID.fromString("6e80bc78-7f56-407a-be41-3d3f76af2919");
 
     @Before
     public void setUp() {

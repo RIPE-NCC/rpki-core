@@ -22,6 +22,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
@@ -61,7 +63,7 @@ public class ProvisioningAuditLogServiceBean implements ProvisioningAuditLogServ
     }
 
     @Override
-    public List<ProvisioningAuditData> findRecentMessagesForCA(String caUUID) {
+    public List<ProvisioningAuditData> findRecentMessagesForCA(UUID caUUID) {
         final TypedQuery<ProvisioningAuditLogEntity> query = entityManager.createQuery(
             "select pal from ProvisioningAuditLogEntity pal " +
                 "where pal.nonHostedCaUUID = :caUUID", ProvisioningAuditLogEntity.class);
@@ -92,9 +94,9 @@ public class ProvisioningAuditLogServiceBean implements ProvisioningAuditLogServ
                 entry.getRequestMessageType().toString(),
                 Base64.encodeBase64String(entry.getProvisioningCmsObject()),
                 entry.getPrincipal(),
-                entry.getNonHostedCaUUID(),
+                Objects.toString(entry.getNonHostedCaUUID(), null),
                 entry.getSummary(),
-                entry.getEntryUuid(),
+                Objects.toString(entry.getEntryUuid(), null),
                 dateFormat.print(utcDate),
                 // since request is a DER binary, encode it as base64 as well
                 Base64.encodeBase64String(request));

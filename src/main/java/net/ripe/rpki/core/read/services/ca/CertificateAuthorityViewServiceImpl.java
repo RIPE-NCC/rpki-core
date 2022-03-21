@@ -12,7 +12,6 @@ import net.ripe.rpki.ripencc.provisioning.ProvisioningAuditLogService;
 import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -130,7 +129,7 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     }
 
     @Override
-    public List<ProvisioningAuditData> findMostRecentMessagesForCa(String caUUID) {
+    public List<ProvisioningAuditData> findMostRecentMessagesForCa(UUID caUUID) {
         return provisioningAuditLogService.findRecentMessagesForCA(caUUID);
     }
 

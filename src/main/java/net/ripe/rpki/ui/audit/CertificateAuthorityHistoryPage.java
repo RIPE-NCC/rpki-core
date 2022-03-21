@@ -24,7 +24,7 @@ public class CertificateAuthorityHistoryPage extends AdminCertificationBasePage 
 
         List<CertificateAuthorityHistoryItem> historyItems = new ArrayList<>();
         historyItems.addAll(caViewService.findMostRecentCommandsForCa(getCurrentCertificateAuthority().getId()));
-        historyItems.addAll(caViewService.findMostRecentMessagesForCa(getCurrentCertificateAuthority().getUuid().toString()));
+        historyItems.addAll(caViewService.findMostRecentMessagesForCa(getCurrentCertificateAuthority().getUuid()));
 
         historyItems.sort((object1, object2) -> object2.getExecutionTime().compareTo(object1.getExecutionTime()));
 

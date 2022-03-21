@@ -110,7 +110,7 @@ public class ProvisioningRequestProcessorBean implements ProvisioningRequestProc
         return errorResponseBuilder.build();
     }
 
-    private static UUID parseSenderAndRecipientUUID(String uuid) {
+    public static UUID parseSenderAndRecipientUUID(String uuid) {
         try {
             return UUID.fromString(uuid);
         } catch (IllegalArgumentException e) {

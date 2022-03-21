@@ -55,7 +55,7 @@ public class ManifestCrlUpdateServiceBean extends SequentialBackgroundServiceWit
 
     @Override
     public String getName() {
-        return "Public Repository Management Service";
+        return "Manifest and CRL Update Service";
     }
 
     @Override

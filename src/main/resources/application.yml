@@ -106,7 +106,7 @@ private.asns.ranges: 112, 23456, 64496-64511, 64512-65534, 65535, 65536-65551, 4
 #  1) do not run automatically
 #  2) use 0 days / hours so a manual run always works
 autokeyrollover:
-    update.interval.hours: 8760
+    update.interval.days: 365
     maxage.days: 0
 
 # How often are repositories (rsync on disk, publication servers) contacted

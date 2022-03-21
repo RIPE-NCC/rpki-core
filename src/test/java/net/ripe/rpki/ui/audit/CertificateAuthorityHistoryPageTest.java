@@ -13,17 +13,18 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static net.ripe.rpki.ui.util.WicketUtils.caIdToPageParameters;
-import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.isA;
 import static org.junit.Assert.assertEquals;
 
 public class CertificateAuthorityHistoryPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldRenderEmptyPage() {
-        expect(caViewService.findMostRecentMessagesForCa(anyString())).andReturn(Collections.emptyList());
+        expect(caViewService.findMostRecentMessagesForCa(isA(UUID.class))).andReturn(Collections.emptyList());
         expect(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).andReturn(Collections.emptyList());
         replayMocks();
 
@@ -35,7 +36,7 @@ public class CertificateAuthorityHistoryPageTest extends CertificationWicketTest
 
     @Test
     public void shouldRenderSummary() {
-        expect(caViewService.findMostRecentMessagesForCa(anyString())).andReturn(Collections.emptyList());
+        expect(caViewService.findMostRecentMessagesForCa(isA(UUID.class))).andReturn(Collections.emptyList());
 
         List<CommandAuditData> commandList = auditLog(
                 new UpdateAllIncomingResourceCertificatesCommand(PRODUCTION_CA_VERSIONED_ID, Integer.MAX_VALUE),
@@ -68,7 +69,7 @@ public class CertificateAuthorityHistoryPageTest extends CertificationWicketTest
 
         List<ProvisioningAuditData> messageList = new ArrayList<>(1);
         messageList.add(provisioningMessage);
-        expect(caViewService.findMostRecentMessagesForCa(PRODUCTION_CA_DATA.getUuid().toString())).andReturn(messageList);
+        expect(caViewService.findMostRecentMessagesForCa(PRODUCTION_CA_DATA.getUuid())).andReturn(messageList);
 
         expect(statsCollectorNames.humanizeUserPrincipal(command.getPrincipal())).andReturn(null);
         expect(statsCollectorNames.humanizeUserPrincipal(provisioningMessage.getPrincipal())).andReturn(null);

@@ -1,5 +1,6 @@
 package net.ripe.rpki.domain;
 
+import lombok.Getter;
 import net.ripe.rpki.ncc.core.domain.support.AggregateRoot;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
@@ -42,7 +43,8 @@ public abstract class CertificateAuthority extends AggregateRoot implements Chil
 
     @NotNull
     @Column(unique = true)
-    private String uuid;
+    @Getter
+    private UUID uuid;
 
     @NotNull
     @Column(nullable = false, unique = true)
@@ -57,17 +59,13 @@ public abstract class CertificateAuthority extends AggregateRoot implements Chil
 
     public CertificateAuthority(long id, ParentCertificateAuthority parent, X500Principal name) {
         super(id);
-        this.uuid = UUID.randomUUID().toString();
+        this.uuid = UUID.randomUUID();
         this.parent = parent;
         this.name = requireNonNull(name);
     }
 
     public X500Principal getName() {
         return name;
-    }
-
-    public UUID getUuid() {
-        return UUID.fromString(uuid);
     }
 
     public abstract CertificateAuthorityType getType();

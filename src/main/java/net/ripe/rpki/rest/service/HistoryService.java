@@ -63,7 +63,7 @@ public class HistoryService extends AbstractCaRestService {
         final CertificateAuthorityData certificateAuthority = certificateAuthorityViewService.findCertificateAuthority(caId);
         List<CertificateAuthorityHistoryItem> historyItems = new ArrayList<>();
         historyItems.addAll(certificateAuthorityViewService.findMostRecentCommandsForCa(certificateAuthority.getId()));
-        historyItems.addAll(certificateAuthorityViewService.findMostRecentMessagesForCa(certificateAuthority.getUuid().toString()));
+        historyItems.addAll(certificateAuthorityViewService.findMostRecentMessagesForCa(certificateAuthority.getUuid()));
 
         historyItems.sort((object1, object2) -> object2.getExecutionTime().compareTo(object1.getExecutionTime()));
         return historyItems;

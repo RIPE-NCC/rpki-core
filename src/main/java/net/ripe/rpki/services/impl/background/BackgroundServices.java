@@ -22,9 +22,7 @@ import java.util.Map;
 
 import static org.quartz.CronScheduleBuilder.dailyAtHourAndMinute;
 import static org.quartz.CronScheduleBuilder.weeklyOnDayAndHourAndMinute;
-import static org.quartz.DateBuilder.IntervalUnit.HOUR;
-import static org.quartz.DateBuilder.IntervalUnit.MINUTE;
-import static org.quartz.DateBuilder.IntervalUnit.SECOND;
+import static org.quartz.DateBuilder.IntervalUnit.*;
 import static org.quartz.DateBuilder.futureDate;
 import static org.quartz.JobBuilder.newJob;
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
@@ -68,8 +66,8 @@ public class BackgroundServices {
     @Value("${resource.update.interval.hours}")
     private int resourceUpdateIntervalHours;
 
-    @Value("${autokeyrollover.update.interval.hours}")
-    private int autoKeyRolloverUpdateIntervalHours;
+    @Value("${autokeyrollover.update.interval.days}")
+    private int autoKeyRolloverUpdateIntervalDays;
 
     @Value("${keypair.activation.interval.hours}")
     private int keyPairActivationIntervalHours;
@@ -127,12 +125,12 @@ public class BackgroundServices {
                 repeat().withIntervalInHours(resourceUpdateIntervalHours));
 
         schedule(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE,
-                futureDate(autoKeyRolloverUpdateIntervalHours, HOUR),
-                repeat().withIntervalInHours(autoKeyRolloverUpdateIntervalHours));
+                futureDate(autoKeyRolloverUpdateIntervalDays, DAY),
+                repeat().withIntervalInHours(autoKeyRolloverUpdateIntervalDays * 24));
 
         schedule(MEMBER_KEY_ROLLOVER_MANAGEMENT_SERVICE,
-                futureDate(autoKeyRolloverUpdateIntervalHours, HOUR),
-                repeat().withIntervalInHours(autoKeyRolloverUpdateIntervalHours));
+                futureDate(autoKeyRolloverUpdateIntervalDays, DAY),
+                repeat().withIntervalInHours(autoKeyRolloverUpdateIntervalDays * 24));
 
         schedule(KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE,
                 futureDate(keyPairActivationIntervalHours, HOUR),

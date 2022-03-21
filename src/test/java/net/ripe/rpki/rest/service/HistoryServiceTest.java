@@ -77,7 +77,7 @@ public class HistoryServiceTest {
         ));
 
         when(certificateAuthorityViewService.findMostRecentCommandsForCa(CA_ID)).thenReturn(commandHistory);
-        when(certificateAuthorityViewService.findMostRecentMessagesForCa(uuid.toString())).thenReturn(messageHistory);
+        when(certificateAuthorityViewService.findMostRecentMessagesForCa(uuid)).thenReturn(messageHistory);
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/history"))
                 .andExpect(status().isOk())

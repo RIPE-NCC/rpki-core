@@ -8,6 +8,7 @@ import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Read-only service for information related to CertificateAuthorities
@@ -53,7 +54,7 @@ public interface CertificateAuthorityViewService {
         // Auditing, move to own interface?
     List<CommandAuditData> findMostRecentCommandsForCa(long caId);
 
-    List<ProvisioningAuditData> findMostRecentMessagesForCa(String caUUID);
+    List<ProvisioningAuditData> findMostRecentMessagesForCa(UUID caUUID);
 
     Collection<CaStat> getCaStats();
 

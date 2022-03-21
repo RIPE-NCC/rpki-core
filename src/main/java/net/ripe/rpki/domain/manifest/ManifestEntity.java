@@ -53,7 +53,7 @@ public class ManifestEntity extends EntitySupport {
      * not being on time to replace these objects. When the time to next update is less than this hard limit, the system
      * must issue a new manifest/CRL pair as soon as possible.
      */
-    public static final Period TIME_TO_NEXT_UPDATE_HARD_LIMIT = Period.hours(12);
+    public static final Period TIME_TO_NEXT_UPDATE_HARD_LIMIT = Period.hours(14);
 
     /**
      * Manifests and CRLs are replaced as soon as the time to next update is less than this soft limit, but replacement

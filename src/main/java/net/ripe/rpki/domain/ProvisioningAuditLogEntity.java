@@ -47,7 +47,7 @@ public class ProvisioningAuditLogEntity extends EntitySupport {
     @SuppressWarnings("unused")
     @Column(name = "non_hosted_ca_uuid", nullable = false)
     @Getter
-    private String nonHostedCaUUID;
+    private UUID nonHostedCaUUID;
 
     @SuppressWarnings("unused")
     @Column(name = "request_message_type", nullable = false)
@@ -73,13 +73,13 @@ public class ProvisioningAuditLogEntity extends EntitySupport {
 
     @Column(name = "entry_uuid", nullable = false)
     @Getter
-    private String entryUuid;
+    private UUID entryUuid;
 
     protected ProvisioningAuditLogEntity() {
-        this.entryUuid = UUID.randomUUID().toString();
+        this.entryUuid = UUID.randomUUID();
     }
 
-    public ProvisioningAuditLogEntity(ProvisioningCmsObject provisioningCmsObject, String principal, String memberUUID) {
+    public ProvisioningAuditLogEntity(ProvisioningCmsObject provisioningCmsObject, String principal, UUID memberUUID) {
         this.executionTime = new Timestamp(DateTimeUtils.currentTimeMillis());
 
         this.principal = principal;
@@ -89,7 +89,7 @@ public class ProvisioningAuditLogEntity extends EntitySupport {
         this.requestMessageType = provisioningCmsObject.getPayload().getType();
 
         this.summary = buildCommandSummary(provisioningCmsObject);
-        this.entryUuid = UUID.randomUUID().toString();
+        this.entryUuid = UUID.randomUUID();
     }
 
     @Override

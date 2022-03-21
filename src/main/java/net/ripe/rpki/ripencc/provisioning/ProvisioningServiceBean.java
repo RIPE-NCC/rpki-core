@@ -10,6 +10,8 @@ import net.ripe.rpki.server.api.security.RunAsUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 import static net.ripe.rpki.server.api.security.RunAsUserHolder.*;
 
 @Slf4j
@@ -33,11 +35,14 @@ public class ProvisioningServiceBean implements ProvisioningService {
             final ProvisioningCmsObject requestObject = extractRequestObject(request);
             provisioningMetricsService.trackPayload(requestObject.getPayload());
 
-            final String memberUUID = requestObject.getPayload().getSender();
-            final ProvisioningAuditLogEntity requestLogEntry = new ProvisioningAuditLogEntity(requestObject, "non-hosted CA", memberUUID);
-            provisioningAuditLogService.log(requestLogEntry, request);
             try {
+                final UUID memberUUID = ProvisioningRequestProcessorBean.parseSenderAndRecipientUUID(requestObject.getPayload().getSender());
+
+                final ProvisioningAuditLogEntity requestLogEntry = new ProvisioningAuditLogEntity(requestObject, "non-hosted CA", memberUUID);
+                provisioningAuditLogService.log(requestLogEntry, request);
+
                 ProvisioningCmsObject responseObject = provisioningRequestProcessor.process(requestObject);
+
                 ProvisioningAuditLogEntity responseLogEntry = new ProvisioningAuditLogEntity(responseObject, RunAsUser.ADMIN.getFriendlyName(), memberUUID);
                 provisioningAuditLogService.log(responseLogEntry, request);
 
@@ -45,7 +50,7 @@ public class ProvisioningServiceBean implements ProvisioningService {
 
                 return responseObject.getEncoded();
             } catch (ProvisioningException ex) {
-                log.warn("Not able to process provisioning request, member UUID = {} with the following error: {}", memberUUID, ex.getMessage());
+                log.warn("Not able to process provisioning request, member UUID = {} with the following error: {}", requestObject.getPayload().getSender(), ex.getMessage());
                 throw ex;
             }
         });

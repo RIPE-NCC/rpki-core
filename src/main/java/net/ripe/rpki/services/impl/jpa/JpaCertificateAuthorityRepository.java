@@ -107,7 +107,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
         Validate.notNull(memberUuid, "memberUuid is null");
         try {
             Query query = createQuery("from " + type.getSimpleName() + " ca where uuid = :uuid")
-                .setParameter("uuid", memberUuid.toString())
+                .setParameter("uuid", memberUuid)
                 .setLockMode(lockModeType);
             return type.cast(query.getSingleResult());
         } catch (NoResultException e) {

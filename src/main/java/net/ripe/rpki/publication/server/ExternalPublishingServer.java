@@ -164,7 +164,7 @@ public class ExternalPublishingServer {
             final String postResponse;
             long begin = System.nanoTime();
             try {
-                postResponse = publishingServerClient.publish(publishingServerUrl, xmlRequest, clientId);
+                postResponse = publishingServerClient.publish(publishingServerUrl, xmlRequest, clientId).block();
                 succeeded = true;
             } finally {
                 long end = System.nanoTime();

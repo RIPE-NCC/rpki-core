@@ -1,6 +1,5 @@
 package net.ripe.rpki.services.impl.handlers;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import junit.framework.TestCase;
 import net.ripe.rpki.domain.PublishedObjectData;
@@ -13,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -69,8 +69,8 @@ public class PublicationSupportTest extends TestCase {
         final String listResponse = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
         final String publishResponse = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
 
-        when(publishingServerClient.publish(PUBLICATION_SERVER_URL, LIST_REQUEST, CORE_CLIENT_ID)).thenReturn(listResponse);
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenReturn(publishResponse);
+        when(publishingServerClient.publish(PUBLICATION_SERVER_URL, LIST_REQUEST, CORE_CLIENT_ID)).thenReturn(Mono.just(listResponse));
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenReturn(Mono.just(publishResponse));
 
         subject.publishAllObjects(Arrays.asList(published1, published2));
 
@@ -90,7 +90,7 @@ public class PublicationSupportTest extends TestCase {
             "</msg>";
         final String publishResponse = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
 
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenReturn(listResponse).thenReturn(publishResponse);
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenReturn(Mono.just(listResponse)).thenReturn(Mono.just(publishResponse));
 
         subject.publishAllObjects(Collections.singletonList(published1));
 
@@ -110,7 +110,7 @@ public class PublicationSupportTest extends TestCase {
             "</msg>";
         final String publishResponse = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
 
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenReturn(listResponse).thenReturn(publishResponse);
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenReturn(Mono.just(listResponse)).thenReturn(Mono.just(publishResponse));
 
         subject.publishAllObjects(Arrays.asList(published1, published2));
 
@@ -130,7 +130,7 @@ public class PublicationSupportTest extends TestCase {
             "</msg>";
         final String publishResponse = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
 
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenReturn(listResponse).thenReturn(publishResponse);
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenReturn(Mono.just(listResponse)).thenReturn(Mono.just(publishResponse));
 
         subject.publishAllObjects(Arrays.asList(published1, published2));
 
@@ -152,7 +152,7 @@ public class PublicationSupportTest extends TestCase {
     @Test
     public void should_count_successful_publications() {
         final String listResponse = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenReturn(listResponse);
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(CORE_CLIENT_ID))).thenReturn(Mono.just(listResponse));
 
         subject.publishAllObjects(Collections.emptyList());
 

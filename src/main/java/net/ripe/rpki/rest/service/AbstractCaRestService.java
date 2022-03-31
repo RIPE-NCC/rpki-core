@@ -77,8 +77,8 @@ public class AbstractCaRestService {
             throw new CaNameInvalidException(rawCaName);
         }
 
-        if (verifyCaExists && ca == null) {
-            throw new CaNotFoundException(String.format("unknown CA: %s", rawCaName));
+        if (verifyCaExists) {
+            verifyCaExists();
         }
 
         if (exclusiveForHosted && CertificateAuthorityType.NONHOSTED == ca.getType()) {
@@ -90,6 +90,12 @@ public class AbstractCaRestService {
                 .orElseThrow(() -> new UserIdRequiredException("The cookie '" + USER_ID_HEADER + "' is not defined."));
         request.setAttribute(USER_ID_REQ_ATTR, user);
         RunAsUserHolder.set(user);
+    }
+
+    protected void verifyCaExists() {
+        if (ca == null) {
+            throw new CaNotFoundException(String.format("unknown CA: %s", rawCaName));
+        }
     }
 
     protected String getRawCaName() {
@@ -113,7 +119,7 @@ public class AbstractCaRestService {
         return matcher.group(2);
     }
 
-    private CertificateAuthorityData getCaByName(String unparsedCaName) {
+    protected CertificateAuthorityData getCaByName(String unparsedCaName) {
         CaName caName = CaName.parse(unparsedCaName);
         return certificateAuthorityViewService.findCertificateAuthorityByName(caName.getPrincipal());
     }

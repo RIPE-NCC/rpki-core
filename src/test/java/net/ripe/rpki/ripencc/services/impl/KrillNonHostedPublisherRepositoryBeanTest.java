@@ -1,0 +1,196 @@
+package net.ripe.rpki.ripencc.services.impl;
+
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.google.common.io.Resources;
+import lombok.SneakyThrows;
+import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
+import net.ripe.rpki.commons.provisioning.identity.PublisherRequestSerializer;
+import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.Response;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
+import java.util.Set;
+import java.util.UUID;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
+import static com.github.tomakehurst.wiremock.client.WireMock.delete;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static net.ripe.rpki.ripencc.services.impl.KrillNonHostedPublisherRepositoryBean.MONITORING_TARGET;
+import static net.ripe.rpki.ripencc.services.impl.KrillNonHostedPublisherRepositoryBean.PUBD_INITIALIZE;
+import static net.ripe.rpki.ripencc.services.impl.KrillNonHostedPublisherRepositoryBean.PUBD_PUBLISHERS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
+
+public class KrillNonHostedPublisherRepositoryBeanTest {
+
+    private static final int PORT = 6666;
+    private static final String BASE_URL = "http://localhost:" + PORT + "/";
+    private static final String API_TOKEN = "apiToken";
+    private static final String RRDP_URL = "rrdpUrl";
+    private static final String RSYNC_URL = "rsyncUrl";
+
+    @Rule
+    public WireMockRule wireMockRule = new WireMockRule(PORT);
+
+    KrillNonHostedPublisherRepositoryBean subject;
+
+    @Before
+    public void setUp() throws Exception {
+        subject = new KrillNonHostedPublisherRepositoryBean(BASE_URL, API_TOKEN, RRDP_URL, RSYNC_URL, getInsecureContext());
+    }
+
+    private void stubMonitoringTargets() {
+        stubFor(get(urlEqualTo(MONITORING_TARGET))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", APPLICATION_JSON)
+                        .withBody("{\"version\":\"0.9.4\",\"started\":1645619021}")
+                        .withStatus(200)));
+    }
+
+    private void stubForGetPublishers() {
+        stubFor(get(urlEqualTo(PUBD_PUBLISHERS))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer "+API_TOKEN))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", APPLICATION_JSON)
+                        .withBody(readFromFile("/repository-publisher/publishers.json"))));
+    }
+
+    private void stubHttpCallsWithRetry() {
+
+        stubFor(post(urlEqualTo(PUBD_PUBLISHERS))
+                .inScenario("With retry fallback")
+                .whenScenarioStateIs(STARTED)
+                .willSetStateTo("Initializing")
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer "+API_TOKEN))
+                .willReturn(badRequest()
+                    .withHeader("Content-Type", APPLICATION_JSON)
+                    .withBody("{\"label\": \"pub-repo-not-initialized\"}")));
+
+        stubFor(post(urlEqualTo(PUBD_INITIALIZE))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer "+API_TOKEN))
+                .inScenario("With retry fallback")
+                .whenScenarioStateIs("Initializing")
+                .willSetStateTo("Initialized")
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", APPLICATION_JSON)
+                        .withBody("{label: \"pub-repo-initialized\"}")));
+
+        stubFor(post(urlEqualTo(PUBD_PUBLISHERS))
+                .inScenario("With retry fallback")
+                .whenScenarioStateIs("Initialized")
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer "+API_TOKEN))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", APPLICATION_JSON)
+                        .withBody(readFromFile("/repository-publisher/repository_response.json"))));
+
+        stubFor(get(urlEqualTo(PUBD_PUBLISHERS))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer "+API_TOKEN))
+                .inScenario("With retry fallback")
+                .whenScenarioStateIs("Initialized")
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", APPLICATION_JSON)
+                        .withBody(readFromFile("/repository-publisher/publishers.json"))));
+    }
+
+    @Test
+    public void shouldRegisterPublisherRequest() {
+        stubHttpCallsWithRetry();
+        String requestXML = readFromFile("/repository-publisher/publisher_request.xml");
+        PublisherRequest publisherRequest = new PublisherRequestSerializer().deserialize(requestXML);
+
+        UUID publisherHandle = UUID.randomUUID();
+
+        RepositoryResponse repositoryResponse = subject.provisionPublisher(publisherHandle, publisherRequest);
+
+        assertThat(repositoryResponse.getRepositoryBpkiTa()).isEqualTo(publisherRequest.getPublisherBpkiTa());
+        assertThat(repositoryResponse.getPublisherHandle()).isEqualTo(publisherRequest.getPublisherHandle());
+        assertThat(repositoryResponse.getTag()).isPresent();
+    }
+
+
+    @Test
+    public void shouldBeAvailable() {
+        stubMonitoringTargets();
+        assertTrue(subject.isAvailable());
+    }
+
+    @Test
+    public void shouldBeInitialized() {
+        stubForGetPublishers();
+        assertTrue(subject.isInitialized());
+    }
+
+    @Test
+    public void shouldDeleteRepositoryPublishers() {
+        UUID publisherToRemove = UUID.randomUUID();
+        stubForDeletePublishers(publisherToRemove);
+        Response response = subject.deletePublisher(publisherToRemove);
+        assertEquals(200, response.getStatus());
+    }
+
+    private void stubForDeletePublishers(UUID publisherToRemove) {
+        stubFor(delete(urlEqualTo(PUBD_PUBLISHERS + "/" + publisherToRemove)).withHeader(HttpHeaders.AUTHORIZATION,
+                equalTo("Bearer " + API_TOKEN)).willReturn(aResponse().withStatus(200)));
+    }
+
+    @Test
+    public void shouldListAvailablePublishers() {
+
+        stubForGetPublishers();
+        Set<UUID> uuids = subject.listPublishers();
+        String publisher = JsonUtils.readJsonFile("/repository-publisher/publishers.json")
+                .getAsJsonObject().getAsJsonArray("publishers").get(0)
+                .getAsJsonObject().get("handle").getAsString();
+        
+        assertTrue(uuids.contains(UUID.fromString(publisher)));
+    }
+
+    @Test
+    public void shouldListAvailablePublishersWhenNotIitialized() {
+
+        stubForGetPublishers();
+
+        Set<UUID> uuids = subject.listPublishers();
+
+        String publisher = JsonUtils.readJsonFile("/repository-publisher/publishers.json")
+                .getAsJsonObject().getAsJsonArray("publishers").get(0)
+                .getAsJsonObject().get("handle").getAsString();
+
+        assertTrue(uuids.contains(UUID.fromString(publisher)));
+    }
+    @SneakyThrows
+    private String readFromFile(String resourcePath) {
+        final Resource resource = new ClassPathResource(resourcePath);
+        return Resources.toString(resource.getURL(), StandardCharsets.UTF_8);
+    }
+
+    public static SSLContext getInsecureContext() throws GeneralSecurityException {
+        TrustManager[] dummyTrustManager = new TrustManager[]{mock(X509ExtendedTrustManager.class)};
+        SSLContext insecureContext = SSLContext.getInstance("TLS");
+        insecureContext.init(null, dummyTrustManager, new SecureRandom());
+        return insecureContext;
+    }
+}

@@ -1,13 +1,21 @@
 package net.ripe.rpki.server.api.services.read;
 
 import net.ripe.ipresource.IpResourceSet;
-import net.ripe.rpki.server.api.dto.*;
+import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
+import net.ripe.rpki.server.api.dto.CaIdentity;
+import net.ripe.rpki.server.api.dto.CaStat;
+import net.ripe.rpki.server.api.dto.CaStatEvent;
+import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
+import net.ripe.rpki.server.api.dto.CommandAuditData;
+import net.ripe.rpki.server.api.dto.ProvisioningAuditData;
 import org.joda.time.Instant;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -42,7 +50,7 @@ public interface CertificateAuthorityViewService {
     /**
      * @return non-null collection of hosted CA's
      */
-    Collection<CertificateAuthorityData> findAllHostedCasWithKeyPairsOlderThan(Instant oldestCreationTime);
+    Collection<CertificateAuthorityData> findAllHostedCasWithKeyPairsOlderThan(Instant oldestCreationTime, Optional<Integer> batchSize);
 
     /**
      * Use this to find all the child CAs of the (1) Production CA in the system.
@@ -59,6 +67,8 @@ public interface CertificateAuthorityViewService {
     Collection<CaStat> getCaStats();
 
     Collection<? extends CaStatEvent> getCaStatEvents();
+
+    Map<UUID, RepositoryResponse> findNonHostedPublisherRepositories(X500Principal caName);
 
     /**
      * @return all subclass instances of {@link net.ripe.rpki.domain.HostedCertificateAuthority HostedCertificateAuthority}

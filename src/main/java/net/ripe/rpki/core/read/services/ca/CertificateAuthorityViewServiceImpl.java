@@ -1,10 +1,13 @@
 package net.ripe.rpki.core.read.services.ca;
 
 import net.ripe.ipresource.IpResourceSet;
+import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.NonHostedCertificateAuthority;
+import net.ripe.rpki.domain.NonHostedPublisherRepository;
 import net.ripe.rpki.domain.ParentCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.audit.CommandAuditService;
@@ -18,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityNotFoundException;
+import javax.persistence.TypedQuery;
 import javax.security.auth.x500.X500Principal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -99,8 +104,9 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     }
 
     @Override
-    public Collection<CertificateAuthorityData> findAllHostedCasWithKeyPairsOlderThan(final Instant oldestCreationTime) {
-        Stream<HostedCertificateAuthority> certificateAuthorities = entityManager.createQuery(
+    public Collection<CertificateAuthorityData> findAllHostedCasWithKeyPairsOlderThan(
+        final Instant oldestCreationTime, final Optional<Integer> batchSize) {
+        final TypedQuery<HostedCertificateAuthority> query = entityManager.createQuery(
             "SELECT DISTINCT ca " +
                 " FROM HostedCertificateAuthority ca " +
                 " JOIN ca.keyPairs kp " +
@@ -108,9 +114,9 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
                 " AND kp.createdAt < :maxAge",
             HostedCertificateAuthority.class)
             .setParameter("current", KeyPairStatus.CURRENT)
-            .setParameter("maxAge", oldestCreationTime)
-            .getResultStream();
-        return certificateAuthorities
+            .setParameter("maxAge", oldestCreationTime);
+        batchSize.ifPresent(query::setMaxResults);
+        return query.getResultStream()
             .map(HostedCertificateAuthority::toData)
             .collect(Collectors.toList());
     }
@@ -141,6 +147,19 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     @Override
     public Collection<CaStatEvent> getCaStatEvents() {
         return certificateAuthorityRepository.getCAStatEvents();
+    }
+
+    @Override
+    public Map<UUID, RepositoryResponse> findNonHostedPublisherRepositories(X500Principal caName) {
+        NonHostedCertificateAuthority ca = certificateAuthorityRepository.findByTypeAndName(NonHostedCertificateAuthority.class, caName);
+        if (ca == null) {
+            throw new EntityNotFoundException("non-hosted CA '" + caName + "' not found");
+        }
+
+        return ca.getPublisherRepositories().stream().collect(Collectors.toMap(
+            NonHostedPublisherRepository::getPublisherHandle,
+            NonHostedPublisherRepository::getRepositoryResponse
+        ));
     }
 
     @Override

@@ -1,9 +1,12 @@
 package net.ripe.rpki.domain;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
+import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
+import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateParser;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
@@ -19,6 +22,7 @@ import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.Validate;
 import org.joda.time.Instant;
 
 import javax.persistence.CascadeType;
@@ -31,12 +35,14 @@ import javax.security.auth.x500.X500Principal;
 import javax.validation.constraints.NotNull;
 import java.security.PublicKey;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -70,9 +76,14 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     @Column(name = "last_message_seen_at", nullable = true)
     private Timestamp lastSeenProvisioningMessageSignedAt;
 
-    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL )
+    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL)
     @JoinColumn(name = "ca_id", nullable = false)
     private Set<PublicKeyEntity> publicKeys = new HashSet<>();
+
+    @Getter
+    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL)
+    @JoinColumn(name = "ca_id", nullable = false)
+    private Collection<NonHostedPublisherRepository> publisherRepositories = new ArrayList<>();
 
     protected NonHostedCertificateAuthority() {
     }
@@ -179,4 +190,15 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
             .collect(Collectors.toList());
     }
 
+    public void addNonHostedPublisherRepository(UUID publisherHandle, PublisherRequest publisherRequest, RepositoryResponse repositoryResponse) {
+        Validate.isTrue(
+            publisherRepositories.stream().noneMatch(repository -> publisherHandle.equals(repository.getPublisherHandle())),
+            "publisher_handle must be unique"
+        );
+        publisherRepositories.add(new NonHostedPublisherRepository(publisherHandle, publisherRequest, repositoryResponse));
+    }
+
+    public boolean removeNonHostedPublisherRepository(UUID publisherHandle) {
+        return publisherRepositories.removeIf(repository -> publisherHandle.equals(repository.getPublisherHandle()));
+    }
 }

@@ -4,6 +4,7 @@ plugins {
     id 'distribution'
     id 'jacoco'
     id "com.google.cloud.tools.jib" version "3.2.0"
+    id "com.google.osdetector" version "1.7.0"
 }
 
 apply plugin: 'java'
@@ -20,6 +21,8 @@ def hsmImpl = ENV['HSM_IMPL'] ?: 'api-only'
 description = 'RPKI RIPE NCC'
 version = ENV['BUILD_NUMBER'] ?: 'DEV'
 
+def managedVersions = dependencyManagement.managedVersions
+
 dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     implementation 'org.springframework.boot:spring-boot-starter'
@@ -30,6 +33,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    if (osdetector.os == "osx") {
+        runtimeOnly "io.netty:netty-resolver-dns-native-macos:${managedVersions['io.netty:netty-resolver-dns-native-macos']}:osx-${osdetector.arch}"
+    }
     implementation 'org.flywaydb:flyway-core'
 
     implementation platform('io.sentry:sentry-bom:5.7.0')

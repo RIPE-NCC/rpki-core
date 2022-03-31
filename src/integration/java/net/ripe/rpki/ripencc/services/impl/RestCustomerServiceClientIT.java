@@ -2,12 +2,9 @@ package net.ripe.rpki.ripencc.services.impl;
 
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.ripencc.services.impl.CustomerServiceClient.MemberSummary;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -16,7 +13,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 @ActiveProfiles("test")
-@RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestRpkiBootApplication.class)
 public class RestCustomerServiceClientIT {
 

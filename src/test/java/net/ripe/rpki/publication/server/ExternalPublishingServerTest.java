@@ -6,14 +6,11 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -47,7 +44,7 @@ public class ExternalPublishingServerTest {
         final String query = "<msg xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\" type=\"query\" version=\"3\"/>";
         ArgumentCaptor<String> xmlCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> clientIdCaptor = ArgumentCaptor.forClass(String.class);
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), xmlCaptor.capture(), clientIdCaptor.capture())).thenReturn(replyDoesntMatter);
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), xmlCaptor.capture(), clientIdCaptor.capture())).thenReturn(Mono.just(replyDoesntMatter));
         String clientId = getRandomClientId();
         externalPublishingServer.execute(Collections.emptyList(), clientId);
         assertEquals(query, xmlCaptor.getValue());
@@ -63,7 +60,7 @@ public class ExternalPublishingServerTest {
 
         ArgumentCaptor<String> xmlCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> clientIdCaptor = ArgumentCaptor.forClass(String.class);
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), xmlCaptor.capture(), clientIdCaptor.capture())).thenReturn(replyDoesntMatter);
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), xmlCaptor.capture(), clientIdCaptor.capture())).thenReturn(Mono.just(replyDoesntMatter));
         List<PublicationMessage> messages = new ArrayList<>();
         messages.add(new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx.cer"), new byte[]{1, 2, 3}, Optional.empty()));
         messages.add(new PublicationMessage.WithdrawRequest(new URI("rsync://blabla.com/yyy.cer"), "not important"));
@@ -81,7 +78,7 @@ public class ExternalPublishingServerTest {
     @Test
     public void shouldParseEmptyResponse() {
         String reply = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), anyString())).thenReturn(reply);
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), anyString())).thenReturn(Mono.just(reply));
         List<? extends PublicationMessage> parsedReply = externalPublishingServer.execute(Collections.emptyList(), getRandomClientId());
         assertTrue(parsedReply.isEmpty());
     }
@@ -93,7 +90,7 @@ public class ExternalPublishingServerTest {
                 "<withdraw uri=\"rsync://wombat.example/Alice/bbb.cer\"/>\n" +
                 "<report_error error_code=\"an_error_code\">Bla bla</report_error>\n" +
                 "</msg>";
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), anyString())).thenReturn(reply);
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), anyString())).thenReturn(Mono.just(reply));
         List<? extends PublicationMessage> parsedReply = externalPublishingServer.execute(Collections.emptyList(), getRandomClientId());
         assertEquals(3, parsedReply.size());
         PublicationMessage.PublishReply r1 = (PublicationMessage.PublishReply) parsedReply.get(0);
@@ -111,7 +108,7 @@ public class ExternalPublishingServerTest {
 
         ArgumentCaptor<String> xmlCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> clientIdCaptor = ArgumentCaptor.forClass(String.class);
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), xmlCaptor.capture(), clientIdCaptor.capture())).thenReturn(replyDoesntMatter);
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), xmlCaptor.capture(), clientIdCaptor.capture())).thenReturn(Mono.just(replyDoesntMatter));
         List<? extends PublicationMessage> messages = Collections.singletonList(new PublicationMessage.ListRequest());
         String clientId = getRandomClientId();
         externalPublishingServer.execute(messages, clientId);
@@ -130,7 +127,7 @@ public class ExternalPublishingServerTest {
                 "    <list uri=\"rsync://wombat.example/Alice/blCrcCp9ltyPDNzYKPfxc.mft\"\n" +
                 "          hash=\"6D776A0A90EA55F479F63C15B3BFC8E91CFBEA549439CF9C474AAB738D741224\"/>\n" +
                 "</msg>";
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), anyString())).thenReturn(reply);
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), anyString())).thenReturn(Mono.just(reply));
         List<? extends PublicationMessage> parsedReply = externalPublishingServer.execute(Collections.emptyList(), getRandomClientId());
         assertEquals(2, parsedReply.size());
         PublicationMessage.ListReply r1 = (PublicationMessage.ListReply) parsedReply.get(0);
@@ -145,7 +142,7 @@ public class ExternalPublishingServerTest {
     public void should_update_publication_metrics() throws Exception {
         String clientId = RandomStringUtils.randomAlphanumeric(8);
         String reply = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
-        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(clientId))).thenReturn(reply);
+        when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(clientId))).thenReturn(Mono.just(reply));
         List<PublicationMessage> messages = Stream.of(
             new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx.cer"), new byte[]{1, 2, 3}, Optional.empty()),
             new PublicationMessage.WithdrawRequest(new URI("rsync://blabla.com/yyy.cer"), "not important"),

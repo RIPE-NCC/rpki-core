@@ -6,12 +6,10 @@ import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient.MemberResourceResponse;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient.MemberResources;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.ws.rs.client.Client;
 import java.net.URI;
@@ -22,7 +20,6 @@ import static net.ripe.rpki.rest.service.Rest.TESTING_API_KEY;
 import static org.junit.Assert.assertTrue;
 
 @ActiveProfiles("test")
-@RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestRpkiBootApplication.class)
 public class RestResourceServicesClientIT {
 
@@ -32,7 +29,7 @@ public class RestResourceServicesClientIT {
 
     private String internetResourcesUri = "https://rsng-apps.prepdev.ripe.net/resource-services/%s";
 
-    @Before
+    @BeforeEach
     public void setUp() {
         subject = new RestResourceServicesClient(format(internetResourcesUri, ""), true, TESTING_API_KEY);
         resource = subject.getHttpClient();

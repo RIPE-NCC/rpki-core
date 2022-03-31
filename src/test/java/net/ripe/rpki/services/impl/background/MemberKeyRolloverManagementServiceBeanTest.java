@@ -76,7 +76,7 @@ public class MemberKeyRolloverManagementServiceBeanTest {
     @Test
     public void shouldSendInitialiseKeyCommandToCAs() {
         int maxAge = 365;
-        when(certificationService.findAllHostedCasWithKeyPairsOlderThan(any())).thenReturn(Collections.singletonList(MEMBER_CA));
+        when(certificationService.findAllHostedCasWithKeyPairsOlderThan(any(), any())).thenReturn(Collections.singletonList(MEMBER_CA));
         when(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()).thenReturn(maxAge);
 
         subject.runService();

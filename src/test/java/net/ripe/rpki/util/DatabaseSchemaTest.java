@@ -1,9 +1,9 @@
 package net.ripe.rpki.util;
 
 import net.ripe.rpki.domain.CertificationDomainTestCase;
-import org.assertj.core.util.Lists;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,6 +50,6 @@ public class DatabaseSchemaTest extends CertificationDomainTestCase {
 
         final String FORMAT = "%-30s %-30s %-15s %-40s %-30s";
         String unexpected = results.stream().map(row -> format(FORMAT, row[0], row[1], row[2], row[3], row[4])).collect(Collectors.joining("\n"));
-        assertEquals(format("missing indexes on:\n" + FORMAT + "\n%s", "table", "columns", "size", "constraint", "referenced_table", unexpected), Lists.emptyList(), results);
+        assertEquals(format("missing indexes on:\n" + FORMAT + "\n%s", "table", "columns", "size", "constraint", "referenced_table", unexpected), Collections.emptyList(), results);
     }
 }

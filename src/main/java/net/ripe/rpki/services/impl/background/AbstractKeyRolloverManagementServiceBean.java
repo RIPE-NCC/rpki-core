@@ -3,6 +3,7 @@ package net.ripe.rpki.services.impl.background;
 import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
+import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -12,6 +13,8 @@ import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -43,8 +46,10 @@ public abstract class AbstractKeyRolloverManagementServiceBean extends Sequentia
 
     protected void runService(CertificateAuthorityType appliedCertificateAuthorityType) {
         final MaxExceptionsTemplate template = new MaxExceptionsTemplate(MAX_ALLOWED_EXCEPTIONS);
-        final Instant oldestCreationTime = Instant.now().minus(Duration.standardDays(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()));
-        caViewService.findAllHostedCasWithKeyPairsOlderThan(oldestCreationTime)
+        final Integer batchSize = 1000;
+        final Instant oldestCreationTime = Instant.now().minus(
+            Duration.standardDays(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()));
+        caViewService.findAllHostedCasWithKeyPairsOlderThan(oldestCreationTime, Optional.of(batchSize))
                 .stream()
                 .filter(ca -> ca.getType() == appliedCertificateAuthorityType)
                 .map(ca -> executor.submit(() -> template.wrap(new Command() {

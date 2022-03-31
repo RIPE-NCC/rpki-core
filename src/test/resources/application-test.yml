@@ -82,3 +82,11 @@ static.image.deployment.environment: static/images/cert_development.png
 ta.repository:
     directory: /tmp/ta
     uri: rsync://localhost:10873/ta/
+
+non-hosted:
+  publisher:
+    repository:
+      url: "https://krill-1.paas.rpki.prepdev.ripe.net/"
+      token: "krill-dev-token"
+      rrdp.url: "https://krill-1.paas.rpki.prepdev.ripe.net/"
+      rsync.url: "rsync://krill-1.paas.rpki.prepdev.ripe.net/repository/"

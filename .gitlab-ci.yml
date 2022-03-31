@@ -69,12 +69,17 @@ build-image:
   stage: package
   needs: ["build"]
   image: gradle:jdk8
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .gradle/caches
+      - .gradle/wrapper
   before_script:
     - apt-get update
     - apt-get install --yes --no-install-recommends docker.io
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - gradle jib --image $CI_REGISTRY_IMAGE/ci:ci-step-$BUILD_NUMBER
+    - ./gradlew jib --image $CI_REGISTRY_IMAGE/ci:ci-step-$BUILD_NUMBER
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
       when: never

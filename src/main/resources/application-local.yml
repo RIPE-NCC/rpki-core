@@ -40,7 +40,7 @@ api-keys.properties: "classpath:/test-api-keys.properties"
 
 autokeyrollover:
     maxage.days: 0
-    update.interval.hours: 240
+    update.interval.days: 10
 
 
 key.management.data:

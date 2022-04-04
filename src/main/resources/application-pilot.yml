@@ -44,11 +44,7 @@ ta.repository:
 
 api-keys.properties: file:///cert/shared/rpki-api-keys.properties
 
-# Fix me with final property, placehoder only
 non-hosted:
   publisher:
     repository:
       enabled: false
-      url: "https://krill-1.paas.rpki.prepdev.ripe.net/"
-      rrdp.url: "https://krill-1.paas.rpki.prepdev.ripe.net/"
-      rsync.url: "rsync://krill-1.paas.rpki.prepdev.ripe.net/repository/"

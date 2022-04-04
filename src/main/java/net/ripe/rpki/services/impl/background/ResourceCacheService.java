@@ -55,7 +55,7 @@ public class ResourceCacheService {
     private final CaName allResourcesCaName;
 
     @Value("${accept.one.rejected.resource.cache.update:false}")
-    private boolean acceptOneRejectedResourceCacheUpdate;
+    private volatile boolean acceptOneRejectedResourceCacheUpdate;
 
     private final AtomicReference<ResourceStat> resourceStats;
     private final ResourceCacheServiceMetrics resourceCacheServiceMetrics;
@@ -120,13 +120,22 @@ public class ResourceCacheService {
             updateResourceCache(registryResources);
             roaConfigUpdater.updateRoaConfig(registryResources);
             resourceCacheServiceMetrics.onMemberCacheAccepted();
-            log.info("Resource cache has been updated from {} entries to {}", resourcesDiff.localSize, resourcesDiff.registrySize);
+            if (resourcesDiff.absoluteSizeDiff() == 0) {
+                log.info("Resource cache has no update; remaining at {} entries", resourcesDiff.localSize);
+            } else {
+                log.info(
+                        "Resource cache has been updated from {} entries to {}%n{}",
+                        resourcesDiff.localSize,
+                        resourcesDiff.registrySize,
+                        showDiffSummary(resourcesDiff)
+                );
+            }
         } else {
             // update the resource diff, but keep the old time
             resourceStats.getAndUpdate(rs -> new ResourceStat(resourcesDiff, rs.lastUpdated));
 
             resourceCacheServiceMetrics.onMemberCacheRejected();
-            log.error("Resource cache update has been rejected, reason: " + rejection.get().message);
+            log.error(String.format("Resource cache update has been rejected, reason: %s%n%s", rejection.get().message, rejection.get().summary));
         }
     }
 
@@ -264,35 +273,43 @@ public class ResourceCacheService {
             return Optional.empty();
         }
 
-        final int absoluteSizeDiff = Math.abs(diffStat.localSize - diffStat.registrySize);
+        final int absoluteSizeDiff = diffStat.absoluteSizeDiff();
         if (absoluteSizeDiff > MAX_SIZE_CHANGE_ABSOLUTE_THRESHOLD) {
             return Optional.of(new Rejection(String.format("The difference in cache size (%d) is too big, " +
-                "old size is %d, new size is %d", absoluteSizeDiff, diffStat.localSize, diffStat.registrySize)));
+                "old size is %d, new size is %d", absoluteSizeDiff, diffStat.localSize, diffStat.registrySize), Optional.empty()));
         }
-        final double relativeSizeDiff = 2.0 * absoluteSizeDiff / (diffStat.localSize + diffStat.registrySize);
+        final double relativeSizeDiff = diffStat.relativeSizeDiff();
         if (relativeSizeDiff > MAX_CHANGE_RELATIVE_THRESHOLD) {
             return Optional.of(new Rejection(String.format("The relative difference in cache size (%s) is too big, " +
-                "old size is %d, new size is %d", relativeSizeDiff, diffStat.localSize, diffStat.registrySize)));
+                "old size is %d, new size is %d", relativeSizeDiff, diffStat.localSize, diffStat.registrySize), Optional.empty()));
         }
 
         if (diffStat.totalAdded + diffStat.totalDeleted > MAX_PER_CA_CHANGE_ABSOLUTE_THRESHOLD) {
-
-            final StringBuilder builder = new StringBuilder("-------Summary-------");
-            diffStat.getChangesMap().forEach((caName, changes) -> {
-                if (changes.added > 0 || changes.deleted > 0) {
-                    builder.append("\n")
-                            .append(caName).append(":\n")
-                            .append("\tadded: ").append(changes.added).append("\n")
-                            .append("\tdeleted: ").append(changes.deleted).append("\n")
-                            .append("---------------------");
-                }
-            });
-
-            final String summary = builder.toString();
-            return Optional.of(new Rejection(String.format("The sum of the per-CA changes (%d) is too big, " +
-                "added %d prefixes, deleted %d prefixes: \n %s", diffStat.totalAdded + diffStat.totalDeleted, diffStat.totalAdded, diffStat.totalDeleted, summary)));
+            final String summary = showDiffSummary(diffStat);
+            return Optional.of(new Rejection(
+                    String.format(
+                            "The sum of the per-CA changes (%d) is too big, added %d prefixes, deleted %d prefixes",
+                            diffStat.totalAdded + diffStat.totalDeleted,
+                            diffStat.totalAdded, diffStat.totalDeleted
+                    ),
+                    Optional.of(summary)
+            ));
         }
         return Optional.empty();
+    }
+
+    private static String showDiffSummary(ResourceDiffStat diffStat) {
+        StringBuilder builder = new StringBuilder("-------Summary-------");
+        diffStat.getChangesMap().forEach((caName, changes) -> {
+            if (changes.added > 0 || changes.deleted > 0) {
+                builder.append("\n")
+                        .append(caName).append(":\n")
+                        .append("\tadded: ").append(changes.added).append("\n")
+                        .append("\tdeleted: ").append(changes.deleted).append("\n")
+                        .append("---------------------");
+            }
+        });
+        return builder.toString();
     }
 
     private static Optional<Rejection> isAcceptableDiff(DelegationDiffStat diffStat) {
@@ -302,7 +319,7 @@ public class ResourceCacheService {
         }
         if (diffStat.totalAdded + diffStat.totalDeleted > MAX_DELEGATIONS_CHANGE_ABSOLUTE_THRESHOLD) {
             return Optional.of(new Rejection(String.format("The change in the production CA delegations is too big, " +
-                "added %d prefixes, deleted %d prefixes", diffStat.totalAdded, diffStat.totalDeleted)));
+                "added %d prefixes, deleted %d prefixes", diffStat.totalAdded, diffStat.totalDeleted), Optional.empty()));
         }
         return Optional.empty();
     }
@@ -326,6 +343,14 @@ public class ResourceCacheService {
         private int totalAdded;
         private int totalDeleted;
         private Map<CaName, Changes> changesMap;
+
+        public int absoluteSizeDiff() {
+            return Math.abs(localSize - registrySize);
+        }
+
+        public double relativeSizeDiff() {
+            return 2.0 * absoluteSizeDiff() / (localSize + registrySize);
+        }
     }
 
     @Data
@@ -348,6 +373,7 @@ public class ResourceCacheService {
     @AllArgsConstructor
     static class Rejection {
         private String message;
+        private Optional<String> summary;
     }
 
     private static class ResourceCacheServiceMetrics {

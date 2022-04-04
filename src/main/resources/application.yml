@@ -101,11 +101,9 @@ accept.one.rejected.resource.cache.update: false
 
 private.asns.ranges: 112, 23456, 64496-64511, 64512-65534, 65535, 65536-65551, 4200000000-4294967294, 4294967295
 
-#
-# Make the key roll services fully manual, i.e.
-#  1) do not run automatically
-#  2) use 0 days / hours so a manual run always works
+# Make the key roll services fully manual.
 autokeyrollover:
+    enable: false
     update.interval.days: 365
     maxage.days: 0
 

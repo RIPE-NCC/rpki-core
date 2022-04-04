@@ -66,6 +66,8 @@ public class BackgroundServices {
     @Value("${resource.update.interval.hours}")
     private int resourceUpdateIntervalHours;
 
+    @Value("${autokeyrollover.enable:false}")
+    private boolean autoKeyRolloverEnable;
     @Value("${autokeyrollover.update.interval.days}")
     private int autoKeyRolloverUpdateIntervalDays;
 
@@ -124,21 +126,21 @@ public class BackgroundServices {
                 futureDate(resourceUpdateIntervalHours, HOUR),
                 repeat().withIntervalInHours(resourceUpdateIntervalHours));
 
-        schedule(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE,
-                futureDate(autoKeyRolloverUpdateIntervalDays, DAY),
-                repeat().withIntervalInHours(autoKeyRolloverUpdateIntervalDays * 24));
+        if (autoKeyRolloverEnable) {
+            schedule(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE,
+                     futureDate(autoKeyRolloverUpdateIntervalDays, DAY),
+                     repeat().withIntervalInHours(autoKeyRolloverUpdateIntervalDays * 24));
+            schedule(MEMBER_KEY_ROLLOVER_MANAGEMENT_SERVICE,
+                     futureDate(autoKeyRolloverUpdateIntervalDays, DAY),
+                     repeat().withIntervalInHours(autoKeyRolloverUpdateIntervalDays * 24));
 
-        schedule(MEMBER_KEY_ROLLOVER_MANAGEMENT_SERVICE,
-                futureDate(autoKeyRolloverUpdateIntervalDays, DAY),
-                repeat().withIntervalInHours(autoKeyRolloverUpdateIntervalDays * 24));
-
-        schedule(KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE,
-                futureDate(keyPairActivationIntervalHours, HOUR),
-                repeat().withIntervalInHours(keyPairActivationIntervalHours));
-
-        schedule(KEY_PAIR_REVOCATION_MANAGEMENT_SERVICE,
-                futureDate(keyPairRevocationIntervalHours, HOUR),
-                repeat().withIntervalInHours(keyPairRevocationIntervalHours));
+            schedule(KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE,
+                    futureDate(keyPairActivationIntervalHours, HOUR),
+                    repeat().withIntervalInHours(keyPairActivationIntervalHours));
+            schedule(KEY_PAIR_REVOCATION_MANAGEMENT_SERVICE,
+                    futureDate(keyPairRevocationIntervalHours, HOUR),
+                    repeat().withIntervalInHours(keyPairRevocationIntervalHours));
+        }
 
         schedule(CERTIFICATE_EXPIRATION_SERVICE,
                 futureDate(20, MINUTE),

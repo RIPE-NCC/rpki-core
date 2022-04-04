@@ -47,7 +47,7 @@ max.serial.increment: 1
 
 autokeyrollover:
     maxage.days: 365
-    update.interval.hours: 240
+    update.interval.days: 10
 
 key.management.data:
     archive.directory: /tmp

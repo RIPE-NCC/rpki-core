@@ -22,8 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallbackWithoutResult;
-import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.support.TransactionOperations;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.HashMap;
@@ -31,6 +30,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.StreamSupport;
 
@@ -44,7 +45,7 @@ public class ResourceCacheService {
     private static final double MAX_CHANGE_RELATIVE_THRESHOLD = 0.005;
 
     private final RoaConfigUpdater roaConfigUpdater;
-    private final TransactionTemplate transactionTemplate;
+    private final TransactionOperations transactionTemplate;
     private final ResourceServicesClient resourceServicesClient;
     private final ResourceCache resourceCache;
     private final DelegationsCache delegationsCache;
@@ -54,7 +55,6 @@ public class ResourceCacheService {
     @Getter
     private final CaName allResourcesCaName;
 
-    @Value("${accept.one.rejected.resource.cache.update:false}")
     private volatile boolean acceptOneRejectedResourceCacheUpdate;
 
     private final AtomicReference<ResourceStat> resourceStats;
@@ -62,12 +62,13 @@ public class ResourceCacheService {
 
     @Autowired
     public ResourceCacheService(RoaConfigUpdater roaConfigUpdater,
-                                TransactionTemplate transactionTemplate,
+                                TransactionOperations transactionTemplate,
                                 ResourceServicesClient resourceServicesClient,
                                 ResourceCache resourceCache,
                                 DelegationsCache delegationsCache,
                                 @Value("${" + RepositoryConfiguration.PRODUCTION_CA_NAME + "}") X500Principal productionCaName,
                                 @Value("${" + RepositoryConfiguration.ALL_RESOURCES_CA_NAME + "}") X500Principal allResourcesCaName,
+                                @Value("${accept.one.rejected.resource.cache.update:false}") boolean acceptOneRejectedResourceCacheUpdate,
                                 MeterRegistry meterRegistry) {
         this.roaConfigUpdater = roaConfigUpdater;
         this.resourceServicesClient = resourceServicesClient;
@@ -78,6 +79,8 @@ public class ResourceCacheService {
         this.productionCaName = CaName.of(productionCaName);
         this.allResourcesCaName = CaName.of(allResourcesCaName);
 
+        this.acceptOneRejectedResourceCacheUpdate = acceptOneRejectedResourceCacheUpdate;
+
         final Instant lastUpdateTimeFromDatabase = Optional
             .ofNullable(resourceCache.lastUpdateTime())
             .map(AbstractInstant::toInstant)
@@ -87,37 +90,37 @@ public class ResourceCacheService {
         resourceCacheServiceMetrics = new ResourceCacheServiceMetrics(resourceStats, meterRegistry);
     }
 
-    protected void updateFullResourceCache() {
-        updateProductionCaCache();
-        updateMembersCache();
+    public Optional<IpResourceSet> getProductionCaResources() {
+        return delegationsCache.getDelegationsCache();
     }
 
-    private Optional<Rejection> maybeOneTimeOverrideRejection(Optional<Rejection> rejection) {
-        if (rejection.isPresent() && acceptOneRejectedResourceCacheUpdate) {
-            log.error("one-time overriding rejection for reason: {}", rejection.get().message);
-            acceptOneRejectedResourceCacheUpdate = false;
-            return Optional.empty();
-        }
-        return rejection;
+    public void updateFullResourceCache() {
+        CacheUpdate update = updateProductionCaCache().chain(this::updateMembersCache);
+        transactionTemplate.executeWithoutResult((status) -> {
+            update.run(status);
+            if (!status.isRollbackOnly()) {
+                acceptOneRejectedResourceCacheUpdate = false;
+            }
+        });
     }
 
-    protected void updateMembersCache() {
+    private CacheUpdate updateMembersCache() {
         final Map<CaName, IpResourceSet> registryResources;
         try {
             registryResources = resourceServicesClient.fetchAllMemberResources().getCertifiableResources();
         } catch (Exception e) {
-            log.error("The RIPE NCC internet resources REST API is not available", e);
-            resourceCacheServiceMetrics.onMemberCacheException();
-            return;
+            return new CacheUpdate.Reject(() -> {
+                log.error("The RIPE NCC internet resources REST API is not available", e);
+                resourceCacheServiceMetrics.onMemberCacheException();
+            });
         }
-        
-        final Map<CaName, IpResourceSet> localResources = getResourcesFromCache();
+
+        final Map<CaName, IpResourceSet> localResources = resourceCache.allMemberResources();
         final ResourceDiffStat resourcesDiff = resourcesDiff(registryResources, localResources);
 
-        final Optional<Rejection> rejection = maybeOneTimeOverrideRejection(isAcceptableDiff(resourcesDiff));
-        if (!rejection.isPresent()) {
+        CacheUpdate applyUpdate = new CacheUpdate.Apply(() -> {
             resourceStats.set(new ResourceStat(resourcesDiff, Instant.now()));
-            updateResourceCache(registryResources);
+            resourceCache.populateCache(registryResources);
             roaConfigUpdater.updateRoaConfig(registryResources);
             resourceCacheServiceMetrics.onMemberCacheAccepted();
             if (resourcesDiff.absoluteSizeDiff() == 0) {
@@ -130,23 +133,34 @@ public class ResourceCacheService {
                         showDiffSummary(resourcesDiff)
                 );
             }
-        } else {
+        });
+        Function<Rejection, CacheUpdate> trackRejected = (x) -> new CacheUpdate.Reject(() -> {
             // update the resource diff, but keep the old time
             resourceStats.getAndUpdate(rs -> new ResourceStat(resourcesDiff, rs.lastUpdated));
-
             resourceCacheServiceMetrics.onMemberCacheRejected();
-            log.error(String.format("Resource cache update has been rejected, reason: %s%n%s", rejection.get().message, rejection.get().summary));
-        }
+            log.error(String.format("Resource cache update has been rejected, reason: %s%n%s", x.message, x.summary));
+        });
+        return maybeOneTimeOverrideRejection(isAcceptableDiff(resourcesDiff))
+                .map(trackRejected).orElse(applyUpdate);
     }
 
-    public void updateProductionCaCache() {
+    private Optional<Rejection> maybeOneTimeOverrideRejection(Optional<Rejection> rejection) {
+        if (rejection.isPresent() && acceptOneRejectedResourceCacheUpdate) {
+            log.error("one-time overriding rejection for reason: {}", rejection.get().message);
+            return Optional.empty();
+        }
+        return rejection;
+    }
+
+    private CacheUpdate updateProductionCaCache() {
         IpResourceSet retrieved;
         try {
             retrieved = resourceServicesClient.findProductionCaDelegations();
         } catch (Exception e) {
-            resourceCacheServiceMetrics.onDelegationsUpdateException();
-            log.error("Couldn't retrieve Production CA resources, probably RSNG is not available.", e);
-            return;
+            return new CacheUpdate.Reject(() -> {
+                resourceCacheServiceMetrics.onDelegationsUpdateException();
+                log.error("Couldn't retrieve Production CA resources, probably RSNG is not available.", e);
+            });
         }
 
         final IpResourceSet cached = delegationsCache.getDelegationsCache().orElse(new IpResourceSet());
@@ -159,19 +173,22 @@ public class ResourceCacheService {
 
         final DelegationDiffStat resourcesDiff = delegationsDiff(retrieved, cached);
 
-        final Optional<Rejection> rejection = maybeOneTimeOverrideRejection(isAcceptableDiff(resourcesDiff));
-        if (!rejection.isPresent()) {
-            updateDelegationsCache(retrieved);
+        CacheUpdate applyUpdate = new CacheUpdate.Apply(() -> {
+            delegationsCache.cacheDelegations(retrieved);
             resourceCacheServiceMetrics.onDelegationsUpdateAccepted(added, removed);
-            log.info("Production CA delegations cache has been updated from {} entries to {}", resourcesDiff.localResourceCount, resourcesDiff.registrySizeResourceCount);
-        } else {
+            log.info(
+                    "Production CA delegations cache has been updated from {} entries to {}",
+                    resourcesDiff.localResourceCount,
+                    resourcesDiff.registrySizeResourceCount
+            );
+        });
+        Function<Rejection, CacheUpdate> trackRejection = (x) -> new CacheUpdate.Reject(() -> {
             resourceCacheServiceMetrics.onDelegationsUpdateRejected();
-            log.error("Production CA delegations cache update with diff {} has been rejected, reason: {}", resourcesDiff, rejection.get().message);
-        }
-    }
+            log.error("Production CA delegations cache update with diff {} has been rejected, reason: {}", resourcesDiff, x.message);
+        });
 
-    public Optional<IpResourceSet> getProductionCaResources() {
-        return delegationsCache.getDelegationsCache();
+        return maybeOneTimeOverrideRejection(isAcceptableDiff(resourcesDiff))
+                .map(trackRejection).orElse(applyUpdate);
     }
 
     private static IpResourceSet subtract(IpResourceSet s1, IpResourceSet s2) {
@@ -182,28 +199,6 @@ public class ResourceCacheService {
 
     static int resourceSetSize(IpResourceSet ipr) {
         return Iterators.size(ipr.iterator());
-    }
-
-    private Map<CaName, IpResourceSet> getResourcesFromCache() {
-        return resourceCache.allMemberResources();
-    }
-
-    private void updateResourceCache(Map<CaName, IpResourceSet> certifiableResources) {
-        transactionTemplate.execute(new TransactionCallbackWithoutResult() {
-            @Override
-            protected void doInTransactionWithoutResult(TransactionStatus status) {
-                resourceCache.populateCache(certifiableResources);
-            }
-        });
-    }
-
-    private void updateDelegationsCache(IpResourceSet retrieved) {
-        transactionTemplate.execute(
-                new TransactionCallbackWithoutResult() {
-                    @Override
-                    protected void doInTransactionWithoutResult(TransactionStatus status) {
-                        delegationsCache.cacheDelegations(retrieved);
-                    }});
     }
 
     static ResourceDiffStat resourcesDiff(Map<CaName, IpResourceSet> registryResources, Map<CaName, IpResourceSet> localResources) {
@@ -508,5 +503,57 @@ public class ResourceCacheService {
          * Exception occurred while retrieving the content.
          */
         public void onMemberCacheException() { resourceUpdatesException.increment(); }
+    }
+
+    interface CacheUpdate {
+        CacheUpdate compose(Runnable next);
+        CacheUpdate chain(Supplier<CacheUpdate> check);
+        void run(TransactionStatus status);
+
+        @lombok.AllArgsConstructor
+        class Apply implements CacheUpdate {
+            Runnable effect;
+
+            @Override
+            public CacheUpdate compose(Runnable next) {
+                return new Apply(() -> {
+                    effect.run();
+                    next.run();
+                });
+            }
+
+            @Override
+            public CacheUpdate chain(Supplier<CacheUpdate> check) {
+                return check.get().compose(effect);
+            }
+
+            @Override
+            public void run(TransactionStatus status) {
+                if (!status.isRollbackOnly()) {
+                    effect.run();
+                }
+            }
+        }
+
+        @lombok.AllArgsConstructor
+        class Reject implements CacheUpdate {
+            Runnable trackRejection;
+
+            @Override
+            public CacheUpdate compose(Runnable next) {
+                return this;
+            }
+
+            @Override
+            public CacheUpdate chain(Supplier<CacheUpdate> check) {
+                return this;
+            }
+
+            @Override
+            public void run(TransactionStatus status) {
+                status.setRollbackOnly();
+                trackRejection.run();
+            }
+        }
     }
 }

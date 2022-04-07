@@ -23,11 +23,10 @@ import static org.junit.Assert.assertTrue;
 @SpringBootTest(classes = TestRpkiBootApplication.class)
 public class RestResourceServicesClientIT {
 
+    private final String internetResourcesUri = "https://rsng-apps.prepdev.ripe.net/resource-services/%s";
+
     private RestResourceServicesClient subject;
-
     private Client resource;
-
-    private String internetResourcesUri = "https://rsng-apps.prepdev.ripe.net/resource-services/%s";
 
     @BeforeEach
     public void setUp() {

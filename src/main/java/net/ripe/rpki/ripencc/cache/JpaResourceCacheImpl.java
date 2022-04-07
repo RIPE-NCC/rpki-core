@@ -48,16 +48,6 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
     }
 
     @Override
-    public void verifyResourcesArePresent() {
-        if (hasNoProductionResources()) {
-            throw new IllegalStateException("Resource cache doesn't contain production CA resources");
-        }
-        if (hasNoMemberResources()) {
-            throw new IllegalStateException("Resource cache doesn't contain member CA resources");
-        }
-    }
-
-    @Override
     public boolean hasNoMemberResources() {
         return isZeroCount("SELECT COUNT(*) FROM ResourceCacheLine rc where rc.name != :productionCAName");
     }
@@ -125,7 +115,6 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
         return ISODateTimeFormat.dateTime();
     }
 
-    @Override
     public void updateEntry(CaName caName, IpResourceSet resources) {
         entityManager.createNativeQuery(
             "insert into resource_cache (name, resources) values (:name, :resources)\n" +

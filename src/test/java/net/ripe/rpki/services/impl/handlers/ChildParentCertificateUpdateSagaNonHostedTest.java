@@ -8,21 +8,13 @@ import net.ripe.rpki.commons.provisioning.payload.issue.request.CertificateIssua
 import net.ripe.rpki.commons.provisioning.payload.revocation.CertificateRevocationKeyElement;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
-import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.NonHostedCertificateAuthority;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
-import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.PublicKeyEntity;
-import net.ripe.rpki.domain.PublicationStatus;
-import net.ripe.rpki.domain.TestObjects;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
+import net.ripe.rpki.ripencc.cache.JpaResourceCacheImpl;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
-import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.support.objects.CaName;
@@ -60,7 +52,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     };
 
     @Inject
-    private ResourceCache resourceCache;
+    private JpaResourceCacheImpl resourceCache;
     @Inject
     private CertificateRequestCreationService certificateRequestCreationService;
 

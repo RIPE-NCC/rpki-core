@@ -5,21 +5,14 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.CustomerCertificateAuthority;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
-import net.ripe.rpki.domain.IncomingResourceCertificate;
-import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
-import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.PublicationStatus;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
+import net.ripe.rpki.ripencc.cache.JpaResourceCacheImpl;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
-import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.support.objects.CaName;
@@ -33,11 +26,7 @@ import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 import java.net.URI;
 import java.security.PublicKey;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -51,7 +40,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
     private static final X500Principal CHILD_CA_NAME = new X500Principal("CN=child");
 
     @Inject
-    private ResourceCache resourceCache;
+    private JpaResourceCacheImpl resourceCache;
     @Inject
     private CertificateRequestCreationService certificateRequestCreationService;
 

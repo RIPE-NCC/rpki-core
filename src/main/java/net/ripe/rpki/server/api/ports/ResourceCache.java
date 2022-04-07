@@ -16,14 +16,18 @@ public interface ResourceCache {
 
     DateTime lastUpdateTime();
 
-    void verifyResourcesArePresent();
-
     boolean hasNoMemberResources();
 
     void populateCache(Map<CaName, IpResourceSet> certifiableResources);
 
     Map<CaName, IpResourceSet> allMemberResources();
 
-    @VisibleForTesting
-    void updateEntry(CaName caName, IpResourceSet parse);
+    default void verifyResourcesArePresent() {
+        if (hasNoProductionResources()) {
+            throw new IllegalStateException("Resource cache doesn't contain production CA resources");
+        }
+        if (hasNoMemberResources()) {
+            throw new IllegalStateException("Resource cache doesn't contain member CA resources");
+        }
+    }
 }

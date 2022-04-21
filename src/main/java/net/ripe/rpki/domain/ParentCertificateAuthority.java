@@ -19,7 +19,8 @@ public interface ParentCertificateAuthority extends Entity {
 
     boolean isCertificateIssuanceNeeded(CertificateIssuanceRequest request, ValidityPeriod validityPeriod, ResourceCertificateRepository resourceCertificateRepository);
 
-    CertificateIssuanceResponse processCertificateIssuanceRequest(CertificateIssuanceRequest request,
+    CertificateIssuanceResponse processCertificateIssuanceRequest(ChildCertificateAuthority requestingCa,
+                                                                  CertificateIssuanceRequest request,
                                                                   ResourceCertificateRepository resourceCertificateRepository,
                                                                   DBComponent dbComponent, int issuedCertificatesPerSignedKeyLimit);
 

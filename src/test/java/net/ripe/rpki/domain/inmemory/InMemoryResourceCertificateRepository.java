@@ -1,5 +1,7 @@
 package net.ripe.rpki.domain.inmemory;
 
+import net.ripe.ipresource.IpResourceSet;
+import net.ripe.rpki.domain.ChildCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
@@ -54,6 +56,11 @@ public class InMemoryResourceCertificateRepository extends InMemoryRepository<Re
     @Override
     public boolean deleteOutgoingCertificatesForRevokedKeyPair(KeyPairEntity signingKeyPair) {
         throw new NotImplementedException();
+    }
+
+    @Override
+    public IpResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName) {
+        return new IpResourceSet();
     }
 
     @Override

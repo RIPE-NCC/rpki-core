@@ -333,7 +333,8 @@ public class KeyPairEntity extends EntitySupport {
         return status.isCertificateNeeded();
     }
 
-    public CertificateIssuanceResponse processCertificateIssuanceRequest(CertificateIssuanceRequest request,
+    public CertificateIssuanceResponse processCertificateIssuanceRequest(ChildCertificateAuthority requestingCa,
+                                                                         CertificateIssuanceRequest request,
                                                                          BigInteger serial,
                                                                          ResourceCertificateRepository resourceCertificateRepository) {
         DateTime now = new DateTime(DateTimeZone.UTC);
@@ -341,6 +342,7 @@ public class KeyPairEntity extends EntitySupport {
         revokeOldCertificates(request.getSubjectPublicKey(), resourceCertificateRepository);
         ChildCertificateSigner signer = new ChildCertificateSigner();
         OutgoingResourceCertificate outgoingResourceCertificate = signer.buildOutgoingResourceCertificate(request, validityPeriod, this, serial);
+        outgoingResourceCertificate.setRequestingCertificateAuthority(requestingCa);
         resourceCertificateRepository.add(outgoingResourceCertificate);
         return new CertificateIssuanceResponse(outgoingResourceCertificate.getCertificate(), outgoingResourceCertificate.getPublicationUri());
     }

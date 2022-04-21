@@ -42,10 +42,11 @@ mail:
 management:
     endpoints:
         enabled-by-default: false
-        web.exposure.include: info,prometheus
+        web.exposure.include: info,prometheus,active-node
     endpoint:
         info.enabled: true
         prometheus.enabled: true
+        active-node.enabled: true
 
 #
 # Third party spring managed components
@@ -64,6 +65,7 @@ sentry:
     # Set traces-sample-rate to 1%, if all environments have it enabled, we use
     # ~100K events/day with a cost of ~400/month. This should catch performance issues.
     traces-sample-rate: 0.01
+    ignored-exceptions-for-type: net.ripe.rpki.rest.exception.CaNotFoundException
 
 #
 # Integrations

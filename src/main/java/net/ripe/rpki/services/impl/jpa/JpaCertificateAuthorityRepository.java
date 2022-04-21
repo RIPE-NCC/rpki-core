@@ -1,7 +1,5 @@
 package net.ripe.rpki.services.impl.jpa;
 
-import net.ripe.ipresource.IpResourceSet;
-import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
@@ -12,15 +10,12 @@ import net.ripe.rpki.domain.ParentCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.PublicationStatus;
 import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
-import net.ripe.rpki.server.api.dto.CaIdentity;
 import net.ripe.rpki.server.api.dto.CaStat;
 import net.ripe.rpki.server.api.dto.CaStatCaEvent;
 import net.ripe.rpki.server.api.dto.CaStatEvent;
 import net.ripe.rpki.server.api.dto.CaStatRoaEvent;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
-import net.ripe.rpki.server.api.support.objects.CaName;
 import org.apache.commons.lang.Validate;
-import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.format.DateTimeFormat;
@@ -37,12 +32,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Repository(value = "jpaCertificateAuthorityRepository")
 public class JpaCertificateAuthorityRepository extends JpaRepository<CertificateAuthority> implements CertificateAuthorityRepository {
@@ -231,73 +224,6 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
             }
         }
         return result;
-    }
-
-    @Override
-    public Map<CaIdentity, IpResourceSet> findAllResourcesByParent(HostedCertificateAuthority parent) {
-        final String sql =
-            "WITH hosted_resources AS ( " +
-            "        SELECT ca.id        AS ca_id, " +
-            "               ca.version   AS version, " +
-            "               ca.name      AS name, " +
-            "               rc.resources AS resources " +
-            "        FROM certificateauthority ca " +
-            "                 INNER JOIN keypair kp ON kp.ca_id = ca.id " +
-            "                 INNER JOIN resourcecertificate rc ON rc.subject_keypair_id = kp.id " +
-            "        WHERE ca.parent_id = :parentId " +
-            "          AND kp.status = 'CURRENT' " +
-            "          AND rc.status = 'CURRENT' " +
-            "    ), " +
-            "     non_hosted_resources AS ( " +
-            "         SELECT ca.id        AS ca_id, " +
-            "                ca.version   AS version, " +
-            "                ca.name      AS name, " +
-            "                rc.resources AS resources " +
-            "         FROM certificateauthority ca " +
-            "                  INNER JOIN non_hosted_ca_public_key nh_pk ON nh_pk.ca_id = ca.id " +
-            "                  INNER JOIN resourcecertificate rc ON rc.subject_public_key_id = nh_pk.id " +
-            "         WHERE ca.parent_id = :parentId " +
-            "           AND rc.status = 'CURRENT' " +
-            "           AND rc.type = 'OUTGOING' " +
-            "           AND NOT nh_pk.revoked " +
-            "     ) " +
-            "SELECT DISTINCT * " +
-            "FROM ( " +
-            "         SELECT * " +
-            "         FROM hosted_resources " +
-            "         UNION ALL " +
-            "         SELECT * " +
-            "         FROM non_hosted_resources " +
-            "     ) z";
-
-        final Stream<?> result = manager.createNativeQuery(sql)
-                .setParameter("parentId", parent.getId())
-                .getResultStream();
-        return result.map(o -> {
-                final Object[] columns = (Object[]) o;
-                final long id = Long.parseLong(columns[0].toString());
-                final long version = Long.parseLong(columns[1].toString());
-                final String name = toStr(columns[2]);
-                final String resources = toStr(columns[3]);
-                return Pair.of(
-                    new CaIdentity(
-                        new VersionedId(id, version),
-                        CaName.of(new X500Principal(name))
-                    ),
-                    IpResourceSet.parse(resources)
-                );
-        })
-        .collect(Collectors.toMap(
-                Pair::getLeft,
-                Pair::getRight,
-                (r1, r2) -> {
-                    // we (probably?) can potentially get multiple resources
-                    // sets from different resource classes
-                    final IpResourceSet r = new IpResourceSet(r1);
-                    r.addAll(r2);
-                    return r;
-                }
-        ));
     }
 
     @Override

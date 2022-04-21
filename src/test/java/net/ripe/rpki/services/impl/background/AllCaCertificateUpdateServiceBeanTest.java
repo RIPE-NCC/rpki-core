@@ -85,7 +85,7 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
     @Test
     public void shouldDoNothingIfProductionCaIsMissing() {
         when(activeNodeService.isActiveNode(anyString())).thenReturn(true);
-        when(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_NAME)).thenReturn(null);
+        when(caViewService.findCertificateAuthorityByName(repositoryConfiguration.getProductionCaPrincipal())).thenReturn(null);
 
         subject.execute();
 

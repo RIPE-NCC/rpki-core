@@ -320,7 +320,8 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     }
 
     @Override
-    public CertificateIssuanceResponse processCertificateIssuanceRequest(CertificateIssuanceRequest request,
+    public CertificateIssuanceResponse processCertificateIssuanceRequest(ChildCertificateAuthority requestingCa,
+                                                                         CertificateIssuanceRequest request,
                                                                          ResourceCertificateRepository resourceCertificateRepository,
                                                                          DBComponent dbComponent,
                                                                          int issuedCertificatesPerSignedKeyLimit) {
@@ -330,7 +331,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
         if (count >= issuedCertificatesPerSignedKeyLimit) {
             throw new CertificationResourceLimitExceededException("number of issued certificates for public key exceeds the limit (" + count + " >= " + issuedCertificatesPerSignedKeyLimit + ")");
         }
-        return getCurrentKeyPair().processCertificateIssuanceRequest(request, dbComponent.nextSerial(this), resourceCertificateRepository);
+        return getCurrentKeyPair().processCertificateIssuanceRequest(requestingCa, request, dbComponent.nextSerial(this), resourceCertificateRepository);
     }
 
     @Override

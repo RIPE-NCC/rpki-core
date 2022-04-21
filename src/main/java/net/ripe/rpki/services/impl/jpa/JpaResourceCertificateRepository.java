@@ -1,5 +1,6 @@
 package net.ripe.rpki.services.impl.jpa;
 
+import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
@@ -164,5 +165,18 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
                 .setParameter("signingKeyPairId", signingKeyPair.getId());
 
         return query.executeUpdate() != 0;
+    }
+
+    @Override
+    public IpResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName) {
+        return manager.createQuery(
+                "SELECT rc.resources " +
+                    "  FROM OutgoingResourceCertificate rc INNER JOIN rc.requestingCertificateAuthority child " +
+                    " WHERE rc.status = :current " +
+                    "   AND upper(child.parent.name) = upper(:name)",
+                IpResourceSet.class)
+            .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
+            .setParameter("name", caName.getName()).getResultStream()
+            .collect(IpResourceSet::new, IpResourceSet::addAll, IpResourceSet::addAll);
     }
 }

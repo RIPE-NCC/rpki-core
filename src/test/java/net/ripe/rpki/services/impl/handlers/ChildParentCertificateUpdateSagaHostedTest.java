@@ -7,7 +7,6 @@ import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
-import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.ripencc.cache.JpaResourceCacheImpl;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
@@ -19,7 +18,6 @@ import net.ripe.rpki.server.api.support.objects.CaName;
 import org.joda.time.Duration;
 import org.junit.Before;
 import org.junit.Test;
-import org.opentest4j.AssertionFailedError;
 
 import javax.inject.Inject;
 import javax.security.auth.x500.X500Principal;
@@ -41,8 +39,6 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
 
     @Inject
     private JpaResourceCacheImpl resourceCache;
-    @Inject
-    private CertificateRequestCreationService certificateRequestCreationService;
 
     @Inject
     private CommandService subject;
@@ -54,9 +50,9 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
     public void setUp() {
         clearDatabase();
 
-        parent = createInitialisedProdCaWithRipeResources();
-        child = new CustomerCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent, 1);
+        parent = createInitializedAllResourcesAndProductionCertificateAuthority();
 
+        child = new CustomerCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent, 1);
         certificateAuthorityRepository.add(child);
     }
 
@@ -118,7 +114,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         Collection<KeyPairEntity> keyPairs = child.getKeyPairs();
         assertThat(keyPairs).hasSize(2).contains(newKeyPair);
 
-        keyPairs.stream().forEach(kp -> {
+        keyPairs.forEach(kp -> {
             Optional<IncomingResourceCertificate> certificate = kp.findCurrentIncomingCertificate();
             assertThat(certificate).isPresent();
             assertThat(certificate.get().getResources()).isEqualTo(resources("10.10.0.0/16"));
@@ -137,9 +133,9 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
 
         Collection<KeyPairEntity> keyPairs = child.getKeyPairs();
         assertThat(keyPairs).hasSize(2);
-        KeyPairEntity old = keyPairs.stream().filter(KeyPairEntity::isOld).findFirst().orElseThrow(() -> new AssertionFailedError("no OLD key pair"));
+        KeyPairEntity old = keyPairs.stream().filter(KeyPairEntity::isOld).findFirst().orElseThrow(() -> new AssertionError("no OLD key pair"));
 
-        IncomingResourceCertificate oldCurrent = old.findCurrentIncomingCertificate().orElseThrow(() -> new AssertionFailedError("no CURRENT certificate for OLD key pair"));
+        IncomingResourceCertificate oldCurrent = old.findCurrentIncomingCertificate().orElseThrow(() -> new AssertionError("no CURRENT certificate for OLD key pair"));
         assertThat(oldCurrent.getResources()).isEqualTo(resources("10.10.0.0/16, 10.20.0.0/16"));
 
         assertChildParentInvariants(child, parent);
@@ -182,8 +178,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         IncomingResourceCertificate currentIncomingCertificate = child.getCurrentIncomingCertificate();
         X509CertificateInformationAccessDescriptor[] siaWithoutNotificationUri = Arrays.stream(currentIncomingCertificate.getSia())
             .filter(x -> !x.getMethod().equals(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_NOTIFY))
-            .collect(Collectors.toList())
-            .toArray(new X509CertificateInformationAccessDescriptor[0]);
+            .toArray(X509CertificateInformationAccessDescriptor[]::new);
 
         boolean updatedNeeded = parent.isCertificateIssuanceNeeded(
             certificateToIssuanceRequest(currentIncomingCertificate).withSubjectInformationAccess(siaWithoutNotificationUri),
@@ -267,6 +262,28 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         assertThat(updatedNeeded).isFalse();
     }
 
+    @Test
+    public void should_keep_resources_that_are_still_on_issued_child_certificates_to_avoid_invalidation_due_to_overclaiming() {
+        should_issue_certificate_for_hosted_child_certified_resources();
+
+        // Remove some resources from parent, but keep child resources the same. The new parent certificate should
+        // still have the child resources to avoid invalidation due to overclaiming.
+        resourceCache.updateEntry(CaName.of(parent.getName()), IpResourceSet.ASN_PRIVATE_USE_RESOURCES);
+        execute(new UpdateAllIncomingResourceCertificatesCommand(parent.getVersionedId(), Integer.MAX_VALUE));
+
+        assertChildParentInvariants(child, parent);
+        assertThat(parent.getCurrentIncomingCertificate().getResources()).containsAll(child.getCurrentIncomingCertificate().getResources());
+
+        // Remove the child resources. Its certificate will be revoked, since there are no certifiable resources.
+        resourceCache.updateEntry(CaName.of(child.getName()), resources(""));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(child.getVersionedId(), Integer.MAX_VALUE));
+        assertThat(child.findCurrentIncomingResourceCertificate()).isEmpty();
+
+        // Update the parent certificate again. Now it should no longer contain the extra child resources.
+        execute(new UpdateAllIncomingResourceCertificatesCommand(parent.getVersionedId(), Integer.MAX_VALUE));
+        assertThat(parent.getCurrentIncomingCertificate().getResources()).isEqualTo(IpResourceSet.ASN_PRIVATE_USE_RESOURCES);
+    }
+
     private CertificateIssuanceRequest certificateToIssuanceRequest(IncomingResourceCertificate certificate) {
         return new CertificateIssuanceRequest(
             certificate.getResources(),
@@ -327,11 +344,12 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         assertThat(childPublicKeys).hasSize(outgoingResourceCertificates.size());
         assertThat(outgoingResourceCertificates).hasSize(incomingResourceCertificates.size());
 
-        outgoingResourceCertificates.stream().forEach(outgoing -> {
+        outgoingResourceCertificates.forEach(outgoing -> {
+            assertThat(outgoing.getRequestingCertificateAuthority()).isEqualTo(child);
             IncomingResourceCertificate incoming = incomingResourceCertificates.stream()
                 .filter(certificate -> outgoing.getSerial().equals(certificate.getSerial()))
                 .findFirst()
-                .orElseThrow(() -> new AssertionFailedError("missing incoming certificate with serial " + outgoing.getSerial()));
+                .orElseThrow(() -> new AssertionError("missing incoming certificate with serial " + outgoing.getSerial()));
             assertThat(outgoing.getCertificate()).isEqualTo(incoming.getCertificate());
         });
     }

@@ -22,6 +22,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.persistence.EntityManager;
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_REPOSITORY_PUBLICATION_SERVICE;
 
@@ -104,9 +106,19 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         // grows in size). Not doing this can increase the runtime of this services to many hours!
         entityManager.clear();
 
-        Instant timeout = null;
+        List<HostedCertificateAuthority> casWithoutOutdatedManifest = pendingCertificateAuthorities.stream().filter(ca -> {
+            // Associate with JPA session
+            ca = entityManager.merge(ca);
+            boolean result = certificateManagementService.isManifestAndCrlUpdatedNeeded(ca);
+            entityManager.clear();
+            return result;
+        }).collect(Collectors.toList());
+
+        Instant timeout = Instant.now().plus(Duration.standardSeconds(60));
+        log.info("Updating {} CAs with outdated manifest or CRL", casWithoutOutdatedManifest.size());
+
         long updateCountTotal = 0;
-        for (HostedCertificateAuthority ca : pendingCertificateAuthorities) {
+        for (HostedCertificateAuthority ca : casWithoutOutdatedManifest) {
             // Associate with JPA session
             ca = entityManager.merge(ca);
             // Generate new CRL and manifest if needed
@@ -118,16 +130,10 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
 
             updateCountTotal += updateCount;
 
-            // Only after an actual update do we hold locks. To limit the locking duration we set a timeout
-            // on the first updated CA.
-            if (timeout == null && updateCountTotal > 0) {
-                timeout = Instant.now().plus(Duration.standardSeconds(10));
-            }
-
             entityManager.flush();
             entityManager.clear();
 
-            if (timeout != null && timeout.isBeforeNow()) {
+            if (timeout.isBeforeNow()) {
                 // Process is taking too long, commit current results and wait for next run to process further CAs.
                 log.info("Updated {} manifests before running out of time, continuing during next run", updateCountTotal);
                 return;

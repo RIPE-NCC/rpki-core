@@ -40,8 +40,6 @@ public interface CertificateAuthorityViewService {
      */
     Long findCertificateAuthorityIdByTypeAndName(CertificateAuthorityType type, X500Principal name);
 
-    Map<CaIdentity, IpResourceSet> findAllChildrenResourcesForCa(X500Principal productionCaName);
-
     /**
      * @return non-null collection of hosted CA's
      */

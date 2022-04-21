@@ -17,7 +17,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.inject.Inject;
-import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 import java.util.Collections;
 

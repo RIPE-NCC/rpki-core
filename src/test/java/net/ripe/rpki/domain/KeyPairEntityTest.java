@@ -34,6 +34,9 @@ public class KeyPairEntityTest {
     public static final String TEST_KEY_PAIR_NAME = "FOR-TESTING-ONLY";
 
     @Mock
+    private ChildCertificateAuthority requestingCa;
+
+    @Mock
     private ResourceCertificateRepository resourceCertificateRepository;
 
     @Rule
@@ -108,7 +111,7 @@ public class KeyPairEntityTest {
     @Test
     public void shouldSignChildCertificate() {
         KeyPairEntity subject = TestObjects.createActiveKeyPair(TEST_KEY_PAIR_NAME);
-        CertificateIssuanceResponse response = subject.processCertificateIssuanceRequest(ChildCertificateSignerTest.TEST_REQUEST, BigInteger.TEN, resourceCertificateRepository);
+        CertificateIssuanceResponse response = subject.processCertificateIssuanceRequest(requestingCa, ChildCertificateSignerTest.TEST_REQUEST, BigInteger.TEN, resourceCertificateRepository);
 
         assertNotNull(response);
         assertNotNull(response.getCertificate());
@@ -120,7 +123,7 @@ public class KeyPairEntityTest {
         OutgoingResourceCertificate oldCertificate = mock(OutgoingResourceCertificate.class);
         when(resourceCertificateRepository.findCurrentCertificatesBySubjectPublicKey(ChildCertificateSignerTest.TEST_REQUEST.getSubjectPublicKey())).thenReturn(Collections.singletonList(oldCertificate));
 
-        subject.processCertificateIssuanceRequest(ChildCertificateSignerTest.TEST_REQUEST, BigInteger.TEN, resourceCertificateRepository);
+        subject.processCertificateIssuanceRequest(requestingCa, ChildCertificateSignerTest.TEST_REQUEST, BigInteger.TEN, resourceCertificateRepository);
 
         verify(oldCertificate).revoke();
     }

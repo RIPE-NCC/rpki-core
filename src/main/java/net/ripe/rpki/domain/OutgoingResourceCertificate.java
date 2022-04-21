@@ -1,9 +1,10 @@
 package net.ripe.rpki.domain;
 
 import lombok.Getter;
+import lombok.NonNull;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -50,6 +51,11 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
     @JoinColumn(name="published_object_id", nullable=true)
     private PublishedObject publishedObject;
 
+    @Getter
+    @ManyToOne(targetEntity = CertificateAuthority.class, optional = true)
+    @JoinColumn(name = "requesting_ca_id", nullable = true)
+    private ChildCertificateAuthority requestingCertificateAuthority;
+
     protected OutgoingResourceCertificate() {
     }
 
@@ -72,18 +78,17 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
         return signingKeyPair;
     }
 
+    public void setRequestingCertificateAuthority(@NonNull ChildCertificateAuthority requestingCertificateAuthority) {
+        Validate.isTrue(isCurrent(), "only CURRENT certificate can have requesting child certificate authority");
+        this.requestingCertificateAuthority = requestingCertificateAuthority;
+    }
+
     public boolean isCurrent() {
         return status == OutgoingResourceCertificateStatus.CURRENT;
     }
 
     public boolean isExpired() {
         return status == OutgoingResourceCertificateStatus.EXPIRED;
-    }
-
-    public void withdraw() {
-        if (publishedObject != null) {
-            publishedObject.withdraw();
-        }
     }
 
     /**
@@ -98,23 +103,31 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
         return status == OutgoingResourceCertificateStatus.REVOKED;
     }
 
+    public boolean isValid() {
+        return !isRevoked() && !isExpired();
+    }
+
     public void revoke() {
         if (isValid()) {
             withdraw();
+            requestingCertificateAuthority = null;
             status = OutgoingResourceCertificateStatus.REVOKED;
             revocationTime = new DateTime(DateTimeZone.UTC);
         }
-    }
-
-    public boolean isValid() {
-        return !isRevoked() && !isExpired();
     }
 
     public void expire(DateTime now) {
         Validate.isTrue(now.isAfter(getValidityPeriod().getNotValidAfter()), "certificate should not be expired yet!");
         if (!isExpired()) {
             withdraw();
+            requestingCertificateAuthority = null;
             status = OutgoingResourceCertificateStatus.EXPIRED;
+        }
+    }
+
+    private void withdraw() {
+        if (publishedObject != null) {
+            publishedObject.withdraw();
         }
     }
 }

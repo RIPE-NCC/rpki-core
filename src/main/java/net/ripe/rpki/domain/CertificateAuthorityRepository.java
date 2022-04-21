@@ -1,8 +1,6 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.ripencc.support.persistence.Repository;
-import net.ripe.rpki.server.api.dto.CaIdentity;
 import net.ripe.rpki.server.api.dto.CaStatEvent;
 import net.ripe.rpki.server.api.dto.CaStat;
 import org.joda.time.DateTime;
@@ -11,7 +9,6 @@ import javax.persistence.LockModeType;
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public interface CertificateAuthorityRepository extends Repository<CertificateAuthority> {
@@ -35,8 +32,6 @@ public interface CertificateAuthorityRepository extends Repository<CertificateAu
     Collection<CaStat> getCAStats();
 
     Collection<CaStatEvent> getCAStatEvents();
-
-    Map<CaIdentity, IpResourceSet> findAllResourcesByParent(HostedCertificateAuthority parent);
 
     List<HostedCertificateAuthority> findAllWithManifestsExpiringBefore(DateTime notValidAfterCutoff, int maxResult);
 

@@ -56,9 +56,16 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
     @Override
     protected void runService() {
         CertificateAuthorityData productionCa = verifyPreconditions();
-        if (productionCa != null) {
+        if (productionCa == null) {
+            return;
+        }
+
+        updateProductionCa(productionCa);
+        int updatedCount = updateMemberCas(productionCa);
+        if (updatedCount > 0) {
+            // Update the production CA again, in case over-claiming child certificates were updated to correctly
+            // remove the over-claiming resources.
             updateProductionCa(productionCa);
-            updateMemberCas(productionCa);
         }
     }
 
@@ -86,7 +93,7 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
         commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(productionCa.getVersionedId(), Integer.MAX_VALUE));
     }
 
-    private void updateMemberCas(CertificateAuthorityData productionCa) {
+    private int updateMemberCas(CertificateAuthorityData productionCa) {
         AtomicInteger updatedCounter = new AtomicInteger(0);
 
         Collection<CaIdentity> allChildrenIds = caViewService.findAllChildrenIdsForCa(productionCa.getName());
@@ -98,6 +105,8 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
             .forEach(f -> justGetIt(f));
 
         log.info("updated {} incoming resource certificates of {} member CAs", updatedCounter.get(), allChildrenIds.size());
+
+        return updatedCounter.get();
     }
 
 

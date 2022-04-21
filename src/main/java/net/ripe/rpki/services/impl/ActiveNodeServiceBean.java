@@ -24,7 +24,7 @@ public class ActiveNodeServiceBean implements ActiveNodeService {
         this.propertyEntityRepository = propertyEntityRepository;
 
         // Reference is kept through the meter registry
-        Gauge.builder("rpkicore_is_active_node", () -> this.isActiveNode(getCurrentNodeName()) ? 1 : 0)
+        Gauge.builder("rpkicore_is_active_node", () -> this.isActiveNode() ? 1 : 0)
                 .description("Is the current node the active node")
                 .tag("node", getCurrentNodeName())
                 .register(meterRegistry);
@@ -44,6 +44,9 @@ public class ActiveNodeServiceBean implements ActiveNodeService {
 	public boolean isActiveNode(String nodeName) {
 		return nodeName.equals(getActiveNodeName());
 	}
+
+    @Override
+    public boolean isActiveNode() { return this.isActiveNode(getCurrentNodeName()); }
 
 	@Override
 	public String getActiveNodeName() {

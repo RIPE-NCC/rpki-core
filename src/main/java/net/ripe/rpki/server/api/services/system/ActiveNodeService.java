@@ -8,6 +8,8 @@ public interface ActiveNodeService {
 
 	boolean isActiveNode(String nodeName);
 
+	boolean isActiveNode();
+
 	String getActiveNodeName();
 
 	void setActiveNodeName(String nodeName);

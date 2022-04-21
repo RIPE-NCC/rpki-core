@@ -18,4 +18,6 @@ public interface CertificateManagementService {
      * @return the number of publishable keys that have their manifest and CRL updated.
      */
     long updateManifestAndCrlIfNeeded(HostedCertificateAuthority certificateAuthority);
+
+    boolean isManifestAndCrlUpdatedNeeded(HostedCertificateAuthority certificateAuthority);
 }

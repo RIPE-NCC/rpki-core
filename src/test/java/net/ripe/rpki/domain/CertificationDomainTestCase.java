@@ -9,6 +9,7 @@ import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
+import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.manifest.ManifestEntityRepository;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
@@ -42,6 +43,8 @@ import java.net.URI;
 import java.util.function.Supplier;
 
 import static net.ripe.rpki.domain.CertificateAuthority.GRACEPERIOD;
+import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +65,9 @@ public abstract class CertificationDomainTestCase {
     public static final URI BASE_URI = URI.create("rsync://localhost:20873/repository/");
 
     @Autowired
+    protected RepositoryConfiguration repositoryConfiguration;
+
+    @Autowired
     protected ResourceCertificateRepository resourceCertificateRepository;
 
     @Autowired
@@ -69,6 +75,9 @@ public abstract class CertificationDomainTestCase {
     protected CertificateAuthorityRepository certificateAuthorityRepository;
 
     protected CertificateManagementService certificateManagementService;
+
+    @Autowired
+    protected CertificateRequestCreationService certificateRequestCreationService;
 
     @Autowired
     protected PublishedObjectRepository publishedObjectRepository;
@@ -108,6 +117,34 @@ public abstract class CertificationDomainTestCase {
     protected void clearDatabase() {
         // Clean the test database. Note that this is not transactional, but the test database should be empty anyway.
         entityManager.createNativeQuery("TRUNCATE TABLE certificateauthority, ta_published_object CASCADE").executeUpdate();
+    }
+
+    protected ProductionCertificateAuthority createInitializedAllResourcesAndProductionCertificateAuthority() {
+        AllResourcesCertificateAuthority allResources = new AllResourcesCertificateAuthority(ACA_ID, ALL_RESOURCES_CA_NAME, 1);
+        KeyPairEntity acaKeyPair = keyPairService.createKeyPairEntity("ACA-TEST-KEY");
+        allResources.addKeyPair(acaKeyPair);
+        certificateAuthorityRepository.add(allResources);
+
+        allResources.processCertifiableResources(keyPairService, certificateRequestCreationService);
+        KeyPairEntity allResourcesKeyPair = allResources.getKeyPairs().iterator().next();
+        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, repositoryConfiguration, allResources, allResourcesKeyPair,
+            allResources.getName(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES, dbComponent);
+
+        allResources.updateIncomingResourceCertificate(allResourcesKeyPair, response.getCertificate(), response.getPublicationUri());
+        allResources.setUpStreamCARequestEntity(null);
+        assertThat(acaKeyPair.isCurrent()).isTrue();
+
+        ProductionCertificateAuthority production = new ProductionCertificateAuthority(CA_ID, repositoryConfiguration.getProductionCaPrincipal(), allResources, 1);
+        KeyPairEntity productionKeyPair = keyPairService.createKeyPairEntity("TEST-KEY");
+        production.addKeyPair(productionKeyPair);
+        certificateAuthorityRepository.add(production);
+
+        CertificateIssuanceRequest issuanceRequest = (CertificateIssuanceRequest) production.processResourceClassListResponse(new ResourceClassListResponse(PRODUCTION_CA_RESOURCES), keyPairService, certificateRequestCreationService).get(0);
+        CertificateIssuanceResponse issuanceResponse = allResources.processCertificateIssuanceRequest(production, issuanceRequest, resourceCertificateRepository, dbComponent, Integer.MAX_VALUE);
+        production.processCertificateIssuanceResponse(issuanceResponse, resourceCertificateRepository);
+        assertThat(productionKeyPair.isCurrent()).isTrue();
+
+        return production;
     }
 
     protected static ProductionCertificateAuthority createProductionCertificateAuthority(long id, X500Principal name) {
@@ -151,7 +188,7 @@ public abstract class CertificationDomainTestCase {
         TrustAnchorRequest trustAnchorRequest = ca.getUpStreamCARequestEntity().getUpStreamCARequest();
         SigningRequest request = (SigningRequest) trustAnchorRequest.getTaRequests().get(0);
 
-        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, ca, kp,
+        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, certificationConfiguration, ca, kp,
                 request.getResourceCertificateRequest().getSubjectDN(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES, dbComponent);
 
         ca.updateIncomingResourceCertificate(kp, response.getCertificate(), response.getPublicationUri());
@@ -185,7 +222,7 @@ public abstract class CertificationDomainTestCase {
         TrustAnchorRequest trustAnchorRequest = ca.getUpStreamCARequestEntity().getUpStreamCARequest();
         SigningRequest request = (SigningRequest) trustAnchorRequest.getTaRequests().get(0);
 
-        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, ca, kp,
+        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, repositoryConfiguration, ca, kp,
                 request.getResourceCertificateRequest().getSubjectDN(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES, dbComponent);
 
         ca.updateIncomingResourceCertificate(kp, response.getCertificate(), response.getPublicationUri());
@@ -214,7 +251,7 @@ public abstract class CertificationDomainTestCase {
         TrustAnchorRequest trustAnchorRequest = ca.getUpStreamCARequestEntity().getUpStreamCARequest();
         SigningRequest request = (SigningRequest) trustAnchorRequest.getTaRequests().get(0);
 
-        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, ca, kp, request.getResourceCertificateRequest().getSubjectDN(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES, dbComponent);
+        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, certificationConfiguration, ca, kp, request.getResourceCertificateRequest().getSubjectDN(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES, dbComponent);
 
         ca.updateIncomingResourceCertificate(kp, response.getCertificate(), response.getPublicationUri());
         ca.setUpStreamCARequestEntity(null);
@@ -226,7 +263,8 @@ public abstract class CertificationDomainTestCase {
 
 
     private static CertificateIssuanceResponse makeSelfSignedCertificate(CertificateManagementService certificateManagementService,
-                                                                         ProductionCertificateAuthority ca,
+                                                                         RepositoryConfiguration configuration,
+                                                                         HostedCertificateAuthority ca,
                                                                          KeyPairEntity signingKeyPair,
                                                                          X500Principal subject,
                                                                          IpResourceSet resources, DBComponent dbComponent) {
@@ -234,9 +272,9 @@ public abstract class CertificationDomainTestCase {
         ResourceCertificateInformationAccessStrategy ias = new ResourceCertificateInformationAccessStrategyBean();
         X509CertificateInformationAccessDescriptor[] sia = {
                 new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_CA_REPOSITORY,
-                        BASE_URI),
+                        configuration.getPublicRepositoryUri().resolve(DEFAULT_RESOURCE_CLASS)),
                 new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST,
-                        BASE_URI.resolve(signingKeyPair.getManifestFilename())),
+                        configuration.getPublicRepositoryUri().resolve(DEFAULT_RESOURCE_CLASS).resolve(signingKeyPair.getManifestFilename())),
         };
         ResourceCertificateBuilder builder = new ResourceCertificateBuilder();
         builder.withCa(true).withEmbedded(false);

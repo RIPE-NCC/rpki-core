@@ -119,6 +119,21 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
         resourceCertificateRepository.add(resourceCertificate);
     }
 
+    @Override
+    public boolean isManifestAndCrlUpdatedNeeded(HostedCertificateAuthority certificateAuthority) {
+        return certificateAuthority.getKeyPairs()
+            .stream()
+            .filter(KeyPairEntity::isPublishable)
+            .anyMatch(keyPair -> {
+                DateTime now = DateTime.now(DateTimeZone.UTC);
+
+                CrlEntity crlEntity = crlEntityRepository.findOrCreateByKeyPair(keyPair);
+                ManifestEntity manifestEntity = manifestEntityRepository.findOrCreateByKeyPairEntity(keyPair);
+
+                return crlEntity.isUpdateNeeded(now, resourceCertificateRepository) || isManifestUpdateNeeded(now, manifestEntity);
+            });
+    }
+
     /**
      * Update MFTs and CRLs. The generated manifest's and CRL's next update time must be the same, so if either
      * object needs to be updated both are newly issued.

@@ -302,6 +302,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         assertThat(outgoingResourceCertificates).hasSize(incomingResourceCertificates.size());
 
         outgoingResourceCertificates.forEach(outgoing -> {
+            assertThat(outgoing.getRequestingCertificateAuthority()).isEqualTo(child);
             OutgoingResourceCertificate incoming = incomingResourceCertificates.stream()
                 .filter(certificate -> outgoing.getSerial().equals(certificate.getSerial()))
                 .findFirst()

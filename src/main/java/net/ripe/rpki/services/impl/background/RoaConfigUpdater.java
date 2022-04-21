@@ -1,5 +1,6 @@
 package net.ripe.rpki.services.impl.background;
 
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpAddress;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResourceSet;
@@ -28,11 +29,9 @@ import java.util.stream.Stream;
 
 import static net.ripe.rpki.util.Streams.mapList;
 
+@Slf4j
 @Service
 public class RoaConfigUpdater {
-
-    private static final Logger logger = LoggerFactory.getLogger(RoaConfigUpdater.class);
-
     private final CertificateAuthorityViewService certificateService;
     private final RoaConfigurationRepository roaConfigurationRepository;
     private final CommandService commandService;
@@ -59,13 +58,15 @@ public class RoaConfigUpdater {
 
         final List<CertificateAuthorityModificationCommand> commands = generateUpdateCommands(configsToDelete);
 
-        final String updateRoaConfigCommandsSummary = commands.stream()
-                .map(CertificateAuthorityModificationCommand::getCommandSummary)
-                .collect(Collectors.joining("\n  "));
+        if (commands.size() > 0) {
+            final String updateRoaConfigCommandsSummary = commands.stream()
+                    .map(CertificateAuthorityModificationCommand::getCommandSummary)
+                    .collect(Collectors.joining("\n  "));
 
-        logger.info("About to execute Update ROA Configuration commands:\n {}", updateRoaConfigCommandsSummary);
+            log.info("About to execute Update ROA Configuration commands:\n {}", updateRoaConfigCommandsSummary);
 
-        commands.forEach(commandService::execute);
+            commands.forEach(commandService::execute);
+        }
     }
 
     private List<CertificateAuthorityModificationCommand> generateUpdateCommands(List<RoaConfigurationPerCa> configsToDelete) {

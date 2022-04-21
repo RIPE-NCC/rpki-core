@@ -93,12 +93,6 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     }
 
     @Override
-    public Map<CaIdentity, IpResourceSet> findAllChildrenResourcesForCa(X500Principal productionCaName) {
-        HostedCertificateAuthority parent = certificateAuthorityRepository.findByTypeAndName(ProductionCertificateAuthority.class, productionCaName);
-        return certificateAuthorityRepository.findAllResourcesByParent(parent);
-    }
-
-    @Override
     public Collection<CertificateAuthorityData> findAllHostedCertificateAuthorities() {
         return findCertificateAuthoritiesMatchingType(CertificateAuthorityType.ROOT, CertificateAuthorityType.HOSTED, CertificateAuthorityType.ALL_RESOURCES);
     }

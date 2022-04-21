@@ -9,7 +9,9 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static net.ripe.rpki.services.impl.ActiveNodeServiceBean.*;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.*;
 
 
@@ -53,6 +55,22 @@ public class ActiveNodeServiceBeanTest {
 
         verify(propertyEntityRepository).add(refEq(propertyEntity));
         verify(propertyEntityRepository, never()).merge(any(PropertyEntity.class));
+    }
+
+    @Test
+    public void shouldCompareAgainstActiveNode_inactive() {
+        PropertyEntity propertyEntity = new PropertyEntity(ACTIVE_NODE_KEY, TEST_ACTIVE_NODE_NAME);
+        when(propertyEntityRepository.findByKey(ACTIVE_NODE_KEY)).thenReturn(propertyEntity);
+
+        assertThat(subject.isActiveNode()).isFalse();
+    }
+
+    @Test
+    public void shouldCompareAgainstActiveNode_active() {
+        PropertyEntity propertyEntity = new PropertyEntity(ACTIVE_NODE_KEY, subject.getCurrentNodeName());
+        when(propertyEntityRepository.findByKey(ACTIVE_NODE_KEY)).thenReturn(propertyEntity);
+
+        assertThat(subject.isActiveNode()).isTrue();
     }
 
     @Test

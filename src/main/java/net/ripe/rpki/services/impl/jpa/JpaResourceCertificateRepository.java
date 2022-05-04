@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings("java:S1192")
 @Repository
 @Transactional
 public class JpaResourceCertificateRepository extends JpaRepository<ResourceCertificate> implements ResourceCertificateRepository {
@@ -176,7 +177,25 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
                     "   AND upper(child.parent.name) = upper(:name)",
                 IpResourceSet.class)
             .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
-            .setParameter("name", caName.getName()).getResultStream()
+            .setParameter("name", caName.getName())
+            .getResultStream()
+            .collect(IpResourceSet::new, IpResourceSet::addAll, IpResourceSet::addAll);
+    }
+
+    @Override
+    public IpResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName) {
+        return manager.createQuery(
+                "SELECT rc.resources " +
+                    "  FROM HostedCertificateAuthority ca JOIN ca.keyPairs kp," +
+                    "       OutgoingResourceCertificate rc " +
+                    " WHERE rc.status = :current " +
+                    "   AND upper(ca.name) = upper(:name) " +
+                    "   AND rc.requestingCertificateAuthority IS NULL " +
+                    "   AND rc.signingKeyPair = kp",
+                IpResourceSet.class)
+            .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
+            .setParameter("name", caName.getName())
+            .getResultStream()
             .collect(IpResourceSet::new, IpResourceSet::addAll, IpResourceSet::addAll);
     }
 }

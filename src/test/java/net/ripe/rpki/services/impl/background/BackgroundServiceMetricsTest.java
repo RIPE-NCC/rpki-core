@@ -2,14 +2,13 @@ package net.ripe.rpki.services.impl.background;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import net.ripe.rpki.core.services.background.BackgroundServiceTimings;
+import net.ripe.rpki.core.services.background.BackgroundServiceExecutionResult;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
+import static net.ripe.rpki.services.impl.background.BackgroundServiceMetrics.SERVICE_RESULT_COUNTER_METRIC;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class BackgroundServiceMetricsTest {
     private final MeterRegistry registry = new SimpleMeterRegistry();
@@ -18,35 +17,63 @@ public class BackgroundServiceMetricsTest {
     @Test
     public void shouldTrackServiceExecutionStart() {
         String service = RandomStringUtils.randomAlphanumeric(16);
-        subject.started(service);
+        subject.trackStartTime(service);
 
-        assertThat(valueOfGauge("rpkicore.service.execution.start.time", service), greaterThan(0d));
+        assertThat(valueOfGauge("rpkicore.service.execution.start.time", service)).isGreaterThan(0d);
     }
 
     @Test
     public void shouldTrackSuccessfulServiceExecution() {
         String service = RandomStringUtils.randomAlphanumeric(16);
-        BackgroundServiceTimings job = new BackgroundServiceTimings(RandomUtils.nextLong(), RandomUtils.nextLong());
-        subject.started(service);
-        subject.finished(service, job);
+        BackgroundServiceExecutionResult job = new BackgroundServiceExecutionResult(RandomUtils.nextLong(), RandomUtils.nextLong(), BackgroundServiceExecutionResult.Status.SUCCESS);
+        subject.trackStartTime(service);
+        subject.trackResult(service, job);
 
-        assertThat(valueOfGauge("rpkicore.service.execution.end.time", service, "status", "success"), greaterThan(0d));
-        assertThat(valueOfGauge("rpkicore.service.last.execution.duration.ms", service), equalTo((double) job.getPureDuration()));
-        assertThat(valueOfGauge("rpkicore.service.last.execution.total.duration.ms", service), equalTo((double) job.getFullDuration()));
+        assertThat(valueOfCounter(SERVICE_RESULT_COUNTER_METRIC, service, "status", "success")).isOne();
+        assertThat(valueOfCounter(SERVICE_RESULT_COUNTER_METRIC, service, "status", "failed")).isZero();
+        assertThat(valueOfCounter(SERVICE_RESULT_COUNTER_METRIC, service, "status", "skipped")).isZero();
+
+        assertThat(valueOfGauge("rpkicore.service.execution.end.time", service, "status", "success")).isGreaterThan(0);
+        assertThat(valueOfGauge("rpkicore.service.last.execution.duration.ms", service)).isEqualTo(job.getPureDuration());
+        assertThat(valueOfGauge("rpkicore.service.last.execution.total.duration.ms", service)).isEqualTo(job.getFullDuration());
     }
 
     @Test
     public void shouldTrackFailedServiceExecution() {
         String service = RandomStringUtils.randomAlphanumeric(16);
-        subject.started(service);
-        subject.failed(service);
+        subject.trackStartTime(service);
+        subject.trackResult(service, new BackgroundServiceExecutionResult(0, 0, BackgroundServiceExecutionResult.Status.FAILURE));
 
-        assertThat(valueOfGauge("rpkicore.service.execution.end.time", service, "status", "failed"), greaterThan(0d));
-        assertThat(valueOfGauge("rpkicore.service.last.execution.duration.ms", service), equalTo(0d));
-        assertThat(valueOfGauge("rpkicore.service.last.execution.total.duration.ms", service), equalTo(0d));
+        assertThat(valueOfCounter(SERVICE_RESULT_COUNTER_METRIC, service, "status", "success")).isZero();
+        assertThat(valueOfCounter(SERVICE_RESULT_COUNTER_METRIC, service, "status", "failed")).isOne();
+        assertThat(valueOfCounter(SERVICE_RESULT_COUNTER_METRIC, service, "status", "skipped")).isZero();
+
+        assertThat(valueOfGauge("rpkicore.service.execution.end.time", service, "status", "failed")).isGreaterThan(0);
+        assertThat(valueOfGauge("rpkicore.service.last.execution.duration.ms", service)).isZero();
+        assertThat(valueOfGauge("rpkicore.service.last.execution.total.duration.ms", service)).isZero();
+    }
+
+    @Test
+    public void shouldTrackSkippedExecution() {
+        String service = RandomStringUtils.randomAlphanumeric(16);
+        subject.trackStartTime(service);
+        subject.trackResult(service, new BackgroundServiceExecutionResult(0, 0, BackgroundServiceExecutionResult.Status.SKIPPED));
+
+        assertThat(valueOfCounter(SERVICE_RESULT_COUNTER_METRIC, service, "status", "success")).isZero();
+        assertThat(valueOfCounter(SERVICE_RESULT_COUNTER_METRIC, service, "status", "failed")).isZero();
+        assertThat(valueOfCounter(SERVICE_RESULT_COUNTER_METRIC, service, "status", "skipped")).isOne();
+
+        assertThat(valueOfGauge("rpkicore.service.execution.end.time", service, "status", "success")).isZero();
+        assertThat(valueOfGauge("rpkicore.service.execution.end.time", service, "status", "failed")).isZero();
+        assertThat(valueOfGauge("rpkicore.service.last.execution.duration.ms", service)).isZero();
+        assertThat(valueOfGauge("rpkicore.service.last.execution.total.duration.ms", service)).isZero();
     }
 
     private double valueOfGauge(String name, String service, String... tags) {
         return registry.get(name).tag("service", service).tags(tags).gauge().value();
+    }
+
+    private double valueOfCounter(String name, String service, String... tags) {
+        return registry.get(name).tag("service", service).tags(tags).counter().count();
     }
 }

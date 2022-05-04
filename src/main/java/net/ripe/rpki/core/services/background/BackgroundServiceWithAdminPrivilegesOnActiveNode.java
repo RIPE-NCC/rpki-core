@@ -6,6 +6,7 @@ import net.ripe.rpki.server.api.security.RunAsUserHolder;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.util.Time;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,36 +62,40 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
 
     @Override
     @Transactional(propagation = Propagation.NEVER)
-    public BackgroundServiceTimings execute() {
-        final Time.Timed<Long> timed = Time.timed(this::doExecute);
-        final long pureDuration = timed.getResult();
+    public BackgroundServiceExecutionResult execute() {
+        final Time.Timed<Pair<BackgroundServiceExecutionResult.Status, Long>> timed = Time.timed(this::doExecute);
+        final long pureDuration = timed.getResult().getRight();
         final long fullDuration = timed.getTime();
-        return new BackgroundServiceTimings(pureDuration, fullDuration);
+        return new BackgroundServiceExecutionResult(pureDuration, fullDuration, timed.getResult().getLeft());
     }
 
-    private long doExecute() {
+    /**
+     * @return Pair<status of execution, real duration of execution>
+     */
+    private Pair<BackgroundServiceExecutionResult.Status, Long> doExecute() {
         long duration = 0;
+        BackgroundServiceExecutionResult.Status status = BackgroundServiceExecutionResult.Status.FAILURE;
         if (isActive()) {
             if (running.compareAndSet(false, true)) {
-                if (useGlobalLocking) {
-                    // Only allow a single service to execute at a time.
-                    if (!GLOBAL_LOCK.tryLock()) {
-                        log.info("Waiting for lock on background services…");
-                        waitingForLockSince = Instant.now();
-                        try {
-                            GLOBAL_LOCK.lock();
-                        } finally {
-                            waitingForLockSince = null;
-                        }
+                // Only allow a single service to execute at a time.
+                if (useGlobalLocking && !GLOBAL_LOCK.tryLock()) {
+                    log.info("Waiting for lock on background services…");
+                    waitingForLockSince = Instant.now();
+                    try {
+                        GLOBAL_LOCK.lock();
+                    } finally {
+                        waitingForLockSince = null;
                     }
                 }
                 RunAsUserHolder.set(ADMIN);
                 try {
                     log.info("Started execution of background service: {}", getName());
                     duration = Time.timed(this::runService);
+                    status = BackgroundServiceExecutionResult.Status.SUCCESS;
                     log.info("Finished execution of background service: {}, duration: {}ms.", getName(), duration);
                 } catch (Exception e) {
-                    log.error("Execution of " + getName() + " has been interrupted", e);
+                    log.error("Execution of {} has been interrupted", getName(), e);
+                    status = BackgroundServiceExecutionResult.Status.FAILURE;
                 } finally {
                     RunAsUserHolder.clear();
                     if (useGlobalLocking) {
@@ -99,16 +104,14 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
                     running.set(false);
                 }
             } else {
-                logSkippedExecution();
+                status = BackgroundServiceExecutionResult.Status.SKIPPED;
+                log.info("{} execution skipped because the previous execution is still ongoing.", getName());
             }
         } else {
-            log.info("Skipping execution: not an active node (" + activeNodeService.getCurrentNodeName() + ")");
+            log.info("Skipping execution: not an active node ({})", activeNodeService.getCurrentNodeName());
+            status = BackgroundServiceExecutionResult.Status.SKIPPED;
         }
-        return duration;
-    }
-
-    private void logSkippedExecution() {
-        log.info("{} execution skipped because the previous execution is still ongoing.", getName());
+        return Pair.of(status, duration);
     }
 
     protected abstract void runService();

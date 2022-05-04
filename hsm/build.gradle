@@ -32,5 +32,5 @@ dependencies {
     }
     thalesImplementation "net.ripe.rpki:rpki-commons:$rpki_commons_version"
     thalesImplementation 'com.thales:DBProvider:1.1'
-    thalesImplementation 'org.springframework:spring-context:5.3.18'
+    thalesImplementation 'org.springframework:spring-context:5.3.19'
 }

@@ -15,7 +15,7 @@ import java.util.UUID;
  * <p>
  */
 @Getter
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = true)
 public class DeleteNonHostedPublisherCommand extends CertificateAuthorityModificationCommand {
 
     private static final long serialVersionUID = 1L;

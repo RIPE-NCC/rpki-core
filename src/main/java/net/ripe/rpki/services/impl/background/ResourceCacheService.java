@@ -107,7 +107,13 @@ public class ResourceCacheService {
     private CacheUpdate updateMembersCache() {
         final Map<CaName, IpResourceSet> registryResources;
         try {
-            registryResources = resourceServicesClient.fetchAllMemberResources().getCertifiableResources();
+            ResourceServicesClient.MemberResources memberResources = resourceServicesClient.fetchAllMemberResources();
+            Map<String, Integer> certifiableResourcesCounts = memberResources.getMemberResourcesCounts();
+            log.info("Fetched resources from RSNG");
+            certifiableResourcesCounts.forEach((resource, count) -> log.info("   {} {}", String.format("%-20s:", resource), count));
+            log.info("Fetched resources total: {} ", certifiableResourcesCounts.values().stream().reduce(0, Integer::sum));
+            registryResources = memberResources.getCertifiableResources();
+            log.info("Certifiable resources  : {} ", registryResources.values().stream().map(ResourceCacheService::resourceSetSize).reduce(0, Integer::sum));
         } catch (Exception e) {
             return new CacheUpdate.Reject(() -> {
                 log.error("The RIPE NCC internet resources REST API is not available", e);

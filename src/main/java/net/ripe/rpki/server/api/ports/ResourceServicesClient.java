@@ -100,6 +100,16 @@ public interface ResourceServicesClient {
             return ImmutableMap.copyOf(map);
         }
 
+        public Map<String, Integer> getMemberResourcesCounts() {
+                Map<String, Integer> result = Maps.newTreeMap();
+                result.put("Asn", asns.size());
+                result.put("Ipv4Allocations", ipv4Allocations.size());
+                result.put("Ipv4Assignments", ipv4Assignments.size());
+                result.put("Ipv6Allocations", ipv6Allocations.size());
+                result.put("Ipv6Assignments", ipv6Assignments.size());
+                result.put("Ipv4ErxResources", ipv4ErxResources.size());
+                return result;
+        }
     }
 
     abstract class Resource extends EqualsSupport {

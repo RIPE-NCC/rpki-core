@@ -50,11 +50,17 @@ public interface ResourceCertificateRepository extends Repository<ResourceCertif
     Collection<OutgoingResourceCertificate> findCurrentCertificatesBySubjectPublicKey(PublicKey subjectPublicKey);
 
     boolean deleteOutgoingCertificatesForRevokedKeyPair(KeyPairEntity signingKeyPair);
+
     /**
      * @return find the union of the resources of _all_ current child certificates of the CA with given name.
      */
-
     IpResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName);
+
+    /**
+     * @return find the union of the resources of _all_ current outgoing RPKI object (ROA, Manifest, etc.) certificates
+     * of the CA with given name.
+     */
+    IpResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName);
 
     @Value
     class ExpireOutgoingResourceCertificatesResult {

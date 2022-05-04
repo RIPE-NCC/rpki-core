@@ -1,5 +1,6 @@
 package net.ripe.rpki.ncc.core.services.activation;
 
+import lombok.NonNull;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.domain.NameNotUniqueException;
@@ -46,18 +47,39 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
 
 
     @Override
-    public void createHostedCertificateAuthority(X500Principal name) {
-        Validate.notNull(name, "Name is required.");
-        LOG.info("Creating Hosted CA: " + name);
+    public void createHostedCertificateAuthority(@NonNull X500Principal name) {
+        // Check for existence before executing the command to avoid having an
+        // exception logged by the `CommandServiceImpl`, which can cause monitoring
+        // alerts when too many happen in a short time, like someone using a script
+        // to ensure a set of CAs exist.
+        //
+        // This check isn't fool-proof (two concurrent callers could still cause
+        // the exception in the command execution, but this is much rarer so shouldn't
+        // case monitoring system alerts).
+        if (caViewService.findCertificateAuthorityByName(name) != null) {
+            throw new CertificateAuthorityNameNotUniqueException(name);
+        }
+
+        LOG.info("Creating Hosted CA: {}", name);
         IpResourceSet resources = resourceLookupService.lookupMemberCaPotentialResources(name);
         provisionMember(name, resources, productionCaName);
     }
 
     @Override
-    public void createNonHostedCertificateAuthority(X500Principal name, ProvisioningIdentityCertificate identityCertificate) {
-        Validate.notNull(name, "Name is required.");
-        Validate.notNull(identityCertificate, "Identity certificate is required.");
-        LOG.info("Creating Non-Hosted CA: " + name);
+    public void createNonHostedCertificateAuthority(@NonNull X500Principal name, @NonNull ProvisioningIdentityCertificate identityCertificate) {
+        // Check for existence before executing the command to avoid having an
+        // exception logged by the `CommandServiceImpl`, which can cause monitoring
+        // alerts when too many happen in a short time, like someone using a script
+        // to ensure a set of CAs exist.
+        //
+        // This check isn't fool-proof (two concurrent callers could still cause
+        // the exception in the command execution, but this is much rarer so shouldn't
+        // case monitoring system alerts).
+        if (caViewService.findCertificateAuthorityByName(name) != null) {
+            throw new CertificateAuthorityNameNotUniqueException(name);
+        }
+
+        LOG.info("Creating Non-Hosted CA: {}", name);
         IpResourceSet resources = resourceLookupService.lookupMemberCaPotentialResources(name);
         provisionNonHostedMember(name, resources, productionCaName, identityCertificate);
     }

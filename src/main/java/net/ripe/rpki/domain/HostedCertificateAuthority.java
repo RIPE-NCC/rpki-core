@@ -114,6 +114,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
         Validate.notNull(name, "name is required");
         Validate.isTrue(randomSerialIncrement > 0, "randomSerialIncrement must be positive");
         this.randomSerialIncrement = randomSerialIncrement;
+        this.manifestAndCrlCheckNeeded = true;
     }
 
     @Override

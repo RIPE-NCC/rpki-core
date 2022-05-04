@@ -1,5 +1,7 @@
 package net.ripe.rpki.server.api.commands;
 
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import net.ripe.rpki.commons.util.EqualsSupport;
 import net.ripe.rpki.commons.util.VersionedId;
 import org.apache.commons.lang.Validate;
@@ -9,7 +11,9 @@ import java.io.Serializable;
 /**
  * Base class for <b>all</b> commands related to Certificate Authorities.
  */
-public abstract class CertificateAuthorityCommand extends EqualsSupport implements Serializable {
+@ToString
+@EqualsAndHashCode
+public abstract class CertificateAuthorityCommand implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

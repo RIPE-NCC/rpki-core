@@ -1,6 +1,6 @@
 package net.ripe.rpki.ui.admin;
 
-import net.ripe.rpki.core.services.background.BackgroundServiceTimings;
+import net.ripe.rpki.core.services.background.BackgroundServiceExecutionResult;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.ui.application.CertificationWicketTestCase;
 import org.apache.wicket.util.tester.FormTester;
@@ -177,7 +177,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldUpdateCrlsAndManifests() {
-        expect(manifestCrlUpdateService.execute()).andReturn(new BackgroundServiceTimings(1, 1));
+        expect(manifestCrlUpdateService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
         expect(manifestCrlUpdateService.getName()).andReturn("name");
         replayMocks();
 
@@ -190,7 +190,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldUpdatePublishedObjects() {
-        expect(publicRepositoryPublicationService.execute()).andReturn(new BackgroundServiceTimings(1, 1));
+        expect(publicRepositoryPublicationService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
         expect(publicRepositoryPublicationService.getName()).andReturn("name");
         replayMocks();
 
@@ -203,7 +203,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldUpdateRsyncRepository() {
-        expect(publicRepositoryRsyncService.execute()).andReturn(new BackgroundServiceTimings(1, 1));
+        expect(publicRepositoryRsyncService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
         expect(publicRepositoryRsyncService.getName()).andReturn("name");
         replayMocks();
 
@@ -216,7 +216,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldUpdateRrdpRepository() {
-        expect(publicRepositoryRrdpService.execute()).andReturn(new BackgroundServiceTimings(1, 1));
+        expect(publicRepositoryRrdpService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
         expect(publicRepositoryRrdpService.getName()).andReturn("name");
         replayMocks();
 
@@ -229,7 +229,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldActivatePendingKeyPairs() {
-        expect(keyPairActivationManagementService.execute()).andReturn(new BackgroundServiceTimings(1, 1));
+        expect(keyPairActivationManagementService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
         expect(keyPairActivationManagementService.getName()).andReturn("name");
         replayMocks();
 
@@ -242,7 +242,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldRollOverMemberKeyPairs() {
-        expect(memberKeyRolloverManagementService.execute()).andReturn(new BackgroundServiceTimings(1, 1));
+        expect(memberKeyRolloverManagementService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
         expect(memberKeyRolloverManagementService.getName()).andReturn("name");
         replayMocks();
 
@@ -255,7 +255,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldRollOverProductionCaKeyPairs() {
-        expect(productionCaKeyRolloverManagementService.execute()).andReturn(new BackgroundServiceTimings(1, 1));
+        expect(productionCaKeyRolloverManagementService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
         expect(productionCaKeyRolloverManagementService.getName()).andReturn("name");
         replayMocks();
 
@@ -268,7 +268,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldUpdateResources() {
-        expect(allCertificateUpdateService.execute()).andReturn(new BackgroundServiceTimings(1, 1));
+        expect(allCertificateUpdateService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
         expect(allCertificateUpdateService.getName()).andReturn("name");
         replayMocks();
 

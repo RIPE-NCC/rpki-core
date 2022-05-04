@@ -117,6 +117,7 @@ public class CommandServiceImplTest {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void should_not_rollback_transaction_when_nested_command_doesnt_have_effect() {
         final CommandStatus[] nestedCommandStatus = {null};
@@ -162,7 +163,7 @@ public class CommandServiceImplTest {
         assertFalse(nestedCommandStatus[0].getTransactionStatus().isRollbackOnly());
     }
 
-
+    @SuppressWarnings("unchecked")
     @Test
     public void should_rollback_transaction_when_nested_command_throws_an_exception() {
         final MessageDispatcher messageDispatcher = new MessageDispatcher() {

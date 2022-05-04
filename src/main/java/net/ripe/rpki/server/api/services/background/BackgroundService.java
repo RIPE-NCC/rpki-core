@@ -1,6 +1,6 @@
 package net.ripe.rpki.server.api.services.background;
 
-import net.ripe.rpki.core.services.background.BackgroundServiceTimings;
+import net.ripe.rpki.core.services.background.BackgroundServiceExecutionResult;
 
 public interface BackgroundService {
 
@@ -14,6 +14,6 @@ public interface BackgroundService {
 
     boolean isBlocked();
 
-    BackgroundServiceTimings execute();
+    BackgroundServiceExecutionResult execute();
 
 }

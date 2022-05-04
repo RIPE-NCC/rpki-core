@@ -95,7 +95,7 @@ public class CaService extends AbstractCaRestService {
                     .status(BAD_REQUEST)
                     .body(of("error", e.getMessage()));
         } catch (CertificateAuthorityNameNotUniqueException e) {
-            log.warn("CA was already provisioned for '{}': {}", caName, e.getMessage(), e);
+            log.warn("CA was already provisioned for '{}': {}", caName, e.getMessage());
             return ok();
         }
     }
@@ -112,7 +112,7 @@ public class CaService extends AbstractCaRestService {
             log.info("Has created CA: {}", rawCaName);
             return ok();
         } catch (CertificateAuthorityNameNotUniqueException e) {
-            log.warn("CA was already provisioned for '{}': {}", rawCaName, e.getMessage(), e);
+            log.warn("CA was already provisioned for '{}': {}", rawCaName, e.getMessage());
             return ResponseEntity.status(BAD_REQUEST).body(of("error", e.getMessage()));
         } catch (IOException | IllegalArgumentException e) {
             log.warn("Could not parse uploaded certificate: {}", e.getMessage(), e);

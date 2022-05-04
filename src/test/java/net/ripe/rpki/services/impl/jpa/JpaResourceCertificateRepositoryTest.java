@@ -2,6 +2,7 @@ package net.ripe.rpki.services.impl.jpa;
 
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
+import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
@@ -131,5 +132,23 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
         entityManager.persist(ca);
 
         assertThat(subject.countNonExpiredOutgoingCertificates(TEST_KEY_PAIR.getPublic(), ca.getCurrentKeyPair())).isZero();
+    }
+
+    @Test
+    @Transactional
+    public void findCurrentOutgoingChildCertificateResources() {
+        ProductionCertificateAuthority ca = createInitialisedProdOrgCaWithRipeResources(certificateManagementService);
+        entityManager.persist(ca);
+
+        assertThat(subject.findCurrentOutgoingChildCertificateResources(ca.getName())).isEqualTo(new IpResourceSet());
+    }
+
+    @Test
+    @Transactional
+    public void findCurrentOutgoingNonChildCertificateResources() {
+        ProductionCertificateAuthority ca = createInitialisedProdOrgCaWithRipeResources(certificateManagementService);
+        entityManager.persist(ca);
+
+        assertThat(subject.findCurrentOutgoingRpkiObjectCertificateResources(ca.getName())).isEqualTo(PRODUCTION_CA_RESOURCES);
     }
 }

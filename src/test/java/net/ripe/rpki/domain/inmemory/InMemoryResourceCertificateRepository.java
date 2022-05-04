@@ -64,6 +64,11 @@ public class InMemoryResourceCertificateRepository extends InMemoryRepository<Re
     }
 
     @Override
+    public IpResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName) {
+        return new IpResourceSet();
+    }
+
+    @Override
     public ExpireOutgoingResourceCertificatesResult expireOutgoingResourceCertificates(DateTime now) {
         throw new UnsupportedOperationException();
     }

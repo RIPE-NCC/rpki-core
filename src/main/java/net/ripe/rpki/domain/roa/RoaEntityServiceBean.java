@@ -14,7 +14,6 @@ import net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.core.events.CertificateAuthorityEventAdapter;
-import net.ripe.rpki.core.events.IncomingCertificateActivatedEvent;
 import net.ripe.rpki.core.events.KeyPairActivatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CertificationProviderConfigurationData;
@@ -72,11 +71,6 @@ public class RoaEntityServiceBean extends CertificateAuthorityEventAdapter imple
     }
 
     @Override
-    public void roaConfigurationUpdated(HostedCertificateAuthority ca) {
-        updateAndRevokeRoas(ca);
-    }
-
-    @Override
     public void visitKeyPairActivatedEvent(KeyPairActivatedEvent event) {
         HostedCertificateAuthority ca = certificateAuthorityRepository.findHostedCa(event.getCertificateAuthorityVersionedId().getId());
         if (ca == null) {
@@ -84,15 +78,6 @@ public class RoaEntityServiceBean extends CertificateAuthorityEventAdapter imple
         }
 
         revokeRoasSignedByOldKeys(ca);
-        updateAndRevokeRoas(ca);
-    }
-
-    @Override
-    public void visitIncomingCertificateActivatedEvent(IncomingCertificateActivatedEvent event) {
-        HostedCertificateAuthority ca = certificateAuthorityRepository.findHostedCa(event.getCertificateAuthorityVersionedId().getId());
-        if (ca != null) {
-            updateAndRevokeRoas(ca);
-        }
     }
 
     private void revokeRoasSignedByOldKeys(HostedCertificateAuthority ca) {
@@ -106,7 +91,8 @@ public class RoaEntityServiceBean extends CertificateAuthorityEventAdapter imple
                 });
     }
 
-    private void updateAndRevokeRoas(HostedCertificateAuthority ca) {
+    @Override
+    public void updateRoasIfNeeded(HostedCertificateAuthority ca) {
         final RoaConfiguration configuration = roaConfigurationRepository.getOrCreateByCertificateAuthority(ca);
         ca.findCurrentKeyPair()
             .ifPresent(currentKeyPair ->

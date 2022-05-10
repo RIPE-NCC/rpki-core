@@ -10,7 +10,6 @@ import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
-import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.services.command.RoaConfigurationForPrivateASNException;
 import net.ripe.rpki.services.impl.background.RoaMetricsService;
@@ -22,7 +21,7 @@ import java.util.Collections;
 import static net.ripe.rpki.domain.ProductionCertificateAuthorityTest.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class UpdateRoaConfigurationCommandHandlerTest {
 
@@ -101,11 +100,14 @@ public class UpdateRoaConfigurationCommandHandlerTest {
 
     @Test
     public void should_notify_roa_entity_service_on_configuration_change() {
+        certificateAuthority.manifestAndCrlCheckCompleted();
+        assertThat(certificateAuthority.isManifestAndCrlCheckNeeded()).isFalse();
+
         subject.handle(new UpdateRoaConfigurationCommand(
                 certificateAuthority.getVersionedId(),
                 Collections.emptyList(),
                 Collections.emptyList()));
 
-        verify(roaEntityService, times(1)).roaConfigurationUpdated(certificateAuthority);
+        assertThat(certificateAuthority.isManifestAndCrlCheckNeeded()).isTrue();
     }
 }

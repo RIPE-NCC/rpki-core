@@ -39,7 +39,7 @@ public class CaCleanUpServiceBeanTest {
     @Test
     public void should_delete_old_cas_without_keypairs() throws Exception {
         service.runService();
-        verify(certificateAuthorityRepository).getCasWithoutKeyPairsOlderThanOneYear();
+        verify(certificateAuthorityRepository).getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear();
     }
 
 }

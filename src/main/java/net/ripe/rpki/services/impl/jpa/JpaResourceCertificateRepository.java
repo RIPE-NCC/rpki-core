@@ -94,12 +94,12 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
             "    UPDATE resourcecertificate\n" +
             "    SET status = :expired, version = version + 1, updated_at = :now\n" +
             "    WHERE type = 'OUTGOING' AND validity_not_after < :now AND status <> :expired\n" +
-            "    RETURNING id, published_object_id\n" +
+            "    RETURNING id\n" +
             "),\n" +
             "deleted_roas AS (\n" +
             "    DELETE FROM roaentity\n" +
             "    WHERE EXISTS (SELECT id FROM expired_certificates WHERE expired_certificates.id = roaentity.certificate_id)\n" +
-            "    RETURNING id, published_object_id\n" +
+            "    RETURNING id\n" +
             "),\n" +
             "withdrawn_objects AS (\n" +
             "    UPDATE published_object po\n" +
@@ -109,8 +109,8 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
             "                 END,\n" +
             "        version = version + 1,\n" +
             "        updated_at = :now\n" +
-            "    FROM (SELECT published_object_id FROM expired_certificates UNION ALL SELECT published_object_id FROM deleted_roas) AS objs\n" +
-            "    WHERE po.id = objs.published_object_id AND po.status IN (:toBePublished, :published)\n" +
+            "    WHERE po.validity_not_after < :now\n" +
+            "      AND po.status IN (:toBePublished, :published)\n" +
             "    RETURNING id\n" +
             ")\n" +
             "SELECT (SELECT COUNT(*) FROM expired_certificates) AS expired_certificate_count,\n" +

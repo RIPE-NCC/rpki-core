@@ -155,7 +155,7 @@ public class CertificateManagementServiceImplTest extends CertificationDomainTes
         entityManager.flush();
 
         roaConfigurationRepository.getOrCreateByCertificateAuthority(ca).addPrefix(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"))));
-        roaEntityService.roaConfigurationUpdated(ca);
+        roaEntityService.updateRoasIfNeeded(ca);
         List<RoaEntity> roas = roaEntityRepository.findByCertificateSigningKeyPair(currentKeyPair);
         assertEquals("single roa issued", 1, roas.size());
         RoaEntity roaEntity = roas.get(0);

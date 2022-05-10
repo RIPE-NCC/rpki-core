@@ -10,6 +10,7 @@ import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
+import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.joda.time.Duration;
@@ -21,6 +22,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.persistence.EntityManager;
+import javax.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,6 +41,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
 
     private final CertificateAuthorityRepository certificateAuthorityRepository;
     private final CertificateManagementService certificateManagementService;
+    private final RoaEntityService roaEntityService;
     private final PublishedObjectRepository publishedObjectRepository;
     private final TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository;
     private final EntityManager entityManager;
@@ -51,6 +54,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         ActiveNodeService propertyService,
         CertificateAuthorityRepository certificateAuthorityRepository,
         CertificateManagementService certificateManagementService,
+        RoaEntityService roaEntityService,
         PublishedObjectRepository publishedObjectRepository,
         TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository,
         EntityManager entityManager,
@@ -59,6 +63,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         super(propertyService);
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.certificateManagementService = certificateManagementService;
+        this.roaEntityService = roaEntityService;
         this.publishedObjectRepository = publishedObjectRepository;
         this.trustAnchorPublishedObjectRepository = trustAnchorPublishedObjectRepository;
         this.entityManager = entityManager;
@@ -66,11 +71,11 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         // Repeatable read so we get a consistent snapshot of to-be-published objects
         this.transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
 
-        this.certificateAuthorityCounter = Counter.builder("rpkicore.publication")
+        this.certificateAuthorityCounter = Counter.builder("rpkicore.publication.certificate.authorities")
             .description("The number of certificate authorities with pending publications updated")
             .tag("publication", "update")
             .register(meterRegistry);
-        this.publishedObjectCounter = Counter.builder("rpkicore.publication")
+        this.publishedObjectCounter = Counter.builder("rpkicore.publication.published.objects")
             .description("The number of published objects marked as published or withdrawn")
             .tag("publication", "update")
             .register(meterRegistry);
@@ -107,6 +112,10 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         entityManager.clear();
 
         List<HostedCertificateAuthority> casWithoutOutdatedManifest = pendingCertificateAuthorities.stream().filter(ca -> {
+            if (ca.isManifestAndCrlCheckNeeded()) {
+                return true;
+            }
+
             // Associate with JPA session
             ca = entityManager.merge(ca);
             boolean result = certificateManagementService.isManifestAndCrlUpdatedNeeded(ca);
@@ -121,14 +130,12 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         for (HostedCertificateAuthority ca : casWithoutOutdatedManifest) {
             // Associate with JPA session
             ca = entityManager.merge(ca);
-            // Generate new CRL and manifest if needed
-            long updateCount = certificateManagementService.updateManifestAndCrlIfNeeded(ca);
-            if (updateCount > 0) {
-                // The manifest and CRL are now up-to-date and the CA is locked, so we clear the check needed flag.
-                ca.manifestAndCrlCheckCompleted();
-            }
 
-            updateCountTotal += updateCount;
+            entityManager.lock(ca, LockModeType.PESSIMISTIC_WRITE);
+            roaEntityService.updateRoasIfNeeded(ca);
+            updateCountTotal += certificateManagementService.updateManifestAndCrlIfNeeded(ca);
+            // The manifest and CRL are now up-to-date and the CA is locked, so we clear the check needed flag.
+            ca.manifestAndCrlCheckCompleted();
 
             entityManager.flush();
             entityManager.clear();

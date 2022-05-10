@@ -8,7 +8,7 @@ import java.util.Collection;
 
 public interface RoaEntityService extends CertificateAuthorityEventVisitor {
 
-    void roaConfigurationUpdated(HostedCertificateAuthority ca);
+    void updateRoasIfNeeded(HostedCertificateAuthority ca);
 
     void logRoaPrefixDeletion(RoaConfiguration configuration, Collection<? extends RoaConfigurationPrefix> deletedPrefixes);
 }

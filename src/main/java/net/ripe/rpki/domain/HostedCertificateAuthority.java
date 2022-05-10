@@ -1,6 +1,7 @@
 package net.ripe.rpki.domain;
 
 import com.google.common.annotations.VisibleForTesting;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
@@ -11,7 +12,6 @@ import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.core.events.CertificateAuthorityEvent;
 import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
-import net.ripe.rpki.core.events.IncomingCertificateActivatedEvent;
 import net.ripe.rpki.core.events.KeyPairActivatedEvent;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
@@ -100,11 +100,10 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
      * cleared once the manifest and CRL have been checked (and re-issued if needed), see
      * {@link net.ripe.rpki.services.impl.handlers.IssueUpdatedManifestAndCrlCommandHandler IssueUpdatedManifestAndCrlCommandHandler} and
      * {@link net.ripe.rpki.services.impl.background.PublicRepositoryPublicationServiceBean PublicRepositoryPublicationServiceBean}.
-     *
-     * Capital-B boolean to keep the database schema backwards compatible.
      */
+    @Getter
     @Column(name = "manifest_and_crl_check_needed")
-    private Boolean manifestAndCrlCheckNeeded;
+    private boolean manifestAndCrlCheckNeeded;
 
     protected HostedCertificateAuthority() {
     }
@@ -210,8 +209,8 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
         this.lastIssuedSerial = lastIssuedSerial;
     }
 
-    public boolean isManifestAndCrlCheckNeeded() {
-        return manifestAndCrlCheckNeeded == null || manifestAndCrlCheckNeeded;
+    public void roaConfigurationUpdated() {
+        this.manifestAndCrlCheckNeeded = true;
     }
 
     public void manifestAndCrlCheckCompleted() {
@@ -351,7 +350,6 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
         }
 
         this.manifestAndCrlCheckNeeded = true;
-        HostedCertificateAuthority.EVENTS.publish(this, new IncomingCertificateActivatedEvent(getVersionedId(), subjectKeyPair.getName()));
     }
 
     private void activatePendingKey(KeyPairEntity newKeyPair, VersionedId versionedId) {

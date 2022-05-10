@@ -231,8 +231,8 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
         return manager.createQuery(
             "SELECT ca " +
                 "  FROM HostedCertificateAuthority ca" +
-                // Incoming certificate was updated since last check, so publish might be needed
-                " WHERE COALESCE(ca.manifestAndCrlCheckNeeded, TRUE) = TRUE" +
+                // Certificate authority configuration was updated since last check, so publish might be needed
+                " WHERE ca.manifestAndCrlCheckNeeded = TRUE" +
                 "    OR EXISTS (SELECT kp " +
                 "                 FROM ca.keyPairs kp" +
                 "                 JOIN kp.incomingResourceCertificate incoming" +
@@ -295,7 +295,8 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     }
 
     @Override
-    public Collection<HostedCertificateAuthority> getCasWithoutKeyPairsOlderThanOneYear() {
+    public Collection<HostedCertificateAuthority> getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear() {
+        // for context: deleting a CA is a USER command
         final Query sql = manager.createQuery(
             "SELECT ca FROM HostedCertificateAuthority ca " +
                 "WHERE ca.keyPairs IS EMPTY " +

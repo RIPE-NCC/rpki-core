@@ -39,5 +39,5 @@ public interface CertificateAuthorityRepository extends Repository<CertificateAu
 
     int deleteNonHostedPublicKeysWithoutSigningCertificates();
 
-    Collection<HostedCertificateAuthority> getCasWithoutKeyPairsOlderThanOneYear();
+    Collection<HostedCertificateAuthority> getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear();
 }

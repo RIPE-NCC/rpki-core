@@ -57,7 +57,7 @@ public class CaCleanUpServiceBean extends ConcurrentBackgroundServiceWithAdminPr
     @Override
     protected void runService() {
         if (enabled) {
-            final Collection<HostedCertificateAuthority> casToDelete = certificateAuthorityRepository.getCasWithoutKeyPairsOlderThanOneYear();
+            final Collection<HostedCertificateAuthority> casToDelete = certificateAuthorityRepository.getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear();
             deletedCasWithoutKeyPairsCounter.increment(casToDelete.size());
             casToDelete.forEach(ca -> {
                 final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(ca.getId());

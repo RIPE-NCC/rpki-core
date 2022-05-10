@@ -9,6 +9,8 @@ import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.PublicationStatus;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
+import net.ripe.rpki.domain.roa.RoaEntityService;
+import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
@@ -32,6 +34,9 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     @Inject
     private RoaEntityRepository roaEntityRepository;
 
+    @Inject
+    private RoaEntityService roaEntityService;
+
     @Before
     public void setUp() {
         transactionTemplate.executeWithoutResult((status) -> clearDatabase());
@@ -47,23 +52,24 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
 
     @Test
     public void outgoing_resource_certificate_should_change_to_expired_after_not_valid_after_timestamp() {
-        HostedCertificateAuthority ca = transactionTemplate.execute((status) -> createInitialisedProdCaWithRipeResources());
+        HostedCertificateAuthority ca = withTx(() -> createInitialisedProdCaWithRipeResources());
         commandService.execute(new UpdateRoaConfigurationCommand(
             ca.getVersionedId(),
             Collections.singleton(new RoaConfigurationPrefixData(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"), null)),
             Collections.emptyList()));
+        inTx(() -> commandService.execute(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId())));
 
-        // CA certificate, EE certificate for ROA
+        // CA certificate, EE certificate for ROA, EE certificate for manifest
         assertThat(subject.findAllBySigningKeyPair(ca.getCurrentKeyPair()))
-            .hasSize(2)
+            .hasSize(3)
             .allSatisfy(cert -> assertThat(cert.getStatus()).isEqualTo(OutgoingResourceCertificateStatus.CURRENT));
 
         // ROA
         assertThat(roaEntityRepository.findAll()).hasSize(1);
 
-        // CA certificate, ROA
+        // CA certificate, ROA, CRL, Manifest
         assertThat(publishedObjectRepository.findAll())
-            .hasSize(2)
+            .hasSize(4)
             .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.TO_BE_PUBLISHED));
 
         transactionTemplate.executeWithoutResult((status) -> {
@@ -76,14 +82,14 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
             assertThat(expired.getWithdrawnObjectCount()).isEqualTo(0);
 
             assertThat(subject.findAllBySigningKeyPair(ca.getCurrentKeyPair()))
-                .hasSize(2)
+                .hasSize(3)
                 .allSatisfy(cert -> {
                     assertThat(cert.getNotValidAfter()).isGreaterThanOrEqualTo(now);
                     assertThat(cert.getStatus()).isEqualTo(OutgoingResourceCertificateStatus.CURRENT);
                 });
             assertThat(roaEntityRepository.findAll()).hasSize(1);
             assertThat(publishedObjectRepository.findAll())
-                .hasSize(2)
+                .hasSize(4)
                 .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.TO_BE_PUBLISHED));
         });
 
@@ -92,19 +98,19 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
             DateTime afterValidity = new DateTime(DateTimeZone.UTC).plusYears(2);
             ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult expired = subject.expireOutgoingResourceCertificates(afterValidity);
 
-            assertThat(expired.getExpiredCertificateCount()).isEqualTo(2);
+            assertThat(expired.getExpiredCertificateCount()).isEqualTo(3);
             assertThat(expired.getDeletedRoaCount()).isEqualTo(1);
-            assertThat(expired.getWithdrawnObjectCount()).isEqualTo(2);
+            assertThat(expired.getWithdrawnObjectCount()).isEqualTo(4);
 
             assertThat(subject.findAllBySigningKeyPair(ca.getCurrentKeyPair()))
-                .hasSize(2)
+                .hasSize(3)
                 .allSatisfy(cert -> {
                     assertThat(cert.getNotValidAfter()).isLessThan(afterValidity);
                     assertThat(cert.getStatus()).isEqualTo(OutgoingResourceCertificateStatus.EXPIRED);
                 });
             assertThat(roaEntityRepository.findAll()).hasSize(0);
             assertThat(publishedObjectRepository.findAll())
-                .hasSize(2)
+                .hasSize(4)
                 .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.WITHDRAWN));
         });
 

@@ -7,8 +7,6 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
-import net.ripe.rpki.core.events.IncomingCertificateActivatedEvent;
-import net.ripe.rpki.core.events.KeyPairActivatedEvent;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
@@ -35,7 +33,6 @@ import static net.ripe.rpki.commons.crypto.util.KeyStoreUtilTest.DEFAULT_KEYSTOR
 import static net.ripe.rpki.commons.crypto.util.KeyStoreUtilTest.DEFAULT_KEYSTORE_TYPE;
 import static net.ripe.rpki.commons.crypto.x509cert.X509CertificateBuilderHelper.DEFAULT_SIGNATURE_PROVIDER;
 import static net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateTest.createSelfSignedCaResourceCertificateBuilder;
-import static net.ripe.rpki.domain.KeyPairEntityTest.TEST_KEY_PAIR_NAME;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -174,8 +171,7 @@ public class RoaEntityServiceBeanTest  {
             ca.getCurrentIncomingCertificate().getCertificate(), URI.create("rsync://updated/location.cer")),
             resourceCertificateRepository);
 
-        RoaEntity addedRoa = handleIncomingCertificateActivatedEvent(new IncomingCertificateActivatedEvent(
-            ca.getVersionedId(), ca.getCurrentKeyPair().getName()), roaEntity).getAddedRoa();
+        RoaEntity addedRoa = updateAndRevokeRoas(roaEntity).getAddedRoa();
 
         assertNotNull("no new ROA created when parent certificate publication location changed", addedRoa);
         assertEquals("parent location", URI.create("rsync://updated/location.cer"), addedRoa.getRoaCms().getParentCertificateUri());
@@ -186,7 +182,7 @@ public class RoaEntityServiceBeanTest  {
         RoaEntity roaEntity = handleRoaSpecificationCreatedEvent().getAddedRoa();
         assertNotNull(roaEntity);
 
-        RoaEntity addedRoa = handleIncomingCertificateActivatedEvent(new IncomingCertificateActivatedEvent(ca.getVersionedId(), TestObjects.TEST_KEY_PAIR_2.getName()), roaEntity).getAddedRoa();
+        RoaEntity addedRoa = updateAndRevokeRoas(roaEntity).getAddedRoa();
         assertNull(addedRoa);
     }
 
@@ -204,34 +200,24 @@ public class RoaEntityServiceBeanTest  {
                 .build();
         ca.processCertificateIssuanceResponse(new CertificateIssuanceResponse(certificate, TestObjects.PUBLICATION_URI), resourceCertificateRepository);
 
-        RoaEntity addedRoa = handleIncomingCertificateActivatedEvent(new IncomingCertificateActivatedEvent(ca.getVersionedId(), TestObjects.TEST_KEY_PAIR_2.getName()), roaEntity).getAddedRoa();
+        RoaEntity addedRoa = updateAndRevokeRoas(roaEntity).getAddedRoa();
         assertNotNull(addedRoa);
         assertTrue(roaEntity.isRevoked());
         assertEquals(PublicationStatus.WITHDRAWN, roaEntity.getPublishedObject().getStatus());
     }
 
     @Test
-    public void should_not_republish_the_old_roa_but_publish_a_new_one_when_incoming_certificate_is_activated_after_previous_one_was_revoked() {
+    public void should_not_republish_the_old_roa_but_publish_a_new_one_after_previous_one_was_revoked() {
         RoaEntity roaEntity = handleRoaSpecificationCreatedEvent().getAddedRoa();
         roaEntity.revoke();
 
-        subject.visitIncomingCertificateActivatedEvent(new IncomingCertificateActivatedEvent(ca.getVersionedId(), ca.getCurrentKeyPair().getName()));
+        subject.updateRoasIfNeeded(ca);
 
         assertEquals(PublicationStatus.WITHDRAWN, roaEntity.getPublishedObject().getStatus());
 
         ArgumentCaptor<RoaEntity> added = ArgumentCaptor.forClass(RoaEntity.class);
         verify(roaEntityRepository, atMost(2)).add(added.capture());
         assertEquals(PublicationStatus.TO_BE_PUBLISHED, added.getValue().getPublishedObject().getStatus());
-    }
-
-    @Test
-    public void should_not_republish_roas_with_invalid_certificates() {
-        RoaEntity roaEntity = handleRoaSpecificationCreatedEvent().getAddedRoa();
-        roaEntity.revoke();
-
-        subject.visitIncomingCertificateActivatedEvent(new IncomingCertificateActivatedEvent(ca.getVersionedId(), TEST_KEY_PAIR_NAME));
-
-        assertEquals(PublicationStatus.WITHDRAWN, roaEntity.getPublishedObject().getStatus());
     }
 
     @Test
@@ -258,7 +244,7 @@ public class RoaEntityServiceBeanTest  {
 
         when(roaEntityRepository.findByCertificateSigningKeyPair(isA(KeyPairEntity.class))).thenReturn(Collections.singletonList(roaEntity));
 
-        subject.visitIncomingCertificateActivatedEvent(new IncomingCertificateActivatedEvent(ca.getVersionedId(), TEST_KEY_PAIR_NAME));
+        subject.updateRoasIfNeeded(ca);
 
         assertEquals(PublicationStatus.WITHDRAWN, publishedObject.getStatus());
         assertTrue(roaEntity.getCertificate().isRevoked());
@@ -267,7 +253,7 @@ public class RoaEntityServiceBeanTest  {
     private RoaSpecificationChangeResult handleRoaSpecificationCreatedEvent() {
         reset(roaEntityRepository);
 
-        subject.roaConfigurationUpdated(ca);
+        subject.updateRoasIfNeeded(ca);
 
         ArgumentCaptor<RoaEntity> added = ArgumentCaptor.forClass(RoaEntity.class);
         verify(roaEntityRepository, atMost(1)).add(added.capture());
@@ -283,7 +269,7 @@ public class RoaEntityServiceBeanTest  {
         reset(roaEntityRepository);
         when(roaEntityRepository.findByCertificateSigningKeyPair(isA(KeyPairEntity.class))).thenReturn(Arrays.asList(existingRoa));
 
-        subject.roaConfigurationUpdated(ca);
+        subject.updateRoasIfNeeded(ca);
 
         ArgumentCaptor<RoaEntity> added = ArgumentCaptor.forClass(RoaEntity.class);
         verify(roaEntityRepository, atMost(1)).add(added.capture());
@@ -294,22 +280,11 @@ public class RoaEntityServiceBeanTest  {
         return new RoaSpecificationChangeResult(added.getAllValues().isEmpty() ? null : added.getValue(), removed.getAllValues().isEmpty() ? null : removed.getValue());
     }
 
-    private RoaSpecificationChangeResult handleKeyPairActivatedEvent(KeyPairActivatedEvent event, RoaEntity existingRoa) {
-        when(roaEntityRepository.findByCertificateSigningKeyPair(isA(KeyPairEntity.class))).thenReturn(Arrays.asList(existingRoa));
-
-        subject.visitKeyPairActivatedEvent(event);
-
-        ArgumentCaptor<RoaEntity> added = ArgumentCaptor.forClass(RoaEntity.class);
-        verify(roaEntityRepository, atMost(1)).add(added.capture());
-
-        return new RoaSpecificationChangeResult(added.getAllValues().isEmpty() ? null : added.getValue(), null);
-    }
-
-    private RoaSpecificationChangeResult handleIncomingCertificateActivatedEvent(IncomingCertificateActivatedEvent event, RoaEntity existingRoa) {
+    private RoaSpecificationChangeResult updateAndRevokeRoas(RoaEntity existingRoa) {
         reset(roaEntityRepository);
         when(roaEntityRepository.findByCertificateSigningKeyPair(isA(KeyPairEntity.class))).thenReturn(Arrays.asList(existingRoa));
 
-        subject.visitIncomingCertificateActivatedEvent(event);
+        subject.updateRoasIfNeeded(ca);
 
         ArgumentCaptor<RoaEntity> added = ArgumentCaptor.forClass(RoaEntity.class);
         verify(roaEntityRepository, atMost(1)).add(added.capture());
@@ -321,7 +296,6 @@ public class RoaEntityServiceBeanTest  {
 
     private void initMocks() {
         when(roaConfigurationRepository.getOrCreateByCertificateAuthority(ca)).thenReturn(configuration);
-        when(certificateAuthorityRepository.findHostedCa(ca.getId())).thenReturn(ca);
     }
 
     private static final class RoaSpecificationChangeResult {

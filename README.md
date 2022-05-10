@@ -209,7 +209,7 @@ Notes:
 
 ### Process the sign request
 
-1. Download, build and extract the [RPKI trust anchor tool](https://gitlab.ripe.net/rpki/rpki-ta-0).
+1. Download, build and extract the [RPKI trust anchor tool](https://github.com/RIPE-NCC/rpki-ta-0).
 2. Initialize the trust anchor:
 
     `APPLICATION_ENVIRONMENT=local ./ta.sh --env local --initialise`

@@ -79,7 +79,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
         roaMetricsService.countAdded(command.getAdditions().size());
         roaMetricsService.countDeleted(command.getDeletions().size());
 
-        roaEntityService.roaConfigurationUpdated(ca);
+        ca.roaConfigurationUpdated();
     }
 
     private List<Asn> findAddedPrivateAsns(UpdateRoaConfigurationCommand command) {

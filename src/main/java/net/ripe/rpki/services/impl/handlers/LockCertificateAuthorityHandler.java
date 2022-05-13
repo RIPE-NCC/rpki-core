@@ -33,7 +33,7 @@ public class LockCertificateAuthorityHandler implements CertificateAuthorityComm
     @Override
     public void handle(CertificateAuthorityCommand command, CommandStatus commandStatus) {
         final Long id = getCaId(command);
-        entityManager.find(CertificateAuthority.class, id, LockModeType.PESSIMISTIC_WRITE);
+        entityManager.find(CertificateAuthority.class, id, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Locked certificate authority with (id = " + id + ")");
         }

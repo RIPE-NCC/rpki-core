@@ -37,8 +37,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -58,12 +56,6 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
     // https://krill.docs.nlnetlabs.nl/en/stable/publication-server.html#initialise-publication-server
     public static final String PUBD_PUBLISHERS = "/api/v1/pubd/publishers";
 
-    private static final String PUB_REPO_INITIALIZED_LABEL = "pub-repo-initialized";
-    private static final String PUB_REPO_NOT_INITIALIZED_LABEL = "pub-repo-not-initialized";
-
-    private final String publisherRrdpURL;
-    private final String publisherRsyncURL;
-
 
     private final Client publisherRepositoryClient;
     private final String publisherRepositoryURL;
@@ -72,22 +64,15 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
     @Inject
     public KrillNonHostedPublisherRepositoryBean(
         @Value("${non-hosted.publisher.repository.url}") String publisherRepositoryURL,
-        @Value("${non-hosted.publisher.repository.token}") String apiToken,
-        @Value("${non-hosted.publisher.repository.rrdp.url}") String publisherRrdpURL,
-        @Value("${non-hosted.publisher.repository.rsync.url}") String publisherRsyncURL
+        @Value("${non-hosted.publisher.repository.token}") String apiToken
     ) throws NoSuchAlgorithmException {
-        this(publisherRepositoryURL, apiToken, publisherRrdpURL, publisherRsyncURL, SSLContext.getDefault());
+        this(publisherRepositoryURL, apiToken, SSLContext.getDefault());
     }
 
     public KrillNonHostedPublisherRepositoryBean(
         String publisherRepositoryURL,
-        String apiToken,
-        String publisherRrdpURL,
-        String publisherRsyncURL,
-        SSLContext sslContext
+        String apiToken, SSLContext sslContext
     ) {
-        this.publisherRrdpURL = publisherRrdpURL;
-        this.publisherRsyncURL = publisherRsyncURL;
         this.publisherRepositoryURL = publisherRepositoryURL;
         this.apiToken = apiToken;
 
@@ -139,76 +124,25 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
                 requestWithPublisherHandle.getPublisherBpkiTa().getBase64String(),
                 requestWithPublisherHandle.getPublisherHandle());
 
-        final RepositoryResponseDto repositoryResponseDto = withFallbackToInit(
-            () -> clientForTarget(PUBD_PUBLISHERS).post(Entity.json(krillPublisherRequest)),
-            response -> response.readEntity(RepositoryResponseDto.class)
-        );
+        Response post = clientForTarget(PUBD_PUBLISHERS).post(Entity.json(krillPublisherRequest));
+        RepositoryResponseDto repositoryResponseDto = post.readEntity(RepositoryResponseDto.class);
         return repositoryResponseDto.toRepositoryResponse();
     }
 
     @Override
     public Set<UUID> listPublishers() {
-        return withFallbackToInit(
-            () -> clientForTarget(PUBD_PUBLISHERS).get(),
-            response ->
-                response.readEntity(PublishersDto.class)
-                    .publishers
-                    .stream()
-                    .flatMap(handle -> {
-                        try {
-                            return Stream.of(UUID.fromString(handle.handle));
-                        } catch (IllegalArgumentException e) {
-                            return Stream.empty();
-                        }
-                    })
-                    .collect(Collectors.toSet())
-        );
+        return clientForTarget(PUBD_PUBLISHERS).get().readEntity(PublishersDto.class).publishers.stream().flatMap(handle -> {
+            try {
+                return Stream.of(UUID.fromString(handle.handle));
+            } catch (IllegalArgumentException e) {
+                return Stream.empty();
+            }
+        }).collect(Collectors.toSet());
     }
 
     @Override
     public Response deletePublisher(UUID publisherHandle) {
-        return withFallbackToInit(
-            () -> clientForTarget(PUBD_PUBLISHERS + "/" + publisherHandle).delete(),
-            Function.identity()
-        );
-    }
-
-    private synchronized boolean ensureInitialisedPublisher() {
-        PublisherInitDto initCheck = new PublisherInitDto(publisherRrdpURL, publisherRsyncURL);
-        Response response = clientForTarget(PUBD_INITIALIZE).post(Entity.json(initCheck));
-
-        if (response.getStatus() == 400) {
-            ErrorMsg errorMsg = response.readEntity(ErrorMsg.class);
-            if (errorMsg != null && PUB_REPO_INITIALIZED_LABEL.equals(errorMsg.getLabel())) {
-                return true;
-            }
-        }
-        return response.getStatus() == 200;
-    }
-        /**
-         * Send a request to Krill and if it fails because Krill instance is not initialised,
-         * try to initialised and retry the original request.
-         */
-    public <T> T withFallbackToInit(Supplier<Response> getResponse, Function<Response, T> processResponse) {
-        final Response response = getResponse.get();
-        if (response.getStatus() == 200) {
-            return processResponse.apply(response);
-        } else if (response.getStatus() == 400) {
-            // try to read the response as an error JSON
-            final ErrorMsg errorMsg = response.readEntity(ErrorMsg.class);
-            if (PUB_REPO_NOT_INITIALIZED_LABEL.equals(errorMsg.getLabel())) {
-                boolean initialized = ensureInitialisedPublisher();
-                if (!initialized) {
-                    throw new RuntimeException("Failed to initialise publisher.");
-                }
-                final Response responseRetry = getResponse.get();
-                if (responseRetry.getStatus() == 200) {
-                    return processResponse.apply(responseRetry);
-                }
-                throw new RuntimeException("Could not recover, invalid response: " + responseRetry);
-            }
-        }
-        throw new RuntimeException("Invalid response: " + response);
+        return clientForTarget(PUBD_PUBLISHERS + "/" + publisherHandle).delete();
     }
 
 

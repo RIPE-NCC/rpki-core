@@ -93,7 +93,5 @@ non-hosted:
   publisher:
     repository:
       enabled: true
-      url: "https://krill-1.paas.rpki.prepdev.ripe.net/"
-      rrdp.url: "https://rrdp.publication-service.rpki.prepdev.ripe.net/"
-      rsync.url: "rsync://rsync.publication-service.rpki.prepdev.ripe.net/repository/"
+      url: "https://rfc8181.publication-service.rpki.prepdev.ripe.net/"
       token: "krill-dev-token"

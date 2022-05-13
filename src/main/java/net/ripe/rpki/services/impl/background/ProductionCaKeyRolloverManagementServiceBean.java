@@ -1,7 +1,7 @@
 package net.ripe.rpki.services.impl.background;
 
 import net.ripe.rpki.application.CertificationConfiguration;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
+import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
@@ -27,7 +27,7 @@ public class ProductionCaKeyRolloverManagementServiceBean extends AbstractKeyRol
 
     @Override
     protected void runService() {
-        runService(CertificateAuthorityType.ROOT);
+        runService(ProductionCertificateAuthority.class);
     }
 
 }

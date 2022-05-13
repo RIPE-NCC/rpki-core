@@ -14,6 +14,14 @@
         </encoder>
     </appender>
 
+    <appender name="certification-logstash" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
+        <file>../logs/certification-logstash.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>../logs/certification-logstash.log.%d{yyyy-MM-dd}</fileNamePattern>
+        </rollingPolicy>
+    </appender>
+
     <appender name="audit-log" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
         <file>../logs/audit.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -42,21 +50,27 @@
 
     <logger name="root" level="info" additivity="false">
         <appender-ref ref="certification-log"/>
+        <appender-ref ref="certification-logstash"/>
     </logger>
     <logger name="net.ripe" level="info" additivity="false">
         <appender-ref ref="certification-log"/>
+        <appender-ref ref="certification-logstash"/>
     </logger>
     <logger name="org.quartz" level="warn" additivity="false">
         <appender-ref ref="certification-log"/>
+        <appender-ref ref="certification-logstash"/>
     </logger>
     <logger name="org.apache.wicket" level="warn" additivity="false">
         <appender-ref ref="certification-log"/>
+        <appender-ref ref="certification-logstash"/>
     </logger>
     <logger name="org.hibernate" level="error" additivity="false">
         <appender-ref ref="certification-log"/>
+        <appender-ref ref="certification-logstash"/>
     </logger>
     <logger name="org.springframework" level="warn" additivity="false">
         <appender-ref ref="certification-log"/>
+        <appender-ref ref="certification-logstash"/>
     </logger>
 
     <logger name="provisioning-logger" level="info" additivity="false">

@@ -103,10 +103,6 @@ class Utils {
         return errors.isEmpty() ? Optional.empty() : Optional.of(String.join(", ", errors));
     }
 
-    public static <T> Set<T> toSet(Collection<T> c) {
-        return c == null ? Collections.emptySet() : new HashSet<>(c);
-    }
-
     /**
      * Check for valid (non-missing, valid with regard to prefix and address family) maxLength.
      */

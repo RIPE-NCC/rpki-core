@@ -1,6 +1,5 @@
 package net.ripe.rpki.core.read.services.ca;
 
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthority;
@@ -98,14 +97,18 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     }
 
     @Override
-    public Collection<CertificateAuthorityData> findAllHostedCasWithKeyPairsOlderThan(
-        final Instant oldestCreationTime, final Optional<Integer> batchSize) {
+    public Collection<CertificateAuthorityData> findAllHostedCasWithCurrentKeyOnlyAndOlderThan(
+        Class<? extends HostedCertificateAuthority> type,
+        final Instant oldestCreationTime,
+        final Optional<Integer> batchSize
+    ) {
         final TypedQuery<HostedCertificateAuthority> query = entityManager.createQuery(
-            "SELECT DISTINCT ca " +
-                " FROM HostedCertificateAuthority ca " +
-                " JOIN ca.keyPairs kp " +
-                " WHERE kp.status = :current " +
-                " AND kp.createdAt < :maxAge",
+            "SELECT ca " +
+                " FROM " + type.getSimpleName() + " ca " +
+                " WHERE EXISTS (SELECT kp FROM ca.keyPairs kp" +
+                "                WHERE kp.status = :current " +
+                "                  AND kp.createdAt < :maxAge)" +
+                " AND NOT EXISTS (SELECT kp FROM ca.keyPairs kp WHERE kp.status <> :current)",
             HostedCertificateAuthority.class)
             .setParameter("current", KeyPairStatus.CURRENT)
             .setParameter("maxAge", oldestCreationTime);

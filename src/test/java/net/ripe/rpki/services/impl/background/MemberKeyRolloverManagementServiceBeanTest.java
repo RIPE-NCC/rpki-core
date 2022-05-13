@@ -2,6 +2,7 @@ package net.ripe.rpki.services.impl.background;
 
 import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.domain.CustomerCertificateAuthority;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
@@ -9,8 +10,6 @@ import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
-import org.joda.time.Duration;
-import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -76,7 +75,7 @@ public class MemberKeyRolloverManagementServiceBeanTest {
     @Test
     public void shouldSendInitialiseKeyCommandToCAs() {
         int maxAge = 365;
-        when(certificationService.findAllHostedCasWithKeyPairsOlderThan(any(), any())).thenReturn(Collections.singletonList(MEMBER_CA));
+        when(certificationService.findAllHostedCasWithCurrentKeyOnlyAndOlderThan(eq(CustomerCertificateAuthority.class), any(), any())).thenReturn(Collections.singletonList(MEMBER_CA));
         when(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()).thenReturn(maxAge);
 
         subject.runService();

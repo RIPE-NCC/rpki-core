@@ -88,5 +88,3 @@ non-hosted:
     repository:
       url: "https://krill-1.paas.rpki.prepdev.ripe.net/"
       token: "krill-dev-token"
-      rrdp.url: "https://krill-1.paas.rpki.prepdev.ripe.net/"
-      rsync.url: "rsync://krill-1.paas.rpki.prepdev.ripe.net/repository/"

@@ -65,11 +65,11 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
 
             jdbcDbComponent.lockAndRefresh(ca);
             assertTrue(jdbcDbComponent.isLocked(ca));
-            assertEquals(LockModeType.PESSIMISTIC_WRITE, entityManager.getLockMode(ca));
+            assertEquals(LockModeType.PESSIMISTIC_FORCE_INCREMENT, entityManager.getLockMode(ca));
 
             ca.setLastIssuedSerial(BigInteger.valueOf(555555));
             assertTrue(jdbcDbComponent.isLocked(ca));
-            assertEquals(LockModeType.PESSIMISTIC_WRITE, entityManager.getLockMode(ca));
+            assertEquals(LockModeType.PESSIMISTIC_FORCE_INCREMENT, entityManager.getLockMode(ca));
 
             status.setRollbackOnly();
         });
@@ -86,7 +86,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
 
             jdbcDbComponent.lock(ca);
             assertTrue(jdbcDbComponent.isLocked(ca));
-            assertEquals(LockModeType.PESSIMISTIC_WRITE, entityManager.getLockMode(ca));
+            assertEquals(LockModeType.PESSIMISTIC_FORCE_INCREMENT, entityManager.getLockMode(ca));
 
             status.setRollbackOnly();
         });
@@ -126,7 +126,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             // But explicit locking changes it back to PESSIMISTIC_WRITE again...
             jdbcDbComponent.lock(ca);
             assertTrue(jdbcDbComponent.isLocked(ca));
-            assertEquals(LockModeType.PESSIMISTIC_WRITE, entityManager.getLockMode(ca));
+            assertEquals(LockModeType.PESSIMISTIC_FORCE_INCREMENT, entityManager.getLockMode(ca));
 
             status.setRollbackOnly();
         });

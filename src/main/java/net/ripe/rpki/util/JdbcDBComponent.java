@@ -40,13 +40,13 @@ public class JdbcDBComponent implements DBComponent {
 
     @Override
     public void lock(Entity entity) {
-        entityManager.lock(entity, LockModeType.PESSIMISTIC_WRITE);
+        entityManager.lock(entity, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
         log.debug("locked {} with lock mode {}", entity, entityManager.getLockMode(entity));
     }
 
     @Override
     public void lockAndRefresh(Entity entity) {
-        entityManager.refresh(entity, LockModeType.PESSIMISTIC_WRITE);
+        entityManager.refresh(entity, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
         log.debug("locked and refreshed {} with lock mode {}", entity, entityManager.getLockMode(entity));
     }
 

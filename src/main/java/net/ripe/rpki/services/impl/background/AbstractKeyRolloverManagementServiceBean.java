@@ -2,8 +2,8 @@ package net.ripe.rpki.services.impl.background;
 
 import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
+import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -13,7 +13,6 @@ import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,14 +43,13 @@ public abstract class AbstractKeyRolloverManagementServiceBean extends Sequentia
 
     private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-    protected void runService(CertificateAuthorityType appliedCertificateAuthorityType) {
+    protected void runService(Class<? extends HostedCertificateAuthority> type) {
         final MaxExceptionsTemplate template = new MaxExceptionsTemplate(MAX_ALLOWED_EXCEPTIONS);
         final Integer batchSize = 1000;
         final Instant oldestCreationTime = Instant.now().minus(
             Duration.standardDays(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()));
-        caViewService.findAllHostedCasWithKeyPairsOlderThan(oldestCreationTime, Optional.of(batchSize))
+        caViewService.findAllHostedCasWithCurrentKeyOnlyAndOlderThan(type, oldestCreationTime, Optional.of(batchSize))
                 .stream()
-                .filter(ca -> ca.getType() == appliedCertificateAuthorityType)
                 .map(ca -> executor.submit(() -> template.wrap(new Command() {
                     @Override
                     public void execute() {
@@ -62,7 +60,7 @@ public abstract class AbstractKeyRolloverManagementServiceBean extends Sequentia
 
                     @Override
                     public void onException(Exception e) {
-                        log.error("Could not publish material for CA " + ca.getName(), e);
+                        log.error("Could not publish material for CA {}", ca.getName(), e);
                     }
                 })))
                 .collect(Collectors.toList())

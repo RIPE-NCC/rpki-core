@@ -113,7 +113,9 @@ public class ResourceCacheService {
             certifiableResourcesCounts.forEach((resource, count) -> log.info("   {} {}", String.format("%-20s:", resource), count));
             log.info("Fetched resources total: {} ", certifiableResourcesCounts.values().stream().reduce(0, Integer::sum));
             registryResources = memberResources.getCertifiableResources();
-            log.info("Certifiable resources  : {} ", registryResources.values().stream().map(ResourceCacheService::resourceSetSize).reduce(0, Integer::sum));
+            long certifiableResourcesCount = accumulateResourcesSize(registryResources);
+            log.info("Certifiable resources  : {} ", certifiableResourcesCount);
+
         } catch (Exception e) {
             return new CacheUpdate.Reject(() -> {
                 log.error("The RIPE NCC internet resources REST API is not available", e);
@@ -220,14 +222,14 @@ public class ResourceCacheService {
 
         registryResources.forEach((caName, registry) -> {
             if(!casOnBoth.contains(caName)) {
-                int added = (int)StreamSupport.stream(registry.spliterator(), false).count();
+                int added = resourceSetSize(registry);
                 changesMap.put(caName, new Changes(added, 0));
             }
         });
 
         localResources.forEach((caName, local) -> {
             if(!casOnBoth.contains(caName)) {
-                int deleted = (int)StreamSupport.stream(local.spliterator(), false).count();
+                int deleted = resourceSetSize(local);
                 changesMap.put(caName, new Changes(0, deleted));
             }
         });
@@ -239,8 +241,14 @@ public class ResourceCacheService {
             totalAdded += changes.added;
             totalDeleted += changes.deleted;
         }
+        Integer localSize = accumulateResourcesSize(localResources);
+        Integer registrySize = accumulateResourcesSize(registryResources);
 
-        return new ResourceDiffStat(localResources.size(), registryResources.size(), totalAdded, totalDeleted, changesMap);
+        return new ResourceDiffStat(localSize, registrySize, totalAdded, totalDeleted, changesMap);
+    }
+
+    private static Integer accumulateResourcesSize(Map<CaName, IpResourceSet> resourcesMap) {
+        return resourcesMap.values().stream().map(ResourceCacheService::resourceSetSize).reduce(0, Integer::sum);
     }
 
     static DelegationDiffStat delegationsDiff(IpResourceSet registryDelegations, IpResourceSet localDelegations) {

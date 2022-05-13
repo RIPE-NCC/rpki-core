@@ -1,6 +1,7 @@
 package net.ripe.rpki.rest.service;
 
 
+import com.google.common.collect.Sets;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +39,6 @@ import java.util.stream.Collectors;
 import static com.google.common.collect.ImmutableMap.of;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
-import static net.ripe.rpki.rest.service.Utils.toSet;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Slf4j
@@ -61,25 +61,20 @@ public class AlertService extends AbstractCaRestService {
     @GetMapping
     public ResponseEntity<Subscriptions> getAlertsForCa(@PathVariable("caName") final String rawCaName) {
         log.info("Getting alerts for CA: {}", rawCaName);
-        return ok(getAlertsForCa_(rawCaName));
-    }
-
-    private Subscriptions getAlertsForCa_(final String rawCaName) {
-        log.info("Getting alerts for CA: {}", rawCaName);
 
         final RoaAlertConfigurationData configuration = roaAlertConfigurationViewService.findRoaAlertSubscription(this.getCaId());
         if (configuration == null) {
-            return new Subscriptions(Collections.emptySet(), Collections.emptySet());
+            return ok(new Subscriptions(Collections.emptySet(), Collections.emptySet()));
         }
 
-        final List<String> validityStates = configuration.getRouteValidityStates().stream()
-            .map(x -> x.name())
-            .collect(Collectors.toList());
+        final Set<String> validityStates = configuration.getRouteValidityStates().stream()
+            .map(RouteValidityState::name)
+            .collect(Collectors.toSet());
 
         final RoaAlertFrequency frequency = configuration.getSubscription() == null ?
             RoaAlertFrequency.DAILY : configuration.getSubscription().getFrequency();
 
-        return new Subscriptions(toSet(configuration.getEmails()), toSet(validityStates), frequency);
+        return ok(new Subscriptions(Sets.newHashSet(configuration.getEmails()), validityStates, frequency));
     }
 
     @PostMapping(consumes = {APPLICATION_JSON})

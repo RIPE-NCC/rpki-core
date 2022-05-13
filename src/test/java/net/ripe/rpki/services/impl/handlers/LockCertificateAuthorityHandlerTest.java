@@ -33,7 +33,7 @@ public class LockCertificateAuthorityHandlerTest {
     public void should_lock_ca_for_any_CertificateAuthorityCommand() {
         subject.handle(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(123, 1), Integer.MAX_VALUE), CommandStatus.create());
 
-        verify(entityManager).find(CertificateAuthority.class, 123L, LockModeType.PESSIMISTIC_WRITE);
+        verify(entityManager).find(CertificateAuthority.class, 123L, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
     }
 
     @Test
@@ -45,7 +45,7 @@ public class LockCertificateAuthorityHandlerTest {
             456
         ), CommandStatus.create());
 
-        verify(entityManager).find(CertificateAuthority.class, 456L, LockModeType.PESSIMISTIC_WRITE);
+        verify(entityManager).find(CertificateAuthority.class, 456L, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
     }
 
     @Test
@@ -58,6 +58,6 @@ public class LockCertificateAuthorityHandlerTest {
             999
         ), CommandStatus.create());
 
-        verify(entityManager).find(CertificateAuthority.class, 999L, LockModeType.PESSIMISTIC_WRITE);
+        verify(entityManager).find(CertificateAuthority.class, 999L, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
     }
 }

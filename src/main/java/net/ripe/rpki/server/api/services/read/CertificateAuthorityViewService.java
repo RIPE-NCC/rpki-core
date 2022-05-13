@@ -1,7 +1,7 @@
 package net.ripe.rpki.server.api.services.read;
 
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
+import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.server.api.dto.CaIdentity;
 import net.ripe.rpki.server.api.dto.CaStat;
 import net.ripe.rpki.server.api.dto.CaStatEvent;
@@ -48,7 +48,11 @@ public interface CertificateAuthorityViewService {
     /**
      * @return non-null collection of hosted CA's
      */
-    Collection<CertificateAuthorityData> findAllHostedCasWithKeyPairsOlderThan(Instant oldestCreationTime, Optional<Integer> batchSize);
+    Collection<CertificateAuthorityData> findAllHostedCasWithCurrentKeyOnlyAndOlderThan(
+        Class<? extends HostedCertificateAuthority> type,
+        Instant oldestCreationTime,
+        Optional<Integer> batchSize
+    );
 
     /**
      * Use this to find all the child CAs of the (1) Production CA in the system.

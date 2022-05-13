@@ -149,8 +149,8 @@ public class ResourceCacheServiceTest {
         localResources.put(CaName.of(4), IpResourceSet.parse("32.0.0.0/8, 34.0.0.0/8, 36.0.0.0/8"));
 
         final ResourceCacheService.ResourceDiffStat resourceDiff = resourcesDiff(registryResources, localResources);
-        assertEquals(3, resourceDiff.getLocalSize());
-        assertEquals(3, resourceDiff.getRegistrySize());
+        assertEquals(7, resourceDiff.getLocalSize());
+        assertEquals(6, resourceDiff.getRegistrySize());
 
         final ResourceCacheService.Changes changes1 = resourceDiff.getChangesMap().get(CaName.of(1));
         assertEquals(1, changes1.getAdded());
@@ -178,8 +178,8 @@ public class ResourceCacheServiceTest {
         localResources.put(CaName.of(1), IpResourceSet.parse("10.0.0.0/16, 12.0.0.0/16"));
 
         final ResourceCacheService.ResourceDiffStat resourceDiff = resourcesDiff(registryResources, localResources);
-        assertEquals(1, resourceDiff.getLocalSize());
-        assertEquals(1, resourceDiff.getRegistrySize());
+        assertEquals(2, resourceDiff.getLocalSize());
+        assertEquals(2, resourceDiff.getRegistrySize());
 
         final ResourceCacheService.Changes changes1 = resourceDiff.getChangesMap().get(CaName.of(1));
         assertEquals(2, changes1.getAdded());
@@ -195,8 +195,8 @@ public class ResourceCacheServiceTest {
         localResources.put(CaName.of(1), IpResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
 
         final ResourceCacheService.ResourceDiffStat resourceDiff = resourcesDiff(registryResources, localResources);
-        assertEquals(1, resourceDiff.getLocalSize());
-        assertEquals(1, resourceDiff.getRegistrySize());
+        assertEquals(2, resourceDiff.getLocalSize());
+        assertEquals(2, resourceDiff.getRegistrySize());
 
         final ResourceCacheService.Changes changes1 = resourceDiff.getChangesMap().get(CaName.of(1));
         assertEquals(0, changes1.getAdded());
@@ -212,8 +212,8 @@ public class ResourceCacheServiceTest {
         localResources.put(CaName.of(1), IpResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
 
         final ResourceCacheService.ResourceDiffStat resourceDiff = resourcesDiff(registryResources, localResources);
-        assertEquals(1, resourceDiff.getLocalSize());
-        assertEquals(1, resourceDiff.getRegistrySize());
+        assertEquals(2, resourceDiff.getLocalSize());
+        assertEquals(2, resourceDiff.getRegistrySize());
 
         final ResourceCacheService.Changes changes1 = resourceDiff.getChangesMap().get(CaName.of(1));
         assertEquals(0, changes1.getAdded());

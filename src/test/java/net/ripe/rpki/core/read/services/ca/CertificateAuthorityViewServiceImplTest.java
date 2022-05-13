@@ -2,6 +2,7 @@ package net.ripe.rpki.core.read.services.ca;
 
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
+import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -31,9 +32,9 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
     }
 
     @Test
-    public void findAllHostedCasWithOldKeyPairs() {
+    public void findAllHostedCasWithCurrentKeyOnlyAndOlderThan() {
         final Instant oldestCreationTime = Instant.now().minus(Duration.standardDays(10));
-        assertThat(subject.findAllHostedCasWithKeyPairsOlderThan(oldestCreationTime, Optional.of(1000))).isEmpty();
+        assertThat(subject.findAllHostedCasWithCurrentKeyOnlyAndOlderThan(HostedCertificateAuthority.class, oldestCreationTime, Optional.of(1000))).isEmpty();
     }
 
     @Test

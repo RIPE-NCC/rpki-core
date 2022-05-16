@@ -1,3 +1,3 @@
 ext {
-    rpki_commons_version = '1.29'
+    rpki_commons_version = '1.30'
 }

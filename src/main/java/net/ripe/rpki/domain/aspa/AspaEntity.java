@@ -1,13 +1,11 @@
-package net.ripe.rpki.domain.roa;
+package net.ripe.rpki.domain.aspa;
 
 import lombok.Getter;
-import net.ripe.ipresource.Asn;
-import net.ripe.rpki.commons.crypto.cms.roa.RoaCms;
-import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsParser;
+import net.ripe.rpki.commons.crypto.cms.aspa.AspaCms;
+import net.ripe.rpki.commons.crypto.cms.aspa.AspaCmsParser;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.PublishedObject;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
-import net.ripe.rpki.server.api.dto.RoaEntityData;
 import org.apache.commons.lang.Validate;
 
 import javax.persistence.CascadeType;
@@ -22,19 +20,13 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 import java.net.URI;
 
-/**
- * Entity for managing generated and published ROAs. ROAs are generated and
- * published based on a CA's ROA specifications and the CA's incoming
- * certificates. Whenever this configuration changes ROAs may need to be
- * generated, replaced, or removed.
- */
 @Entity
-@Table(name = "roaentity")
-@SequenceGenerator(name = "seq_roaentity", sequenceName = "seq_all", allocationSize=1)
-public class RoaEntity extends EntitySupport {
+@Table(name = "aspaentity")
+@SequenceGenerator(name = "seq_aspaentity", sequenceName = "seq_all", allocationSize=1)
+public class AspaEntity extends EntitySupport {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_roaentity")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_aspaentity")
     @Getter
     private Long id;
 
@@ -47,32 +39,28 @@ public class RoaEntity extends EntitySupport {
     @Getter
     private PublishedObject publishedObject;
 
-    public RoaEntity() {
+    public AspaEntity() {
     }
 
-    public RoaEntity(OutgoingResourceCertificate eeCertificate, RoaCms roaCms, String filename, URI directory) {
+    public AspaEntity(OutgoingResourceCertificate eeCertificate, AspaCms aspaCms, String filename, URI directory) {
         super();
         Validate.notNull(eeCertificate);
-        Validate.notNull(roaCms);
+        Validate.notNull(aspaCms);
         this.certificate = eeCertificate;
         this.publishedObject = new PublishedObject(
-                eeCertificate.getSigningKeyPair(), filename, roaCms.getEncoded(), true, directory, roaCms.getValidityPeriod());
+                eeCertificate.getSigningKeyPair(), filename, aspaCms.getEncoded(), true, directory, aspaCms.getValidityPeriod());
     }
 
     @Transient
-    private RoaCms cms;
+    private AspaCms cms;
 
-    public synchronized RoaCms getRoaCms() {
+    public synchronized AspaCms getAspaCms() {
         if (cms == null) {
-            final RoaCmsParser parser = new RoaCmsParser();
-            parser.parse("roa", publishedObject.getContent());
-            cms = parser.getRoaCms();
+            final AspaCmsParser parser = new AspaCmsParser();
+            parser.parse("asa", publishedObject.getContent());
+            cms = parser.getAspa();
         }
         return cms;
-    }
-
-    public Asn getAsn() {
-        return getRoaCms().getAsn();
     }
 
     public boolean isRevoked() {
@@ -90,9 +78,5 @@ public class RoaEntity extends EntitySupport {
 
     public void withdraw() {
         publishedObject.withdraw();
-    }
-
-    public RoaEntityData toData() {
-        return new RoaEntityData(getRoaCms(), getId(), getCertificate().getId(), publishedObject.getFilename());
     }
 }

@@ -16,12 +16,15 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import javax.persistence.OptimisticLockException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup.USER;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -32,6 +35,7 @@ public class CommandServiceImplTest {
     private CertificateAuthorityCommand command;
 
     private CommandServiceImpl subject;
+    private SimpleMeterRegistry meterRegistry;
 
     @Before
     public void setUp() {
@@ -46,9 +50,8 @@ public class CommandServiceImplTest {
             }
         };
 
-        subject = new CommandServiceImpl();
-        subject.setCommandDispatcher(messageDispatcher);
-        subject.setTransactionTemplate(transactionTemplate);
+        meterRegistry = new SimpleMeterRegistry();
+        subject = new CommandServiceImpl(messageDispatcher, transactionTemplate, null, null, meterRegistry);
     }
 
     @Test
@@ -208,4 +211,23 @@ public class CommandServiceImplTest {
         }
     }
 
+    @Test
+    public void should_retry_transaction_on_locking_exception() {
+        AtomicInteger count = new AtomicInteger(0);
+        doAnswer((invocation) -> {
+            count.incrementAndGet();
+            throw new OptimisticLockException("test exception");
+        }).when(messageDispatcher).dispatch(eq(command), any(CommandStatus.class));
+
+        assertThatThrownBy(() -> subject.execute(command)).isInstanceOf(OptimisticLockException.class);
+
+        assertThat(count.get()).isEqualTo(3);
+    }
+
+    @Test
+    public void should_measure_command_execution_duration() {
+        subject.execute(command);
+
+        assertThat(meterRegistry.get("rpkicore.command.execution.duration").timer()).isNotNull();
+    }
 }

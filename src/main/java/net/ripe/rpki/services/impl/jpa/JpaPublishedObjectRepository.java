@@ -24,7 +24,11 @@ public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject>
 
     @Override
     public List<PublishedObject> findActiveManifestEntries(KeyPairEntity keyPair) {
-        return manager.createQuery("select po from PublishedObject po where po.issuingKeyPair.id = :keyPair and po.status in :active and po.includedInManifest = true order by po.id asc",
+        return manager.createQuery("select po from PublishedObject po " +
+                "where po.issuingKeyPair.id = :keyPair " +
+                "and po.status in :active " +
+                "and po.includedInManifest = true " +
+                "order by po.id asc",
             PublishedObject.class)
             .setParameter("keyPair", keyPair.getId())
             .setParameter("active", PublicationStatus.ACTIVE_STATUSES)

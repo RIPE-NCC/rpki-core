@@ -95,3 +95,6 @@ non-hosted:
       enabled: true
       url: "https://rfc8181.publication-service.rpki.prepdev.ripe.net/"
       token: "krill-dev-token"
+
+
+aspa.feature.enabled: true

@@ -40,16 +40,4 @@ public class JpaRoaEntityRepository extends JpaRepository<RoaEntity> implements 
                 .setParameter("keyPair", certificateSigningKeyPair.getId())
                 .executeUpdate();
     }
-
-    @Override
-    public RoaEntity findByCertificateId(long certificateId) {
-        try {
-            Query query = createQuery("from RoaEntity re where re.certificate.id = :id");
-            query.setParameter("id", certificateId);
-            return (RoaEntity) query.getSingleResult();
-        } catch (NoResultException e) {
-            return null;
-        }
-    }
-
 }

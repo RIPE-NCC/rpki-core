@@ -1,5 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
@@ -17,7 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -69,9 +71,10 @@ public class MessageDispatcherTest {
     @Test
     public void shouldSortHandlers() {
         ApplicationContext applicationContext = mock(ApplicationContext.class);
+        MeterRegistry registry = new SimpleMeterRegistry();
         MessageDispatcher subject = new MessageDispatcher();
         subject.setApplicationContext(applicationContext);
-        subject.setMetrics(new CommandHandlerMetrics(new SimpleMeterRegistry()));
+        subject.setMetrics(new CommandHandlerMetrics(registry));
 
         Map<String, Object> beans = new HashMap<>();
 
@@ -94,5 +97,10 @@ public class MessageDispatcherTest {
         assertEquals("Concurrency", executedHandlers.get(0));
         assertEquals("Rollover", executedHandlers.get(1));
         assertEquals("Persistence", executedHandlers.get(2));
+
+        // 3 handlers, with {noop, success, failure} each
+        assertThat(registry.find("rpkicore.commandhandler.call").counters()).asList().hasSize(9);
+        // with a timer per handler
+        assertThat(registry.find("rpkicore.commandhandler.duration").timers()).asList().hasSize(3);
     }
 }

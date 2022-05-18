@@ -36,6 +36,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Repository(value = "jpaCertificateAuthorityRepository")
 public class JpaCertificateAuthorityRepository extends JpaRepository<CertificateAuthority> implements CertificateAuthorityRepository {
@@ -138,25 +139,22 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
 
     @Override
     public Collection<CaStat> getCAStats() {
-        final Query q = manager.createNativeQuery("SELECT " +
+        final Stream<Object[]> rowStream = manager.createNativeQuery("SELECT " +
                 "ca.name, " +
                 "count(rp.*), " +
                 "ca.created_at " +
                 "FROM certificateauthority ca " +
-                "INNER JOIN roaconfiguration r ON r.certificateauthority_id = ca.id " +
-                "LEFT  JOIN roaconfiguration_prefixes rp ON rp.roaconfiguration_id = r.id " +
-                "GROUP BY ca.name, ca.created_at");
+                "LEFT JOIN roaconfiguration r ON r.certificateauthority_id = ca.id " +
+                "LEFT JOIN roaconfiguration_prefixes rp ON rp.roaconfiguration_id = r.id " +
+                "GROUP BY ca.name, ca.created_at"
+        ).getResultStream();
 
-        final List<?> resultList = q.getResultList();
-        final List<CaStat> result = new ArrayList<>();
-        for (Object r : resultList) {
-            Object[] columns = (Object[]) r;
-            String caName = toStr(columns[0]);
-            int roaCount = toInt(columns[1]);
-            Date createdAt = (Date) columns[2];
-            result.add(new CaStat(caName, roaCount, ISO_DATE_FORMAT.print(new DateTime(createdAt))));
-        }
-        return result;
+        return rowStream.map(row -> {
+            String caName = toStr(row[0]);
+            int roaCount = toInt(row[1]);
+            Date createdAt = (Date) row[2];
+            return new CaStat(caName, roaCount, ISO_DATE_FORMAT.print(new DateTime(createdAt)));
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -284,7 +282,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
             .setParameter("notValidAfterCutoff", notValidAfterCutoff)
             .setMaxResults(maxResult)
             .getResultStream()
-            .map((row) -> (HostedCertificateAuthority) row[0])
+            .map(row -> (HostedCertificateAuthority) row[0])
             .collect(Collectors.toList());
     }
 

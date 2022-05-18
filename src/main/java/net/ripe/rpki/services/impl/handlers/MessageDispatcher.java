@@ -51,14 +51,15 @@ public class MessageDispatcher {
         handlers.stream()
                 .filter(handler -> handler.commandType().isInstance(command))
                 .forEach(handler -> {
+                    final CommandHandlerMetrics.Metrics sample = metrics.track(handler);
                     try {
-                        handler.handle(command, commandStatus);
-                        metrics.track(handler).success();
+                        sample.record(() -> handler.handle(command, commandStatus));
+                        sample.success();
                     } catch (CommandWithoutEffectException e) {
-                        metrics.track(handler).noEffect();
+                        sample.noEffect();
                         throw e;
                     } catch (Exception e) {
-                        metrics.track(handler).failure();
+                        sample.failure();
                         throw e;
                     }
                 });

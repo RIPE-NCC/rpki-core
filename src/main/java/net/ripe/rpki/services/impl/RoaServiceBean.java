@@ -27,7 +27,6 @@ public class RoaServiceBean implements RoaViewService {
 
     private RoaEntityRepository roaEntityRepository;
 
-
     public RoaServiceBean(CertificateAuthorityRepository caRepository,
                           RoaConfigurationRepository roaConfigurationRepository,
                           RoaEntityRepository roaEntityRepository) {

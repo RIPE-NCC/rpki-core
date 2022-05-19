@@ -93,7 +93,7 @@ non-hosted:
   publisher:
     repository:
       enabled: true
-      url: "https://rfc8181.publication-service.rpki.prepdev.ripe.net/"
+      url: "https://internal.paas.rpki.prepdev.ripe.net/"
       token: "krill-dev-token"
 
 

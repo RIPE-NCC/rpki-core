@@ -213,6 +213,8 @@ public class CommandServiceImplTest {
 
     @Test
     public void should_retry_transaction_on_locking_exception() {
+        assertThat(meterRegistry.get("rpkicore.command.transaction.retries").counter().count()).isEqualTo(0);
+
         AtomicInteger count = new AtomicInteger(0);
         doAnswer((invocation) -> {
             count.incrementAndGet();
@@ -222,6 +224,23 @@ public class CommandServiceImplTest {
         assertThatThrownBy(() -> subject.execute(command)).isInstanceOf(OptimisticLockException.class);
 
         assertThat(count.get()).isEqualTo(3);
+        // one regular execution, two retries.
+        assertThat(meterRegistry.get("rpkicore.command.transaction.retries").counter().count()).isEqualTo(2);
+    }
+
+    @Test
+    public void should_retry_on_transaction_exception_only() {
+        AtomicInteger count = new AtomicInteger(0);
+        doAnswer((invocation) -> {
+            count.incrementAndGet();
+            throw new IllegalStateException("test exception");
+        }).when(messageDispatcher).dispatch(eq(command), any(CommandStatus.class));
+
+        assertThatThrownBy(() -> subject.execute(command)).isInstanceOf(IllegalStateException.class);
+
+        // no retries
+        assertThat(count.get()).isEqualTo(1);
+        assertThat(meterRegistry.get("rpkicore.command.transaction.retries").counter().count()).isZero();
     }
 
     @Test

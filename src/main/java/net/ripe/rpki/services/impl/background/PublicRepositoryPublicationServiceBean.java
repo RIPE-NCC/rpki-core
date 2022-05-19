@@ -131,7 +131,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
             // Associate with JPA session
             ca = entityManager.merge(ca);
 
-            entityManager.lock(ca, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
+            entityManager.lock(ca, LockModeType.PESSIMISTIC_WRITE);
             roaEntityService.updateRoasIfNeeded(ca);
             updateCountTotal += certificateManagementService.updateManifestAndCrlIfNeeded(ca);
             // The manifest and CRL are now up-to-date and the CA is locked, so we clear the check needed flag.

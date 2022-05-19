@@ -39,7 +39,7 @@ dependencies {
     }
     implementation 'org.flywaydb:flyway-core'
 
-    implementation platform('io.sentry:sentry-bom:5.7.3')
+    implementation platform('io.sentry:sentry-bom:5.7.4')
     implementation 'io.sentry:sentry-spring-boot-starter'
     implementation 'io.sentry:sentry-logback'
 

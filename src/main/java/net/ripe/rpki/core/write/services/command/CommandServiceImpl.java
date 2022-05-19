@@ -1,6 +1,7 @@
 package net.ripe.rpki.core.write.services.command;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ public class CommandServiceImpl implements CommandService {
 
     private final MeterRegistry meterRegistry;
     private final Map<Class<?>, Timer> commandExecutionTimers = new ConcurrentHashMap<>();
+    private final Counter commandRetryCounter;
 
     @Inject
     public CommandServiceImpl(
@@ -61,6 +63,11 @@ public class CommandServiceImpl implements CommandService {
         this.entityManager = entityManager;
 
         this.meterRegistry = meterRegistry;
+
+        this.commandRetryCounter = Counter.builder("rpkicore.command.transaction.retries")
+                .description("Number of retries for commands because of transaction failures.")
+                .baseUnit("total")
+                .register(meterRegistry);
     }
 
     @Override
@@ -97,6 +104,7 @@ public class CommandServiceImpl implements CommandService {
                     log.warn("Error processing command after {} tries: {}", retryCount, command, e);
                     throw e;
                 } else {
+                    commandRetryCounter.increment();
                     log.info("Command failed with possibly transient locking exception {}, retry {}: {}", e.getClass().getName(), retryCount, command);
                     sleepUninterruptibly((100 + (long) (Math.random() * 100) << retryCount), TimeUnit.MILLISECONDS);
                 }
@@ -105,7 +113,7 @@ public class CommandServiceImpl implements CommandService {
     }
 
     private CommandStatus executeTimedCommand(CertificateAuthorityCommand command) {
-        Timer timer = commandExecutionTimers.computeIfAbsent(command.getClass(), (clazz) ->
+        Timer timer = commandExecutionTimers.computeIfAbsent(command.getClass(), clazz ->
             Timer.builder("rpkicore.command.execution.duration")
                 .description("execution duration of command")
                 .tag("command", clazz.getSimpleName())
@@ -118,7 +126,7 @@ public class CommandServiceImpl implements CommandService {
 
     private CommandStatus executeCommand(CertificateAuthorityCommand command) {
         final CommandStatus commandStatus = new CommandStatus();
-        transactionTemplate.executeWithoutResult((status) -> {
+        transactionTemplate.executeWithoutResult(status -> {
             try {
                 commandStatus.setTransactionStatus(status);
                 commandDispatcher.dispatch(command, commandStatus);

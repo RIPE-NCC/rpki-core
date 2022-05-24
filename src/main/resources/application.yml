@@ -21,7 +21,7 @@ spring:
         username: certdb
         hikari.maximum-pool-size: 90
     jpa:
-        database-platform: org.hibernate.dialect.PostgreSQLDialect
+        database-platform: org.hibernate.dialect.PostgreSQL10Dialect
         generate-ddl: false
         hibernate.ddl-auto: validate
         open-in-view: false

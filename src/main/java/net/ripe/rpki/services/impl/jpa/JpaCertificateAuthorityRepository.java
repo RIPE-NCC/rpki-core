@@ -26,6 +26,7 @@ import javax.persistence.EntityNotFoundException;
 import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 import javax.security.auth.x500.X500Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Repository(value = "jpaCertificateAuthorityRepository")
+@SuppressWarnings("java:S1192")
 public class JpaCertificateAuthorityRepository extends JpaRepository<CertificateAuthority> implements CertificateAuthorityRepository {
 
     private static final DateTimeFormatter ISO_DATE_FORMAT = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
@@ -260,6 +262,16 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
             .setParameter("pending", PublicationStatus.PENDING_STATUSES)
             .setParameter("nextUpdateCutoff", nextUpdateCutoff)
             .getResultList();
+    }
+
+    @Override
+    public TypedQuery<HostedCertificateAuthority> findAllWithManifestAndCrlCheckNeeded() {
+        return manager.createQuery(
+                "SELECT ca " +
+                    "  FROM HostedCertificateAuthority ca" +
+                    // Certificate authority configuration was updated since last check, so publish might be needed
+                    " WHERE ca.manifestAndCrlCheckNeeded = TRUE",
+                HostedCertificateAuthority.class);
     }
 
     @Override

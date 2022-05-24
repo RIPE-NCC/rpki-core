@@ -11,14 +11,17 @@ import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.domain.alerts.RoaAlertConfiguration;
 import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
+import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.domain.crl.CrlEntity;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
+import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.domain.manifest.ManifestEntityRepository;
 import net.ripe.rpki.domain.roa.RoaEntity;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
+import net.ripe.rpki.util.DBComponent;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
@@ -30,37 +33,36 @@ import java.util.List;
 public class DeleteCertificateAuthorityService {
 
     private final CertificateAuthorityRepository caRepository;
-    private final RoaEntityRepository roaEntityRepository;
-    private final ManifestEntityRepository manifestEntityRepository;
-    private final CrlEntityRepository crlEntityRepository;
     private final CommandAuditService commandAuditService;
     private final ResourceCertificateRepository resourceCertificateRepository;
     private final PublishedObjectRepository publishedObjectRepository;
     private final RoaAlertConfigurationRepository roaAlertConfigurationRepository;
+    private final KeyPairDeletionService keyPairDeletionService;
+    private final DBComponent dbComponent;
 
     @Inject
     public DeleteCertificateAuthorityService(CertificateAuthorityRepository caRepository,
-                                             RoaEntityRepository roaEntityRepository,
-                                             ManifestEntityRepository manifestEntityRepository,
-                                             CrlEntityRepository crlEntityRepository,
+                                             KeyPairDeletionService keyPairDeletionService,
                                              CommandAuditService commandAuditService,
                                              ResourceCertificateRepository resourceCertificateRepository,
                                              PublishedObjectRepository publishedObjectRepository,
-                                             RoaAlertConfigurationRepository roaAlertConfigurationRepository
+                                             RoaAlertConfigurationRepository roaAlertConfigurationRepository,
+                                             DBComponent dbComponent
     ) {
         this.caRepository = caRepository;
-        this.roaEntityRepository = roaEntityRepository;
-        this.manifestEntityRepository = manifestEntityRepository;
-        this.crlEntityRepository = crlEntityRepository;
+        this.keyPairDeletionService = keyPairDeletionService;
         this.commandAuditService = commandAuditService;
         this.resourceCertificateRepository = resourceCertificateRepository;
         this.publishedObjectRepository = publishedObjectRepository;
         this.roaAlertConfigurationRepository = roaAlertConfigurationRepository;
+        this.dbComponent = dbComponent;
     }
 
     public void deleteNonHosted(long id) {
         final NonHostedCertificateAuthority nonHostedCa = caRepository.findNonHostedCa(id);
         if (nonHostedCa != null) {
+            dbComponent.lockAndRefresh(nonHostedCa.getParent());
+
             for (PublicKeyEntity publicKey : nonHostedCa.getPublicKeys()) {
                 CertificateRevocationRequest certificateRevocationRequest = new CertificateRevocationRequest(publicKey.getPublicKey());
                 nonHostedCa.getParent().processCertificateRevocationRequest(certificateRevocationRequest, resourceCertificateRepository);
@@ -74,10 +76,11 @@ public class DeleteCertificateAuthorityService {
     public void deleteCa(long id) {
         final HostedCertificateAuthority hostedCa = caRepository.findHostedCa(id);
         if (hostedCa != null) {
-
             log.warn("Deleting hosted CA with id " + id);
 
-            hostedCa.getKeyPairs().forEach(this::deleteArtifactsOfKeyPairEntity);
+            dbComponent.lockAndRefresh(hostedCa.getParent());
+
+            hostedCa.getKeyPairs().forEach(keyPair -> deleteArtifactsOfKeyPairEntity(hostedCa, keyPair));
 
             commandAuditService.deleteCommandsForCa(hostedCa.getId());
 
@@ -95,33 +98,9 @@ public class DeleteCertificateAuthorityService {
         }
     }
 
-    private void deleteArtifactsOfKeyPairEntity(KeyPairEntity keyPair) {
-        publishedObjectRepository.withdrawAllForDeletedKeyPair(keyPair);
-
-        final List<RoaEntity> roas = roaEntityRepository.findByCertificateSigningKeyPair(keyPair);
-        for (RoaEntity roa : roas) {
-            roaEntityRepository.remove(roa);
-        }
-
-        final ManifestEntity mft = manifestEntityRepository.findByKeyPairEntity(keyPair);
-        if (mft != null) {
-            manifestEntityRepository.remove(mft);
-        }
-
-        final CrlEntity crl = crlEntityRepository.findByKeyPair(keyPair);
-        if (crl != null) {
-            crlEntityRepository.remove(crl);
-        }
-
-        for (final OutgoingResourceCertificate outgoingCert : resourceCertificateRepository.findCurrentCertificatesBySubjectPublicKey(keyPair.getPublicKey())) {
-            outgoingCert.revoke();
-        }
-
-        final Collection<OutgoingResourceCertificate> resourceCertificates = resourceCertificateRepository.findAllBySigningKeyPair(keyPair);
-        for (final OutgoingResourceCertificate resourceCertificate : resourceCertificates) {
-            resourceCertificateRepository.remove(resourceCertificate);
-        }
-
-        keyPair.deleteIncomingResourceCertificate();
+    private void deleteArtifactsOfKeyPairEntity(HostedCertificateAuthority ca, KeyPairEntity keyPair) {
+        CertificateRevocationRequest certificateRevocationRequest = new CertificateRevocationRequest(keyPair.getPublicKey());
+        CertificateRevocationResponse certificateRevocationResponse = ca.getParent().processCertificateRevocationRequest(certificateRevocationRequest, resourceCertificateRepository);
+        ca.processCertificateRevocationResponse(certificateRevocationResponse, publishedObjectRepository, keyPairDeletionService);
     }
 }

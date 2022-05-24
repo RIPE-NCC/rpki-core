@@ -92,4 +92,17 @@ public abstract class CertificateAuthority extends AggregateRoot implements Chil
     public boolean isAllResourcesCa() {
         return getType().equals(CertificateAuthorityType.ALL_RESOURCES);
     }
+
+    /**
+     * Calculates the depth of this CA in the CA hierarchy (in other words, it is the length of the parent
+     * chain).
+     * @return the depth of this CA in the CA hierarchy. The ALL_RESOURCES CA is at depth 0, ROOT at 1, etc.
+     */
+    public int depth() {
+        int depth = 0;
+        for (ParentCertificateAuthority parent = this.parent; parent != null; parent = parent.getParent()) {
+            depth++;
+        }
+        return depth;
+    }
 }

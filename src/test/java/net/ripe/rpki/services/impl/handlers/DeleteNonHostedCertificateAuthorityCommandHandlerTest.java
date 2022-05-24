@@ -10,6 +10,7 @@ import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.services.impl.DeleteCertificateAuthorityService;
+import net.ripe.rpki.util.MemoryDBComponent;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,7 +42,7 @@ public class DeleteNonHostedCertificateAuthorityCommandHandlerTest {
 
     @Before
     public void setup() throws Exception {
-        commandHandler = new DeleteNonHostedCertificateAuthorityCommandHandler(certificateAuthorityRepository, new DeleteCertificateAuthorityService(certificateAuthorityRepository, null, null, null, null, null, null, null));
+        commandHandler = new DeleteNonHostedCertificateAuthorityCommandHandler(certificateAuthorityRepository, new DeleteCertificateAuthorityService(certificateAuthorityRepository, null, null, null, null, null, new MemoryDBComponent()));
         nonHostedCertificateAuthority = getNonHostedCertificateAuthority();
 
         when(certificateAuthorityRepository.findNonHostedCa(NON_HOSTED_CA_ID)).thenReturn(nonHostedCertificateAuthority);

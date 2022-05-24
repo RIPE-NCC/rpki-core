@@ -7,7 +7,6 @@ import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.NonHostedPublisherRepository;
-import net.ripe.rpki.domain.ParentCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningAuditLogService;
@@ -169,13 +168,7 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
             .setParameter("pending", KeyPairStatus.PENDING)
             .getResultStream();
         return certificateAuthorities
-            .sorted(Comparator.comparingInt(ca -> {
-                int depth = 0;
-                for (ParentCertificateAuthority parent = ca.getParent(); parent != null; parent = parent.getParent()) {
-                    depth++;
-                }
-                return depth;
-            }))
+            .sorted(Comparator.comparingInt(CertificateAuthority::depth))
             .map(HostedCertificateAuthority::toData)
             .collect(Collectors.toList());
     }

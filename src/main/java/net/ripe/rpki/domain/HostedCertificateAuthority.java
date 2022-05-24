@@ -331,6 +331,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
         if (count >= issuedCertificatesPerSignedKeyLimit) {
             throw new CertificationResourceLimitExceededException("number of issued certificates for public key exceeds the limit (" + count + " >= " + issuedCertificatesPerSignedKeyLimit + ")");
         }
+        this.manifestAndCrlCheckNeeded = true;
         return getCurrentKeyPair().processCertificateIssuanceRequest(requestingCa, request, dbComponent.nextSerial(this), resourceCertificateRepository);
     }
 
@@ -385,7 +386,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
                 pkp.activate();
                 EVENTS.publish(this, new KeyPairActivatedEvent(getVersionedId(), pkp.getName()));
                 anyKeysActivated.set(true);
-
+                this.manifestAndCrlCheckNeeded = true;
             });
         return anyKeysActivated.get();
     }
@@ -410,6 +411,8 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
             keyPair.revoke(publishedObjectRepository);
 
             keyPairDeletionService.deleteRevokedKeysFromResponses(this, Collections.singletonList(response));
+
+            this.manifestAndCrlCheckNeeded = true;
         });
     }
 
@@ -439,6 +442,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     public CertificateRevocationResponse processCertificateRevocationRequest(CertificateRevocationRequest request,
                                                                              ResourceCertificateRepository resourceCertificateRepository) {
         Validate.isTrue(hasCurrentKeyPair(), "Must have current key pair to revoke child certificates");
+        this.manifestAndCrlCheckNeeded = true;
         return getCurrentKeyPair().processCertificateRevocationRequest(request, resourceCertificateRepository);
     }
 

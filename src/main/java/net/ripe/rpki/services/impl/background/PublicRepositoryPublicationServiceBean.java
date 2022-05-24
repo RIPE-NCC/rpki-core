@@ -3,13 +3,12 @@ package net.ripe.rpki.services.impl.background;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.rpki.commons.util.UTC;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
+import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
-import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
@@ -23,7 +22,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
-import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +37,20 @@ import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_R
 @Service(PUBLIC_REPOSITORY_PUBLICATION_SERVICE)
 @Slf4j
 public class PublicRepositoryPublicationServiceBean extends SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode {
+
+    /**
+     * The maximum number of CAs to update the manifest and CRL for. If there are more than this number of CAs
+     * that need a check they will be picked up during the next run or processed by the
+     * {@link ManifestCrlUpdateServiceBean}.
+     */
+    public static final int MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE = 50;
+
+    /**
+     * The maximum time this service should lock certificate authorities while checking for manifest/CRL update.
+     * If there are more CAs that need a check they will be picked up during the next run or processed by the
+     * {@link ManifestCrlUpdateServiceBean}.
+     */
+    public static final Duration MAX_UPDATE_DURATION = Duration.standardSeconds(5);
 
     private final CertificateAuthorityRepository certificateAuthorityRepository;
     private final CertificateManagementService certificateManagementService;
@@ -99,52 +112,39 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
     }
 
     private void runTransaction() {
-        Collection<HostedCertificateAuthority> pendingCertificateAuthorities = certificateAuthorityRepository.findAllWithOutdatedManifests(
-            UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_HARD_LIMIT)
-        );
+        // List of certificate authorities that may need a new manifest/CRL. Children are sorted before parents
+        // to ensure proper locking order (command handlers always lock the child CA before the parent CA). This
+        // reduces the chance of deadlock or a serializable transaction rollback error.
+        List<HostedCertificateAuthority> pendingCertificateAuthorities =
+            certificateAuthorityRepository.findAllWithManifestAndCrlCheckNeeded()
+                .setMaxResults(MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE)
+                .getResultStream()
+                .sorted(Comparator.comparingInt(CertificateAuthority::depth).reversed())
+                .collect(Collectors.toList());
 
         certificateAuthorityCounter.increment(pendingCertificateAuthorities.size());
-        log.info("Checking {} CAs for manifest updates with publishable objects", pendingCertificateAuthorities.size());
 
-        // When batch processing many JPA entities we need to keep the JPA session small. Otherwise checking
-        // for modified objects before every JPA query becomes very slow (quadratic behavior as the session
-        // grows in size). Not doing this can increase the runtime of this services to many hours!
-        entityManager.clear();
-
-        List<HostedCertificateAuthority> casWithoutOutdatedManifest = pendingCertificateAuthorities.stream().filter(ca -> {
-            if (ca.isManifestAndCrlCheckNeeded()) {
-                return true;
-            }
-
-            // Associate with JPA session
-            ca = entityManager.merge(ca);
-            boolean result = certificateManagementService.isManifestAndCrlUpdatedNeeded(ca);
-            entityManager.clear();
-            return result;
-        }).collect(Collectors.toList());
-
-        Instant timeout = Instant.now().plus(Duration.standardSeconds(60));
-        log.info("Updating {} CAs with outdated manifest or CRL", casWithoutOutdatedManifest.size());
+        Instant timeout = Instant.now().plus(MAX_UPDATE_DURATION);
+        log.info("Updating {} CAs with outdated manifest or CRL", pendingCertificateAuthorities.size());
 
         long updateCountTotal = 0;
-        for (HostedCertificateAuthority ca : casWithoutOutdatedManifest) {
-            // Associate with JPA session
-            ca = entityManager.merge(ca);
-
+        for (HostedCertificateAuthority ca : pendingCertificateAuthorities) {
             entityManager.lock(ca, LockModeType.PESSIMISTIC_WRITE);
             roaEntityService.updateRoasIfNeeded(ca);
             updateCountTotal += certificateManagementService.updateManifestAndCrlIfNeeded(ca);
             // The manifest and CRL are now up-to-date and the CA is locked, so we clear the check needed flag.
             ca.manifestAndCrlCheckCompleted();
 
-            entityManager.flush();
-            entityManager.clear();
-
             if (timeout.isBeforeNow()) {
                 // Process is taking too long, commit current results and wait for next run to process further CAs.
                 log.info("Updated {} manifests before running out of time, continuing during next run", updateCountTotal);
                 return;
             }
+        }
+
+        if (!certificateAuthorityRepository.findAllWithManifestAndCrlCheckNeeded().setMaxResults(1).getResultList().isEmpty()) {
+            log.info("Not all certificate authorities are ready for publication, continuing during next run");
+            return;
         }
 
         // Atomically mark the new set of objects that are publishable.

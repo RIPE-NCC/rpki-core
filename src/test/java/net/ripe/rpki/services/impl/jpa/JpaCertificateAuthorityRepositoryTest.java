@@ -26,6 +26,11 @@ public class JpaCertificateAuthorityRepositoryTest extends CertificationDomainTe
     }
 
     @Test
+    public void findAllWithManifestAndCrlCheckNeeded() {
+        assertThat(certificateAuthorityRepository.findAllWithManifestAndCrlCheckNeeded().getResultList()).isEmpty();
+    }
+
+    @Test
     public void findAllWithPendingPublications() {
         assertThat(certificateAuthorityRepository.findAllWithManifestsExpiringBefore(
             UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT),

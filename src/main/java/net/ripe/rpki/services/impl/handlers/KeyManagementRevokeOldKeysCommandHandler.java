@@ -57,7 +57,7 @@ public class KeyManagementRevokeOldKeysCommandHandler implements CertificateAuth
     @Override
     public void handle(KeyManagementRevokeOldKeysCommand command, CommandStatus commandStatus) {
         HostedCertificateAuthority hostedCa = caRepository.findHostedCa(command.getCertificateAuthorityId());
-        List<CertificateRevocationRequest> requests = hostedCa.requestOldKeysRevocation();
+        List<CertificateRevocationRequest> requests = hostedCa.requestOldKeysRevocation(resourceCertificateRepository);
 
         if (requests.isEmpty()) {
             throw new CommandWithoutEffectException(command);

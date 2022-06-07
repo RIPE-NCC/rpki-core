@@ -5,7 +5,6 @@ import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.PublicKeyEntity;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
@@ -13,20 +12,12 @@ import net.ripe.rpki.domain.alerts.RoaAlertConfiguration;
 import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.audit.CommandAuditService;
-import net.ripe.rpki.domain.crl.CrlEntity;
-import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
-import net.ripe.rpki.domain.manifest.ManifestEntity;
-import net.ripe.rpki.domain.manifest.ManifestEntityRepository;
-import net.ripe.rpki.domain.roa.RoaEntity;
-import net.ripe.rpki.domain.roa.RoaEntityRepository;
 import net.ripe.rpki.util.DBComponent;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
-import java.util.Collection;
-import java.util.List;
 
 @Slf4j
 @Component

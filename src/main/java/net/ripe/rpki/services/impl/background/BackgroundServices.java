@@ -49,6 +49,8 @@ public class BackgroundServices {
     public static final String ROA_ALERT_BACKGROUND_SERVICE = "roaAlertBackgroundServiceDaily";
     public static final String ROA_ALERT_BACKGROUND_SERVICE_WEEKLY = "roaAlertBackgroundServiceWeekly";
 
+    public static final String PUBLISHER_SYNC_SERVICE = "publisherSyncService";
+
     private final ApplicationContext applicationContext;
 
     @Value("${manifest.crl.update.interval.minutes}")

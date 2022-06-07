@@ -81,7 +81,7 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
 
         when(allResourcesCa.getVersionedId()).thenReturn(new VersionedId(acaId));
         when(certificateAuthorityRepository.findHostedCa(acaId)).thenReturn(allResourcesCa);
-        when(allResourcesCa.requestOldKeysRevocation()).thenReturn(new ArrayList<CertificateRevocationRequest>());
+        when(allResourcesCa.requestOldKeysRevocation(any())).thenReturn(new ArrayList<CertificateRevocationRequest>());
 
         KeyManagementRevokeOldKeysCommand command = new KeyManagementRevokeOldKeysCommand(allResourcesCa.getVersionedId());
 
@@ -104,7 +104,7 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
         ArrayList<CertificateRevocationRequest> revocationRequests = new ArrayList<>();
         revocationRequests.add(new CertificateRevocationRequest(publicKey));
 
-        when(allResourcesCa.requestOldKeysRevocation()).thenReturn(revocationRequests);
+        when(allResourcesCa.requestOldKeysRevocation(any())).thenReturn(revocationRequests);
 
         subject.handle(new KeyManagementRevokeOldKeysCommand(allResourcesCa.getVersionedId()), any(CommandStatus.class));
 
@@ -118,7 +118,7 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
         when(certificateAuthorityRepository.findHostedCa(membershipId)).thenReturn(memberCa);
 
         CertificateRevocationRequest request = createRevocationRequest();
-        when(memberCa.requestOldKeysRevocation()).thenReturn(Collections.singletonList(request));
+        when(memberCa.requestOldKeysRevocation(any())).thenReturn(Collections.singletonList(request));
         when(productionCa.processCertificateRevocationRequest(request, resourceCertificateRepository)).thenReturn(response);
 
         subject.handle(new KeyManagementRevokeOldKeysCommand(new VersionedId(membershipId)), any(CommandStatus.class));

@@ -59,6 +59,11 @@ public class InMemoryResourceCertificateRepository extends InMemoryRepository<Re
     }
 
     @Override
+    public boolean existsCurrentOutgoingCertificatesExceptForManifest(KeyPairEntity signingKeyPair) {
+        return false;
+    }
+
+    @Override
     public IpResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName) {
         return new IpResourceSet();
     }

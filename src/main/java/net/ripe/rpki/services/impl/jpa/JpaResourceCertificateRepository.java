@@ -169,6 +169,21 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
     }
 
     @Override
+    public boolean existsCurrentOutgoingCertificatesExceptForManifest(KeyPairEntity signingKeyPair) {
+        return !manager.createQuery("SELECT 1 " +
+                "  FROM OutgoingResourceCertificate rc " +
+                " WHERE rc.signingKeyPair = :signingKeyPair " +
+                "   AND rc.status = :current " +
+                "   AND rc.subject <> rc.issuer " + // Self signed certificates used in tests should be excluded
+                "   AND NOT EXISTS (FROM ManifestEntity mft WHERE mft.certificate = rc)")
+            .setParameter("signingKeyPair", signingKeyPair)
+            .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
+            .setMaxResults(1)
+            .getResultList()
+            .isEmpty();
+    }
+
+    @Override
     public IpResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName) {
         return manager.createQuery(
                 "SELECT rc.resources " +

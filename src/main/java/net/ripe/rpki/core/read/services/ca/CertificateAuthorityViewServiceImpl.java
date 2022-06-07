@@ -1,5 +1,6 @@
 package net.ripe.rpki.core.read.services.ca;
 
+import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthority;
@@ -156,6 +157,12 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
             NonHostedPublisherRepository::getPublisherHandle,
             NonHostedPublisherRepository::getRepositoryResponse
         ));
+    }
+
+    @Override
+    public Map<UUID, PublisherRequest> findAllPublisherRequestsFromNonHostedCAs() {
+        return entityManager.createQuery("from NonHostedPublisherRepository repository", NonHostedPublisherRepository.class).getResultStream()
+                .collect(Collectors.toMap(NonHostedPublisherRepository::getPublisherHandle, NonHostedPublisherRepository::getPublisherRequest));
     }
 
     @Override

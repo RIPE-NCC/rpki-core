@@ -145,12 +145,16 @@ public class ExternalPublishingServerTest {
         when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(clientId))).thenReturn(Mono.just(reply));
         List<PublicationMessage> messages = Stream.of(
             new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx.cer"), new byte[]{1, 2, 3}, Optional.empty()),
+            new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx2.cer"), new byte[]{1, 2, 3, 4}, Optional.empty()),
             new PublicationMessage.WithdrawRequest(new URI("rsync://blabla.com/yyy.cer"), "not important"),
-            new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx.cer"), new byte[]{1, 2, 3}, java.util.Optional.of("aHash"))
+            new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx.roa"), new byte[]{1, 2, 3}, java.util.Optional.of("aHash")),
+            new PublicationMessage.WithdrawRequest(new URI("rsync://blabla.com/zzz.weird-extension"), "not important")
         ).collect(Collectors.toList());
         externalPublishingServer.execute(messages, clientId);
-        assertEquals(2.0, meterRegistry.get("rpkicore.publication.operations").tag("operation", "publish").counter().count(), 0.1);
-        assertEquals(1.0, meterRegistry.get("rpkicore.publication.operations").tag("operation", "withdraw").counter().count(), 0.1);
+        assertEquals(2.0, meterRegistry.get("rpkicore.publication.operations").tag("operation", "publish").tag("type", "cer").counter().count(), 0.1);
+        assertEquals(1.0, meterRegistry.get("rpkicore.publication.operations").tag("operation", "publish").tag("type", "roa").counter().count(), 0.1);
+        assertEquals(1.0, meterRegistry.get("rpkicore.publication.operations").tag("operation", "withdraw").tag("type", "cer").counter().count(), 0.1);
+        assertEquals(1.0, meterRegistry.get("rpkicore.publication.operations").tag("operation", "withdraw").tag("type", "unknown").counter().count(), 0.1);
     }
 
 }

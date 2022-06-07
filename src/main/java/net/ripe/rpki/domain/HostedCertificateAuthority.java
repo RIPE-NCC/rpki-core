@@ -394,9 +394,10 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     /**
      * Let the CA request revocation of any old keys used by any of its resource classes
      */
-    public List<CertificateRevocationRequest> requestOldKeysRevocation() {
+    public List<CertificateRevocationRequest> requestOldKeysRevocation(ResourceCertificateRepository resourceCertificateRepository) {
         return getKeyPairs().stream()
-            .filter(kp -> kp.getStatus() == KeyPairStatus.OLD)
+            .filter(KeyPairEntity::isOld)
+            .filter(kp -> !resourceCertificateRepository.existsCurrentOutgoingCertificatesExceptForManifest(kp))
             .map(kp -> new CertificateRevocationRequest(kp.getPublicKey()))
             .collect(Collectors.toList());
     }

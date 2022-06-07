@@ -2,9 +2,9 @@ package net.ripe.rpki.services.impl.jpa;
 
 import net.ripe.rpki.commons.util.UTC;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
+import net.ripe.rpki.domain.manifest.ManifestEntity;
 import org.junit.Before;
 import org.junit.Test;
-import net.ripe.rpki.domain.manifest.ManifestEntity;
 
 import javax.transaction.Transactional;
 

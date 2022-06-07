@@ -76,6 +76,9 @@ public class SystemStatusPage extends AdminCertificationBasePage {
     @SpringBean(name = "caCleanUpService")
     private BackgroundService caCleanUpService;
 
+    @SpringBean(name = "publisherSyncService")
+    private BackgroundService publisherSyncService;
+
     @SpringBean
     private ActiveNodeService activeNodeService;
 
@@ -173,6 +176,7 @@ public class SystemStatusPage extends AdminCertificationBasePage {
         add(new Label("resourceCacheUpdateServiceStatus", serviceLabel(resourceCacheUpdateService)));
         add(new Label("publishedObjectCleanUpServiceStatus", serviceLabel(publishedObjectCleanUpService)));
         add(new Label("caCleanUpServiceStatus", serviceLabel(caCleanUpService)));
+        add(new Label("publisherSyncServiceStatus", serviceLabel(publisherSyncService)));
 
         addBackgroundServiceExecuteLink("updateManifestLink", manifestCrlUpdateService);
         addBackgroundServiceExecuteLink("updatePublicationStatusLink", publicRepositoryPublicationService);
@@ -189,6 +193,7 @@ public class SystemStatusPage extends AdminCertificationBasePage {
         addBackgroundServiceExecuteLink("updateResourcesLink", allCertificateUpdateService);
         addBackgroundServiceExecuteLink("publishedObjectCleanUpServiceLink", publishedObjectCleanUpService);
         addBackgroundServiceExecuteLink("caCleanUpServiceLink", caCleanUpService);
+        addBackgroundServiceExecuteLink("publisherSyncServiceLink", publisherSyncService);
     }
 
     private String serviceLabel(BackgroundService service) {

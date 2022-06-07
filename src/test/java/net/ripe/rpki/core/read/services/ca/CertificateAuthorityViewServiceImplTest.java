@@ -14,7 +14,6 @@ import javax.inject.Inject;
 import javax.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
-
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,7 +29,10 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
     public void findAllHostedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth() {
         assertThat(subject.findAllHostedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth()).isEmpty();
     }
-
+    @Test
+    public void findAllPublisherRequestsFromNonHostedCAs(){
+        assertThat(subject.findAllPublisherRequestsFromNonHostedCAs()).isEmpty();
+    }
     @Test
     public void findAllHostedCasWithCurrentKeyOnlyAndOlderThan() {
         final Instant oldestCreationTime = Instant.now().minus(Duration.standardDays(10));

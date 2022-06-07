@@ -1,5 +1,6 @@
 package net.ripe.rpki.server.api.services.read;
 
+import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.server.api.dto.CaIdentity;
@@ -72,6 +73,7 @@ public interface CertificateAuthorityViewService {
 
     Map<UUID, RepositoryResponse> findNonHostedPublisherRepositories(X500Principal caName);
 
+    Map<UUID, PublisherRequest> findAllPublisherRequestsFromNonHostedCAs();
     /**
      * @return all subclass instances of {@link net.ripe.rpki.domain.HostedCertificateAuthority HostedCertificateAuthority}
      * that have a pending key, ordered by the depth of the parent CA chain (so the

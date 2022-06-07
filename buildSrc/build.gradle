@@ -10,7 +10,7 @@ repositories {
 
 dependencies {
     implementation 'io.freefair.lombok:io.freefair.lombok.gradle.plugin:6.4.3'
-    implementation('com.gorylenko.gradle-git-properties:com.gorylenko.gradle-git-properties.gradle.plugin:2.4.0') {
+    implementation('com.gorylenko.gradle-git-properties:com.gorylenko.gradle-git-properties.gradle.plugin:2.4.1') {
         exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit'
     }
     implementation 'org.eclipse.jgit:org.eclipse.jgit:5.13.0.202109080827-r'

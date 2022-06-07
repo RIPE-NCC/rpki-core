@@ -1,6 +1,6 @@
 plugins {
     id 'rpki-ripe-ncc.build-conventions'
-    id 'org.springframework.boot' version '2.6.7'
+    id 'org.springframework.boot' version '2.7.0'
     id 'distribution'
     id 'jacoco'
     id "com.google.cloud.tools.jib" version "3.2.1"
@@ -48,7 +48,7 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-ui:1.6.8'
 
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-    runtimeOnly 'org.postgresql:postgresql:42.3.5'
+    runtimeOnly 'org.postgresql:postgresql:42.3.6'
     runtimeOnly 'org.springframework.boot:spring-boot-starter-tomcat'
 
     implementation 'com.google.code.gson:gson:2.9.0'
@@ -57,7 +57,7 @@ dependencies {
     implementation 'commons-io:commons-io:2.11.0'
     implementation 'ch.qos.logback.contrib:logback-json-classic:0.1.5'
     implementation 'ch.qos.logback.contrib:logback-jackson:0.1.5'
-    implementation 'net.logstash.logback:logstash-logback-encoder:6.6'
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.2'
 
     // wicket/admin pages
     implementation 'org.apache.velocity:velocity:1.7'

@@ -157,4 +157,13 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
 
         assertThat(subject.findCurrentOutgoingRpkiObjectCertificateResources(ca.getName())).isEqualTo(PRODUCTION_CA_RESOURCES);
     }
+
+    @Test
+    @Transactional
+    public void existsCurrentOutgoingChildCertificates() {
+        ProductionCertificateAuthority ca = createInitialisedProdOrgCaWithRipeResources(certificateManagementService);
+        entityManager.persist(ca);
+
+        assertThat(subject.existsCurrentOutgoingCertificatesExceptForManifest(ca.getCurrentKeyPair())).isFalse();
+    }
 }

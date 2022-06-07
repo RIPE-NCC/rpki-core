@@ -34,6 +34,8 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
     private BackgroundService publishedObjectCleanUpService;
     private BackgroundService caCleanUpService;
 
+    private BackgroundService publisherSyncService;
+
     private static final String hostname = getHostName();
 
     @Before
@@ -80,6 +82,9 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         caCleanUpService = createMock(BackgroundService.class);
         addBeanToContext("caCleanUpService", caCleanUpService);
 
+        publisherSyncService = createMock(BackgroundService.class);
+        addBeanToContext("publisherSyncService", publisherSyncService);
+
         expect(repositoryConfiguration.getLocalRepositoryDirectory()).andReturn(new File("/tmp")).anyTimes();
         expect(repositoryConfiguration.getPublicRepositoryUri()).andReturn(URI.create("rsync://localhost:873/repo")).anyTimes();
 
@@ -100,6 +105,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         expect(resourceCacheUpdateService.isActive()).andReturn(true).anyTimes();
         expect(publishedObjectCleanUpService.isActive()).andReturn(true).anyTimes();
         expect(caCleanUpService.isActive()).andReturn(true).anyTimes();
+        expect(publisherSyncService.isActive()).andReturn(true).anyTimes();
 
         expect(manifestCrlUpdateService.isRunning()).andReturn(false).anyTimes();
         expect(allCertificateUpdateService.isRunning()).andReturn(false).anyTimes();
@@ -116,6 +122,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         expect(resourceCacheUpdateService.isRunning()).andReturn(false).anyTimes();
         expect(publishedObjectCleanUpService.isRunning()).andReturn(false).anyTimes();
         expect(caCleanUpService.isRunning()).andReturn(false).anyTimes();
+        expect(publisherSyncService.isRunning()).andReturn(false).anyTimes();
 
         expect(manifestCrlUpdateService.isBlocked()).andReturn(false).anyTimes();
         expect(publicRepositoryPublicationService.isBlocked()).andReturn(false).anyTimes();
@@ -132,6 +139,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         expect(resourceCacheUpdateService.isBlocked()).andReturn(false).anyTimes();
         expect(publishedObjectCleanUpService.isBlocked()).andReturn(false).anyTimes();
         expect(caCleanUpService.isBlocked()).andReturn(false).anyTimes();
+        expect(publisherSyncService.isBlocked()).andReturn(false).anyTimes();
 
         expect(manifestCrlUpdateService.getStatus()).andReturn("not running").anyTimes();
         expect(allCertificateUpdateService.getStatus()).andReturn("not running").anyTimes();
@@ -148,6 +156,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         expect(resourceCacheUpdateService.getStatus()).andReturn("not running").anyTimes();
         expect(publishedObjectCleanUpService.getStatus()).andReturn("not running").anyTimes();
         expect(caCleanUpService.getStatus()).andReturn("not running").anyTimes();
+        expect(publisherSyncService.getStatus()).andReturn("not running").anyTimes();
     }
 
     @Test
@@ -296,6 +305,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         replay(resourceCacheUpdateService);
         replay(publishedObjectCleanUpService);
         replay(caCleanUpService);
+        replay(publisherSyncService);
     }
 
     @Override
@@ -315,6 +325,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         verify(resourceCacheUpdateService);
         verify(publishedObjectCleanUpService);
         verify(caCleanUpService);
+        verify(publisherSyncService);
     }
 
     private static String getHostName() {

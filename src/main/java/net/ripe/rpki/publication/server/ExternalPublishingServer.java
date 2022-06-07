@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.publication.api.PublicationMessage;
@@ -33,9 +34,13 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 @Slf4j
 public class ExternalPublishingServer {
@@ -45,6 +50,10 @@ public class ExternalPublishingServer {
     private static final String OP_TAG_NAME_LIST = "list";
     private static final String OP_TAG_NAME_REPORT_ERROR = "report_error";
 
+    private static final String METRIC_TAG_STATUS = "status";
+    private static final String METRIC_TAG_PUBLICATION = "publication";
+    private static final String METRIC_TAG_URI = "uri";
+
     private final PublishingServerClient publishingServerClient;
 
     @Getter
@@ -52,63 +61,75 @@ public class ExternalPublishingServer {
 
     private final Counter rrdpPublicationSuccesses;
     private final Counter rrdpPublicationFailures;
-    private final Counter rrdpPublishes;
-    private final Counter rrdpWithdraws;
     private final Counter rrdpDataSent;
     private final AtomicInteger rrdpParallelPublishes;
     private final Timer successfulPublishTime;
     private final Timer failedPublishTime;
 
+    private final Map<ObjectType, Counter> rrdpPublishMap = new ConcurrentHashMap<>();
+    private final Map<ObjectType, Counter> rrdpWithdrawMap = new ConcurrentHashMap<>();
+
+    private final MeterRegistry meterRegistry;
+
     public ExternalPublishingServer(
         PublishingServerClient publishingServerClient,
         MeterRegistry meterRegistry,
         URI publishingServerUrl) {
+
+        this.meterRegistry = meterRegistry;
         this.publishingServerClient = publishingServerClient;
         this.publishingServerUrl = publishingServerUrl;
 
         rrdpPublicationSuccesses = Counter.builder("rpkicore.publication")
             .description("The number of publication messages successfully sent to RRDP repository")
-            .tag("status", "success")
-            .tag("publication", "rrdp")
-            .tag("uri", publishingServerUrl.toString())
+            .tag(METRIC_TAG_STATUS, "success")
+            .tag(METRIC_TAG_PUBLICATION, "rrdp")
+            .tag(METRIC_TAG_URI, publishingServerUrl.toString())
             .register(meterRegistry);
 
         rrdpPublicationFailures = Counter.builder("rpkicore.publication")
             .description("The number of publication messages failed to be sent to RRDP repository")
-            .tag("status", "failure")
-            .tag("publication", "rrdp")
-            .tag("uri", publishingServerUrl.toString())
-            .register(meterRegistry);
-
-        rrdpPublishes = Counter.builder("rpkicore.publication.operations")
-            .description("The number of publish messages sent to RRDP repository")
-            .tag("publication", "rrdp")
-            .tag("operation", "publish")
-            .tag("uri", publishingServerUrl.toString())
-            .register(meterRegistry);
-        rrdpWithdraws = Counter.builder("rpkicore.publication.operations")
-            .description("The number of withdraw messages sent to RRDP repository")
-            .tag("publication", "rrdp")
-            .tag("operation", "withdraw")
-            .tag("uri", publishingServerUrl.toString())
+            .tag(METRIC_TAG_STATUS, "failure")
+            .tag(METRIC_TAG_PUBLICATION, "rrdp")
+            .tag(METRIC_TAG_URI, publishingServerUrl.toString())
             .register(meterRegistry);
 
         rrdpDataSent = Counter.builder("rpkicore.publication.total.payload.size")
             .description("Amount of data that is sent to the publication server, in bytes")
-            .tag("publication", "rrdp")
-            .tag("uri", publishingServerUrl.toString())
+            .tag(METRIC_TAG_PUBLICATION, "rrdp")
+            .tag(METRIC_TAG_URI, publishingServerUrl.toString())
             .register(meterRegistry);
 
         rrdpParallelPublishes = new AtomicInteger(0);
 
         Gauge.builder("rpkicore.publication.parallel.publications", rrdpParallelPublishes::get)
             .description("Number of parallel publications at the moment")
-            .tag("publication", "rrdp")
-            .tag("uri", publishingServerUrl.toString())
+            .tag(METRIC_TAG_PUBLICATION, "rrdp")
+            .tag(METRIC_TAG_URI, publishingServerUrl.toString())
             .register(meterRegistry);
 
         successfulPublishTime = createTimer(meterRegistry, "success");
         failedPublishTime = createTimer(meterRegistry, "failure");
+    }
+
+    private Counter createWithdrawCounter(MeterRegistry meterRegistry, ObjectType objectType) {
+        return createCounter(meterRegistry, OP_TAG_NAME_WITHDRAW, objectType,
+            "The number of withdraw messages sent to RRDP repository");
+    }
+
+    private Counter createPublishCounter(MeterRegistry meterRegistry, ObjectType objectType) {
+        return createCounter(meterRegistry, OP_TAG_NAME_PUBLISH, objectType,
+            "The number of publish messages sent to RRDP repository");
+    }
+
+    private Counter createCounter(MeterRegistry meterRegistry, String operation, ObjectType objectType, String description) {
+        return Counter.builder("rpkicore.publication.operations")
+            .description(description)
+            .tag(METRIC_TAG_PUBLICATION, "rrdp")
+            .tag("operation", operation)
+            .tag("type", objectType.getFileExtension())
+            .tag("uri", this.publishingServerUrl.toString())
+            .register(meterRegistry);
     }
 
     private static Timer createTimer(MeterRegistry meterRegistry, String status) {
@@ -141,12 +162,12 @@ public class ExternalPublishingServer {
                     publish.hashToReplace.ifPresent(s -> elem.a("hash", s));
                     elem.t(publish.getBase64Content());
                     logMessage.append('\t').append(publish).append('\n');
-                    rrdpPublishes.increment(1);
+                    oneMorePublish(publish.getUri());
                 } else if (publicationMessage instanceof WithdrawRequest) {
                     final WithdrawRequest withdraw = (WithdrawRequest) publicationMessage;
                     xml.e(OP_TAG_NAME_WITHDRAW).a("uri", withdraw.getUri().toString()).a("hash", withdraw.hash);
                     logMessage.append('\t').append(withdraw).append('\n');
-                    rrdpWithdraws.increment(1);
+                    oneMoreWithdraw(withdraw.getUri());
                 } else if (publicationMessage instanceof ListRequest) {
                     xml.e(OP_TAG_NAME_LIST);
                     logMessage.append('\t').append(publicationMessage).append('\n');
@@ -187,6 +208,28 @@ public class ExternalPublishingServer {
             rrdpPublicationFailures.increment(messages.size());
             throw t;
         }
+    }
+
+    private void oneMorePublish(URI uri) {
+        bumpCounter(uri, rrdpPublishMap, objectType -> createPublishCounter(meterRegistry, objectType));
+    }
+
+    private void oneMoreWithdraw(URI uri) {
+        bumpCounter(uri, rrdpWithdrawMap, objectType -> createWithdrawCounter(meterRegistry, objectType));
+    }
+
+    private void bumpCounter(URI uri, Map<ObjectType, Counter> map, Function<ObjectType, Counter> createCounter) {
+        final ObjectType objectType = ObjectType.find(uri.getPath());
+        if (objectType == ObjectType.Unknown) {
+            log.info("Unknown file extension on: {}", uri);
+        }
+        map.compute(objectType, (ot, counter) -> {
+            if (counter == null) {
+                counter = createCounter.apply(objectType);
+            }
+            counter.increment(1);
+            return counter;
+        });
     }
 
     private List<? extends PublicationMessage> incrementCounters(List<? extends PublicationMessage> replies) {
@@ -243,6 +286,27 @@ public class ExternalPublishingServer {
             }
         }
         return replies;
+    }
+
+    @AllArgsConstructor
+    public enum ObjectType {
+        Mft("mft"),
+        Roa("roa"),
+        Cer("cer"),
+        Crl("crl"),
+        Gbr("gbr"),
+        Aspa("asa"),
+        Unknown("unknown");
+
+        @Getter
+        private final String fileExtension;
+
+        public static ObjectType find(String name) {
+            return Arrays.stream(values())
+                .filter(t -> name.endsWith("." + t.getFileExtension()))
+                .findFirst()
+                .orElse(Unknown);
+        }
     }
 
 }

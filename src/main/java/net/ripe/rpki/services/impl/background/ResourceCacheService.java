@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
-import java.util.stream.StreamSupport;
 
 @Slf4j
 @Service
@@ -96,7 +95,7 @@ public class ResourceCacheService {
 
     public void updateFullResourceCache() {
         CacheUpdate update = updateProductionCaCache().chain(this::updateMembersCache);
-        transactionTemplate.executeWithoutResult((status) -> {
+        transactionTemplate.executeWithoutResult(status -> {
             update.run(status);
             if (!status.isRollbackOnly()) {
                 acceptOneRejectedResourceCacheUpdate = false;
@@ -106,15 +105,20 @@ public class ResourceCacheService {
 
     private CacheUpdate updateMembersCache() {
         final Map<CaName, IpResourceSet> registryResources;
+
         try {
             ResourceServicesClient.MemberResources memberResources = resourceServicesClient.fetchAllMemberResources();
             Map<String, Integer> certifiableResourcesCounts = memberResources.getMemberResourcesCounts();
-            log.info("Fetched resources from RSNG");
-            certifiableResourcesCounts.forEach((resource, count) -> log.info("   {} {}", String.format("%-20s:", resource), count));
-            log.info("Fetched resources total: {} ", certifiableResourcesCounts.values().stream().reduce(0, Integer::sum));
             registryResources = memberResources.getCertifiableResources();
-            long certifiableResourcesCount = accumulateResourcesSize(registryResources);
-            log.info("Certifiable resources  : {} ", certifiableResourcesCount);
+            /// Make sure this is in one long line to prevent multiple messages in the logfile, which may be interleaved.
+            if (log.isInfoEnabled()) {
+                final StringBuilder out = new StringBuilder("Fetched resources from RSNG:\n");
+
+                certifiableResourcesCounts.forEach((resource, count) -> out.append(String.format("   %-20s: %d%n", resource, count)));
+                out.append(String.format("Fetched resources total: %d%n", certifiableResourcesCounts.values().stream().reduce(0, Integer::sum)))
+                   .append(String.format("Certifiable resources  : %d", accumulateResourcesSize(registryResources)));
+                log.info(out.toString());
+            }
 
         } catch (Exception e) {
             return new CacheUpdate.Reject(() -> {
@@ -142,7 +146,7 @@ public class ResourceCacheService {
                 );
             }
         });
-        Function<Rejection, CacheUpdate> trackRejected = (x) -> new CacheUpdate.Reject(() -> {
+        Function<Rejection, CacheUpdate> trackRejected = x -> new CacheUpdate.Reject(() -> {
             // update the resource diff, but keep the old time
             resourceStats.getAndUpdate(rs -> new ResourceStat(resourcesDiff, rs.lastUpdated));
             resourceCacheServiceMetrics.onMemberCacheRejected();
@@ -190,7 +194,7 @@ public class ResourceCacheService {
                     resourcesDiff.registrySizeResourceCount
             );
         });
-        Function<Rejection, CacheUpdate> trackRejection = (x) -> new CacheUpdate.Reject(() -> {
+        Function<Rejection, CacheUpdate> trackRejection = x -> new CacheUpdate.Reject(() -> {
             resourceCacheServiceMetrics.onDelegationsUpdateRejected();
             log.error("Production CA delegations cache update with diff {} has been rejected, reason: {}", resourcesDiff, x.message);
         });

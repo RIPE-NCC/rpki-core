@@ -51,6 +51,8 @@ public interface ResourceCertificateRepository extends Repository<ResourceCertif
 
     boolean deleteOutgoingCertificatesForRevokedKeyPair(KeyPairEntity signingKeyPair);
 
+    boolean existsCurrentOutgoingCertificatesExceptForManifest(KeyPairEntity signingKeyPair);
+
     /**
      * @return find the union of the resources of _all_ current child certificates of the CA with given name.
      */

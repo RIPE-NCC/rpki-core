@@ -138,7 +138,7 @@ public class CaServiceTest {
         X500Principal principal = CaName.parse(caName).getPrincipal();
 
         final CertificateAuthorityData certificateAuthorityData = new HostedCertificateAuthorityData(new VersionedId(1L),
-                principal, UUID.randomUUID(), CertificateAuthorityType.HOSTED,
+                principal, UUID.randomUUID(), 2L, CertificateAuthorityType.HOSTED,
                 IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
@@ -160,7 +160,7 @@ public class CaServiceTest {
         X500Principal principal = CaName.parse(caName).getPrincipal();
 
         final CertificateAuthorityData certificateAuthorityData = new HostedCertificateAuthorityData(new VersionedId(1L),
-                principal, UUID.randomUUID(), CertificateAuthorityType.ROOT,
+                principal, UUID.randomUUID(), 2L, CertificateAuthorityType.ROOT,
                 IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
@@ -184,7 +184,7 @@ public class CaServiceTest {
         X500Principal principal = CaName.parse(caName).getPrincipal();
 
         final CertificateAuthorityData certificateAuthorityData = new HostedCertificateAuthorityData(new VersionedId(1L),
-                principal, UUID.randomUUID(), CertificateAuthorityType.HOSTED,
+                principal, UUID.randomUUID(), 2L, CertificateAuthorityType.HOSTED,
                 IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
@@ -236,7 +236,7 @@ public class CaServiceTest {
         X500Principal principal = CaName.parse("123").getPrincipal();
 
         CertificateAuthorityData certificateAuthorityData = new HostedCertificateAuthorityData(new VersionedId(1L),
-                new X500Principal("CN=1"), UUID.randomUUID(), CertificateAuthorityType.HOSTED,
+                new X500Principal("CN=1"), UUID.randomUUID(), 2L, CertificateAuthorityType.HOSTED,
                 IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);

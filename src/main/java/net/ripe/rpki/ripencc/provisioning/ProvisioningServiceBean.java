@@ -16,7 +16,7 @@ import static net.ripe.rpki.server.api.security.RunAsUserHolder.*;
 
 @Slf4j
 @Service("provisioningService")
-public class ProvisioningServiceBean implements ProvisioningService {
+class ProvisioningServiceBean implements ProvisioningService {
     private final ProvisioningRequestProcessor provisioningRequestProcessor;
     private final ProvisioningAuditLogService provisioningAuditLogService;
 

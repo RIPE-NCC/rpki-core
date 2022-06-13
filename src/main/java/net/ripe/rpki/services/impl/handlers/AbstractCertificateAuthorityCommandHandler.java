@@ -26,6 +26,14 @@ public abstract class AbstractCertificateAuthorityCommandHandler<T extends Certi
         return result;
     }
 
+    protected NonHostedCertificateAuthority lookupNonHostedCA(Long id) {
+        NonHostedCertificateAuthority result = certificateAuthorityRepository.findNonHostedCa(id);
+        if (result == null) {
+            throw new EntityNotFoundException("non-hosted CA not found: " + id);
+        }
+        return result;
+    }
+
     protected CertificateAuthority lookupCA(Long id) {
         return certificateAuthorityRepository.get(id);
     }

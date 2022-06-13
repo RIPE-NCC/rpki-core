@@ -37,10 +37,10 @@ public abstract class CertificationWicketTestCase {
     protected static final VersionedId PRODUCTION_CA_VERSIONED_ID = new VersionedId(PRODUCTION_CA_ID, 3);
 
     protected static final CertificateAuthorityData ALL_RESOURCES_CA_DATA = new HostedCertificateAuthorityData(
-        new VersionedId(31L, 2), ALL_RESOURCES_CA_NAME, UUID.randomUUID(), ALL_RESOURCES,
+        new VersionedId(31L, 2), ALL_RESOURCES_CA_NAME, UUID.randomUUID(), null, ALL_RESOURCES,
         IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
     protected static final CertificateAuthorityData PRODUCTION_CA_DATA = new HostedCertificateAuthorityData(
-        PRODUCTION_CA_VERSIONED_ID, PRODUCTION_CA_NAME, UUID.randomUUID(), ROOT,
+        PRODUCTION_CA_VERSIONED_ID, PRODUCTION_CA_NAME, UUID.randomUUID(), ALL_RESOURCES_CA_DATA.getId(), ROOT,
         IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
     protected static final VersionedId MEMBER_CA_VERSIONED_ID = new VersionedId(PRODUCTION_CA_ID, 3);

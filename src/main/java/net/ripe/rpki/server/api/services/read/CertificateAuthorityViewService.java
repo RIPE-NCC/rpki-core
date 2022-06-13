@@ -36,6 +36,8 @@ public interface CertificateAuthorityViewService {
 
     Long findCertificateAuthorityIdByName(X500Principal name);
 
+    CertificateAuthorityData findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType type, UUID uuid);
+
     /**
      * Find CA id based on name and type
      */

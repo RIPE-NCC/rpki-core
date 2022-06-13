@@ -9,7 +9,7 @@ import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
  * Needed to enable the tests to use mock objects for the high level behaviour instead of always requiring valid signed
  * objects linked to with valid domain objects.
  */
-public interface ProvisioningCmsValidationStrategy {
+interface ProvisioningCmsValidationStrategy {
     /**
      * Validates the incoming cms object. For an CMS object to be valid it needs to be, at least:
      *   * signed by the identity certificate of the child

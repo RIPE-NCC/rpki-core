@@ -9,6 +9,7 @@ import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
+import net.ripe.rpki.server.api.dto.ResourceCertificateData;
 import org.apache.commons.lang.Validate;
 import org.joda.time.DateTime;
 
@@ -169,5 +170,9 @@ public abstract class ResourceCertificate extends EntitySupport {
 
     public void setPublicationUri(URI publicationUri) {
         this.publicationUri = requireNonNull(publicationUri);
+    }
+
+    public ResourceCertificateData toData() {
+        return new ResourceCertificateData(getCertificate(), getPublicationUri());
     }
 }

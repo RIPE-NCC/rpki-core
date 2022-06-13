@@ -8,7 +8,6 @@ import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import org.apache.commons.lang.Validate;
 
 import javax.security.auth.x500.X500Principal;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -21,24 +20,17 @@ public abstract class CertificateAuthorityData extends ValueObjectSupport {
 
     private final VersionedId versionedId;
     private final UUID uuid;
+    private final Long parentId;
     private final X500Principal name;
     private final CertificateAuthorityType type;
     private final IpResourceSet resources;
     private final TrustAnchorRequest trustAnchorRequest;
-    private final List<KeyPairData> keys;
-
-    public CertificateAuthorityData(VersionedId versionedId, X500Principal name, UUID uuid,
-                                    CertificateAuthorityType type, IpResourceSet resources,
-                                    List<KeyPairData> keys) {
-        this(versionedId, name, uuid, type, resources, null, keys);
-    }
 
     public CertificateAuthorityData(VersionedId versionedId, X500Principal name,
-                                    UUID uuid, CertificateAuthorityType type,
+                                    UUID uuid, Long parentId,
+                                    CertificateAuthorityType type,
                                     IpResourceSet resources,
-                                    TrustAnchorRequest trustAnchorRequest,
-                                    List<KeyPairData> keys) {
-        this.keys = keys;
+                                    TrustAnchorRequest trustAnchorRequest) {
         Validate.notNull(versionedId, "versionedId is required");
         Validate.notNull(name, "name is required");
         Validate.notNull(uuid, "uuid is required");
@@ -47,6 +39,7 @@ public abstract class CertificateAuthorityData extends ValueObjectSupport {
         this.versionedId = versionedId;
         this.name = name;
         this.uuid = uuid;
+        this.parentId = parentId;
         this.type = type;
         this.resources = resources;
         this.trustAnchorRequest = trustAnchorRequest;

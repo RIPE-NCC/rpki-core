@@ -30,7 +30,7 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 
 @Component
 @Transactional
-public class ProvisioningAuditLogServiceBean implements ProvisioningAuditLogService {
+class ProvisioningAuditLogServiceBean implements ProvisioningAuditLogService {
     /**
      * <emph>Important:</emph> separate logger for provisioning messages. There tend to be quite big and should not
      * end up in the main logfile. Name needs to match logback configuration (!).

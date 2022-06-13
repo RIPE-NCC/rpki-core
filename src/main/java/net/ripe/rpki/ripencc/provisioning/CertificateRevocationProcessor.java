@@ -6,16 +6,18 @@ import net.ripe.rpki.commons.provisioning.payload.revocation.CertificateRevocati
 import net.ripe.rpki.commons.provisioning.payload.revocation.request.CertificateRevocationRequestPayload;
 import net.ripe.rpki.commons.provisioning.payload.revocation.response.CertificateRevocationResponsePayload;
 import net.ripe.rpki.commons.provisioning.payload.revocation.response.CertificateRevocationResponsePayloadBuilder;
-import net.ripe.rpki.domain.NonHostedCertificateAuthority;
-import net.ripe.rpki.domain.PublicKeyEntity;
-import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
+import net.ripe.rpki.server.api.commands.ProvisioningCertificateRevocationCommand;
+import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CommandService;
+import org.springframework.stereotype.Component;
 
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 
 
-public class CertificateRevocationProcessor extends AbstractProvisioningProcessor {
+@Component
+class CertificateRevocationProcessor extends AbstractProvisioningProcessor {
 
     private final CommandService commandService;
 
@@ -25,21 +27,19 @@ public class CertificateRevocationProcessor extends AbstractProvisioningProcesso
         this.commandService = commandService;
     }
 
-    public CertificateRevocationResponsePayload process(NonHostedCertificateAuthority nonHostedCertificateAuthority,
+    public CertificateRevocationResponsePayload process(NonHostedCertificateAuthorityData nonHostedCertificateAuthority,
                                                         CertificateRevocationRequestPayload requestPayload) {
         final CertificateRevocationKeyElement keyElement = requestPayload.getKeyElement();
         if (!DEFAULT_RESOURCE_CLASS.equals(keyElement.getClassName())) {
             throw new NotPerformedException(NotPerformedError.REQ_NO_SUCH_RESOURCE_CLASS);
         }
 
-        PublicKeyEntity publicKeyEntity = getPublicKeyByHash(nonHostedCertificateAuthority, keyElement);
+        NonHostedPublicKeyData publicKeyEntity = getPublicKeyByHash(nonHostedCertificateAuthority, keyElement);
         if (publicKeyEntity == null) {
             throw new NotPerformedException(NotPerformedError.REV_NO_SUCH_KEY);
         }
 
-        publicKeyEntity.setLatestRevocationRequest(keyElement);
-
-        commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(nonHostedCertificateAuthority.getVersionedId(), NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
+        commandService.execute(new ProvisioningCertificateRevocationCommand(nonHostedCertificateAuthority.getVersionedId(), publicKeyEntity.getPublicKey()));
 
         CertificateRevocationResponsePayloadBuilder responsePayloadBuilder = new CertificateRevocationResponsePayloadBuilder();
         responsePayloadBuilder.withClassName(keyElement.getClassName());
@@ -47,7 +47,7 @@ public class CertificateRevocationProcessor extends AbstractProvisioningProcesso
         return responsePayloadBuilder.build();
     }
 
-    private PublicKeyEntity getPublicKeyByHash(NonHostedCertificateAuthority nonHostedCertificateAuthority, CertificateRevocationKeyElement keyElement) {
+    private NonHostedPublicKeyData getPublicKeyByHash(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, CertificateRevocationKeyElement keyElement) {
         return nonHostedCertificateAuthority
                 .getPublicKeys().stream()
                 .filter(key -> KeyPairUtil.getEncodedKeyIdentifier(key.getPublicKey()).equals(keyElement.getPublicKeyHash()))

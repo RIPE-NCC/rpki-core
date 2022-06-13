@@ -3,9 +3,6 @@ package net.ripe.rpki.services.impl.handlers;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
-import net.ripe.rpki.commons.provisioning.payload.issue.request.CertificateIssuanceRequestElement;
-import net.ripe.rpki.commons.provisioning.payload.issue.request.CertificateIssuanceRequestPayloadBuilder;
-import net.ripe.rpki.commons.provisioning.payload.revocation.CertificateRevocationKeyElement;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.*;
@@ -18,7 +15,6 @@ import net.ripe.rpki.server.api.dto.KeyPairStatus;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.joda.time.Duration;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,7 +25,9 @@ import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 import java.net.URI;
 import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,7 +36,6 @@ import java.util.stream.Stream;
 import static net.ripe.rpki.domain.NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 @Transactional
 public class ChildParentCertificateUpdateSagaNonHostedTest extends CertificationDomainTestCase {
@@ -46,10 +43,10 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     private static final long CHILD_CA_ID = 7L;
 
     private static final X500Principal CHILD_CA_NAME = new X500Principal("CN=child");
-    public static final X509CertificateInformationAccessDescriptor[] SIA = {
+    public static final List<X509CertificateInformationAccessDescriptor> SIA = Arrays.asList(
         new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_CA_REPOSITORY, URI.create("rsync://example.com/rpki/repository")),
-        new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST, URI.create("rsync://example.com/rpki/repository/manifest.mft")),
-    };
+        new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST, URI.create("rsync://example.com/rpki/repository/manifest.mft"))
+    );
 
     @Inject
     private JpaResourceCacheImpl resourceCache;
@@ -70,7 +67,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         child = new NonHostedCertificateAuthority(CHILD_CA_ID, CHILD_CA_NAME, ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, parent);
         publicKeyEntity = child.findOrCreatePublicKeyEntityByPublicKey(PUBLIC_KEY);
         // Request all resources
-        publicKeyEntity.setLatestIssuanceRequest(new CertificateIssuanceRequestElement(), SIA);
+        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(), SIA);
 
         certificateAuthorityRepository.add(child);
     }
@@ -124,12 +121,11 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     @Test
     public void should_revoke_issued_certificate_for_hosted_child_when_certifiable_resources_do_not_match_requested_resources() {
         should_issue_certificate_for_non_hosted_child_certified_resources();
-        publicKeyEntity.setLatestIssuanceRequest(
-            new CertificateIssuanceRequestPayloadBuilder()
-                .withClassName("DEFAULT")
-                .withIpv4ResourceSet(IpResourceSet.parse("192.168.0.0/16"))
-                .withCertificateRequest(mock(PKCS10CertificationRequest.class))
-                .build().getRequestElement(),
+        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(
+                Optional.empty(),
+                Optional.of(IpResourceSet.parse("192.168.0.0/16")),
+                Optional.empty()
+            ),
             SIA
         );
 
@@ -147,7 +143,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     @Test
     public void should_revoke_certificate_when_requested_by_child() {
         should_issue_certificate_for_non_hosted_child_certified_resources();
-        publicKeyEntity.setLatestRevocationRequest(new CertificateRevocationKeyElement("DEFAULT", publicKeyEntity.getEncodedKeyIdentifier()));
+        publicKeyEntity.setLatestRevocationRequest();
 
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
@@ -181,12 +177,11 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     @Test
     public void should_keep_requested_resources_when_non_hosted_child_resources_expand() {
         should_issue_certificate_for_non_hosted_child_certified_resources();
-        publicKeyEntity.setLatestIssuanceRequest(
-            new CertificateIssuanceRequestPayloadBuilder()
-                .withClassName("DEFAULT")
-                .withIpv4ResourceSet(IpResourceSet.parse("10.10.0.0/16"))
-                .withCertificateRequest(mock(PKCS10CertificationRequest.class))
-                .build().getRequestElement(),
+        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(
+                Optional.empty(),
+                Optional.of(IpResourceSet.parse("10.10.0.0/16")),
+                Optional.empty()
+            ),
             SIA
         );
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16, 10.20.0.0/16"));
@@ -260,12 +255,11 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     @Test
     public void should_limit_number_of_certificates_when_requested_by_non_hosted_ca() {
         should_issue_certificate_for_non_hosted_child_certified_resources();
-        publicKeyEntity.setLatestIssuanceRequest(
-            new CertificateIssuanceRequestPayloadBuilder()
-                .withClassName("DEFAULT")
-                .withIpv4ResourceSet(IpResourceSet.parse("10.10.8.0/24"))
-                .withCertificateRequest(mock(PKCS10CertificationRequest.class))
-                .build().getRequestElement(),
+        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(
+                Optional.empty(),
+                Optional.of(IpResourceSet.parse("10.10.8.0/24")),
+                Optional.empty()
+            ),
             SIA
         );
         OutgoingResourceCertificate certificate = findCurrentResourceCertificate(child).orElseThrow(() -> new IllegalStateException("missing certificate"));

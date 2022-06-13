@@ -1,6 +1,7 @@
 package net.ripe.rpki.ripencc.provisioning;
 
 import net.ripe.ipresource.IpResourceSet;
+import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
@@ -8,11 +9,14 @@ import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.RequestedResourceSets;
 import net.ripe.rpki.domain.ResourceClassListQuery;
 import net.ripe.rpki.domain.ResourceClassListResponse;
+import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
+import java.net.URI;
 import java.util.Collections;
 
-public abstract class AbstractProvisioningProcessor {
+abstract class AbstractProvisioningProcessor {
 
     private final ResourceLookupService resourceLookupService;
 
@@ -20,16 +24,19 @@ public abstract class AbstractProvisioningProcessor {
         this.resourceLookupService = resourceLookupService;
     }
 
-    protected IpResourceSet getCertifiableResources(NonHostedCertificateAuthority nonHostedCertificateAuthority, ProductionCertificateAuthority productionCA) {
+    protected IpResourceSet getCertifiableResources(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, HostedCertificateAuthorityData productionCA) {
+        // We cannot use `nonHostedCertificateAuthority.getResources()` here since they only include _certified_
+        // resources (which may be limited by the requested resource set) and we must include all _certifiable_
+        // resources.
         IpResourceSet memberResources = resourceLookupService.lookupMemberCaPotentialResources(nonHostedCertificateAuthority.getName());
-        ResourceClassListResponse resources = productionCA.processResourceClassListQuery(new ResourceClassListQuery(memberResources));
-        return resources.getCertifiableResources();
+        memberResources.retainAll(productionCA.getResources());
+        return memberResources;
     }
 
-    protected CertificateElement createClassElement(OutgoingResourceCertificate certificate, RequestedResourceSets requestedResourceSets) {
+    protected CertificateElement createClassElement(X509ResourceCertificate certificate, RequestedResourceSets requestedResourceSets, URI publicationUri) {
         CertificateElement element = new CertificateElement();
-        element.setCertificate(certificate.getCertificate());
-        element.setIssuerCertificatePublicationLocation(Collections.singletonList(certificate.getPublicationUri()));
+        element.setCertificate(certificate);
+        element.setIssuerCertificatePublicationLocation(Collections.singletonList(publicationUri));
         element.setAllocatedAsn(requestedResourceSets.getRequestedResourceSetAsn().orElse(null));
         element.setAllocatedIpv4(requestedResourceSets.getRequestedResourceSetIpv4().orElse(null));
         element.setAllocatedIpv6(requestedResourceSets.getRequestedResourceSetIpv6().orElse(null));

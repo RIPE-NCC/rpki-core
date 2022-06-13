@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @AllArgsConstructor
 @Component
-public class ProvisioningCmsValidationStrategyImpl implements ProvisioningCmsValidationStrategy {
+class ProvisioningCmsValidationStrategyImpl implements ProvisioningCmsValidationStrategy {
     private final ProvisioningMetricsService provisioningMetrics;
 
     @Override

@@ -45,15 +45,15 @@ public class KeyPairActivationManagementServiceBeanTest {
     private static final X500Principal CA_NAME = new X500Principal("CN=nl.bluelight");
 
     private static final CertificateAuthorityData PROD_CA = new HostedCertificateAuthorityData(new VersionedId(0L),
-        CA_NAME, UUID.randomUUID(), ROOT,
+        CA_NAME, UUID.randomUUID(), 1L, ROOT,
         ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
     private static final CertificateAuthorityData MEMBER_CA = new HostedCertificateAuthorityData(new VersionedId(1L),
-        CA_NAME, UUID.randomUUID(), HOSTED,
+        CA_NAME, UUID.randomUUID(), PROD_CA.getId(), HOSTED,
         ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
     private static final CertificateAuthorityData NON_HOSTED_CA = new NonHostedCertificateAuthorityData(new VersionedId(2L),
-        CA_NAME, UUID.randomUUID(), null, Instant.now(), ALL_PRIVATE_USE_RESOURCES);
+        CA_NAME, UUID.randomUUID(), PROD_CA.getId(), null, Instant.now(), ALL_PRIVATE_USE_RESOURCES, Collections.emptySet());
 
     @Mock
     private ActiveNodeService propertyEntityService;

@@ -6,9 +6,8 @@ import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.provisioning.payload.PayloadMessageType;
-import net.ripe.rpki.commons.provisioning.payload.issue.request.CertificateIssuanceRequestElement;
-import net.ripe.rpki.commons.provisioning.payload.revocation.CertificateRevocationKeyElement;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
+import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
 
 import javax.persistence.*;
 import javax.security.auth.x500.X500Principal;
@@ -118,17 +117,13 @@ public class PublicKeyEntity extends EntitySupport {
         return requestedSia.stream().map(EmbeddedInformationAccessDescriptor::toDescriptor).collect(Collectors.toList());
     }
 
-    public void setLatestIssuanceRequest(CertificateIssuanceRequestElement element, X509CertificateInformationAccessDescriptor[] sia) {
+    public void setLatestIssuanceRequest(RequestedResourceSets requestedResourceSets, List<X509CertificateInformationAccessDescriptor> sia) {
         this.latestProvisioningRequestType = PayloadMessageType.issue;
-        this.requestedResourceSets = new RequestedResourceSets(
-            Optional.ofNullable(element.getAllocatedAsn()),
-            Optional.ofNullable(element.getAllocatedIpv4()),
-            Optional.ofNullable(element.getAllocatedIpv6())
-        );
-        this.requestedSia = Arrays.stream(sia).map(EmbeddedInformationAccessDescriptor::of).collect(Collectors.toList());
+        this.requestedResourceSets = requestedResourceSets;
+        this.requestedSia = sia.stream().map(EmbeddedInformationAccessDescriptor::of).collect(Collectors.toList());
     }
 
-    public void setLatestRevocationRequest(CertificateRevocationKeyElement element) {
+    public void setLatestRevocationRequest() {
         this.latestProvisioningRequestType = PayloadMessageType.revoke;
         this.requestedResourceSets = new RequestedResourceSets();
         this.requestedSia = new ArrayList<>();
@@ -142,5 +137,14 @@ public class PublicKeyEntity extends EntitySupport {
             ResourceCertificateInformationAccessStrategy ias = new ResourceCertificateInformationAccessStrategyBean();
             return ias.caCertificateSubject(getPublicKey());
         }
+    }
+
+    public NonHostedPublicKeyData toData() {
+        return new NonHostedPublicKeyData(
+            getPublicKey(),
+            latestProvisioningRequestType,
+            getRequestedResourceSets(),
+            findCurrentOutgoingResourceCertificate().map(OutgoingResourceCertificate::toData).orElse(null)
+        );
     }
 }

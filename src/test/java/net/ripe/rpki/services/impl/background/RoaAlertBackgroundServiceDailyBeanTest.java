@@ -35,7 +35,7 @@ import static org.mockito.Mockito.when;
 public class RoaAlertBackgroundServiceDailyBeanTest {
 
     private static final CertificateAuthorityData CA_DATA = new HostedCertificateAuthorityData(
-        new VersionedId(23L, 2L), new X500Principal("CN=zz.example"), UUID.randomUUID(), CertificateAuthorityType.HOSTED,
+        new VersionedId(23L, 2L), new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
         IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
     public static final RoaAlertConfigurationData ALERT_SUBSCRIPTION_DATA = new RoaAlertConfigurationData(CA_DATA,

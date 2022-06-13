@@ -35,12 +35,12 @@ public class DeleteCAPageTest extends CertificationWicketTestCase {
     @Before
     public void setUp() {
         hostedCA = new HostedCertificateAuthorityData(new VersionedId(12, 1),
-            new X500Principal("CN=zz.example"), UUID.randomUUID(), CertificateAuthorityType.HOSTED,
+            new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
             new IpResourceSet(), Collections.emptyList());
 
         nonHostedCA = new NonHostedCertificateAuthorityData(new VersionedId(12, 1),
-            new X500Principal("CN=zz.example"), UUID.randomUUID(), null,
-            Instant.now(), new IpResourceSet());
+            new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L,null,
+            Instant.now(), new IpResourceSet(), Collections.emptySet());
     }
 
     @Test

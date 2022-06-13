@@ -55,7 +55,7 @@ public abstract class CertificationDomainTestCase {
     public static final long CA_ID = 42L;
     public static final long ACA_ID = 45L;
 
-    protected static final X500Principal PRODUCTION_CA_NAME = new X500Principal("O=ORG-TEST-PRODUCTION-CA");
+    public static final X500Principal PRODUCTION_CA_NAME = new X500Principal("O=ORG-TEST-PRODUCTION-CA");
     public static final X500Principal ALL_RESOURCES_CA_NAME = new X500Principal("CN=Test All Resources CA");
 
     public static final IpResourceSet DEFAULT_PRODUCTION_CA_RESOURCES = IpResourceSet.ALL_PRIVATE_USE_RESOURCES;

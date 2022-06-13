@@ -8,7 +8,7 @@ import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
  *
  * Interpretation: Used for situations where the request was never considered to be a current, valid, cms-signed request.
  */
-public class ProvisioningException extends RuntimeException {
+class ProvisioningException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
 
 	private ResponseExceptionType exceptionType;

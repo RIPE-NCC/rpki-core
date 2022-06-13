@@ -125,7 +125,9 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
             .collect(Collectors.toList());
 
         return new HostedCertificateAuthorityData(
-            getVersionedId(), getName(), getUuid(), getType(),
+            getVersionedId(), getName(), getUuid(),
+            getParent() == null ? null : getParent().getId(),
+            getType(),
             getCertifiedResources(), upStreamCARequest, keys);
     }
 
@@ -175,12 +177,6 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
             .flatMap(KeyPairEntity::findCurrentIncomingCertificate)
             .map(ResourceCertificate::getResources)
             .orElse(new IpResourceSet());
-    }
-
-    public OutgoingResourceCertificate findLatestOutgoingCertificate(PublicKey subjectPublicKey,
-                                                                     KeyPairEntity signingKeyPair,
-                                                                     ResourceCertificateRepository resourceCertificateRepository) {
-        return resourceCertificateRepository.findLatestOutgoingCertificate(subjectPublicKey, signingKeyPair);
     }
 
     public KeyPairEntity getCurrentKeyPair() {

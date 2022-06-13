@@ -1,15 +1,19 @@
 package net.ripe.rpki.ripencc.provisioning;
 
-import net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest;
-import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
+import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
-import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningPayload;
+import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningResponsePayload;
 import net.ripe.rpki.commons.provisioning.payload.list.request.ResourceClassListQueryPayload;
 import net.ripe.rpki.commons.provisioning.payload.list.request.ResourceClassListQueryPayloadBuilder;
 import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
-import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
-import net.ripe.rpki.domain.*;
+import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
+import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
+import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
+import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,19 +21,19 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import javax.persistence.LockModeType;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.PublicKey;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 import java.util.UUID;
 
+import static net.ripe.rpki.domain.CertificationDomainTestCase.PRODUCTION_CA_NAME;
+import static net.ripe.rpki.domain.CertificationDomainTestCase.PRODUCTION_CA_RESOURCES;
+import static net.ripe.rpki.ripencc.provisioning.CertificateIssuanceProcessorTest.NON_HOSTED_CA_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 
 @RunWith(MockitoJUnitRunner.Silent.class)
@@ -38,44 +42,61 @@ public class ProvisioningRequestProcessorBeanTest {
     private ProvisioningRequestProcessorBean subject;
 
     @Mock
-    private CertificateAuthorityRepository certificateAuthorityRepository;
+    private CertificateAuthorityViewService certificateAuthorityViewService;
+    @Mock
+    private ProvisioningCmsResponseGenerator provisioningCmsResponseGenerator;
     @Mock
     private CommandService commandService;
-    @Mock
-    private ProductionCertificateAuthority parent;
-    @Mock
-    private NonHostedCertificateAuthority child;
+    private HostedCertificateAuthorityData parent;
+    private NonHostedCertificateAuthorityData child;
     @Mock
     private ProvisioningCmsValidationStrategy validationStrategy;
 
     private ProvisioningCmsObject listCms;
 
-    private PregeneratedKeyPairFactory keyPairFactory;
-
     @Before
     public void setUp() {
-        keyPairFactory = PregeneratedKeyPairFactory.getInstance();
-        subject = new ProvisioningRequestProcessorBean(certificateAuthorityRepository, keyPairFactory, null,
-                                                       commandService, validationStrategy);
+        parent = new HostedCertificateAuthorityData(
+            new VersionedId(42L, 1), PRODUCTION_CA_NAME, UUID.randomUUID(), 1L,
+            CertificateAuthorityType.ROOT,
+            PRODUCTION_CA_RESOURCES,
+            Collections.emptyList()
+        );
+        child = new NonHostedCertificateAuthorityData(
+            new VersionedId(1234L, 1), NON_HOSTED_CA_NAME, UUID.randomUUID(), parent.getId(),
+            ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT,
+            Instant.now(),
+            new IpResourceSet(),
+            Collections.emptySet()
+        );
+
+        subject = new ProvisioningRequestProcessorBean(
+            certificateAuthorityViewService,
+            validationStrategy, provisioningCmsResponseGenerator,
+            null,
+            null,
+            new CertificateRevocationProcessor(null, commandService)
+        );
 
         listCms = givenListResourceClassRequestCms();
 
         // set up mocks
-        ProvisioningIdentityCertificate identityCertificate = mock(ProvisioningIdentityCertificate.class);
-        when(identityCertificate.getPublicKey()).thenReturn(KeyPairFactoryTest.SECOND_TEST_KEY_PAIR.getPublic());
-        when(child.getProvisioningIdentityCertificate()).thenReturn(identityCertificate);
-
-        when(certificateAuthorityRepository.findByTypeAndUuid(ProductionCertificateAuthority.class,
-                UUID.fromString(listCms.getPayload().getRecipient()), LockModeType.NONE)).thenReturn(parent);
-        when(certificateAuthorityRepository.findByTypeAndUuid(NonHostedCertificateAuthority.class,
-                UUID.fromString(listCms.getPayload().getSender()), LockModeType.PESSIMISTIC_WRITE)).thenReturn(child);
-
-        when(child.getParent()).thenReturn(parent);
+        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType.ROOT,
+                UUID.fromString(listCms.getPayload().getRecipient()))).thenReturn(parent);
+        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType.NONHOSTED,
+                UUID.fromString(listCms.getPayload().getSender()))).thenReturn(child);
     }
 
     @Test
     public void shouldEnsureNonHostedMemberIsChildOfDelegationCa() {
-        when(child.getParent()).thenReturn(null);
+        parent = new HostedCertificateAuthorityData(
+            new VersionedId(99L, 1), PRODUCTION_CA_NAME, UUID.randomUUID(), 1L,
+            CertificateAuthorityType.ROOT,
+            PRODUCTION_CA_RESOURCES,
+            Collections.emptyList()
+        );
+        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType.ROOT,
+            UUID.fromString(listCms.getPayload().getRecipient()))).thenReturn(parent);
 
         try {
             subject.process(listCms);
@@ -116,7 +137,7 @@ public class ProvisioningRequestProcessorBeanTest {
 
         final UUID sender = UUID.randomUUID(), recipient = UUID.randomUUID();
 
-        when(certificateAuthorityRepository.findByTypeAndUuid(NonHostedCertificateAuthority.class, sender, LockModeType.PESSIMISTIC_WRITE)).thenReturn(child);
+        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType.NONHOSTED, sender)).thenReturn(child);
 
         listCms = givenListResourceClassRequestCms(sender.toString(), recipient.toString(), cmsCertificate);
 
@@ -135,8 +156,6 @@ public class ProvisioningRequestProcessorBeanTest {
 
         final UUID sender = UUID.randomUUID(), recipient = UUID.randomUUID();
 
-        when(certificateAuthorityRepository.findByTypeAndUuid(NonHostedCertificateAuthority.class, sender, LockModeType.PESSIMISTIC_WRITE)).thenReturn(null);
-
         listCms = givenListResourceClassRequestCms(sender.toString(), recipient.toString(), cmsCertificate);
 
         try {
@@ -149,9 +168,7 @@ public class ProvisioningRequestProcessorBeanTest {
 
     @Test
     public void shouldSetTheSenderAndRecipientIntoTheResponsePayload() {
-        DownStreamProvisioningCommunicator downStreamProvisioningCommunicator = mock(DownStreamProvisioningCommunicator.class);
-        ArgumentCaptor<AbstractProvisioningPayload> captor = ArgumentCaptor.forClass(AbstractProvisioningPayload.class);
-        when(parent.getMyDownStreamProvisioningCommunicator()).thenReturn(downStreamProvisioningCommunicator);
+        ArgumentCaptor<AbstractProvisioningResponsePayload> captor = ArgumentCaptor.forClass(AbstractProvisioningResponsePayload.class);
 
         subject.process(listCms);
 
@@ -159,8 +176,8 @@ public class ProvisioningRequestProcessorBeanTest {
         verify(validationStrategy).validateProvisioningCmsAndIdentityCertificate(eq(listCms), any());
 
         // object is signed
-        verify(downStreamProvisioningCommunicator).createProvisioningCmsResponseObject(eq(keyPairFactory), captor.capture());
-        AbstractProvisioningPayload responsePayload = captor.getValue();
+        verify(provisioningCmsResponseGenerator).createProvisioningCmsResponseObject(captor.capture());
+        AbstractProvisioningResponsePayload responsePayload = captor.getValue();
 
         // and sender/receiver are correct
         assertEquals(listCms.getPayload().getSender(), responsePayload.getRecipient());

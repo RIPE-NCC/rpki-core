@@ -15,6 +15,8 @@ import net.ripe.rpki.util.DBComponent;
  */
 public interface ParentCertificateAuthority extends Entity {
 
+    Long getId();
+
     ParentCertificateAuthority getParent();
 
     boolean isCertificateIssuanceNeeded(CertificateIssuanceRequest request, ValidityPeriod validityPeriod, ResourceCertificateRepository resourceCertificateRepository);

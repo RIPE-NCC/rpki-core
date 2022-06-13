@@ -16,8 +16,6 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.KeyPairData;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
-import net.ripe.rpki.server.api.dto.ResourceClassData;
-import net.ripe.rpki.server.api.dto.ResourceClassDataSet;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.ta.domain.response.RevocationResponse;
 import net.ripe.rpki.commons.ta.domain.response.SigningResponse;
@@ -191,7 +189,7 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
         resources.addAll(IpResourceSet.IP_PRIVATE_USE_RESOURCES);
 
         CertificateAuthorityData productionCa = new HostedCertificateAuthorityData(PRODUCTION_CA_VERSIONED_ID,
-            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), CertificateAuthorityType.ROOT, resources, keys);
+            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), 1L, CertificateAuthorityType.ROOT, resources, keys);
         given(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_PRINCIPAL)).willReturn(productionCa);
     }
 
@@ -203,7 +201,7 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
         resources.addAll(IpResourceSet.IP_PRIVATE_USE_RESOURCES);
 
         CertificateAuthorityData productionCa = new HostedCertificateAuthorityData(PRODUCTION_CA_VERSIONED_ID,
-            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), CertificateAuthorityType.ROOT, resources, keys);
+            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), 1L,CertificateAuthorityType.ROOT, resources, keys);
         given(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_PRINCIPAL)).willReturn(productionCa);
     }
 
@@ -217,7 +215,7 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
         IpResourceSet resources = new IpResourceSet(RESOURCES);
         resources.addAll(IpResourceSet.IP_PRIVATE_USE_RESOURCES);
         CertificateAuthorityData productionCa = new HostedCertificateAuthorityData(PRODUCTION_CA_VERSIONED_ID, PRODUCTION_CA_PRINCIPAL,
-            UUID.randomUUID(), CertificateAuthorityType.ROOT, resources, keys);
+            UUID.randomUUID(), 1L, CertificateAuthorityType.ROOT, resources, keys);
         given(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_PRINCIPAL)).willReturn(productionCa);
     }
 
@@ -230,13 +228,13 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
         resources.addAll(IpResourceSet.IP_PRIVATE_USE_RESOURCES);
 
         CertificateAuthorityData productionCa = new HostedCertificateAuthorityData(PRODUCTION_CA_VERSIONED_ID,
-            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), CertificateAuthorityType.ROOT, resources, keys);
+            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), 1L, CertificateAuthorityType.ROOT, resources, keys);
         given(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_PRINCIPAL)).willReturn(productionCa);
     }
 
     private void givenCaWithPendingRequest(TrustAnchorRequest trustAnchorRequest) {
         CertificateAuthorityData productionCa = new HostedCertificateAuthorityData(PRODUCTION_CA_VERSIONED_ID,
-            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), CertificateAuthorityType.ROOT, RESOURCES,
+            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), 1L, CertificateAuthorityType.ROOT, RESOURCES,
             trustAnchorRequest, Collections.emptyList());
         given(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_PRINCIPAL)).willReturn(productionCa);
     }
@@ -246,7 +244,7 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
         final VersionedId ALL_RESOURCES_CA_VERSIONED_ID = new VersionedId(ALL_RESOURCES_CA_ID, 3);
 
         final CertificateAuthorityData allResourcesCertificateAuthorityData = new HostedCertificateAuthorityData(
-            ALL_RESOURCES_CA_VERSIONED_ID, ALL_RESOURCES_CA_PRINCIPAL, UUID.randomUUID(), ALL_RESOURCES,
+            ALL_RESOURCES_CA_VERSIONED_ID, ALL_RESOURCES_CA_PRINCIPAL, UUID.randomUUID(), null, ALL_RESOURCES,
             new IpResourceSet(), trustAnchorRequest, Collections.emptyList());
 
         given(caViewService.findCertificateAuthorityByName(ALL_RESOURCES_CA_PRINCIPAL)).willReturn(allResourcesCertificateAuthorityData);

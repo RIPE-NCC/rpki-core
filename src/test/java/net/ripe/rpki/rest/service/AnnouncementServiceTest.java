@@ -263,7 +263,7 @@ public class AnnouncementServiceTest {
 
     private RoaAlertConfigurationData getRoaAlertConfigurationData(Asn asn, IpRange range) {
         final CertificateAuthorityData caData = new HostedCertificateAuthorityData(new VersionedId(CA_ID, 1L),
-            new X500Principal("CN=zz.example"), UUID.randomUUID(), CertificateAuthorityType.HOSTED,
+            new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
             IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         final Set<AnnouncedRoute> ignoredAnnouncements = new HashSet<>(1);

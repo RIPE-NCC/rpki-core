@@ -61,9 +61,11 @@ public class PublisherRepositoriesServiceTest {
         new VersionedId(12, 1),
         new X500Principal("O=ORG-1"),
         UUID.randomUUID(),
+        1L,
         null,
         Instant.now(),
-        new IpResourceSet()
+        new IpResourceSet(),
+        Collections.emptySet()
     );
 
     @MockBean

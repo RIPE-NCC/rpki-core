@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
+import javax.persistence.LockModeType;
 import javax.persistence.TypedQuery;
 import javax.security.auth.x500.X500Principal;
 import java.util.*;
@@ -60,6 +61,11 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
         return ca == null ? null : ca.getVersionedId().getId();
     }
 
+    @Override
+    public CertificateAuthorityData findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType type, UUID uuid) {
+        CertificateAuthority ca = certificateAuthorityRepository.findByTypeAndUuid(resolveClassForType(type), uuid, LockModeType.NONE);
+        return convertToCaData(ca);
+    }
 
     @Override
     public Long findCertificateAuthorityIdByTypeAndName(CertificateAuthorityType type, X500Principal name) {
@@ -188,6 +194,8 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
             return ProductionCertificateAuthority.class;
         case HOSTED:
             return HostedCertificateAuthority.class;
+        case NONHOSTED:
+            return NonHostedCertificateAuthority.class;
         }
         throw new IllegalArgumentException("Unrecognised CertificateAuthorityType: " + type);
     }

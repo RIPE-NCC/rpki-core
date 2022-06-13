@@ -14,32 +14,33 @@ import net.ripe.rpki.commons.provisioning.payload.issue.response.CertificateIssu
 import net.ripe.rpki.commons.provisioning.x509.pkcs10.RpkiCaCertificateRequestParser;
 import net.ripe.rpki.commons.provisioning.x509.pkcs10.RpkiCaCertificateRequestParserException;
 import net.ripe.rpki.domain.CertificateAuthority;
-import net.ripe.rpki.domain.IncomingResourceCertificate;
-import net.ripe.rpki.domain.NonHostedCertificateAuthority;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
-import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.PublicKeyEntity;
 import net.ripe.rpki.domain.RequestedResourceSets;
-import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
+import net.ripe.rpki.server.api.commands.ProvisioningCertificateIssuanceCommand;
+import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ResourceCertificateData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CommandService;
+import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.joda.time.DateTime;
+import org.springframework.stereotype.Component;
 
+import javax.inject.Inject;
 import java.math.BigInteger;
 import java.net.URI;
-import java.security.spec.RSAKeyGenParameterSpec;
-import java.util.ArrayList;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.RSAKeyGenParameterSpec;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 
-
-public class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
+@Component
+class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
 
     // Limits based on https://trac.ietf.org/trac/sidrops/wiki/FencingLimits
     public static final int SIA_URI_LENGTH_LIMIT = 2048;
@@ -52,14 +53,21 @@ public class CertificateIssuanceProcessor extends AbstractProvisioningProcessor 
     public static final String REQUIRED_RPKI_PUBLIC_KEY_ALGORITHM = "RSA";
 
     private final CommandService commandService;
+    private final ResourceCertificateViewService resourceCertificateViewService;
 
-    public CertificateIssuanceProcessor(ResourceLookupService resourceLookupService, CommandService commandService) {
+    @Inject
+    public CertificateIssuanceProcessor(
+        ResourceLookupService resourceLookupService,
+        CommandService commandService,
+        ResourceCertificateViewService resourceCertificateViewService
+    ) {
         super(resourceLookupService);
         this.commandService = commandService;
+        this.resourceCertificateViewService = resourceCertificateViewService;
     }
 
-    public CertificateIssuanceResponsePayload process(NonHostedCertificateAuthority nonHostedCertificateAuthority,
-                                                      ProductionCertificateAuthority productionCA,
+    public CertificateIssuanceResponsePayload process(NonHostedCertificateAuthorityData nonHostedCertificateAuthority,
+                                                      HostedCertificateAuthorityData productionCA,
                                                       CertificateIssuanceRequestPayload requestPayload) {
 
         CertificateIssuanceRequestElement request = requestPayload.getRequestElement();
@@ -82,12 +90,15 @@ public class CertificateIssuanceProcessor extends AbstractProvisioningProcessor 
             throw new NotPerformedException(NotPerformedError.REQ_NO_RESOURCES_ALLOTED_IN_RESOURCE_CLASS);
         }
 
-        Optional<OutgoingResourceCertificate> outgoingResourceCertificate = issueCertificate(
-            request, nonHostedCertificateAuthority
+        ResourceCertificateData issuingCertificate = resourceCertificateViewService.findCurrentIncomingResourceCertificate(productionCA.getId())
+            .orElseThrow(() -> new NotPerformedException(NotPerformedError.INTERNAL_SERVER_ERROR));
+
+        Optional<ResourceCertificateData> outgoingResourceCertificate = issueCertificate(
+            request, requestedResourceSets, nonHostedCertificateAuthority
         );
 
         return outgoingResourceCertificate
-            .map(orc -> createResponse(productionCA, request, requestedResourceSets, certifiableResources, orc))
+            .map(orc -> createResponse(request, requestedResourceSets, certifiableResources, orc, issuingCertificate))
             .orElseThrow(() -> new NotPerformedException(NotPerformedError.REQ_NO_RESOURCES_ALLOTED_IN_RESOURCE_CLASS));
     }
 
@@ -105,16 +116,15 @@ public class CertificateIssuanceProcessor extends AbstractProvisioningProcessor 
     }
 
     private CertificateIssuanceResponsePayload createResponse(
-        ProductionCertificateAuthority productionCA,
         CertificateIssuanceRequestElement request,
         RequestedResourceSets requestedResourceSets,
         IpResourceSet certifiableResources,
-        OutgoingResourceCertificate outgoingResourceCertificate
+        ResourceCertificateData issuedCertificate, ResourceCertificateData issuingCertificate
     ) {
-        CertificateElement certificateElement = createClassElement(outgoingResourceCertificate, requestedResourceSets);
+        CertificateElement certificateElement = createClassElement(issuedCertificate.getCertificate(), requestedResourceSets, issuedCertificate.getPublicationUri());
 
         CertificateIssuanceResponseClassElement classElement = buildClassElement(request,
-            productionCA.getCurrentIncomingCertificate(), certifiableResources, certificateElement);
+            issuingCertificate, certifiableResources, certificateElement);
 
         CertificateIssuanceResponsePayloadBuilder responsePayloadBuilder = new CertificateIssuanceResponsePayloadBuilder();
         responsePayloadBuilder.withClassElement(classElement);
@@ -124,7 +134,7 @@ public class CertificateIssuanceProcessor extends AbstractProvisioningProcessor 
 
 
     private CertificateIssuanceResponseClassElement buildClassElement(CertificateIssuanceRequestElement request,
-                                                                      IncomingResourceCertificate currentIncomingResourceCertificate,
+                                                                      ResourceCertificateData currentIncomingResourceCertificate,
                                                                       IpResourceSet ipResources,
                                                                       CertificateElement certificateElement) {
         return new GenericClassElementBuilder()
@@ -137,19 +147,22 @@ public class CertificateIssuanceProcessor extends AbstractProvisioningProcessor 
                 .buildCertificateIssuanceResponseClassElement();
     }
 
-    private Optional<OutgoingResourceCertificate> issueCertificate(CertificateIssuanceRequestElement request,
-                                                                   NonHostedCertificateAuthority nonHostedCa) {
+    private Optional<ResourceCertificateData> issueCertificate(CertificateIssuanceRequestElement request,
+                                                               RequestedResourceSets requestedResourceSets,
+                                                               NonHostedCertificateAuthorityData nonHostedCa) {
         RpkiCaCertificateRequestParser requestParser = parseCertificateRequest(request);
 
         PublicKey publicKey = validatePublicKey(requestParser.getPublicKey());
+        List<X509CertificateInformationAccessDescriptor> sia = getSubjectInformationAccessDescriptors(requestParser);
 
-        PublicKeyEntity publicKeyEntity = nonHostedCa.findOrCreatePublicKeyEntityByPublicKey(publicKey);
-        X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(requestParser);
-        publicKeyEntity.setLatestIssuanceRequest(request, sia);
+        commandService.execute(new ProvisioningCertificateIssuanceCommand(
+            nonHostedCa.getVersionedId(),
+            publicKey,
+            requestedResourceSets,
+            sia
+        ));
 
-        commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(nonHostedCa.getVersionedId(), NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
-
-        return publicKeyEntity.findCurrentOutgoingResourceCertificate();
+        return resourceCertificateViewService.findCurrentOutgoingResourceCertificate(nonHostedCa.getId(), publicKey);
     }
 
     private PublicKey validatePublicKey(PublicKey publicKey) {
@@ -166,7 +179,7 @@ public class CertificateIssuanceProcessor extends AbstractProvisioningProcessor 
         return publicKey;
     }
 
-    private X509CertificateInformationAccessDescriptor[] getSubjectInformationAccessDescriptors(RpkiCaCertificateRequestParser requestParser) {
+    private List<X509CertificateInformationAccessDescriptor> getSubjectInformationAccessDescriptors(RpkiCaCertificateRequestParser requestParser) {
         List<X509CertificateInformationAccessDescriptor> sia = new ArrayList<>();
 
         sia.add(new X509CertificateInformationAccessDescriptor(
@@ -186,7 +199,7 @@ public class CertificateIssuanceProcessor extends AbstractProvisioningProcessor 
             ));
         }
 
-        return sia.toArray(new X509CertificateInformationAccessDescriptor[0]);
+        return sia;
     }
 
     private URI validateURI(URI uri, String expectedScheme) {

@@ -54,7 +54,7 @@ public class AbstractCertificationWicketTest {
     }
 
     protected static final CertificateAuthorityData PRODUCTION_CA_DATA = new HostedCertificateAuthorityData(
-        PRODUCTION_CA_VERSIONED_ID, PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), ROOT, RESOURCES, Collections.emptyList());
+        PRODUCTION_CA_VERSIONED_ID, PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), null, ROOT, RESOURCES, Collections.emptyList());
 
 
     protected static final X500Principal ALL_RESOURCES_CA_PRINCIPAL = new X500Principal("CN=ALL Resources,O=RIPE NCC,C=NL");

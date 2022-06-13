@@ -7,11 +7,12 @@ import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassLis
 import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassListResponsePayload;
 import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassListResponsePayloadBuilder;
 import net.ripe.rpki.domain.CertificateAuthority;
-import net.ripe.rpki.domain.NonHostedCertificateAuthority;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
-import net.ripe.rpki.domain.ProductionCertificateAuthority;
+import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
+import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.joda.time.DateTime;
+import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.List;
@@ -19,21 +20,24 @@ import java.util.stream.Collectors;
 
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 
+@Component
+class ListResourceClassProcessor extends AbstractProvisioningProcessor {
 
-public class ListResourceClassProcessor extends AbstractProvisioningProcessor {
+    private final ResourceCertificateViewService resourceCertificateViewService;
 
-    ListResourceClassProcessor(ResourceLookupService resourceLookupService) {
+    ListResourceClassProcessor(ResourceLookupService resourceLookupService, ResourceCertificateViewService resourceCertificateViewService) {
         super(resourceLookupService);
+        this.resourceCertificateViewService = resourceCertificateViewService;
     }
 
-    public ResourceClassListResponsePayload process(NonHostedCertificateAuthority nonHostedCertificateAuthority,
-                                                    ProductionCertificateAuthority productionCA) {
+    public ResourceClassListResponsePayload process(NonHostedCertificateAuthorityData nonHostedCertificateAuthority,
+                                                    HostedCertificateAuthorityData productionCA) {
 
         final ResourceClassListResponsePayloadBuilder responsePayloadBuilder = new ResourceClassListResponsePayloadBuilder();
 
         final IpResourceSet resources = getCertifiableResources(nonHostedCertificateAuthority, productionCA);
         if (!resources.isEmpty()) {
-            productionCA.findCurrentIncomingResourceCertificate()
+            resourceCertificateViewService.findCurrentIncomingResourceCertificate(productionCA.getId())
                 .ifPresent(currentIncomingResourceCertificate -> {
                     final ResourceClassListResponseClassElement classElement = new GenericClassElementBuilder()
                         .withClassName(DEFAULT_RESOURCE_CLASS)
@@ -44,9 +48,12 @@ public class ListResourceClassProcessor extends AbstractProvisioningProcessor {
                         .buildResourceClassListResponseClassElement();
 
                     final List<CertificateElement> certificateElements = nonHostedCertificateAuthority.getPublicKeys().stream()
-                        .flatMap(publicKeyEntity -> publicKeyEntity.getOutgoingResourceCertificates().stream()
-                            .filter(OutgoingResourceCertificate::isCurrent)
-                            .map(certificate -> createClassElement(certificate, publicKeyEntity.getRequestedResourceSets())))
+                        .filter(publicKeyData -> publicKeyData.getCurrentCertificate() != null)
+                        .map(publicKeyData -> createClassElement(
+                            publicKeyData.getCurrentCertificate().getCertificate(),
+                            publicKeyData.getRequestedResourceSets(),
+                            publicKeyData.getCurrentCertificate().getPublicationUri()
+                        ))
                         .collect(Collectors.toList());
 
                     classElement.setCertificateElements(certificateElements);

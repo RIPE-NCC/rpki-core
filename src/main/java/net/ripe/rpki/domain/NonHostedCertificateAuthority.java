@@ -19,6 +19,7 @@ import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import org.apache.commons.codec.binary.Base64;
@@ -116,17 +117,25 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     }
 
     @Override
-    public CertificateAuthorityData toData() {
+    public NonHostedCertificateAuthorityData toData() {
         final IpResourceSet resources = new IpResourceSet();
-        for (PublicKeyEntity pk : getPublicKeys()) {
-            pk.findCurrentOutgoingResourceCertificate().ifPresent(
-                certificate -> resources.addAll(certificate.getResources())
-            );
+        Set<NonHostedPublicKeyData> publicKeyData = getPublicKeys().stream().map(PublicKeyEntity::toData).collect(Collectors.toSet());
+        for (NonHostedPublicKeyData publicKeyDatum : publicKeyData) {
+            if (publicKeyDatum.getCurrentCertificate() != null) {
+                resources.addAll(publicKeyDatum.getCurrentCertificate().getCertificate().getResources());
+            }
         }
 
-        return new NonHostedCertificateAuthorityData(getVersionedId(), getName(), getUuid(),
-            getProvisioningIdentityCertificate(), getLastSeenProvisioningMessageSignedAt(),
-            resources);
+        return new NonHostedCertificateAuthorityData(
+            getVersionedId(),
+            getName(),
+            getUuid(),
+            getParent().getId(),
+            getProvisioningIdentityCertificate(),
+            getLastSeenProvisioningMessageSignedAt(),
+            resources,
+            publicKeyData
+        );
     }
 
     public Collection<PublicKeyEntity> getPublicKeys() {

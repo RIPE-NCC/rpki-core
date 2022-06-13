@@ -10,6 +10,7 @@ import org.apache.commons.lang3.Validate;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.PrePersist;
+import java.io.Serializable;
 import java.util.Optional;
 
 /**
@@ -24,7 +25,7 @@ import java.util.Optional;
 @Embeddable
 @EqualsAndHashCode
 @ToString
-public class RequestedResourceSets {
+public class RequestedResourceSets implements Serializable {
 
     @Column(name = "req_resource_set_asn", columnDefinition = "TEXT")
     private IpResourceSet requestedResourceSetAsn;

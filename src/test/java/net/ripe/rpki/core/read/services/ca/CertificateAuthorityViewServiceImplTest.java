@@ -5,6 +5,7 @@ import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
+import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
@@ -15,6 +16,7 @@ import javax.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -24,6 +26,13 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
 
     @Inject
     private CertificateAuthorityViewService subject;
+
+    @Test
+    public void findCertificateAuthorityByTypeAndUuid() {
+        for (CertificateAuthorityType type : CertificateAuthorityType.values()) {
+            assertThat(subject.findCertificateAuthorityByTypeAndUuid(type, UUID.randomUUID())).isNull();
+        }
+    }
 
     @Test
     public void findAllHostedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth() {

@@ -3,19 +3,16 @@ package net.ripe.rpki.ui.admin;
 import net.ripe.rpki.server.api.commands.AllResourcesCaResourcesCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.apache.wicket.markup.html.link.Link;
 import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.spring.injection.annot.SpringBean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class AllResourcesCaRequestManagementPanel extends Panel {
 
     private static final long serialVersionUID = 1L;
-
-    private static final Logger LOG = LoggerFactory.getLogger(AllResourcesCaRequestManagementPanel.class);
 
     @SpringBean
     private RepositoryConfiguration repositoryConfiguration;
@@ -30,7 +27,7 @@ public class AllResourcesCaRequestManagementPanel extends Panel {
         super(id);
 
 
-        final CertificateAuthorityData allResourcesCA  = caViewService.findCertificateAuthorityByName(repositoryConfiguration.getAllResourcesCaPrincipal());
+        final HostedCertificateAuthorityData allResourcesCA  = (HostedCertificateAuthorityData) caViewService.findCertificateAuthorityByName(repositoryConfiguration.getAllResourcesCaPrincipal());
         if(allResourcesCA != null) {
             add(new AllResourcesCaManagementPanel("managementPanel", allResourcesCA));
         }

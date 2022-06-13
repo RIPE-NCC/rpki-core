@@ -142,7 +142,7 @@ public class PublicKeyEntity extends EntitySupport {
     public NonHostedPublicKeyData toData() {
         return new NonHostedPublicKeyData(
             getPublicKey(),
-            latestProvisioningRequestType,
+            getLatestProvisioningRequestType(),
             getRequestedResourceSets(),
             findCurrentOutgoingResourceCertificate().map(OutgoingResourceCertificate::toData).orElse(null)
         );

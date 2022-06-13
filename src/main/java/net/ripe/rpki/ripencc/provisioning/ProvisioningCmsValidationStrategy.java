@@ -2,6 +2,9 @@ package net.ripe.rpki.ripencc.provisioning;
 
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
+import org.joda.time.DateTime;
+
+import java.util.Optional;
 
 /**
  * Extract the validation strategy.
@@ -20,8 +23,9 @@ interface ProvisioningCmsValidationStrategy {
      * <pre>net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObjectParser#verifySignature</pre>.
      *
      * @param unvalidatedProvisioningObject cms object that has been validated for structure (parsed) but not yet validated
+     * @param lastSigningTime signing time of previous CMS message from this CA, iff any.
      * @param provisioningIdentityCertificate identity certificate used to sign the object
      * @throws ProvisioningException when certificate or identity certificate are not valid
      */
-    void validateProvisioningCmsAndIdentityCertificate(ProvisioningCmsObject unvalidatedProvisioningObject, ProvisioningIdentityCertificate provisioningIdentityCertificate) throws ProvisioningException;
+    void validateProvisioningCmsAndIdentityCertificate(ProvisioningCmsObject unvalidatedProvisioningObject, Optional<DateTime> lastSigningTime, ProvisioningIdentityCertificate provisioningIdentityCertificate) throws ProvisioningException;
 }

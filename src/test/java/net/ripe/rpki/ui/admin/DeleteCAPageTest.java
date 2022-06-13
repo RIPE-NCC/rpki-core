@@ -13,12 +13,10 @@ import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.ui.application.CertificationWicketTestCase;
 import org.apache.wicket.PageParameters;
 import org.apache.wicket.util.tester.FormTester;
-import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.security.auth.x500.X500Principal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -40,7 +38,7 @@ public class DeleteCAPageTest extends CertificationWicketTestCase {
 
         nonHostedCA = new NonHostedCertificateAuthorityData(new VersionedId(12, 1),
             new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L,null,
-            Instant.now(), new IpResourceSet(), Collections.emptySet());
+            new IpResourceSet(), Collections.emptySet());
     }
 
     @Test

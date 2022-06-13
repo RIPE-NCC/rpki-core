@@ -20,6 +20,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -77,7 +78,7 @@ public class ProvisioningCmsValidationStrategyImplTest {
 
         // The id certificates are different. Internally the validator rejects the CMS contents signature,
         // the CRL signature, the SKI because they all mismatch.
-        assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, ca2IdCert))
+        assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.empty(), ca2IdCert))
                 .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
                 .satisfies(e -> ResponseExceptionType.BAD_DATA.equals(e.getResponseExceptionType()));
     }
@@ -95,7 +96,7 @@ public class ProvisioningCmsValidationStrategyImplTest {
     public void testValidateProvisioningCmsAndIdentityCertificate_cms_ee_not_valid_yet() throws IOException {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2022-01-11T10:00:00Z").getMillis());
 
-        assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, ca1IdCert))
+        assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.empty(), ca1IdCert))
                 .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
                 .satisfies(e -> ResponseExceptionType.BAD_DATA.equals(e.getResponseExceptionType()));
     }
@@ -104,7 +105,7 @@ public class ProvisioningCmsValidationStrategyImplTest {
     public void testValidateProvisioningCmsAndIdentityCertificate_both_certs_not_valid_yet() throws IOException {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2021-01-11T10:00:00Z").getMillis());
 
-        assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, ca1IdCert))
+        assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.empty(), ca1IdCert))
                 .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
                 .satisfies(e -> ResponseExceptionType.BAD_DATA.equals(e.getResponseExceptionType()));
     }
@@ -113,14 +114,24 @@ public class ProvisioningCmsValidationStrategyImplTest {
     public void testValidateProvisioningCmsAndIdentityCertificate_current_certs() throws IOException {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2022-01-11T12:39:46.000Z").getMillis());
 
-        subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, ca1IdCert);
+        subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.empty(), ca1IdCert);
+    }
+
+    @Test
+    public void testValidateProvisioningCmsAndIdentityCertificate_rejects_current_certs_before_last_signing_time() throws IOException {
+        DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2022-01-11T12:39:46.000Z").getMillis());
+
+        assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.of(ca1CmsObject.getSigningTime().plusHours(1)), ca1IdCert))
+                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
+                .extracting(ProvisioningException::getResponseExceptionType)
+                .isEqualTo(ResponseExceptionType.POTENTIAL_REPLAY_ATTACK);
     }
 
     @Test
     public void testValidateProvisioningCmsAndIdentityCertificate_cms_ee_expired() throws IOException {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2022-01-13T12:39:46.000Z").getMillis());
 
-        assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, ca1IdCert))
+        assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.empty(), ca1IdCert))
                 .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
                 .satisfies(e -> ResponseExceptionType.BAD_DATA.equals(e.getResponseExceptionType()));
     }
@@ -129,7 +140,7 @@ public class ProvisioningCmsValidationStrategyImplTest {
     public void testValidateProvisioningCmsAndIdentityCertificate_two_expired_certs() throws IOException {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2040-01-11T10:00:00Z").getMillis());
 
-        assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, ca1IdCert))
+        assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.empty(), ca1IdCert))
                 .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
                 .satisfies(e -> ResponseExceptionType.BAD_DATA.equals(e.getResponseExceptionType()));
     }

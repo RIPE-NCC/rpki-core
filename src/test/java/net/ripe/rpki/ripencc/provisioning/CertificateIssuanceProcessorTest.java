@@ -24,7 +24,6 @@ import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.joda.time.DateTime;
-import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,7 +80,6 @@ public class CertificateIssuanceProcessorTest {
         nonHostedCertificateAuthority = new NonHostedCertificateAuthorityData(
             new VersionedId(1234L, 1), NON_HOSTED_CA_NAME, UUID.randomUUID(), productionCA.getId(),
             ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT,
-            Instant.now(),
             new IpResourceSet(),
             Collections.emptySet()
         );

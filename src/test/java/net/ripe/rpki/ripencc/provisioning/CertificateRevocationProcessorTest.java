@@ -16,7 +16,6 @@ import net.ripe.rpki.server.api.commands.ProvisioningCertificateRevocationComman
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
 import net.ripe.rpki.server.api.services.command.CommandService;
-import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,7 +50,6 @@ public class CertificateRevocationProcessorTest {
         nonHostedCertificateAuthority = new NonHostedCertificateAuthorityData(
             new VersionedId(1234L, 1), NON_HOSTED_CA_NAME, UUID.randomUUID(), 1L,
             ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT,
-            Instant.now(),
             new IpResourceSet(),
             Collections.singleton(new NonHostedPublicKeyData(publicKey, PayloadMessageType.issue, new RequestedResourceSets(), null))
         );

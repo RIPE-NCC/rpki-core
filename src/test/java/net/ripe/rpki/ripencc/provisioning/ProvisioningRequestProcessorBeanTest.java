@@ -1,19 +1,30 @@
 package net.ripe.rpki.ripencc.provisioning;
 
 import net.ripe.ipresource.IpResourceSet;
+import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
+import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningPayload;
 import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningResponsePayload;
+import net.ripe.rpki.commons.provisioning.payload.PayloadMessageType;
+import net.ripe.rpki.commons.provisioning.payload.error.NotPerformedError;
+import net.ripe.rpki.commons.provisioning.payload.error.RequestNotPerformedResponsePayload;
 import net.ripe.rpki.commons.provisioning.payload.list.request.ResourceClassListQueryPayload;
 import net.ripe.rpki.commons.provisioning.payload.list.request.ResourceClassListQueryPayloadBuilder;
+import net.ripe.rpki.commons.provisioning.payload.revocation.CertificateRevocationKeyElement;
+import net.ripe.rpki.commons.provisioning.payload.revocation.request.CertificateRevocationRequestPayload;
 import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.domain.RequestedResourceSets;
+import net.ripe.rpki.server.api.commands.ProvisioningCertificateRevocationCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.joda.time.Instant;
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,6 +32,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import javax.persistence.LockTimeoutException;
 import java.security.InvalidKeyException;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
@@ -29,7 +41,11 @@ import java.util.UUID;
 
 import static net.ripe.rpki.domain.CertificationDomainTestCase.PRODUCTION_CA_NAME;
 import static net.ripe.rpki.domain.CertificationDomainTestCase.PRODUCTION_CA_RESOURCES;
+import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
+import static net.ripe.rpki.domain.TestObjects.TEST_KEY_PAIR_2;
 import static net.ripe.rpki.ripencc.provisioning.CertificateIssuanceProcessorTest.NON_HOSTED_CA_NAME;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.*;
@@ -39,12 +55,15 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class ProvisioningRequestProcessorBeanTest {
 
+    public static final PublicKey PUBLIC_KEY = TEST_KEY_PAIR_2.getPublicKey();
     private ProvisioningRequestProcessorBean subject;
 
     @Mock
     private CertificateAuthorityViewService certificateAuthorityViewService;
     @Mock
     private ProvisioningCmsResponseGenerator provisioningCmsResponseGenerator;
+    @Mock
+    private ProvisioningCmsSigningTimeStore provisioningCmsSigningTimeStore;
     @Mock
     private CommandService commandService;
     private HostedCertificateAuthorityData parent;
@@ -65,14 +84,15 @@ public class ProvisioningRequestProcessorBeanTest {
         child = new NonHostedCertificateAuthorityData(
             new VersionedId(1234L, 1), NON_HOSTED_CA_NAME, UUID.randomUUID(), parent.getId(),
             ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT,
-            Instant.now(),
             new IpResourceSet(),
-            Collections.emptySet()
+            Collections.singleton(new NonHostedPublicKeyData(PUBLIC_KEY, PayloadMessageType.issue, new RequestedResourceSets(), null))
         );
 
         subject = new ProvisioningRequestProcessorBean(
             certificateAuthorityViewService,
-            validationStrategy, provisioningCmsResponseGenerator,
+            validationStrategy,
+            provisioningCmsSigningTimeStore,
+            provisioningCmsResponseGenerator,
             null,
             null,
             new CertificateRevocationProcessor(null, commandService)
@@ -166,18 +186,48 @@ public class ProvisioningRequestProcessorBeanTest {
         }
     }
 
+
+    // https://datatracker.ietf.org/doc/html/rfc6492#section-3 -> 1101 error response
+    @Test
+    public void shouldCreateErrorResponseOnConcurrentRequest() {
+        X509Certificate cmsCertificate = mock(X509Certificate.class);
+        ArgumentCaptor<AbstractProvisioningResponsePayload> argumentCaptor = ArgumentCaptor.forClass(AbstractProvisioningResponsePayload.class);
+
+        final String sender = listCms.getPayload().getSender(), recipient = listCms.getPayload().getRecipient();
+
+        when(commandService.execute(any(ProvisioningCertificateRevocationCommand.class))).thenThrow(new LockTimeoutException());
+
+        ProvisioningCmsObject revocationCms = getProvisioningCmsObject(sender, recipient, cmsCertificate, new CertificateRevocationRequestPayload(new CertificateRevocationKeyElement(DEFAULT_RESOURCE_CLASS, KeyPairUtil.getEncodedKeyIdentifier(PUBLIC_KEY))));
+
+        subject.process(revocationCms);
+
+        verify(provisioningCmsResponseGenerator).createProvisioningCmsResponseObject(argumentCaptor.capture());
+        assertThat(argumentCaptor.getValue()).isInstanceOfSatisfying(RequestNotPerformedResponsePayload.class, (payload) -> {
+            assertThat(payload.getStatus()).isEqualTo(NotPerformedError.ALREADY_PROCESSING_REQUEST);
+        });
+    }
+
     @Test
     public void shouldSetTheSenderAndRecipientIntoTheResponsePayload() {
+        ArgumentCaptor<DateTime> timestampCaptor = ArgumentCaptor.forClass(DateTime.class);
         ArgumentCaptor<AbstractProvisioningResponsePayload> captor = ArgumentCaptor.forClass(AbstractProvisioningResponsePayload.class);
 
         subject.process(listCms);
 
         // payload was validated
-        verify(validationStrategy).validateProvisioningCmsAndIdentityCertificate(eq(listCms), any());
+        verify(validationStrategy).validateProvisioningCmsAndIdentityCertificate(eq(listCms), any(), any());
 
         // object is signed
         verify(provisioningCmsResponseGenerator).createProvisioningCmsResponseObject(captor.capture());
         AbstractProvisioningResponsePayload responsePayload = captor.getValue();
+
+        // signing time on CA (mock) is copied from CMS
+        verify(provisioningCmsSigningTimeStore).updateLastSeenProvisioningCmsSeenAt(same(child), timestampCaptor.capture());
+
+        // Compare instants since these are not zoned.
+        // note that while the sql Timestamp has nano-seconds (and Instant on JDK11+ as well), the (joda-time) signing
+        // time of the CMS does not, thus the nanoseconds are 0.
+        assertEquals(timestampCaptor.getValue().toInstant(), Instant.ofEpochMilli(listCms.getSigningTime().getMillis()));
 
         // and sender/receiver are correct
         assertEquals(listCms.getPayload().getSender(), responsePayload.getRecipient());
@@ -197,10 +247,15 @@ public class ProvisioningRequestProcessorBeanTest {
 
     private ProvisioningCmsObject givenListResourceClassRequestCms(String sender, String recipient, X509Certificate cmsCertificate) {
         ResourceClassListQueryPayload payload = new ResourceClassListQueryPayloadBuilder().build();
+        return getProvisioningCmsObject(sender, recipient, cmsCertificate, payload);
+    }
+
+    private ProvisioningCmsObject getProvisioningCmsObject(String sender, String recipient, X509Certificate cmsCertificate, AbstractProvisioningPayload payload) {
         payload.setSender(sender);
         payload.setRecipient(recipient);
 
-        return new ProvisioningCmsObject(null, cmsCertificate, null, null, payload);
+        // Initialise with Joda DateTime, with millisecond resolution.
+        return new ProvisioningCmsObject(null, cmsCertificate, null, null, payload, DateTime.now());
     }
 
 }

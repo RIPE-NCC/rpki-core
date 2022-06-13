@@ -7,11 +7,12 @@ import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
  * These will <emph>not</emph> result in CMS signed responses.
  *
  * Interpretation: Used for situations where the request was never considered to be a current, valid, cms-signed request.
+ * <emph>Recall:</emph> <i>@Transactional</i> rolls back on uncaught RuntimeExceptions, but not on checked exceptions.
  */
 class ProvisioningException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
 
-	private ResponseExceptionType exceptionType;
+	private final ResponseExceptionType exceptionType;
 
     public ProvisioningException(ResponseExceptionType exceptionType, Throwable e) {
         super(exceptionType.toString(), e);

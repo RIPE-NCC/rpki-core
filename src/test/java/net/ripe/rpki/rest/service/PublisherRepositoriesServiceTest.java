@@ -15,7 +15,6 @@ import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateSe
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,7 +62,6 @@ public class PublisherRepositoriesServiceTest {
         UUID.randomUUID(),
         1L,
         null,
-        Instant.now(),
         new IpResourceSet(),
         Collections.emptySet()
     );

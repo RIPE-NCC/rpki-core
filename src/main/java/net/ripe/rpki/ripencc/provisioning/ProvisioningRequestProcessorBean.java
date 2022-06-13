@@ -18,11 +18,16 @@ import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.LockTimeoutException;
+import javax.persistence.OptimisticLockException;
+import javax.persistence.PessimisticLockException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -32,6 +37,7 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
 
     private final CertificateAuthorityViewService certificateAuthorityViewService;
     private final ProvisioningCmsValidationStrategy provisioningValidator;
+    private final ProvisioningCmsSigningTimeStore provisioningCmsSigningTimeStore;
     private final ProvisioningCmsResponseGenerator provisioningCmsResponseGenerator;
     private final ListResourceClassProcessor listResourceClassProcessor;
     private final CertificateIssuanceProcessor certificateIssuanceProcessor;
@@ -41,12 +47,14 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
     public ProvisioningRequestProcessorBean(
         CertificateAuthorityViewService certificateAuthorityViewService,
         ProvisioningCmsValidationStrategy provisioningValidator,
+        ProvisioningCmsSigningTimeStore provisioningCmsSigningTimeStore,
         ProvisioningCmsResponseGenerator provisioningCmsResponseGenerator,
         ListResourceClassProcessor listResourceClassProcessor,
         CertificateIssuanceProcessor certificateIssuanceProcessor,
         CertificateRevocationProcessor certificateRevocationProcessor
     ) {
         this.certificateAuthorityViewService = certificateAuthorityViewService;
+        this.provisioningCmsSigningTimeStore = provisioningCmsSigningTimeStore;
         this.provisioningCmsResponseGenerator = provisioningCmsResponseGenerator;
         this.certificateIssuanceProcessor = certificateIssuanceProcessor;
         this.listResourceClassProcessor = listResourceClassProcessor;
@@ -59,31 +67,21 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
         UUID memberUuid = parseSenderAndRecipientUUID(request.getPayload().getSender());
         UUID productionCaUuid = parseSenderAndRecipientUUID(request.getPayload().getRecipient());
 
-        try {
-            NonHostedCertificateAuthorityData nonHostedMemberCa = getNonHostedCertificateAuthorityWithProvisioningCertificateSigning(memberUuid, request);
+        // Gets the NonHostedCertificateAuthority and validates the (request) CMS object, including the check
+        // that the object is from the correct CA.
+        NonHostedCertificateAuthorityData nonHostedMemberCa = getNonHostedCertificateAuthorityWithProvisioningCertificateSigning(memberUuid, request);
 
-            HostedCertificateAuthorityData productionCA = getProductionCertificateAuthorityWhichIsParentOf(productionCaUuid, nonHostedMemberCa);
+        // Update last seen signingTime for the member CA
+        provisioningCmsSigningTimeStore.updateLastSeenProvisioningCmsSeenAt(nonHostedMemberCa, request.getSigningTime());
 
-            AbstractProvisioningResponsePayload responsePayload = processRequestPayload(nonHostedMemberCa, productionCA, request.getPayload());
+        HostedCertificateAuthorityData productionCA = getProductionCertificateAuthorityWhichIsParentOf(productionCaUuid, nonHostedMemberCa);
 
-            responsePayload.setRecipient(request.getPayload().getSender());
-            responsePayload.setSender(request.getPayload().getRecipient());
+        AbstractProvisioningResponsePayload responsePayload = processRequestPayload(nonHostedMemberCa, productionCA, request.getPayload());
 
-            return provisioningCmsResponseGenerator.createProvisioningCmsResponseObject(responsePayload);
-        } catch (LockTimeoutException e) {
-            // TODO (2021-12-29, TdK): Because we use a javax.persistence.lock.timeout of -1 the pessimistic write lock
-            //  (under water: a `SELECT ... FOR UPDATE`) will serialise operations instead of rejecting them.
-            //  Thus catching the exception is a noop. We should lower this timeout or use pg_try_advisory_xact_lock.
+        responsePayload.setRecipient(request.getPayload().getSender());
+        responsePayload.setSender(request.getPayload().getRecipient());
 
-            // https://datatracker.ietf.org/doc/html/rfc6492#section-3
-            // Lock the CA because multiple concurrent requests with a common sender
-            // MUST be detected and rejected with an error response (i.e., an error code 1101 response).
-
-            log.info("Concurrent operation for non-hosted CA for memberUuid: {}", memberUuid);
-
-            // Only possible iff javax.persistence.lock.timeout != -1
-            throw new NotPerformedException(NotPerformedError.ALREADY_PROCESSING_REQUEST);
-        }
+        return provisioningCmsResponseGenerator.createProvisioningCmsResponseObject(responsePayload);
     }
 
     @VisibleForTesting
@@ -100,6 +98,15 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
             } else {
                 return buildError(NotPerformedError.UNRECOGNIZED_REQUEST_TYPE);
             }
+        } catch (OptimisticLockException | PessimisticLockException | TransientDataAccessException | LockTimeoutException e) {
+            // https://datatracker.ietf.org/doc/html/rfc6492#section-3
+            // Lock the CA because multiple concurrent requests with a common sender
+            // MUST be detected and rejected with an error response (i.e., an error code 1101 response).
+
+            log.info("Concurrent operation for non-hosted CA for memberUuid: {}", nonHostedMemberCa.getUuid());
+
+            // Only possible iff javax.persistence.lock.timeout != -1
+            return buildError(NotPerformedError.ALREADY_PROCESSING_REQUEST);
         } catch (NotPerformedException e) {
             return buildErrorWithDescription(e.getNotPerformedError(), e.getMessage());
         } catch (CertificationResourceLimitExceededException e) {
@@ -161,7 +168,8 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
         if (ca instanceof NonHostedCertificateAuthorityData) {
             NonHostedCertificateAuthorityData result = (NonHostedCertificateAuthorityData) ca;
 
-            provisioningValidator.validateProvisioningCmsAndIdentityCertificate(unvalidatedProvisioningObject, result.getProvisioningIdentityCertificate());
+            Optional<DateTime> lastSigningTimeForCA = provisioningCmsSigningTimeStore.getLastSeenProvisioningCmsSignedAt(result);
+            provisioningValidator.validateProvisioningCmsAndIdentityCertificate(unvalidatedProvisioningObject, lastSigningTimeForCA, result.getProvisioningIdentityCertificate());
 
             return result;
         }

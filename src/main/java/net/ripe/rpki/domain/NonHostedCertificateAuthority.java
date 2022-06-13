@@ -16,7 +16,6 @@ import net.ripe.rpki.domain.interca.CertificateProvisioningMessage;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
@@ -24,7 +23,6 @@ import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.Validate;
-import org.joda.time.Instant;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -35,7 +33,6 @@ import javax.persistence.OneToMany;
 import javax.security.auth.x500.X500Principal;
 import javax.validation.constraints.NotNull;
 import java.security.PublicKey;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -74,9 +71,6 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     @Column(name = "identity_certificate")
     private String identityCertificate;
 
-    @Column(name = "last_message_seen_at", nullable = true)
-    private Timestamp lastSeenProvisioningMessageSignedAt;
-
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL)
     @JoinColumn(name = "ca_id", nullable = false)
     private Set<PublicKeyEntity> publicKeys = new HashSet<>();
@@ -100,10 +94,6 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
         ProvisioningIdentityCertificateParser certificateParser = new ProvisioningIdentityCertificateParser();
         certificateParser.parse("id-cert", Base64.decodeBase64(identityCertificate));
         return certificateParser.getCertificate();
-    }
-
-    private Instant getLastSeenProvisioningMessageSignedAt() {
-        return lastSeenProvisioningMessageSignedAt == null ? null : new Instant(lastSeenProvisioningMessageSignedAt);
     }
 
     @Override
@@ -132,7 +122,6 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
             getUuid(),
             getParent().getId(),
             getProvisioningIdentityCertificate(),
-            getLastSeenProvisioningMessageSignedAt(),
             resources,
             publicKeyData
         );

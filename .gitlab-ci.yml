@@ -237,15 +237,6 @@ pilot:
       when: never
     - when: manual
 
-pilot-2:
-  <<: *delivr-deploy
-  environment:
-    name: pilot-2
-  rules:
-    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
-      when: never
-    - when: manual
-
 publish-to-github:
   stage: publish
   image: alpine:latest

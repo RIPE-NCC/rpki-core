@@ -14,7 +14,6 @@ import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.joda.time.Duration;
-import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,7 +52,7 @@ public class KeyPairActivationManagementServiceBeanTest {
         ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
     private static final CertificateAuthorityData NON_HOSTED_CA = new NonHostedCertificateAuthorityData(new VersionedId(2L),
-        CA_NAME, UUID.randomUUID(), PROD_CA.getId(), null, Instant.now(), ALL_PRIVATE_USE_RESOURCES, Collections.emptySet());
+        CA_NAME, UUID.randomUUID(), PROD_CA.getId(), null, ALL_PRIVATE_USE_RESOURCES, Collections.emptySet());
 
     @Mock
     private ActiveNodeService propertyEntityService;

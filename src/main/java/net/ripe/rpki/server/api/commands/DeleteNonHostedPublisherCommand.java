@@ -1,6 +1,5 @@
 package net.ripe.rpki.server.api.commands;
 
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import net.ripe.rpki.commons.util.VersionedId;
 
@@ -15,7 +14,6 @@ import java.util.UUID;
  * <p>
  */
 @Getter
-@EqualsAndHashCode(callSuper = true)
 public class DeleteNonHostedPublisherCommand extends CertificateAuthorityModificationCommand {
 
     private static final long serialVersionUID = 1L;

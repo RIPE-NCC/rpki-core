@@ -5,7 +5,7 @@ import net.ripe.rpki.commons.util.VersionedId;
 
 /**
  * <p>
- * Create the {@link ProvisioningIdentityCertificate} for the delegation CA.
+ * Create the {@link ProvisioningIdentityCertificate} for the {@link net.ripe.rpki.domain.ProductionCertificateAuthority production CA}.
  * </p> 
  */
 public class InitialiseMyIdentityMaterialCommand extends CertificateAuthorityModificationCommand {

@@ -1,6 +1,7 @@
 package net.ripe.rpki.domain.roa;
 
 import com.google.common.base.Preconditions;
+import lombok.Getter;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
@@ -45,6 +46,7 @@ public class RoaConfiguration extends EntitySupport {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_roaconfiguration")
+    @Getter
     private Long id;
 
     @OneToOne(optional = false)
@@ -65,11 +67,6 @@ public class RoaConfiguration extends EntitySupport {
     public RoaConfiguration(HostedCertificateAuthority certificateAuthority, Collection<? extends RoaConfigurationPrefix> prefixes) {
         this.certificateAuthority = Preconditions.checkNotNull(certificateAuthority, "certificateAuthority is required");
         this.prefixes.addAll(prefixes);
-    }
-
-    @Override
-    public Long getId() {
-        return id;
     }
 
     public void setPrefixes(Collection<? extends RoaConfigurationPrefix> prefixes) {

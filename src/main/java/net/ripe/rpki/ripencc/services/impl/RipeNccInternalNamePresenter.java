@@ -7,8 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.ripencc.services.impl.CustomerServiceClient.MemberSummary;
 import net.ripe.rpki.server.api.ports.InternalNamePresenter;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import net.sf.saxon.expr.PJConverter;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.springframework.stereotype.Component;

@@ -139,7 +139,7 @@ public class ResourceCacheService {
                 log.info("Resource cache has no update; remaining at {} entries", resourcesDiff.localSize);
             } else {
                 log.info(
-                        "Resource cache has been updated from {} entries to {}%n{}",
+                        "Resource cache has been updated from {} entries to {}\n{}",
                         resourcesDiff.localSize,
                         resourcesDiff.registrySize,
                         showDiffSummary(resourcesDiff)

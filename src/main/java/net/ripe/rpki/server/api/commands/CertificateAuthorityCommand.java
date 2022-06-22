@@ -1,18 +1,17 @@
 package net.ripe.rpki.server.api.commands;
 
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import net.ripe.rpki.commons.util.EqualsSupport;
 import net.ripe.rpki.commons.util.VersionedId;
 import org.apache.commons.lang.Validate;
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 
 import java.io.Serializable;
 
 /**
  * Base class for <b>all</b> commands related to Certificate Authorities.
  */
-@ToString
-@EqualsAndHashCode
 public abstract class CertificateAuthorityCommand implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -44,4 +43,28 @@ public abstract class CertificateAuthorityCommand implements Serializable {
     }
 
     public abstract String getCommandSummary();
+
+    /**
+     * Reflection based to ensure consistency for all commands.
+     */
+    @Override
+    public final boolean equals(Object obj) {
+        return EqualsBuilder.reflectionEquals(this, obj);
+    }
+
+    /**
+     * Reflection based to ensure consistency for all commands.
+     */
+    @Override
+    public final int hashCode() {
+        return HashCodeBuilder.reflectionHashCode(this);
+    }
+
+    /**
+     * Reflection based to ensure consistency for all commands.
+     */
+    @Override
+    public final String toString() {
+        return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
+    }
 }

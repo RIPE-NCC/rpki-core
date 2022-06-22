@@ -1,11 +1,11 @@
 package net.ripe.rpki.server.api.commands;
 
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
 
 /**
  * <p>
- * Create a {@link RepublishRequest} for the offline TA.
- * Use the Delegation CA for the certificateAuthorityId, even though it's not affected.
+ * Create a {@link UpStreamCARequestEntity} for the offline TA.
  * </p>
  */
 public class GenerateOfflineCARepublishRequestCommand extends CertificateAuthorityModificationCommand {

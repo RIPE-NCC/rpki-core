@@ -10,7 +10,6 @@ import java.util.Collections;
 import java.util.List;
 
 
-
 public class UpdateRoaAlertIgnoredAnnouncedRoutesCommand extends CertificateAuthorityModificationCommand {
 
     private static final long serialVersionUID = 1L;

@@ -5,7 +5,6 @@ import org.joda.time.DateTimeZone;
 
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
-import java.net.URI;
 import java.sql.Timestamp;
 
 @Converter(autoApply = true)

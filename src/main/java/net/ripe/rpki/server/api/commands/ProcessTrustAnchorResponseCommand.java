@@ -1,16 +1,17 @@
 package net.ripe.rpki.server.api.commands;
 
-import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.ta.domain.response.ErrorResponse;
 import net.ripe.rpki.commons.ta.domain.response.RevocationResponse;
 import net.ripe.rpki.commons.ta.domain.response.SigningResponse;
 import net.ripe.rpki.commons.ta.domain.response.TaResponse;
 import net.ripe.rpki.commons.ta.domain.response.TrustAnchorResponse;
+import net.ripe.rpki.commons.util.VersionedId;
 
 import java.util.List;
 
 /**
- * Let the back-end handle an {@link net.ripe.rpki.commons.ta.domain.response.TrustAnchorResponse} response for the Production CA.
+ * Let the back-end handle an {@link net.ripe.rpki.commons.ta.domain.response.TrustAnchorResponse} response for the
+ * {@link net.ripe.rpki.domain.AllResourcesCertificateAuthority all resources CA}.
  */
 public class ProcessTrustAnchorResponseCommand extends CertificateAuthorityModificationCommand {
 

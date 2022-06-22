@@ -3,13 +3,11 @@ package net.ripe.rpki.services.impl.jpa;
 import net.ripe.rpki.domain.PublicationStatus;
 import net.ripe.rpki.domain.TrustAnchorPublishedObject;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
-import org.joda.time.DateTimeUtils;
 import org.joda.time.Instant;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import java.util.Date;
 import java.util.List;
 
 @Component

@@ -7,7 +7,6 @@ import net.ripe.rpki.domain.roa.RoaEntityRepository;
 import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
 import org.springframework.stereotype.Component;
 
-import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import java.util.List;
 

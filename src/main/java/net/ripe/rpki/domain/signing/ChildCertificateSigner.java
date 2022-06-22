@@ -4,7 +4,6 @@ import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil;
-import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
@@ -12,8 +11,6 @@ import net.ripe.rpki.domain.ResourceCertificate;
 import net.ripe.rpki.domain.ResourceCertificateBuilder;
 import net.ripe.rpki.domain.ResourceCertificateInformationAccessStrategy;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import java.math.BigInteger;
 import java.net.URI;

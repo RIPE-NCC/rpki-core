@@ -4,7 +4,6 @@ import net.ripe.ipresource.IpResourceSet;
 
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
-import java.net.URI;
 
 @Converter(autoApply = true)
 public class IpResourceSetPersistenceConverter implements AttributeConverter<IpResourceSet, String> {

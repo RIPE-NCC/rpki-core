@@ -1,6 +1,5 @@
 package net.ripe.rpki.server.api.ports;
 
-import com.google.common.annotations.VisibleForTesting;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.joda.time.DateTime;

@@ -7,7 +7,7 @@ import net.ripe.rpki.commons.util.VersionedId;
  * Delete the mentioned Non-hosted Certificate Authority. Use with extreme prejudice...
  * </p>
  */
-public class DeleteNonHostedCertificateAuthorityCommand extends CertificateAuthorityCommand {
+public class DeleteNonHostedCertificateAuthorityCommand extends ChildParentCertificateAuthorityCommand {
 
     private static final long serialVersionUID = 1L;
 

@@ -1,6 +1,8 @@
 package net.ripe.rpki.services.impl.background;
 
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.domain.CertificateAuthority;
+import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthorityTest;
@@ -14,18 +16,25 @@ import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.server.api.support.objects.CaName;
+import net.ripe.rpki.services.impl.handlers.ChildParentCertificateUpdateSaga;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.transaction.TransactionException;
+import org.springframework.transaction.support.SimpleTransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Arrays;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -50,6 +59,14 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
     @MockBean
     private ResourceCache resourceCache;
 
+    @MockBean
+    private CertificateAuthorityRepository certificateAuthorityRepository;
+
+    @MockBean
+    private ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga;
+
+    private TransactionTemplate transactionTemplate;
+
     private ProductionCertificateAuthority productionCa;
 
     @Autowired
@@ -62,7 +79,13 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
         productionCa = ProductionCertificateAuthorityTest.createInitialisedProdCaWithRipeResources(TestServices.createCertificateManagementService());
         inTx(() -> createCaIfDoesntExist(productionCa));
 
-        subject = new AllCaCertificateUpdateServiceBean(activeNodeService, caViewService, commandService, resourceCache, repositoryConfiguration);
+        transactionTemplate = new TransactionTemplate() {
+            @Override
+            public <T> T execute(TransactionCallback<T> action) throws TransactionException {
+                return action.doInTransaction(new SimpleTransactionStatus());
+            }
+        };
+        subject = new AllCaCertificateUpdateServiceBean(activeNodeService, caViewService, commandService, resourceCache, repositoryConfiguration, transactionTemplate, certificateAuthorityRepository, childParentCertificateUpdateSaga);
 
         CertificateAuthorityData allResourcesCaMock = mock(CertificateAuthorityData.class);
         when(caViewService.findCertificateAuthorityByName(repositoryConfiguration.getAllResourcesCaPrincipal())).thenReturn(allResourcesCaMock);
@@ -93,20 +116,44 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
     }
 
     @Test
-    public void should_dispatch_update_command_to_every_member_ca() {
+    public void should_dispatch_update_command_to_every_member_ca_that_needs_an_update() {
         when(activeNodeService.isActiveNode(anyString())).thenReturn(true);
+        CertificateAuthority child1 = mock(CertificateAuthority.class);
+        CertificateAuthority child2 = mock(CertificateAuthority.class);
         CaIdentity memberCa1 = new CaIdentity(new VersionedId(10L), CaName.of(new X500Principal("CN=nl.isp")));
         CaIdentity memberCa2 = new CaIdentity(new VersionedId(11L), CaName.of(new X500Principal("CN=gr.isp")));
 
+        when(childParentCertificateUpdateSaga.isUpdateNeeded(any())).thenReturn(true);
         when(productionCaMock.getName()).thenReturn(PRODUCTION_CA_NAME);
         when(caViewService.findAllChildrenIdsForCa(PRODUCTION_CA_NAME)).thenReturn(Arrays.asList(memberCa1, memberCa2));
+        when(certificateAuthorityRepository.find(memberCa1.getVersionedId().getId())).thenReturn(child1);
+        when(certificateAuthorityRepository.find(memberCa2.getVersionedId().getId())).thenReturn(child2);
+        when(child1.getParent()).thenReturn(productionCa);
+        when(child2.getParent()).thenReturn(productionCa);
 
         subject.execute();
+
 
         verify(commandService, times(3)).execute(isA(UpdateAllIncomingResourceCertificatesCommand.class));
         verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(productionCaMock.getVersionedId(), Integer.MAX_VALUE));
         verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa1.getVersionedId(), Integer.MAX_VALUE));
         verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa2.getVersionedId(), Integer.MAX_VALUE));
+    }
+
+    @Test
+    public void should_handle_deleted_member_ca() {
+        CertificateAuthority child1 = mock(CertificateAuthority.class);
+        CaIdentity memberCa1 = new CaIdentity(new VersionedId(10L), CaName.of(new X500Principal("CN=nl.isp")));
+
+        when(childParentCertificateUpdateSaga.isUpdateNeeded(any())).thenReturn(true);
+        when(productionCaMock.getName()).thenReturn(PRODUCTION_CA_NAME);
+        when(caViewService.findAllChildrenIdsForCa(PRODUCTION_CA_NAME)).thenReturn(Arrays.asList(memberCa1));
+        when(certificateAuthorityRepository.get(memberCa1.getVersionedId().getId())).thenReturn(null);
+        when(child1.getParent()).thenReturn(productionCa);
+
+        subject.runService();
+
+        verify(commandService, never()).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa1.getVersionedId(), Integer.MAX_VALUE));
     }
 
     @Test

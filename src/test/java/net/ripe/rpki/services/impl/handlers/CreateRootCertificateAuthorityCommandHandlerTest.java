@@ -5,7 +5,9 @@ import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
+import net.ripe.rpki.domain.KeyPairService;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
+import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.CreateRootCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -29,16 +31,19 @@ public class CreateRootCertificateAuthorityCommandHandlerTest {
 
 	private RepositoryConfiguration repositoryConfiguration;
 	private CertificationConfiguration certificationConfiguration;
+    private KeyPairService keyPairService;
 
 	private CreateRootCertificateAuthorityCommand command;
 
 
-	@Before
+    @Before
     public void setUp() {
         certificateAuthorityRepository = mock(CertificateAuthorityRepository.class);
         certificationConfiguration = mock(CertificationConfiguration.class);
         repositoryConfiguration = mock(RepositoryConfiguration.class);
-        subject = new CreateRootCertificateAuthorityCommandHandler(certificateAuthorityRepository, repositoryConfiguration, certificationConfiguration);
+        keyPairService = mock(KeyPairService.class);
+        when(keyPairService.createKeyPairEntity(any())).thenReturn(TestObjects.TEST_KEY_PAIR_2);
+        subject = new CreateRootCertificateAuthorityCommandHandler(certificateAuthorityRepository, repositoryConfiguration, certificationConfiguration, keyPairService);
         command = new CreateRootCertificateAuthorityCommand(new VersionedId(12));
     }
 

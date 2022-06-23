@@ -416,7 +416,6 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     @Override
     public List<? extends CertificateProvisioningMessage> processResourceClassListResponse(
         ResourceClassListResponse response,
-        KeyPairService keyPairService,
         CertificateRequestCreationService certificateRequestCreationService
     ) {
         Validate.isTrue(!isAllResourcesCa(), "Only Production and Customer CAs can do it.");
@@ -425,10 +424,6 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
         if (certifiableResources.isEmpty()) {
             // No certifiable resources, revoke any existing certificates.
             return certificateRequestCreationService.createCertificateRevocationRequestForAllKeys(this);
-        }
-
-        if (!hasCurrentOrNewKeyPair()) {
-            createNewKeyPair(keyPairService);
         }
 
         return certificateRequestCreationService
@@ -452,10 +447,6 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
 
     public boolean hasCurrentKeyPair() {
         return hasKeyPairWithStatus(KeyPairStatus.CURRENT);
-    }
-
-    boolean hasCurrentOrNewKeyPair() {
-        return hasKeyPairWithStatus(KeyPairStatus.CURRENT, KeyPairStatus.NEW);
     }
 
     public boolean hasRollInProgress() {

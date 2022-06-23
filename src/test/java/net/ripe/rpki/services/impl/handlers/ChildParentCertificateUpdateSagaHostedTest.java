@@ -53,6 +53,8 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         parent = createInitializedAllResourcesAndProductionCertificateAuthority();
 
         child = new CustomerCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent, 1);
+        child.addKeyPair(keyPairService.createKeyPairEntity("CHILD-KEY"));
+
         certificateAuthorityRepository.add(child);
     }
 

@@ -27,7 +27,6 @@ public interface ChildCertificateAuthority {
 
     List<? extends CertificateProvisioningMessage> processResourceClassListResponse(
         ResourceClassListResponse response,
-        KeyPairService keyPairService,
         CertificateRequestCreationService certificateRequestCreationService
     );
 }

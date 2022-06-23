@@ -1,39 +1,40 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.ipresource.IpResourceSet;
-import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.server.api.commands.ActivateCustomerCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.ActivateNonHostedCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
+import net.ripe.rpki.util.DBComponent;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.persistence.EntityManager;
-import javax.persistence.LockModeType;
 import javax.security.auth.x500.X500Principal;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 public class LockCertificateAuthorityHandlerTest {
 
-    private EntityManager entityManager;
+    private DBComponent dbComponent;
     private LockCertificateAuthorityHandler subject;
 
     @Before
     public void setUp() {
-        entityManager = mock(EntityManager.class);
-        subject = new LockCertificateAuthorityHandler(entityManager);
+        dbComponent = mock(DBComponent.class);
+        subject = new LockCertificateAuthorityHandler(dbComponent);
     }
 
     @Test
     public void should_lock_ca_for_any_CertificateAuthorityCommand() {
-        subject.handle(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(123, 1), Integer.MAX_VALUE), CommandStatus.create());
+        subject.handle(new IssueUpdatedManifestAndCrlCommand(new VersionedId(123, 1)), CommandStatus.create());
 
-        verify(entityManager).find(CertificateAuthority.class, 123L, LockModeType.PESSIMISTIC_WRITE);
+        verify(dbComponent).lockCertificateAuthorityForUpdate(123L);
+        verify(dbComponent).lockCertificateAuthorityForceIncrement(123L);
+        verifyNoMoreInteractions(dbComponent);
     }
 
     @Test
@@ -45,19 +46,24 @@ public class LockCertificateAuthorityHandlerTest {
             456
         ), CommandStatus.create());
 
-        verify(entityManager).find(CertificateAuthority.class, 456L, LockModeType.PESSIMISTIC_WRITE);
+        verify(dbComponent).lockCertificateAuthorityForUpdate(456L);
+        verify(dbComponent).lockCertificateAuthorityForceIncrement(456L);
+        verifyNoMoreInteractions(dbComponent);
     }
 
     @Test
-    public void should_lock_parent_ca_for_ActivateNonHostedCertificateAuthorityCommand() {
-        subject.handle(new ActivateNonHostedCertificateAuthorityCommand(
+    public void should_lock_child_and_parent_ca_for_any_ChildParentCertificateAuthorityCommand() {
+        when(dbComponent.lockCertificateAuthorityForUpdate(123L)).thenReturn(456L);
+
+        subject.handle(new UpdateAllIncomingResourceCertificatesCommand(
             new VersionedId(123, 0),
-            new X500Principal("CN=test"),
-            IpResourceSet.ALL_PRIVATE_USE_RESOURCES,
-            ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT,
-            999
+            Integer.MAX_VALUE
         ), CommandStatus.create());
 
-        verify(entityManager).find(CertificateAuthority.class, 999L, LockModeType.PESSIMISTIC_WRITE);
+        verify(dbComponent).lockCertificateAuthorityForUpdate(123L);
+        verify(dbComponent).lockCertificateAuthorityForUpdate(456L);
+        verify(dbComponent).lockCertificateAuthorityForceIncrement(123L);
+        verify(dbComponent).lockCertificateAuthorityForceIncrement(456L);
+        verifyNoMoreInteractions(dbComponent);
     }
 }

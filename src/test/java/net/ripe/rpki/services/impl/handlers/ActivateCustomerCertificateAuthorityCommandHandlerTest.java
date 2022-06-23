@@ -21,7 +21,7 @@ public class ActivateCustomerCertificateAuthorityCommandHandlerTest {
     @Test
     public void shouldHaveCorrectType() {
         ActivateHostedCustomerCertificateAuthorityCommandHandler subject = new ActivateHostedCustomerCertificateAuthorityCommandHandler(
-                certificateAuthorityRepository, certificationConfiguration, null);
+                certificateAuthorityRepository, certificationConfiguration, null, null);
         assertSame(ActivateCustomerCertificateAuthorityCommand.class, subject.commandType());
     }
 

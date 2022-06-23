@@ -4,6 +4,7 @@ import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CustomerCertificateAuthority;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.KeyPairService;
 import net.ripe.rpki.server.api.commands.ActivateCustomerCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import org.apache.commons.lang.Validate;
@@ -15,14 +16,17 @@ import javax.inject.Inject;
 public class ActivateHostedCustomerCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<ActivateCustomerCertificateAuthorityCommand> {
 
     private final CertificationConfiguration certificationConfiguration;
+    private final KeyPairService keyPairService;
     private final ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga;
 
     @Inject
     ActivateHostedCustomerCertificateAuthorityCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
                                                              CertificationConfiguration certificationConfiguration,
+                                                             KeyPairService keyPairService,
                                                              ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga) {
         super(certificateAuthorityRepository);
         this.certificationConfiguration = certificationConfiguration;
+        this.keyPairService = keyPairService;
         this.childParentCertificateUpdateSaga = childParentCertificateUpdateSaga;
     }
 
@@ -36,8 +40,8 @@ public class ActivateHostedCustomerCertificateAuthorityCommandHandler extends Ab
         Validate.notNull(command);
         HostedCertificateAuthority productionCa = lookupHostedCA(command.getParentId());
         CustomerCertificateAuthority memberCa = createMemberCA(command, productionCa);
-
-        childParentCertificateUpdateSaga.execute(productionCa, memberCa, Integer.MAX_VALUE);
+        memberCa.createNewKeyPair(keyPairService);
+        childParentCertificateUpdateSaga.execute(memberCa, Integer.MAX_VALUE);
     }
 
     private CustomerCertificateAuthority createMemberCA(ActivateCustomerCertificateAuthorityCommand command, HostedCertificateAuthority parentCa) {

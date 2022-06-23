@@ -37,7 +37,7 @@ public class UpdateAllIncomingResourceCertificatesCommandHandler extends Abstrac
             log.error("cannot update incoming resource certificate for CAs without parent {}", certificateAuthority);
             hasEffect = false;
         } else {
-            hasEffect = childParentCertificateUpdateSaga.execute(certificateAuthority.getParent(), certificateAuthority, command.getIssuedCertificatesPerSignedKeyLimit());
+            hasEffect = childParentCertificateUpdateSaga.execute(certificateAuthority, command.getIssuedCertificatesPerSignedKeyLimit());
         }
 
         if (!hasEffect) {

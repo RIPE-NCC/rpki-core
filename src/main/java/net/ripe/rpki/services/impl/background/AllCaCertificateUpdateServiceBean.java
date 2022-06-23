@@ -3,6 +3,8 @@ package net.ripe.rpki.services.impl.background;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
+import net.ripe.rpki.domain.CertificateAuthority;
+import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CaIdentity;
@@ -12,7 +14,9 @@ import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
+import net.ripe.rpki.services.impl.handlers.ChildParentCertificateUpdateSaga;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
@@ -34,18 +38,27 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
     private final CommandService commandService;
     private final ResourceCache resourceCache;
     private final RepositoryConfiguration repositoryConfiguration;
+    private final TransactionTemplate transactionTemplate;
+    private final CertificateAuthorityRepository certificateAuthorityRepository;
+    private final ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga;
 
 
     public AllCaCertificateUpdateServiceBean(ActiveNodeService activeNodeService,
                                              CertificateAuthorityViewService caViewService,
                                              CommandService commandService,
                                              ResourceCache resourceCache,
-                                             RepositoryConfiguration repositoryConfiguration) {
+                                             RepositoryConfiguration repositoryConfiguration,
+                                             TransactionTemplate transactionTemplate,
+                                             CertificateAuthorityRepository certificateAuthorityRepository,
+                                             ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga) {
         super(activeNodeService);
         this.caViewService = caViewService;
         this.commandService = commandService;
         this.resourceCache = resourceCache;
         this.repositoryConfiguration = repositoryConfiguration;
+        this.transactionTemplate = transactionTemplate;
+        this.certificateAuthorityRepository = certificateAuthorityRepository;
+        this.childParentCertificateUpdateSaga = childParentCertificateUpdateSaga;
     }
 
     @Override
@@ -116,11 +129,15 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
         Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
 
-    private static void updateChildCertificate(CommandService commandService, CaIdentity member, AtomicInteger updatedCounter) {
-        if (updatedCounter.get() >= UPDATE_COUNT_LIMIT) {
-            return;
-        }
+    private void updateChildCertificate(CommandService commandService, CaIdentity member, AtomicInteger updatedCounter) {
         try {
+            if (updatedCounter.get() >= UPDATE_COUNT_LIMIT) {
+                return;
+            }
+            boolean updateNeeded = isUpdateNeeded(member);
+            if (!updateNeeded) {
+                return;
+            }
             CommandStatus status = commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(member.getVersionedId(), Integer.MAX_VALUE));
             if (status.isHasEffect()) {
                 updatedCounter.incrementAndGet();
@@ -128,6 +145,22 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
         } catch (RuntimeException e) {
             log.error("Error for CA '{}': {}", member.getCaName().getPrincipal(), e.getMessage(), e);
         }
+    }
+
+    private boolean isUpdateNeeded(CaIdentity member) {
+        return transactionTemplate.execute((status) -> {
+            status.setRollbackOnly();
+            final CertificateAuthority certificateAuthority = certificateAuthorityRepository.find(member.getVersionedId().getId());
+            if (certificateAuthority == null) {
+                log.warn("CA {} not found, probably deleted after querying all member CAs", member.getVersionedId().getId());
+                return false;
+            } else if (certificateAuthority.getParent() == null) {
+                log.error("cannot update incoming resource certificate for CAs without parent {}", certificateAuthority);
+                return false;
+            } else {
+                return childParentCertificateUpdateSaga.isUpdateNeeded(certificateAuthority);
+            }
+        });
     }
 
     @SneakyThrows

@@ -36,7 +36,7 @@ public class ProvisioningCertificateRevocationCommandHandler extends AbstractCer
 
         publicKeyEntity.setLatestRevocationRequest();
 
-        boolean hasEffect = childParentCertificateUpdateSaga.execute(nonHostedCa.getParent(), nonHostedCa, NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT);
+        boolean hasEffect = childParentCertificateUpdateSaga.execute(nonHostedCa, NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT);
         if (!hasEffect) {
             throw new CommandWithoutEffectException(command);
         }

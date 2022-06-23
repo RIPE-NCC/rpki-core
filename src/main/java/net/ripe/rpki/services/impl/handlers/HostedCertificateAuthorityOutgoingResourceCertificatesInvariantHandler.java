@@ -12,7 +12,7 @@ import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityActivationCommand;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
+import net.ripe.rpki.server.api.commands.ChildParentCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 
 import javax.inject.Inject;
@@ -67,7 +67,7 @@ public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHand
 
         checkCertificateAuthorityInvariants(ca);
 
-        if (ca.getParent() != null && (command instanceof CertificateAuthorityActivationCommand || command instanceof UpdateAllIncomingResourceCertificatesCommand)) {
+        if (ca.getParent() != null && (command instanceof CertificateAuthorityActivationCommand || command instanceof ChildParentCertificateAuthorityCommand)) {
             HostedCertificateAuthority parent = entityManager.find(HostedCertificateAuthority.class, ca.getParent().getId());
             if (parent != null) {
                 checkCertificateAuthorityInvariants(parent);

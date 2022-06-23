@@ -169,7 +169,7 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     }
 
     @Override
-    public List<? extends CertificateProvisioningMessage> processResourceClassListResponse(ResourceClassListResponse response, KeyPairService keyPairService, CertificateRequestCreationService certificateRequestCreationService) {
+    public List<? extends CertificateProvisioningMessage> processResourceClassListResponse(ResourceClassListResponse response, CertificateRequestCreationService certificateRequestCreationService) {
         return publicKeys.stream()
             .flatMap(pk -> {
                 IpResourceSet certifiableResources = response.getCertifiableResources();

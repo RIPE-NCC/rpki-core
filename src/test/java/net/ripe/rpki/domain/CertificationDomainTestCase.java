@@ -139,7 +139,7 @@ public abstract class CertificationDomainTestCase {
         production.addKeyPair(productionKeyPair);
         certificateAuthorityRepository.add(production);
 
-        CertificateIssuanceRequest issuanceRequest = (CertificateIssuanceRequest) production.processResourceClassListResponse(new ResourceClassListResponse(PRODUCTION_CA_RESOURCES), keyPairService, certificateRequestCreationService).get(0);
+        CertificateIssuanceRequest issuanceRequest = (CertificateIssuanceRequest) production.processResourceClassListResponse(new ResourceClassListResponse(PRODUCTION_CA_RESOURCES), certificateRequestCreationService).get(0);
         CertificateIssuanceResponse issuanceResponse = allResources.processCertificateIssuanceRequest(production, issuanceRequest, resourceCertificateRepository, dbComponent, Integer.MAX_VALUE);
         production.processCertificateIssuanceResponse(issuanceResponse, resourceCertificateRepository);
         assertThat(productionKeyPair.isCurrent()).isTrue();

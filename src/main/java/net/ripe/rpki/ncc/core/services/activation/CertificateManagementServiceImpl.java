@@ -157,10 +157,6 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
                     return false;
                 }
 
-                // Will fail with an optimistic locking exception if the CA was modified in the meantime, so no need
-                // to refresh and recheck.
-                dbComponent.lock(certificateAuthority);
-
                 ValidityPeriod validityPeriod = new ValidityPeriod(now, now.plus(TIME_TO_NEXT_UPDATE));
 
                 if (manifestEntity.getCertificate() != null) {

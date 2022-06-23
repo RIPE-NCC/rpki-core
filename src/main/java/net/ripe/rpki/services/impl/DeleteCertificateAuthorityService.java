@@ -29,7 +29,6 @@ public class DeleteCertificateAuthorityService {
     private final PublishedObjectRepository publishedObjectRepository;
     private final RoaAlertConfigurationRepository roaAlertConfigurationRepository;
     private final KeyPairDeletionService keyPairDeletionService;
-    private final DBComponent dbComponent;
 
     @Inject
     public DeleteCertificateAuthorityService(CertificateAuthorityRepository caRepository,
@@ -37,8 +36,7 @@ public class DeleteCertificateAuthorityService {
                                              CommandAuditService commandAuditService,
                                              ResourceCertificateRepository resourceCertificateRepository,
                                              PublishedObjectRepository publishedObjectRepository,
-                                             RoaAlertConfigurationRepository roaAlertConfigurationRepository,
-                                             DBComponent dbComponent
+                                             RoaAlertConfigurationRepository roaAlertConfigurationRepository
     ) {
         this.caRepository = caRepository;
         this.keyPairDeletionService = keyPairDeletionService;
@@ -46,14 +44,11 @@ public class DeleteCertificateAuthorityService {
         this.resourceCertificateRepository = resourceCertificateRepository;
         this.publishedObjectRepository = publishedObjectRepository;
         this.roaAlertConfigurationRepository = roaAlertConfigurationRepository;
-        this.dbComponent = dbComponent;
     }
 
     public void deleteNonHosted(long id) {
         final NonHostedCertificateAuthority nonHostedCa = caRepository.findNonHostedCa(id);
         if (nonHostedCa != null) {
-            dbComponent.lockAndRefresh(nonHostedCa.getParent());
-
             for (PublicKeyEntity publicKey : nonHostedCa.getPublicKeys()) {
                 CertificateRevocationRequest certificateRevocationRequest = new CertificateRevocationRequest(publicKey.getPublicKey());
                 nonHostedCa.getParent().processCertificateRevocationRequest(certificateRevocationRequest, resourceCertificateRepository);
@@ -68,8 +63,6 @@ public class DeleteCertificateAuthorityService {
         final HostedCertificateAuthority hostedCa = caRepository.findHostedCa(id);
         if (hostedCa != null) {
             log.warn("Deleting hosted CA with id " + id);
-
-            dbComponent.lockAndRefresh(hostedCa.getParent());
 
             hostedCa.getKeyPairs().forEach(keyPair -> deleteArtifactsOfKeyPairEntity(hostedCa, keyPair));
 

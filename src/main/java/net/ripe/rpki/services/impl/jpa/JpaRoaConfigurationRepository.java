@@ -41,8 +41,6 @@ public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguratio
 
     @Override
     public RoaConfiguration getOrCreateByCertificateAuthority(HostedCertificateAuthority certificateAuthority) {
-        // avoid race condition
-        dbComponent.lock(certificateAuthority);
         return findByCertificateAuthority(certificateAuthority).orElseGet(() -> {
             RoaConfiguration result = new RoaConfiguration(certificateAuthority);
             add(result);

@@ -55,7 +55,7 @@ public class ProvisioningCertificateIssuanceCommandHandlerTest {
     @Test
     public void should_add_public_key_and_issue_certificate() {
         when(certificateAuthorityRepository.findNonHostedCa(12L)).thenReturn(nonHostedCertificateAuthority);
-        when(childParentCertificateUpdateSaga.execute(any(), any(), anyInt())).thenReturn(true);
+        when(childParentCertificateUpdateSaga.execute(any(), anyInt())).thenReturn(true);
 
         subject.handle(new ProvisioningCertificateIssuanceCommand(
             nonHostedCertificateAuthority.getVersionedId(),
@@ -69,6 +69,6 @@ public class ProvisioningCertificateIssuanceCommandHandlerTest {
             assertThat(pke.getRequestedResourceSets()).isSameAs(requestedResourceSets);
             assertThat(pke.getRequestedSia()).isEqualTo(sia);
         });
-        verify(childParentCertificateUpdateSaga).execute(nonHostedCertificateAuthority.getParent(), nonHostedCertificateAuthority, NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT);
+        verify(childParentCertificateUpdateSaga).execute(nonHostedCertificateAuthority, NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT);
     }
 }

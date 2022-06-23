@@ -42,7 +42,7 @@ public class DeleteNonHostedCertificateAuthorityCommandHandlerTest {
 
     @Before
     public void setup() throws Exception {
-        commandHandler = new DeleteNonHostedCertificateAuthorityCommandHandler(certificateAuthorityRepository, new DeleteCertificateAuthorityService(certificateAuthorityRepository, null, null, null, null, null, new MemoryDBComponent()));
+        commandHandler = new DeleteNonHostedCertificateAuthorityCommandHandler(certificateAuthorityRepository, new DeleteCertificateAuthorityService(certificateAuthorityRepository, null, null, null, null, null));
         nonHostedCertificateAuthority = getNonHostedCertificateAuthority();
 
         when(certificateAuthorityRepository.findNonHostedCa(NON_HOSTED_CA_ID)).thenReturn(nonHostedCertificateAuthority);

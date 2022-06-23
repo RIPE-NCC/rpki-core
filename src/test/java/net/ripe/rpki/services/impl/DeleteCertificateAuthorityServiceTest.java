@@ -17,7 +17,6 @@ import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
-import net.ripe.rpki.util.DBComponent;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -49,8 +48,6 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
     private PublishedObjectRepository publishedObjectRepository;
     @Mock
     private RoaAlertConfigurationRepository roaAlertConfigurationRepository;
-    @Mock
-    private DBComponent dbComponent;
 
     @InjectMocks
     private DeleteCertificateAuthorityService subject;
@@ -89,8 +86,6 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
                 .thenReturn(publicKey);
 
         subject.deleteCa(HOSTED_CA_ID);
-
-        verify(dbComponent).lockAndRefresh(parentCA);
 
         verify(keyPair).deleteIncomingResourceCertificate();
         verify(keyPair).requestRevoke();

@@ -1,14 +1,22 @@
 package net.ripe.rpki.util;
 
 import net.ripe.rpki.domain.HostedCertificateAuthority;
-import net.ripe.rpki.ncc.core.domain.support.Entity;
 
 import java.math.BigInteger;
 
 public interface DBComponent {
-    void lock(Entity entity);
+    /**
+     * Locks the certificate authority with the specified id.
+     * @param caId the id of the certificate authority to lock
+     * @return the id of the locked certificate authority's parent CA
+     */
+    Long lockCertificateAuthorityForUpdate(long caId);
 
-    void lockAndRefresh(Entity entity);
+    /**
+     * Force version increment for the specified certificate authority
+     * @param caId the id of the certificate authority to increment the version for
+     */
+    void lockCertificateAuthorityForceIncrement(long caId);
 
     BigInteger nextSerial(HostedCertificateAuthority caId);
 }

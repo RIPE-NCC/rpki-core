@@ -12,7 +12,7 @@ import java.security.PublicKey;
  * </p>
  */
 @Getter
-public class ProvisioningCertificateRevocationCommand extends CertificateAuthorityModificationCommand {
+public class ProvisioningCertificateRevocationCommand extends ChildParentCertificateAuthorityCommand {
 
     private static final long serialVersionUID = 1L;
 

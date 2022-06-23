@@ -77,7 +77,6 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
     }
 
     private void handleForHostedCertificateAuthority(HostedCertificateAuthority ca, List<CertificateIssuanceRequest> requests) {
-        dbComponent.lockAndRefresh(ca.getParent());
         for (CertificateIssuanceRequest request : requests) {
             CertificateIssuanceResponse response = ca.getParent().processCertificateIssuanceRequest(
                     ca, request, resourceCertificateRepository, dbComponent, Integer.MAX_VALUE);

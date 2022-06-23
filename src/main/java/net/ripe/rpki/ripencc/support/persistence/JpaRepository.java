@@ -1,8 +1,6 @@
 package net.ripe.rpki.ripencc.support.persistence;
 
 import net.ripe.rpki.ncc.core.domain.support.Entity;
-import net.ripe.rpki.util.DBComponent;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
@@ -23,9 +21,6 @@ public abstract class JpaRepository<T extends Entity> implements Repository<T> {
 
     @PersistenceContext
     protected EntityManager manager;
-
-    @Autowired
-    protected DBComponent dbComponent;
 
     /**
      * @return The generic type of this Repository, used for class references.

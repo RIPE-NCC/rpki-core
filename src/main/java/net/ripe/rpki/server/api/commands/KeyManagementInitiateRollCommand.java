@@ -13,7 +13,7 @@ import net.ripe.rpki.commons.util.VersionedId;
  * Note publication (step 3) and entering the staging period (step 4) will happen when the
  * sign requests generated here are processed.
  */
-public class KeyManagementInitiateRollCommand extends CertificateAuthorityModificationCommand {
+public class KeyManagementInitiateRollCommand extends ChildParentCertificateAuthorityCommand {
 
     private static final long serialVersionUID = 1L;
 

@@ -1,7 +1,6 @@
 package net.ripe.rpki.util;
 
 import net.ripe.rpki.domain.HostedCertificateAuthority;
-import net.ripe.rpki.ncc.core.domain.support.Entity;
 import org.springframework.stereotype.Component;
 
 import java.math.BigInteger;
@@ -14,13 +13,12 @@ public class MemoryDBComponent implements DBComponent {
     private ReentrantLock lock = new ReentrantLock();
 
     @Override
-    public void lock(Entity entity) {
-        // do nothing for now
+    public Long lockCertificateAuthorityForUpdate(long caId) {
+        return null;
     }
 
     @Override
-    public void lockAndRefresh(Entity entity) {
-        // do nothing for now
+    public void lockCertificateAuthorityForceIncrement(long caId) {
     }
 
     @Override

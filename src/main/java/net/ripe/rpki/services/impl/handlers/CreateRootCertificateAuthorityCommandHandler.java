@@ -4,6 +4,7 @@ import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.KeyPairService;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.commands.CreateRootCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -17,14 +18,17 @@ public class CreateRootCertificateAuthorityCommandHandler extends AbstractCertif
 
     private final RepositoryConfiguration repositoryConfiguration;
     private final CertificationConfiguration certificationConfiguration;
+    private final KeyPairService keyPairService;
 
     @Inject
     public CreateRootCertificateAuthorityCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
                                                         RepositoryConfiguration repositoryConfiguration,
-                                                        CertificationConfiguration certificationConfiguration) {
+                                                        CertificationConfiguration certificationConfiguration,
+                                                        KeyPairService keyPairService) {
         super(certificateAuthorityRepository);
         this.repositoryConfiguration = repositoryConfiguration;
         this.certificationConfiguration = certificationConfiguration;
+        this.keyPairService = keyPairService;
     }
 
     @Override
@@ -47,6 +51,7 @@ public class CreateRootCertificateAuthorityCommandHandler extends AbstractCertif
             randomSerialIncrement
         );
         getCertificateAuthorityRepository().add(ca);
+        ca.createNewKeyPair(keyPairService);
     }
 
     protected AllResourcesCertificateAuthority lookupAllResourcesCertificateAuthority() {

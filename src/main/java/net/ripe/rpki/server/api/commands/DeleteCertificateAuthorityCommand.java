@@ -10,7 +10,7 @@ import javax.security.auth.x500.X500Principal;
  * Delete the mentioned Certificate Authority. Use with extreme prejudice...
  * </p>
  */
-public class DeleteCertificateAuthorityCommand extends CertificateAuthorityCommand {
+public class DeleteCertificateAuthorityCommand extends ChildParentCertificateAuthorityCommand {
     private final X500Principal name;
     private final RoaConfigurationData roaConfiguration;
 

@@ -16,9 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
-import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
 
@@ -30,9 +28,6 @@ import static org.junit.Assert.assertTrue;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestRpkiBootApplication.class)
 public class JdbcDBComponentTest extends CertificationDomainTestCase {
-
-    @PersistenceContext
-    private EntityManager entityManager;
 
     @Autowired
     private JdbcDBComponent jdbcDbComponent;
@@ -55,7 +50,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
     }
 
     @Test
-    public void should_lock_and_refresh_with_pessimistic_write_lock() {
+    public void should_lock_with_force_increment() {
         transactionTemplate.executeWithoutResult((status) -> {
             final HostedCertificateAuthority ca = (HostedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
             assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
@@ -63,28 +58,11 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             ca.setLastIssuedSerial(BigInteger.valueOf(444444));
             assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
 
-            jdbcDbComponent.lockAndRefresh(ca);
+            jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
             assertTrue(jdbcDbComponent.isLocked(ca));
             assertEquals(LockModeType.PESSIMISTIC_FORCE_INCREMENT, entityManager.getLockMode(ca));
 
             ca.setLastIssuedSerial(BigInteger.valueOf(555555));
-            assertTrue(jdbcDbComponent.isLocked(ca));
-            assertEquals(LockModeType.PESSIMISTIC_FORCE_INCREMENT, entityManager.getLockMode(ca));
-
-            status.setRollbackOnly();
-        });
-    }
-
-    @Test
-    public void should_lock_with_pessimistic_write_lock() {
-        transactionTemplate.executeWithoutResult((status) -> {
-            final HostedCertificateAuthority ca = (HostedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
-            assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
-
-            ca.setLastIssuedSerial(BigInteger.valueOf(444444));
-            assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
-
-            jdbcDbComponent.lock(ca);
             assertTrue(jdbcDbComponent.isLocked(ca));
             assertEquals(LockModeType.PESSIMISTIC_FORCE_INCREMENT, entityManager.getLockMode(ca));
 
@@ -98,7 +76,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             final HostedCertificateAuthority ca = (HostedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
             assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
 
-            jdbcDbComponent.lock(ca);
+            jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
             ca.setLastIssuedSerial(BigInteger.valueOf(444444));
             entityManager.flush();
 
@@ -123,8 +101,8 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             assertTrue(jdbcDbComponent.isLocked(ca));
             assertEquals(LockModeType.OPTIMISTIC_FORCE_INCREMENT, entityManager.getLockMode(ca));
 
-            // But explicit locking changes it back to PESSIMISTIC_WRITE again...
-            jdbcDbComponent.lock(ca);
+            // But explicit locking changes it back to PESSIMISTIC_FORCE_INCREMENT
+            jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
             assertTrue(jdbcDbComponent.isLocked(ca));
             assertEquals(LockModeType.PESSIMISTIC_FORCE_INCREMENT, entityManager.getLockMode(ca));
 
@@ -136,7 +114,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
     @Transactional
     public void nextSerial() {
         final HostedCertificateAuthority ca = (HostedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
-        jdbcDbComponent.lock(ca);
+        jdbcDbComponent.lockCertificateAuthorityForUpdate(ca.getId());
         final BigInteger bigInteger = jdbcDbComponent.nextSerial(ca);
         final HostedCertificateAuthority caUpdated = (HostedCertificateAuthority) certificateAuthorityRepository.find(ca.getId());
         assertEquals(caUpdated.getLastIssuedSerial(), bigInteger);
@@ -149,7 +127,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
         entityManager.createNativeQuery("UPDATE certificateauthority SET last_issued_serial = last_issued_serial + 1 WHERE id = :id")
             .setParameter("id", ca.getId())
             .executeUpdate();
-        jdbcDbComponent.lock(ca);
+        jdbcDbComponent.lockCertificateAuthorityForUpdate(ca.getId());
 
         assertThrows(IllegalStateException.class, () -> {
             jdbcDbComponent.nextSerial(ca);

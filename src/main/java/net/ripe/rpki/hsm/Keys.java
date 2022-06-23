@@ -13,12 +13,6 @@ import java.util.Optional;
 public class Keys {
     private static Keys instance;
 
-    private final Optional<KeyStoreParameters> keyStoreParameters;
-
-    public Keys(Optional<KeyStoreParameters> keyStoreParameters) {
-        this.keyStoreParameters = keyStoreParameters;
-    }
-
     public static Keys get() {
         if (instance == null) {
             throw new IllegalStateException("'Keys' is not initialized.");
@@ -29,6 +23,12 @@ public class Keys {
     public static Keys initialize(Optional<KeyStoreParameters> keyStoreParameters) {
         instance = new Keys(keyStoreParameters);
         return instance;
+    }
+
+    private Optional<KeyStoreParameters> keyStoreParameters = Optional.empty();
+
+    public Keys(Optional<KeyStoreParameters> keyStoreParameters) {
+        this.keyStoreParameters = keyStoreParameters;
     }
 
     public byte[] ksToBytes(KeyPair keyPair, String keyStoreProvider, String signatureProvider, String keyStoreType) {

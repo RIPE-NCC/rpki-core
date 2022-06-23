@@ -28,6 +28,7 @@ import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.inject.Named;
 import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 import java.net.URI;
@@ -60,7 +61,7 @@ public class RoaEntityServiceBean extends CertificateAuthorityEventAdapter imple
                                 RoaConfigurationRepository roaConfigurationRepository,
                                 RoaEntityRepository repository,
                                 CertificationProviderConfigurationData certificationProviderConfiguration,
-                                KeyPairFactory keyPairFactory,
+                                @Named("oneTimeKeyPairFactory") KeyPairFactory keyPairFactory,
                                 CertificateManagementService certificateManagementService) {
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.roaConfigurationRepository = roaConfigurationRepository;

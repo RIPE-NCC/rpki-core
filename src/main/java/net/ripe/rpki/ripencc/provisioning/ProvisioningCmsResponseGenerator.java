@@ -8,6 +8,7 @@ import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.inject.Named;
 import javax.persistence.LockModeType;
 import java.util.UUID;
 
@@ -24,7 +25,7 @@ class ProvisioningCmsResponseGenerator {
 
     public ProvisioningCmsResponseGenerator(
         CertificateAuthorityRepository certificateAuthorityRepository,
-        KeyPairFactory keyPairFactory
+        @Named("oneTimeKeyPairFactory") KeyPairFactory keyPairFactory
     ) {
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.keyPairFactory = keyPairFactory;

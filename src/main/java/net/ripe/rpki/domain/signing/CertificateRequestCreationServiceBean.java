@@ -60,12 +60,16 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
                                                       HostedCertificateAuthority ca) {
         if (ca.hasCurrentKeyPair() && !ca.hasRollInProgress() && ca.currentKeyPairIsOlder(maxAge)) {
             KeyPairEntity kp = ca.createNewKeyPair(keyPairService);
+            try {
 
-            // Request certificate for it with same resources as before
-            final IpResourceSet resources = ca.getCurrentIncomingCertificate().getResources();
-            final X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
-            final X500Principal dn = deriveSubjectDN(kp.getPublicKey(), null);
-            return new CertificateIssuanceRequest(resources, dn, kp.getPublicKey(), sia);
+                // Request certificate for it with same resources as before
+                final IpResourceSet resources = ca.getCurrentIncomingCertificate().getResources();
+                final X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
+                final X500Principal dn = deriveSubjectDN(kp.getPublicKey(), null);
+                return new CertificateIssuanceRequest(resources, dn, kp.getPublicKey(), sia);
+            } finally {
+                kp.unloadKeyPair();
+            }
         }
         return null;
     }
@@ -75,12 +79,16 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
         final List<CertificateIssuanceRequest> requests = new ArrayList<>();
         for (KeyPairEntity kp : ca.getKeyPairs()) {
             if (kp.isCertificateNeeded()) {
-                final Optional<IncomingResourceCertificate> currentIncomingCertificate = kp.findCurrentIncomingCertificate();
-                final X509ResourceCertificate existingCertificate = currentIncomingCertificate.map(ResourceCertificate::getCertificate).orElse(null);
-                X500Principal dn = deriveSubjectDN(kp.getPublicKey(), existingCertificate);
-                X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
-                CertificateIssuanceRequest signRequest = new CertificateIssuanceRequest(certifiableResources, dn, kp.getPublicKey(), sia);
-                requests.add(signRequest);
+                try {
+                    final Optional<IncomingResourceCertificate> currentIncomingCertificate = kp.findCurrentIncomingCertificate();
+                    final X509ResourceCertificate existingCertificate = currentIncomingCertificate.map(ResourceCertificate::getCertificate).orElse(null);
+                    X500Principal dn = deriveSubjectDN(kp.getPublicKey(), existingCertificate);
+                    X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
+                    CertificateIssuanceRequest signRequest = new CertificateIssuanceRequest(certifiableResources, dn, kp.getPublicKey(), sia);
+                    requests.add(signRequest);
+                } finally {
+                    kp.unloadKeyPair();
+                }
             }
         }
         return requests;
@@ -101,11 +109,15 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
                     .orElse(false);
 
                 if (currentCertificateIsNull(currentIncomingCertificate, DEFAULT_RESOURCE_CLASS) || needToRequest) {
-                    final X509ResourceCertificate existingCertificate = currentIncomingCertificate.map(ResourceCertificate::getCertificate).orElse(null);
-                    X500Principal dn = deriveSubjectDN(kp.getPublicKey(), existingCertificate);
-                    X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
-                    ResourceCertificateRequestData resourceCertificateRequestData = ResourceCertificateRequestData.forUpstreamCARequest(DEFAULT_RESOURCE_CLASS, dn, kp.getPublicKey(), sia, certifiableResources);
-                    requests.add(new SigningRequest(resourceCertificateRequestData));
+                    try {
+                        final X509ResourceCertificate existingCertificate = currentIncomingCertificate.map(ResourceCertificate::getCertificate).orElse(null);
+                        X500Principal dn = deriveSubjectDN(kp.getPublicKey(), existingCertificate);
+                        X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
+                        ResourceCertificateRequestData resourceCertificateRequestData = ResourceCertificateRequestData.forUpstreamCARequest(DEFAULT_RESOURCE_CLASS, dn, kp.getPublicKey(), sia, certifiableResources);
+                        requests.add(new SigningRequest(resourceCertificateRequestData));
+                    } finally {
+                        kp.unloadKeyPair();
+                    }
                 }
             }
         }
@@ -115,7 +127,13 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
     @Override
     public List<CertificateRevocationRequest> createCertificateRevocationRequestForAllKeys(HostedCertificateAuthority ca) {
         return ca.getKeyPairs().stream()
-            .map(keyPair -> new CertificateRevocationRequest(keyPair.getPublicKey()))
+            .map(keyPair -> {
+                try {
+                    return new CertificateRevocationRequest(keyPair.getPublicKey());
+                } finally {
+                    keyPair.unloadKeyPair();
+                }
+            })
             .collect(Collectors.toList());
     }
 
@@ -123,7 +141,11 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
     public CertificateRevocationRequest createCertificateRevocationRequestForOldKey(HostedCertificateAuthority ca) {
         Optional<KeyPairEntity> key = ca.findOldKeyPair();
         Validate.isTrue(key.isPresent(), "Cannot find an OLD key pair");
-        return new CertificateRevocationRequest(key.get().getPublicKey());
+        try {
+            return new CertificateRevocationRequest(key.get().getPublicKey());
+        } finally {
+            key.get().unloadKeyPair();
+        }
     }
 
     @Override

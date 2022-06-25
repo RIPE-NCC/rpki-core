@@ -75,18 +75,26 @@ public class DownStreamProvisioningCommunicator extends EntitySupport {
         crlBuilder.withNextUpdateTime(identityCertificate.getValidityPeriod().getNotValidAfter());
         crlBuilder.withNumber(BigInteger.ONE);
 
-        crlBuilder.withAuthorityKeyIdentifier(persistedKeyPair.getPublicKey());
-        crlBuilder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
+        try {
+            crlBuilder.withAuthorityKeyIdentifier(persistedKeyPair.getPublicKey());
+            crlBuilder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
+            return crlBuilder.build(persistedKeyPair.getPrivateKey());
+        } finally {
+            persistedKeyPair.unloadKeyPair();
+        }
 
-        return crlBuilder.build(persistedKeyPair.getPrivateKey());
     }
 
     private ProvisioningIdentityCertificate createProvisioningIdentityCertificate(X500Principal identityCertificateSubject) {
         ProvisioningIdentityCertificateBuilder builder = new ProvisioningIdentityCertificateBuilder();
-        builder.withSelfSigningKeyPair(getKeyPair());
-        builder.withSelfSigningSubject(identityCertificateSubject);
-        builder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
-        return builder.build();
+        try {
+            builder.withSelfSigningKeyPair(persistedKeyPair.getKeyPair());
+            builder.withSelfSigningSubject(identityCertificateSubject);
+            builder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
+            return builder.build();
+        } finally {
+            persistedKeyPair.unloadKeyPair();
+        }
     }
 
     public final KeyPair getKeyPair() {
@@ -129,9 +137,13 @@ public class DownStreamProvisioningCommunicator extends EntitySupport {
         builder.withPublicKey(eeKeyPair.getPublic());
 
         builder.withSubjectDN(new UuidRepositoryObjectNamingStrategy().getCertificateSubject(eeKeyPair.getPublic()));
-        builder.withSigningKeyPair(getKeyPair());
-        builder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
-        return builder.build();
+        try {
+            builder.withSigningKeyPair(persistedKeyPair.getKeyPair());
+            builder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
+            return builder.build();
+        } finally {
+            persistedKeyPair.unloadKeyPair();
+        }
     }
 
     private BigInteger generateCertificateSerialNumber() {

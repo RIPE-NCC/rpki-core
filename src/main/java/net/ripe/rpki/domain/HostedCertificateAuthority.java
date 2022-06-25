@@ -37,6 +37,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
+import org.springframework.security.core.parameters.P;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -394,7 +395,13 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
         return getKeyPairs().stream()
             .filter(KeyPairEntity::isOld)
             .filter(kp -> !resourceCertificateRepository.existsCurrentOutgoingCertificatesExceptForManifest(kp))
-            .map(kp -> new CertificateRevocationRequest(kp.getPublicKey()))
+            .map(kp -> {
+                try {
+                    return new CertificateRevocationRequest(kp.getPublicKey());
+                } finally {
+                    kp.unloadKeyPair();
+                }
+            })
             .collect(Collectors.toList());
     }
 

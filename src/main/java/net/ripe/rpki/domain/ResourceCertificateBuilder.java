@@ -129,36 +129,40 @@ public class ResourceCertificateBuilder {
     }
 
     public OutgoingResourceCertificate build() {
-        X509ResourceCertificateBuilder builder = new X509ResourceCertificateBuilder();
-        builder.withIssuerDN(issuerDN);
-        builder.withSubjectDN(subjectDN);
-        builder.withPublicKey(subjectPublicKey);
-        builder.withSigningKeyPair(signingKeyPair.getKeyPair());
-        builder.withSignatureProvider(signingKeyPair.getSignatureProvider());
-        builder.withValidityPeriod(validityPeriod);
-        builder.withCa(ca);
-        if (ca) {
-            builder.withKeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
-        } else {
-            builder.withKeyUsage(KeyUsage.digitalSignature);
+        try {
+            X509ResourceCertificateBuilder builder = new X509ResourceCertificateBuilder();
+            builder.withIssuerDN(issuerDN);
+            builder.withSubjectDN(subjectDN);
+            builder.withPublicKey(subjectPublicKey);
+            builder.withSigningKeyPair(signingKeyPair.getKeyPair());
+            builder.withSignatureProvider(signingKeyPair.getSignatureProvider());
+            builder.withValidityPeriod(validityPeriod);
+            builder.withCa(ca);
+            if (ca) {
+                builder.withKeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
+            } else {
+                builder.withKeyUsage(KeyUsage.digitalSignature);
+            }
+            if (authorityInformationAccess != null) {
+                builder.withAuthorityInformationAccess(authorityInformationAccess);
+            }
+            if (subjectInformationAccess != null) {
+                builder.withSubjectInformationAccess(subjectInformationAccess);
+            }
+            if (crlDistributionPoints != null) {
+                builder.withCrlDistributionPoints(crlDistributionPoints);
+            }
+            if (Arrays.equals(subjectPublicKey.getEncoded(), signingKeyPair.getPublicKey().getEncoded())) {
+                // Self-signed certificate MUST NOT have the authority key identifier extension.
+                builder.withAuthorityKeyIdentifier(false);
+            }
+            builder.withSerial(serial);
+            builder.withResources(resources).withInheritedResourceTypes(inheritedResourceTypes);
+            X509ResourceCertificate cert = builder.build();
+            return new OutgoingResourceCertificate(cert, signingKeyPair, embedded, filename, directory);
+        } finally {
+            signingKeyPair.unloadKeyPair();
         }
-        if (authorityInformationAccess != null) {
-            builder.withAuthorityInformationAccess(authorityInformationAccess);
-        }
-        if (subjectInformationAccess != null) {
-            builder.withSubjectInformationAccess(subjectInformationAccess);
-        }
-        if (crlDistributionPoints != null) {
-            builder.withCrlDistributionPoints(crlDistributionPoints);
-        }
-        if (Arrays.equals(subjectPublicKey.getEncoded(), signingKeyPair.getPublicKey().getEncoded())) {
-            // Self-signed certificate MUST NOT have the authority key identifier extension.
-            builder.withAuthorityKeyIdentifier(false);
-        }
-        builder.withSerial(serial);
-        builder.withResources(resources).withInheritedResourceTypes(inheritedResourceTypes);
-        X509ResourceCertificate cert = builder.build();
-        return new OutgoingResourceCertificate(cert, signingKeyPair, embedded, filename, directory);
     }
 
     public ResourceCertificateBuilder withFilename(String filename) {

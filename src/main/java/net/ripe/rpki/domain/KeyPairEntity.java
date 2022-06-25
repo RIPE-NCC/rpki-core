@@ -278,6 +278,10 @@ public class KeyPairEntity extends EntitySupport {
         return persistedKeyPair.getKeyPair();
     }
 
+    public void unloadKeyPair() {
+        persistedKeyPair.unloadKeyPair();
+    }
+
     public PublicKey getPublicKey() {
         return persistedKeyPair.getPublicKey();
     }

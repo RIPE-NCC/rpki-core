@@ -88,3 +88,5 @@ non-hosted:
     repository:
       url: "https://krill-1.paas.rpki.prepdev.ripe.net/"
       token: "krill-dev-token"
+
+certificate.authority.invariant.checking.enabled: true

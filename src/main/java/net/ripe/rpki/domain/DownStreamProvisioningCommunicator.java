@@ -75,26 +75,18 @@ public class DownStreamProvisioningCommunicator extends EntitySupport {
         crlBuilder.withNextUpdateTime(identityCertificate.getValidityPeriod().getNotValidAfter());
         crlBuilder.withNumber(BigInteger.ONE);
 
-        try {
-            crlBuilder.withAuthorityKeyIdentifier(persistedKeyPair.getPublicKey());
-            crlBuilder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
-            return crlBuilder.build(persistedKeyPair.getPrivateKey());
-        } finally {
-            persistedKeyPair.unloadKeyPair();
-        }
+        crlBuilder.withAuthorityKeyIdentifier(persistedKeyPair.getPublicKey());
+        crlBuilder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
 
+        return crlBuilder.build(persistedKeyPair.getPrivateKey());
     }
 
     private ProvisioningIdentityCertificate createProvisioningIdentityCertificate(X500Principal identityCertificateSubject) {
         ProvisioningIdentityCertificateBuilder builder = new ProvisioningIdentityCertificateBuilder();
-        try {
-            builder.withSelfSigningKeyPair(persistedKeyPair.getKeyPair());
-            builder.withSelfSigningSubject(identityCertificateSubject);
-            builder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
-            return builder.build();
-        } finally {
-            persistedKeyPair.unloadKeyPair();
-        }
+        builder.withSelfSigningKeyPair(getKeyPair());
+        builder.withSelfSigningSubject(identityCertificateSubject);
+        builder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
+        return builder.build();
     }
 
     public final KeyPair getKeyPair() {
@@ -113,14 +105,14 @@ public class DownStreamProvisioningCommunicator extends EntitySupport {
         return crlHelper.getCrl();
     }
 
-    public ProvisioningCmsObject createProvisioningCmsResponseObject(KeyPairFactory keyPairFactory, AbstractProvisioningPayload responsePayload) {
+    public ProvisioningCmsObject createProvisioningCmsResponseObject(SingleUseKeyPairFactory singleUseKeyPairFactory, AbstractProvisioningPayload responsePayload) {
         ProvisioningCmsObjectBuilder cmsObjectBuilder = new ProvisioningCmsObjectBuilder();
 
         cmsObjectBuilder.withPayloadContent(responsePayload);
         cmsObjectBuilder.withCrl(getProvisioningCrl());
-        cmsObjectBuilder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
+        cmsObjectBuilder.withSignatureProvider(singleUseKeyPairFactory.signatureProvider());
 
-        KeyPair eeKeyPair = keyPairFactory.generate();
+        KeyPair eeKeyPair = singleUseKeyPairFactory.get();
         cmsObjectBuilder.withCmsCertificate(createCmsCertificate(eeKeyPair).getCertificate());
 
         return cmsObjectBuilder.build(eeKeyPair.getPrivate());
@@ -137,13 +129,9 @@ public class DownStreamProvisioningCommunicator extends EntitySupport {
         builder.withPublicKey(eeKeyPair.getPublic());
 
         builder.withSubjectDN(new UuidRepositoryObjectNamingStrategy().getCertificateSubject(eeKeyPair.getPublic()));
-        try {
-            builder.withSigningKeyPair(persistedKeyPair.getKeyPair());
-            builder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
-            return builder.build();
-        } finally {
-            persistedKeyPair.unloadKeyPair();
-        }
+        builder.withSigningKeyPair(getKeyPair());
+        builder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
+        return builder.build();
     }
 
     private BigInteger generateCertificateSerialNumber() {

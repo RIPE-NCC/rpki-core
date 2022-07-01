@@ -28,10 +28,6 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest.DEFAULT_KEYPAIR_GENERATOR_PROVIDER;
-import static net.ripe.rpki.commons.crypto.util.KeyStoreUtilTest.DEFAULT_KEYSTORE_PROVIDER;
-import static net.ripe.rpki.commons.crypto.util.KeyStoreUtilTest.DEFAULT_KEYSTORE_TYPE;
-import static net.ripe.rpki.commons.crypto.x509cert.X509CertificateBuilderHelper.DEFAULT_SIGNATURE_PROVIDER;
 import static net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateTest.createSelfSignedCaResourceCertificateBuilder;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -65,16 +61,15 @@ public class RoaEntityServiceBeanTest  {
     private RoaEntityRepository roaEntityRepository;
 
     private RoaEntityServiceBean subject;
-    private CertificationProviderConfigurationData providerConfiguration;
 
     private RoaConfiguration configuration;
 
     @Before
     public void setUp() {
-        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, new MemoryDBComponent(), null, null, PregeneratedKeyPairFactory.getInstance(), new SimpleMeterRegistry());
+        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, new MemoryDBComponent(), null, null,
+            new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), new SimpleMeterRegistry());
         ca = CertificationDomainTestCase.createInitialisedProdCaWithRipeResources(certificateManagementService);
         configuration = new RoaConfiguration(ca, Arrays.asList(ROA_PREFIX_1, ROA_PREFIX_2));
-        providerConfiguration = new CertificationProviderConfigurationData(DEFAULT_KEYSTORE_PROVIDER, DEFAULT_KEYPAIR_GENERATOR_PROVIDER, DEFAULT_SIGNATURE_PROVIDER, DEFAULT_KEYSTORE_TYPE);
 
         createAndInitSubject();
     }
@@ -82,7 +77,7 @@ public class RoaEntityServiceBeanTest  {
     private void createAndInitSubject() {
         initMocks();
         subject = new RoaEntityServiceBean(certificateAuthorityRepository, roaConfigurationRepository, roaEntityRepository,
-                providerConfiguration, PregeneratedKeyPairFactory.getInstance(), certificateManagementService);
+                new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), certificateManagementService);
     }
 
     @After

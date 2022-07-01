@@ -16,12 +16,12 @@ import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.core.events.CertificateAuthorityEventAdapter;
 import net.ripe.rpki.core.events.KeyPairActivatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.CertificationProviderConfigurationData;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.ResourceCertificateInformationAccessStrategy;
+import net.ripe.rpki.domain.SingleUseKeyPairFactory;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.naming.RepositoryObjectNamingStrategy;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
@@ -50,9 +50,7 @@ public class RoaEntityServiceBean extends CertificateAuthorityEventAdapter imple
 
     private final CertificateAuthorityRepository certificateAuthorityRepository;
 
-    private final String signatureProvider;
-
-    private final KeyPairFactory keyPairFactory;
+    private final SingleUseKeyPairFactory singleUseKeyPairFactory;
 
     private final CertificateManagementService certificateManagementService;
 
@@ -60,15 +58,13 @@ public class RoaEntityServiceBean extends CertificateAuthorityEventAdapter imple
     public RoaEntityServiceBean(CertificateAuthorityRepository certificateAuthorityRepository,
                                 RoaConfigurationRepository roaConfigurationRepository,
                                 RoaEntityRepository repository,
-                                CertificationProviderConfigurationData certificationProviderConfiguration,
-                                @Named("oneTimeKeyPairFactory") KeyPairFactory keyPairFactory,
+                                SingleUseKeyPairFactory singleUseKeyPairFactory,
                                 CertificateManagementService certificateManagementService) {
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.roaConfigurationRepository = roaConfigurationRepository;
         this.repository = repository;
-        this.keyPairFactory = keyPairFactory;
+        this.singleUseKeyPairFactory = singleUseKeyPairFactory;
         this.certificateManagementService = certificateManagementService;
-        this.signatureProvider = certificationProviderConfiguration.getSignatureProvider();
     }
 
     @Override
@@ -165,7 +161,7 @@ public class RoaEntityServiceBean extends CertificateAuthorityEventAdapter imple
             return;
         }
 
-        KeyPair eeKeyPair = keyPairFactory.generate();
+        KeyPair eeKeyPair = singleUseKeyPairFactory.get();
         OutgoingResourceCertificate endEntityCertificate = createEndEntityCertificateForRoa(specification, roaValidityPeriod, eeKeyPair, currentKeyPair);
 
         RoaCms roaCms = generateRoaCms(specification, eeKeyPair, endEntityCertificate.getCertificate());
@@ -189,7 +185,7 @@ public class RoaEntityServiceBean extends CertificateAuthorityEventAdapter imple
         roaCmsBuilder.withCertificate(endEntityX509ResourceCertificate);
         roaCmsBuilder.withAsn(specification.getAsn());
         roaCmsBuilder.withPrefixes(specification.calculatePrefixes());
-        roaCmsBuilder.withSignatureProvider(signatureProvider);
+        roaCmsBuilder.withSignatureProvider(singleUseKeyPairFactory.signatureProvider());
         return roaCmsBuilder.build(eeKeyPair.getPrivate());
     }
 

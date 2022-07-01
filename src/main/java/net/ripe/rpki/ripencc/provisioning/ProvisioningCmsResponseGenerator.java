@@ -5,6 +5,7 @@ import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
 import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningResponsePayload;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
+import net.ripe.rpki.domain.SingleUseKeyPairFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,18 +22,18 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 class ProvisioningCmsResponseGenerator {
     private final CertificateAuthorityRepository certificateAuthorityRepository;
-    private final KeyPairFactory keyPairFactory;
+    private final SingleUseKeyPairFactory singleUseKeyPairFactory;
 
     public ProvisioningCmsResponseGenerator(
         CertificateAuthorityRepository certificateAuthorityRepository,
-        @Named("oneTimeKeyPairFactory") KeyPairFactory keyPairFactory
+        SingleUseKeyPairFactory singleUseKeyPairFactory
     ) {
         this.certificateAuthorityRepository = certificateAuthorityRepository;
-        this.keyPairFactory = keyPairFactory;
+        this.singleUseKeyPairFactory = singleUseKeyPairFactory;
     }
 
     public ProvisioningCmsObject createProvisioningCmsResponseObject(AbstractProvisioningResponsePayload response) {
         ProductionCertificateAuthority productionCertificateAuthority = certificateAuthorityRepository.findByTypeAndUuid(ProductionCertificateAuthority.class, UUID.fromString(response.getSender()), LockModeType.NONE);
-        return productionCertificateAuthority.getMyDownStreamProvisioningCommunicator().createProvisioningCmsResponseObject(keyPairFactory, response);
+        return productionCertificateAuthority.getMyDownStreamProvisioningCommunicator().createProvisioningCmsResponseObject(singleUseKeyPairFactory, response);
     }
 }

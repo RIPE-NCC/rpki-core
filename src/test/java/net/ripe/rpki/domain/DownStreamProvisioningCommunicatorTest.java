@@ -59,7 +59,10 @@ public class DownStreamProvisioningCommunicatorTest {
     @Test
     public void shouldCreateResponseCmsObjectForPayload() {
         // Note the communicator does not care about the payload, so using the cheap to make resource class list query payload here.
-        ProvisioningCmsObject responseObject = subject.createProvisioningCmsResponseObject(PregeneratedKeyPairFactory.getInstance(), ProvisioningObjectMother.RESOURCE_CLASS_LIST_QUERY_PAYLOAD);
+        ProvisioningCmsObject responseObject = subject.createProvisioningCmsResponseObject(
+            new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()),
+            ProvisioningObjectMother.RESOURCE_CLASS_LIST_QUERY_PAYLOAD
+        );
 
         assertNotNull(responseObject);
 

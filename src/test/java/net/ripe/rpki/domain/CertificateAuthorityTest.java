@@ -39,7 +39,8 @@ public class CertificateAuthorityTest {
 
     @Before
     public void setUp() {
-        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, new MemoryDBComponent(), null, null, PregeneratedKeyPairFactory.getInstance(), new SimpleMeterRegistry());
+        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, new MemoryDBComponent(), null, null,
+            new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), new SimpleMeterRegistry());
         subject = CertificationDomainTestCase.createInitialisedProdCaWithRipeResources(certificateManagementService);
         keyPair = subject.getCurrentKeyPair();
     }

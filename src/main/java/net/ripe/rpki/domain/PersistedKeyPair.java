@@ -65,15 +65,6 @@ public class PersistedKeyPair {
         return keyPair;
     }
 
-    public void unloadKeyPair() {
-        if (keyPair == null) {
-            return;
-        }
-
-        Keys.get().unloadKey(keyPair, keyStoreProvider);
-        keyPair = null;
-    }
-
     public String getSignatureProvider() {
         return signatureProvider;
     }

@@ -14,12 +14,14 @@ import net.ripe.rpki.server.api.commands.CertificateAuthorityActivationCommand;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.ChildParentCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@ConditionalOnProperty(prefix="certificate.authority.invariant.checking", value="enabled", havingValue = "true")
 @Handler(order = 1000)
 @Slf4j
 public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHandler implements CertificateAuthorityCommandHandler<CertificateAuthorityCommand> {
@@ -40,6 +42,8 @@ public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHand
         this.invariantViolationCounter = Counter.builder("rpkicore.hosted.ca.invariant.violation.counter")
             .description("count of hosted certificate authority invariant violations")
             .register(meterRegistry);
+
+        log.info("Certificate authority invariant checking is enabled");
     }
 
     @Override

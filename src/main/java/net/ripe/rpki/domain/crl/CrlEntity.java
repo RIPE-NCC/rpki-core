@@ -131,24 +131,21 @@ public class CrlEntity extends EntitySupport {
 
     public void update(ValidityPeriod validityPeriod, ResourceCertificateRepository resourceCertificateRepository) {
         KeyPairEntity keyPair = getKeyPair();
-        try {
-            Collection<OutgoingResourceCertificate> revokedCertificates = resourceCertificateRepository.findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(keyPair, validityPeriod.getNotValidBefore());
-            X509CrlBuilder builder = newCrlBuilderWithEntries(revokedCertificates);
-            builder.withAuthorityKeyIdentifier(keyPair.getPublicKey());
-            builder.withIssuerDN(keyPair.getCurrentIncomingCertificate().getSubject());
-            builder.withThisUpdateTime(validityPeriod.getNotValidBefore());
-            builder.withNextUpdateTime(validityPeriod.getNotValidAfter());
-            builder.withNumber(BigInteger.valueOf(getAndIncrementNextNumber()));
-            builder.withSignatureProvider(keyPair.getSignatureProvider());
-            byte[] encoded = builder.build(keyPair.getPrivateKey()).getEncoded();
-            withdraw();
 
-            setPublishedObject(new PublishedObject(
+        Collection<OutgoingResourceCertificate> revokedCertificates = resourceCertificateRepository.findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(keyPair, validityPeriod.getNotValidBefore());
+        X509CrlBuilder builder = newCrlBuilderWithEntries(revokedCertificates);
+        builder.withAuthorityKeyIdentifier(keyPair.getPublicKey());
+        builder.withIssuerDN(keyPair.getCurrentIncomingCertificate().getSubject());
+        builder.withThisUpdateTime(validityPeriod.getNotValidBefore());
+        builder.withNextUpdateTime(validityPeriod.getNotValidAfter());
+        builder.withNumber(BigInteger.valueOf(getAndIncrementNextNumber()));
+        builder.withSignatureProvider(keyPair.getSignatureProvider());
+
+        byte[] encoded = builder.build(keyPair.getPrivateKey()).getEncoded();
+        withdraw();
+
+        setPublishedObject(new PublishedObject(
                 keyPair, keyPair.getCrlFilename(), encoded, true, keyPair.getCertificateRepositoryLocation(), validityPeriod));
-        } finally {
-            keyPair.unloadKeyPair();
-        }
-
     }
 
     private X509CrlBuilder newCrlBuilderWithEntries(Collection<OutgoingResourceCertificate> revokedCertificates) {

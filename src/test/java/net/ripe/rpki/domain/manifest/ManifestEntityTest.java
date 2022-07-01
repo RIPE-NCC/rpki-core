@@ -60,7 +60,7 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
         ValidityPeriod validityPeriod = new ValidityPeriod(now, now.plus(CertificateManagementServiceImpl.TIME_TO_NEXT_UPDATE));
         OutgoingResourceCertificate eeCertificate = certificateManagementService.issueSingleUseEeResourceCertificate(ca, request, validityPeriod, currentKeyPair);
 
-        subject.update(eeCertificate, eeKeyPair, INITIAL_ENTRIES);
+        subject.update(eeCertificate, eeKeyPair, "SunRsaSign", INITIAL_ENTRIES);
     }
 
     private DateTime getUtcNowWithoutMillis() {

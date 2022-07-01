@@ -5,7 +5,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
-import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.domain.GenericPublishedObject;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
@@ -16,6 +15,7 @@ import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateBuilder;
 import net.ripe.rpki.domain.ResourceCertificateInformationAccessStrategy;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
+import net.ripe.rpki.domain.SingleUseKeyPairFactory;
 import net.ripe.rpki.domain.crl.CrlEntity;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
@@ -29,7 +29,6 @@ import org.joda.time.Period;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.inject.Named;
 import java.security.KeyPair;
 import java.util.EnumSet;
 import java.util.Map;
@@ -51,7 +50,7 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
     private final DBComponent dbComponent;
     private final CrlEntityRepository crlEntityRepository;
     private final ManifestEntityRepository manifestEntityRepository;
-    private final KeyPairFactory singleUseKeyPairFactory;
+    private final SingleUseKeyPairFactory singleUseKeyPairFactory;
 
     private final DistributionSummary manifestSizeDistribution;
     private final DistributionSummary crlSizeDistribution;
@@ -62,7 +61,7 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
                                             DBComponent dbComponent,
                                             CrlEntityRepository crlEntityRepository,
                                             ManifestEntityRepository manifestEntityRepository,
-                                            @Named("oneTimeKeyPairFactory") KeyPairFactory singleUseKeyPairFactory,
+                                            SingleUseKeyPairFactory singleUseKeyPairFactory,
                                             MeterRegistry meterRegistry) {
         this.resourceCertificateRepository = resourceCertificateRepository;
         this.publishedObjectRepository = publishedObjectRepository;
@@ -197,12 +196,12 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
     private void issueManifest(HostedCertificateAuthority certificateAuthority, ManifestEntity manifestEntity, ValidityPeriod validityPeriod) {
         KeyPairEntity keyPair = manifestEntity.getKeyPair();
 
-        KeyPair eeKeyPair = singleUseKeyPairFactory.generate();
+        KeyPair eeKeyPair = singleUseKeyPairFactory.get();
         CertificateIssuanceRequest request = manifestEntity.requestForManifestEeCertificate(eeKeyPair);
         OutgoingResourceCertificate manifestCertificate = issueSingleUseEeResourceCertificate(certificateAuthority, request, validityPeriod, keyPair);
 
         Map<String, byte[]> manifestEntries = determineManifestEntries(publishedObjectRepository, keyPair);
-        manifestEntity.update(manifestCertificate, eeKeyPair, manifestEntries);
+        manifestEntity.update(manifestCertificate, eeKeyPair, singleUseKeyPairFactory.signatureProvider(), manifestEntries);
     }
 
     private static Map<String, byte[]> determineManifestEntries(PublishedObjectRepository publishedObjectRepository, KeyPairEntity keyPair) {

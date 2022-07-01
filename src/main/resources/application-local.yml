@@ -98,3 +98,5 @@ non-hosted:
 
 
 aspa.feature.enabled: true
+
+certificate.authority.invariant.checking.enabled: true

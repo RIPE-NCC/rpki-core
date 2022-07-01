@@ -98,6 +98,7 @@ public abstract class CertificationDomainTestCase {
     protected KeyPairService keyPairService;
 
     protected KeyPairFactory keyPairFactory = PregeneratedKeyPairFactory.getInstance();
+    protected SingleUseKeyPairFactory singleUseKeyPairFactory = new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance());
 
     @Autowired
     protected TransactionTemplate transactionTemplate;
@@ -110,7 +111,7 @@ public abstract class CertificationDomainTestCase {
     @Before
     public void setupTest() {
         meterRegistry = new SimpleMeterRegistry();
-        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, dbComponent, crlEntityRepository, manifestEntityRepository, keyPairFactory, meterRegistry);
+        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, dbComponent, crlEntityRepository, manifestEntityRepository, singleUseKeyPairFactory, meterRegistry);
         Environment.load();
     }
 

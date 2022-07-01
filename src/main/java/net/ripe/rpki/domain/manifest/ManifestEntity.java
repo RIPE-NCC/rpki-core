@@ -129,10 +129,11 @@ public class ManifestEntity extends EntitySupport {
 
     public void update(OutgoingResourceCertificate eeCertificate,
                        KeyPair eeCertificateKeyPair,
+                       String signatureProvider,
                        Map<String, byte[]> manifestEntries) {
 
         this.certificate = eeCertificate;
-        ManifestCms manifestCms = buildManifestCms(manifestEntries, eeCertificateKeyPair);
+        ManifestCms manifestCms = buildManifestCms(manifestEntries, eeCertificateKeyPair, signatureProvider);
 
         if (publishedObject != null) {
             publishedObject.withdraw();
@@ -142,7 +143,7 @@ public class ManifestEntity extends EntitySupport {
         this.nextNumber++;
     }
 
-    private ManifestCms buildManifestCms(Map<String, byte[]> manifestEntries, KeyPair eeKeyPair) {
+    private ManifestCms buildManifestCms(Map<String, byte[]> manifestEntries, KeyPair eeKeyPair, String signatureProvider) {
         ManifestCmsBuilder builder = new ManifestCmsBuilder();
         for (String fileName : manifestEntries.keySet()) {
             builder.addFile(fileName, manifestEntries.get(fileName));
@@ -151,7 +152,7 @@ public class ManifestEntity extends EntitySupport {
         builder.withManifestNumber(BigInteger.valueOf(nextNumber));
         builder.withThisUpdateTime(certificate.getNotValidBefore());
         builder.withNextUpdateTime(certificate.getNotValidAfter());
-        builder.withSignatureProvider(keyPair.getSignatureProvider());
+        builder.withSignatureProvider(signatureProvider);
         return builder.build(eeKeyPair.getPrivate());
     }
 

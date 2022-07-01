@@ -1,8 +1,8 @@
 package net.ripe.rpki.services.impl;
 
-import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.domain.CertificationProviderConfigurationData;
 import net.ripe.rpki.domain.DownStreamProvisioningCommunicator;
+import net.ripe.rpki.domain.HardwareKeyPairFactory;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.KeyPairEntityKeyInfo;
@@ -19,12 +19,15 @@ public class KeyPairServiceBean implements KeyPairService {
 
     private final CertificationProviderConfigurationData providerConfiguration;
 
-    private final KeyPairFactory keyPairFactory;
+    private final HardwareKeyPairFactory hardwareKeyPairFactory;
     private final UuidRepositoryObjectNamingStrategy namingStrategy;
 
     @Autowired
-    public KeyPairServiceBean(CertificationProviderConfigurationData providerConfiguration, KeyPairFactory keyPairFactory) {
-        this.keyPairFactory = keyPairFactory;
+    public KeyPairServiceBean(
+        CertificationProviderConfigurationData providerConfiguration,
+        HardwareKeyPairFactory hardwareKeyPairFactory
+    ) {
+        this.hardwareKeyPairFactory = hardwareKeyPairFactory;
         this.providerConfiguration = providerConfiguration;
         this.namingStrategy = new UuidRepositoryObjectNamingStrategy();
     }
@@ -53,7 +56,7 @@ public class KeyPairServiceBean implements KeyPairService {
     }
 
     private KeyPairEntityKeyInfo createKeyInfo(String name) {
-        KeyPair keyPair = keyPairFactory.generate();
+        KeyPair keyPair = hardwareKeyPairFactory.get();
         return new KeyPairEntityKeyInfo(name, keyPair);
     }
 }

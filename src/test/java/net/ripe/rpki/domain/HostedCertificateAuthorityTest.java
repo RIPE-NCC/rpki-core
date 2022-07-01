@@ -57,7 +57,8 @@ public class HostedCertificateAuthorityTest {
 
     @Before
     public void setUp() {
-        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, new MemoryDBComponent(), crlEntityRepository, manifestEntityRepository, PregeneratedKeyPairFactory.getInstance(), new SimpleMeterRegistry());
+        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, new MemoryDBComponent(), crlEntityRepository, manifestEntityRepository,
+            new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), new SimpleMeterRegistry());
         subject = createInitialisedProdCaWithRipeResources(certificateManagementService);
         keyPair = subject.getCurrentKeyPair();
         toBePublished = new PublishedObject(keyPair, "object.cer", new byte[]{1, 2, 3}, true, BASE_URI, VALIDITY_PERIOD);

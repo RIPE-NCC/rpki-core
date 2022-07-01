@@ -1,14 +1,15 @@
 package net.ripe.rpki;
 
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
+import net.ripe.rpki.domain.CertificationProviderConfigurationData;
+import net.ripe.rpki.domain.HardwareKeyPairFactory;
+import net.ripe.rpki.domain.SingleUseKeyPairFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.mail.MailSender;
@@ -29,14 +30,13 @@ public class RpkiBootApplication {
     }
 
     @Bean
-    @Primary
-    public KeyPairFactory serviceFactory(@Value("${keypair.generator.provider}") final String keyPairGenerator) {
-        return new KeyPairFactory(keyPairGenerator);
+    public HardwareKeyPairFactory hardwareKeyPairFactory(CertificationProviderConfigurationData certificationProviderConfigurationData) {
+        return new HardwareKeyPairFactory(certificationProviderConfigurationData);
     }
 
-    @Bean(name = "oneTimeKeyPairFactory")
-    public KeyPairFactory oneTimeKeyPairFactory() {
-        return new KeyPairFactory("SunRsaSign");
+    @Bean
+    public SingleUseKeyPairFactory singleUseKeyPairFactory() {
+        return new SingleUseKeyPairFactory();
     }
 
 

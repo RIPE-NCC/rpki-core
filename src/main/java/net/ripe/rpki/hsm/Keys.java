@@ -73,9 +73,4 @@ public class Keys {
         }
     }
 
-    public void unloadKey(KeyPair keyPair, String keyStoreType) {
-        if (isDbProvider(keyStoreType)) {
-            keyStoreParameters.get().unloadKey(keyPair.getPrivate());
-        }
-    }
 }

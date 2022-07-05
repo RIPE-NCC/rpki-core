@@ -11,7 +11,6 @@ import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementServiceImpl;
-import net.ripe.rpki.util.MemoryDBComponent;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.After;
@@ -66,7 +65,7 @@ public class RoaEntityServiceBeanTest  {
 
     @Before
     public void setUp() {
-        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, new MemoryDBComponent(), null, null,
+        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, null, null,
             new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), new SimpleMeterRegistry());
         ca = CertificationDomainTestCase.createInitialisedProdCaWithRipeResources(certificateManagementService);
         configuration = new RoaConfiguration(ca, Arrays.asList(ROA_PREFIX_1, ROA_PREFIX_2));

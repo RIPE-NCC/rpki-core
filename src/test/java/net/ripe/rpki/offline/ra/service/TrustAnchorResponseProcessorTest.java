@@ -54,7 +54,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.atLeastOnce;
 import static org.mockito.BDDMockito.given;
@@ -114,7 +113,6 @@ public class TrustAnchorResponseProcessorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void should_process_a_sign_response_and_remove_pending_request() {
         AllResourcesCertificateAuthority allResourcesCertificateAuthority = mock(AllResourcesCertificateAuthority.class);
         when(allResourcesCertificateAuthority.getName()).thenReturn(new X500Principal("CN=ACA"));
@@ -134,7 +132,6 @@ public class TrustAnchorResponseProcessorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void should_process_response_and_re_publish_object() {
         final byte[] content = {'a'};
         final TrustAnchorPublishedObject existingObject = new TrustAnchorPublishedObject(NEW_CERTIFICATE_PUBLICATION_URI, content);

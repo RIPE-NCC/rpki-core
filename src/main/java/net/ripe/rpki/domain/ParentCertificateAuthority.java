@@ -6,7 +6,6 @@ import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.ncc.core.domain.support.Entity;
-import net.ripe.rpki.util.DBComponent;
 
 
 /**
@@ -24,7 +23,7 @@ public interface ParentCertificateAuthority extends Entity {
     CertificateIssuanceResponse processCertificateIssuanceRequest(ChildCertificateAuthority requestingCa,
                                                                   CertificateIssuanceRequest request,
                                                                   ResourceCertificateRepository resourceCertificateRepository,
-                                                                  DBComponent dbComponent, int issuedCertificatesPerSignedKeyLimit);
+                                                                  int issuedCertificatesPerSignedKeyLimit);
 
     boolean isCertificateRevocationNeeded(CertificateRevocationRequest request, ResourceCertificateRepository resourceCertificateRepository);
 

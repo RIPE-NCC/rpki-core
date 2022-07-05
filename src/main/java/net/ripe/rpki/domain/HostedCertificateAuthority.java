@@ -31,7 +31,7 @@ import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.KeyPairData;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
-import net.ripe.rpki.util.DBComponent;
+import net.ripe.rpki.util.SerialNumberSupplier;
 import org.apache.commons.lang.Validate;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
@@ -43,7 +43,6 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 import javax.security.auth.x500.X500Principal;
 import javax.validation.constraints.NotNull;
 import java.math.BigInteger;
@@ -80,14 +79,14 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
 
     @NotNull
     @Column(name = "last_issued_serial")
+    @Deprecated
     private BigInteger lastIssuedSerial = BigInteger.ZERO;
-
-    @OneToOne(mappedBy = "certificateAuthority", cascade = {CascadeType.ALL})
-    private UpStreamCARequestEntity upStreamCARequestEntity;
 
     @NotNull
     @Column(nullable = false, name = "random_serial_increment")
-    private int randomSerialIncrement;
+    @Deprecated
+    // Initialised to 100000 to be compatible with previous version that may be running on the other node during upgrade.
+    private int randomSerialIncrement = 100000;
 
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL )
     @JoinColumn(name = "ca_id", nullable = false)
@@ -96,7 +95,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     /**
      * Flag to indicate that the incoming certificate was updated and the manifest and CRL may need to be re-issued.
      *
-     * Set whenever a new incoming resource certificate is received ({@link #processCertificateIssuanceRequest}),
+     * Set whenever a new incoming resource certificate is received ({@link ParentCertificateAuthority#processCertificateIssuanceRequest}),
      * cleared once the manifest and CRL have been checked (and re-issued if needed), see
      * {@link net.ripe.rpki.services.impl.handlers.IssueUpdatedManifestAndCrlCommandHandler IssueUpdatedManifestAndCrlCommandHandler} and
      * {@link net.ripe.rpki.services.impl.background.PublicRepositoryPublicationServiceBean PublicRepositoryPublicationServiceBean}.
@@ -108,17 +107,18 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     protected HostedCertificateAuthority() {
     }
 
-    protected HostedCertificateAuthority(long id, X500Principal name, ParentCertificateAuthority parent, int randomSerialIncrement) {
+    protected HostedCertificateAuthority(long id, X500Principal name, ParentCertificateAuthority parent) {
         super(id, parent, name);
-        Validate.notNull(name, "name is required");
-        Validate.isTrue(randomSerialIncrement > 0, "randomSerialIncrement must be positive");
-        this.randomSerialIncrement = randomSerialIncrement;
         this.manifestAndCrlCheckNeeded = true;
+    }
+
+    public UpStreamCARequestEntity getUpStreamCARequestEntity() {
+        return null;
     }
 
     @Override
     public HostedCertificateAuthorityData toData() {
-        TrustAnchorRequest upStreamCARequest = upStreamCARequestEntity != null ? upStreamCARequestEntity.getUpStreamCARequest() : null;
+        TrustAnchorRequest upStreamCARequest = getUpStreamCARequestEntity() != null ? getUpStreamCARequestEntity().getUpStreamCARequest() : null;
 
         final List<KeyPairData> keys = getKeyPairs().stream()
             .map(KeyPairEntity::toData)
@@ -130,11 +130,6 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
             getType(),
             getCertifiedResources(), upStreamCARequest, keys);
     }
-
-    public BigInteger getLastIssuedSerial() {
-        return lastIssuedSerial;
-    }
-
 
     public void removeKeyPair(final String name) {
         Optional<KeyPairEntity> keyPair = findKeyPairByName(name);
@@ -192,18 +187,6 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
         }
     }
 
-
-    public UpStreamCARequestEntity getUpStreamCARequestEntity() {
-        return upStreamCARequestEntity;
-    }
-
-    public void setUpStreamCARequestEntity(UpStreamCARequestEntity upStreamCARequestEntity) {
-        this.upStreamCARequestEntity = upStreamCARequestEntity;
-    }
-
-    public void setLastIssuedSerial(BigInteger lastIssuedSerial) {
-        this.lastIssuedSerial = lastIssuedSerial;
-    }
 
     public void roaConfigurationUpdated() {
         this.manifestAndCrlCheckNeeded = true;
@@ -319,7 +302,6 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     public CertificateIssuanceResponse processCertificateIssuanceRequest(ChildCertificateAuthority requestingCa,
                                                                          CertificateIssuanceRequest request,
                                                                          ResourceCertificateRepository resourceCertificateRepository,
-                                                                         DBComponent dbComponent,
                                                                          int issuedCertificatesPerSignedKeyLimit) {
         Validate.isTrue(isProductionCa() || isAllResourcesCa(), "Must be Production or 'All Resources' CA");
         validateChildResourceSet(request.getResources());
@@ -328,7 +310,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
             throw new CertificationResourceLimitExceededException("number of issued certificates for public key exceeds the limit (" + count + " >= " + issuedCertificatesPerSignedKeyLimit + ")");
         }
         this.manifestAndCrlCheckNeeded = true;
-        return getCurrentKeyPair().processCertificateIssuanceRequest(requestingCa, request, dbComponent.nextSerial(this), resourceCertificateRepository);
+        return getCurrentKeyPair().processCertificateIssuanceRequest(requestingCa, request, SerialNumberSupplier.getInstance().get(), resourceCertificateRepository);
     }
 
     @Override

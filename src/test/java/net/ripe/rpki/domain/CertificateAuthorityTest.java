@@ -8,7 +8,6 @@ import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDes
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementServiceImpl;
-import net.ripe.rpki.util.MemoryDBComponent;
 import org.joda.time.DateTimeUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -18,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.security.auth.x500.X500Principal;
-import java.math.BigInteger;
 import java.net.URI;
 import java.util.UUID;
 
@@ -39,7 +37,7 @@ public class CertificateAuthorityTest {
 
     @Before
     public void setUp() {
-        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, new MemoryDBComponent(), null, null,
+        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, null, null,
             new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), new SimpleMeterRegistry());
         subject = CertificationDomainTestCase.createInitialisedProdCaWithRipeResources(certificateManagementService);
         keyPair = subject.getCurrentKeyPair();
@@ -54,18 +52,6 @@ public class CertificateAuthorityTest {
     public void shouldGetUuidWithNewCertificateAuthority() {
         UUID uuid = subject.getUuid();
         assertNotNull(uuid);
-    }
-
-    @Test
-    public void shouldIncrementAndTrackLastIssuedSerial() {
-        assertEquals(BigInteger.ONE, subject.getLastIssuedSerial());
-
-        CertificateIssuanceRequest request = new CertificateIssuanceRequest(IpResourceSet.parse("10.0.0.0/8"), new X500Principal("CN=test"), keyPair.getPublicKey(), SIA);
-        OutgoingResourceCertificate ee = certificateManagementService.issueSingleUseEeResourceCertificate(subject,
-                request, TestObjects.TEST_VALIDITY_PERIOD, subject.getCurrentKeyPair());
-
-        assertEquals(BigInteger.valueOf(2), ee.getSerial());
-        assertEquals(ee.getSerial(), subject.getLastIssuedSerial());
     }
 
     @Test
@@ -118,7 +104,6 @@ public class CertificateAuthorityTest {
         assertEquals(subject.getCurrentIncomingCertificate().getSubject(), endEntity.getIssuer());
         assertEquals(IpResourceSet.parse("10.0.0.0/8"), endEntity.getResources());
         assertNull(endEntity.getPublicationUri());
-        assertEquals(subject.getLastIssuedSerial(), endEntity.getSerial());
     }
 
 }

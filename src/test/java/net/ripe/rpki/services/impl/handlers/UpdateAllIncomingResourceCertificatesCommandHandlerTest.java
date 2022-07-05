@@ -47,8 +47,7 @@ public class UpdateAllIncomingResourceCertificatesCommandHandlerTest {
     public void should_skip_ca_without_parent() {
         when(certificateAuthorityRepository.get(any())).thenReturn(new AllResourcesCertificateAuthority(
             CertificationDomainTestCase.ACA_ID,
-            CertificationDomainTestCase.ALL_RESOURCES_CA_NAME,
-            1
+            CertificationDomainTestCase.ALL_RESOURCES_CA_NAME
         ));
 
         assertThrows(CommandWithoutEffectException.class, () ->

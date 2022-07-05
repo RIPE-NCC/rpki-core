@@ -28,7 +28,7 @@ public class DeleteNonHostedCertificateAuthorityCommandHandler extends AbstractC
 
     @Override
     public void handle(DeleteNonHostedCertificateAuthorityCommand command, CommandStatus commandStatus) {
-        deleteCertificateAuthorityService.deleteNonHosted(command.getCertificateAuthorityVersionedId().getId());
+        deleteCertificateAuthorityService.revokeNonHosted(command.getCertificateAuthorityVersionedId().getId());
     }
 
 }

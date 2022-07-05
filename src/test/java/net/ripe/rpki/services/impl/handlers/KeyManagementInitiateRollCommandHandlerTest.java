@@ -10,7 +10,6 @@ import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
-import net.ripe.rpki.util.MemoryDBComponent;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,13 +49,11 @@ public class KeyManagementInitiateRollCommandHandlerTest {
     @Mock
     private ResourceCertificateRepository resourceCertificateRepository;
 
-    private  MemoryDBComponent dbComponent = new MemoryDBComponent();
-
     @Before
     public void setUp() {
         command = new KeyManagementInitiateRollCommand(new VersionedId(CA_ID, 0), THRESHOLD);
         request = new CertificateIssuanceRequest(ALL_PRIVATE_USE_RESOURCES, new X500Principal("cn=nl.bluelight"), TEST_KEY_PAIR.getPublic(), new X509CertificateInformationAccessDescriptor[]{});
-        subject = new KeyManagementInitiateRollCommandHandler(certificateAuthorityRepository, keyPairService, certificateRequestCreationService, resourceCertificateRepository, dbComponent);
+        subject = new KeyManagementInitiateRollCommandHandler(certificateAuthorityRepository, keyPairService, certificateRequestCreationService, resourceCertificateRepository);
     }
 
     @Test(expected = CommandWithoutEffectException.class)
@@ -84,11 +81,11 @@ public class KeyManagementInitiateRollCommandHandlerTest {
         when(productionCA.getParent()).thenReturn(allResourcesCA);
 
         CertificateIssuanceResponse response = new CertificateIssuanceResponse(mock(X509ResourceCertificate.class), URI.create("rsync://example.com/rpki/cert.cer"));
-        when(allResourcesCA.processCertificateIssuanceRequest(productionCA, request, resourceCertificateRepository, dbComponent, Integer.MAX_VALUE)).thenReturn(response);
+        when(allResourcesCA.processCertificateIssuanceRequest(productionCA, request, resourceCertificateRepository, Integer.MAX_VALUE)).thenReturn(response);
 
         subject.handle(command);
 
-        verify(allResourcesCA).processCertificateIssuanceRequest(productionCA, request, resourceCertificateRepository, dbComponent, Integer.MAX_VALUE);
+        verify(allResourcesCA).processCertificateIssuanceRequest(productionCA, request, resourceCertificateRepository, Integer.MAX_VALUE);
         verify(productionCA).processCertificateIssuanceResponse(response, resourceCertificateRepository);
     }
 
@@ -99,11 +96,11 @@ public class KeyManagementInitiateRollCommandHandlerTest {
         when(memberCA.getParent()).thenReturn(productionCA);
 
         CertificateIssuanceResponse response = new CertificateIssuanceResponse(mock(X509ResourceCertificate.class), URI.create("rsync://example.com/rpki/cert.cer"));
-        when(productionCA.processCertificateIssuanceRequest(memberCA, request, resourceCertificateRepository, dbComponent, Integer.MAX_VALUE)).thenReturn(response);
+        when(productionCA.processCertificateIssuanceRequest(memberCA, request, resourceCertificateRepository, Integer.MAX_VALUE)).thenReturn(response);
 
         subject.handle(command);
 
-        verify(productionCA).processCertificateIssuanceRequest(memberCA, request, resourceCertificateRepository, dbComponent, Integer.MAX_VALUE);
+        verify(productionCA).processCertificateIssuanceRequest(memberCA, request, resourceCertificateRepository, Integer.MAX_VALUE);
         verify(memberCA).processCertificateIssuanceResponse(response, resourceCertificateRepository);
     }
 }

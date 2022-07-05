@@ -11,7 +11,6 @@ import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.*;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
-import net.ripe.rpki.util.DBComponent;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.springframework.stereotype.Component;
@@ -33,7 +32,6 @@ public class ChildParentCertificateUpdateSaga {
     private final CertificateRequestCreationService certificateRequestCreationService;
     private final PublishedObjectRepository publishedObjectRepository;
     private final ResourceCertificateRepository resourceCertificateRepository;
-    private final DBComponent dbComponent;
     private final ResourceLookupService resourceLookupService;
     private final ConcurrentMap<X500Principal, Integer> overclaimingResourcesCounts = new ConcurrentHashMap<>();
 
@@ -41,14 +39,12 @@ public class ChildParentCertificateUpdateSaga {
                                             CertificateRequestCreationService certificateRequestCreationService,
                                             PublishedObjectRepository publishedObjectRepository,
                                             ResourceCertificateRepository resourceCertificateRepository,
-                                            DBComponent dbComponent,
                                             ResourceLookupService resourceLookupService,
                                             MeterRegistry meterRegistry) {
         this.keyPairDeletionService = keyPairDeletionService;
         this.certificateRequestCreationService = certificateRequestCreationService;
         this.publishedObjectRepository = publishedObjectRepository;
         this.resourceCertificateRepository = resourceCertificateRepository;
-        this.dbComponent = dbComponent;
         this.resourceLookupService = resourceLookupService;
         Gauge.builder("rpkicore.overclaiming.cas", overclaimingResourcesCounts::size)
             .description("number of CAs that would have over-claiming resources")
@@ -62,7 +58,7 @@ public class ChildParentCertificateUpdateSaga {
         for (final CertificateProvisioningMessage request : requests) {
             if (request instanceof CertificateIssuanceRequest) {
                 final CertificateIssuanceResponse response = parentCa.processCertificateIssuanceRequest(
-                    childCa, (CertificateIssuanceRequest) request, resourceCertificateRepository, dbComponent, issuedCertificatesPerSignedKeyLimit);
+                    childCa, (CertificateIssuanceRequest) request, resourceCertificateRepository, issuedCertificatesPerSignedKeyLimit);
                 childCa.processCertificateIssuanceResponse(response, resourceCertificateRepository);
             } else if (request instanceof CertificateRevocationRequest) {
                 final CertificateRevocationResponse response = parentCa.processCertificateRevocationRequest(

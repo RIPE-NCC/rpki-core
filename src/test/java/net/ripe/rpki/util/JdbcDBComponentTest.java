@@ -17,11 +17,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.persistence.LockModeType;
-import javax.transaction.Transactional;
-import java.math.BigInteger;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 @ActiveProfiles("test")
@@ -55,14 +52,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             final HostedCertificateAuthority ca = (HostedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
             assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
 
-            ca.setLastIssuedSerial(BigInteger.valueOf(444444));
-            assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
-
             jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
-            assertTrue(jdbcDbComponent.isLocked(ca));
-            assertEquals(LockModeType.PESSIMISTIC_FORCE_INCREMENT, entityManager.getLockMode(ca));
-
-            ca.setLastIssuedSerial(BigInteger.valueOf(555555));
             assertTrue(jdbcDbComponent.isLocked(ca));
             assertEquals(LockModeType.PESSIMISTIC_FORCE_INCREMENT, entityManager.getLockMode(ca));
 
@@ -77,7 +67,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
 
             jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
-            ca.setLastIssuedSerial(BigInteger.valueOf(444444));
+            ca.manifestAndCrlCheckCompleted();
             entityManager.flush();
 
             // After flush the lock type changes to OPTIMISTIC_FORCE_INCREMENT, which we should still consider "locked"
@@ -94,7 +84,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             final HostedCertificateAuthority ca = (HostedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
             assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
 
-            ca.setLastIssuedSerial(BigInteger.valueOf(444444));
+            ca.manifestAndCrlCheckCompleted();
             entityManager.flush();
 
             // After flush the lock type changes to OPTIMISTIC_FORCE_INCREMENT, which we should still consider "locked"
@@ -110,27 +100,4 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
         });
     }
 
-    @Test
-    @Transactional
-    public void nextSerial() {
-        final HostedCertificateAuthority ca = (HostedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
-        jdbcDbComponent.lockCertificateAuthorityForUpdate(ca.getId());
-        final BigInteger bigInteger = jdbcDbComponent.nextSerial(ca);
-        final HostedCertificateAuthority caUpdated = (HostedCertificateAuthority) certificateAuthorityRepository.find(ca.getId());
-        assertEquals(caUpdated.getLastIssuedSerial(), bigInteger);
-    }
-
-    @Test
-    @Transactional
-    public void nextSerial_should_fail_when_ca_lastIssuedSerial_was_modified_in_database() {
-        final HostedCertificateAuthority ca = (HostedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
-        entityManager.createNativeQuery("UPDATE certificateauthority SET last_issued_serial = last_issued_serial + 1 WHERE id = :id")
-            .setParameter("id", ca.getId())
-            .executeUpdate();
-        jdbcDbComponent.lockCertificateAuthorityForUpdate(ca.getId());
-
-        assertThrows(IllegalStateException.class, () -> {
-            jdbcDbComponent.nextSerial(ca);
-        });
-    }
 }

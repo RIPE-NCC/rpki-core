@@ -33,7 +33,6 @@ public class CertificationConfigurationBeanTest {
         assertEquals(new File(LOCAL_REPO_DIR_NAME), repositoryConfiguration.getLocalRepositoryDirectory());
         assertEquals(new URI("rsync://localhost/online/"), repositoryConfiguration.getPublicRepositoryUri());
 
-        assertEquals(1, certificationConfiguration.getMaxSerialIncrement());
         assertEquals("CN=RIPE NCC Resources,O=RIPE NCC,C=NL", repositoryConfiguration.getProductionCaPrincipal().getName());
         assertEquals(365, certificationConfiguration.getAutoKeyRolloverMaxAgeDays());
         assertEquals(Duration.standardHours(24), certificationConfiguration.getStagingPeriod());

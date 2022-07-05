@@ -1,7 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.ipresource.IpResourceSet;
-import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
@@ -23,47 +22,44 @@ import static org.mockito.Mockito.*;
 
 public class CreateRootCertificateAuthorityCommandHandlerTest {
 
-	private static final X500Principal CA_NAME = new X500Principal("CN=Test Root CA");
+    private static final X500Principal CA_NAME = new X500Principal("CN=Test Root CA");
 
-	private CreateRootCertificateAuthorityCommandHandler subject;
+    private CreateRootCertificateAuthorityCommandHandler subject;
 
-	private CertificateAuthorityRepository certificateAuthorityRepository;
+    private CertificateAuthorityRepository certificateAuthorityRepository;
 
-	private RepositoryConfiguration repositoryConfiguration;
-	private CertificationConfiguration certificationConfiguration;
+    private RepositoryConfiguration repositoryConfiguration;
     private KeyPairService keyPairService;
 
-	private CreateRootCertificateAuthorityCommand command;
+    private CreateRootCertificateAuthorityCommand command;
 
 
     @Before
     public void setUp() {
         certificateAuthorityRepository = mock(CertificateAuthorityRepository.class);
-        certificationConfiguration = mock(CertificationConfiguration.class);
         repositoryConfiguration = mock(RepositoryConfiguration.class);
         keyPairService = mock(KeyPairService.class);
         when(keyPairService.createKeyPairEntity(any())).thenReturn(TestObjects.TEST_KEY_PAIR_2);
-        subject = new CreateRootCertificateAuthorityCommandHandler(certificateAuthorityRepository, repositoryConfiguration, certificationConfiguration, keyPairService);
+        subject = new CreateRootCertificateAuthorityCommandHandler(certificateAuthorityRepository, repositoryConfiguration, keyPairService);
         command = new CreateRootCertificateAuthorityCommand(new VersionedId(12));
     }
 
-	@Test
-	public void shouldReturnCorrectCommandType() {
-		Class<? extends CertificateAuthorityCommand> commandType = subject.commandType();
+    @Test
+    public void shouldReturnCorrectCommandType() {
+        Class<? extends CertificateAuthorityCommand> commandType = subject.commandType();
 
-		assertSame(CreateRootCertificateAuthorityCommand.class, commandType);
-	}
+        assertSame(CreateRootCertificateAuthorityCommand.class, commandType);
+    }
 
     @Test
     public void shouldCreateRootCertificateAuthority() {
         ArgumentCaptor<ProductionCertificateAuthority> ca = ArgumentCaptor.forClass(ProductionCertificateAuthority.class);
-        when(certificationConfiguration.getMaxSerialIncrement()).thenReturn(9);
 
         X500Principal prodCaName = new X500Principal("CN=production");
 
         when(repositoryConfiguration.getAllResourcesCaPrincipal()).thenReturn(ALL_RESOURCES_CA_NAME);
         when(certificateAuthorityRepository.findByTypeAndName(AllResourcesCertificateAuthority.class, ALL_RESOURCES_CA_NAME))
-            .thenReturn(new AllResourcesCertificateAuthority(1, ALL_RESOURCES_CA_NAME, 1));
+            .thenReturn(new AllResourcesCertificateAuthority(1, ALL_RESOURCES_CA_NAME));
         when(repositoryConfiguration.getProductionCaPrincipal()).thenReturn(prodCaName);
 
         subject.handle(command);

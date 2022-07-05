@@ -5,7 +5,6 @@ import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.ProductionCertificateAuthorityTest;
 import net.ripe.rpki.domain.TestServices;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
@@ -43,7 +42,7 @@ public class JpaRoaConfigurationRepositoryTest extends CertificationDomainTestCa
     @Before
     public void setUp() {
         clearDatabase();
-        ca = ProductionCertificateAuthorityTest.createInitialisedProdOrgCaWithRipeResources(TestServices.createCertificateManagementService());
+        ca = createInitialisedProdCaWithRipeResources(TestServices.createCertificateManagementService());
         caRepository.add(ca);
         entityManager.flush();
     }

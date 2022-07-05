@@ -3,7 +3,6 @@ package net.ripe.rpki.services.impl.jpa;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.ProductionCertificateAuthorityTest;
 import net.ripe.rpki.domain.TestServices;
 import net.ripe.rpki.domain.aspa.AspaConfiguration;
 import org.junit.Before;
@@ -36,7 +35,7 @@ public class JpaAspaConfigurationRepositoryTest extends CertificationDomainTestC
     @Before
     public void setUp() {
         clearDatabase();
-        ca = ProductionCertificateAuthorityTest.createInitialisedProdOrgCaWithRipeResources(TestServices.createCertificateManagementService());
+        ca = createInitialisedProdCaWithRipeResources(TestServices.createCertificateManagementService());
         caRepository.add(ca);
         entityManager.flush();
     }

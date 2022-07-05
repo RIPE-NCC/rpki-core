@@ -1,6 +1,5 @@
 package net.ripe.rpki.services.impl.handlers;
 
-import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.server.api.commands.ActivateCustomerCertificateAuthorityCommand;
 import org.junit.Test;
@@ -15,13 +14,11 @@ public class ActivateCustomerCertificateAuthorityCommandHandlerTest {
 
     @Mock
     private CertificateAuthorityRepository certificateAuthorityRepository;
-    @Mock
-    private CertificationConfiguration certificationConfiguration;
 
     @Test
     public void shouldHaveCorrectType() {
         ActivateHostedCustomerCertificateAuthorityCommandHandler subject = new ActivateHostedCustomerCertificateAuthorityCommandHandler(
-                certificateAuthorityRepository, certificationConfiguration, null, null);
+                certificateAuthorityRepository, null, null);
         assertSame(ActivateCustomerCertificateAuthorityCommand.class, subject.commandType());
     }
 

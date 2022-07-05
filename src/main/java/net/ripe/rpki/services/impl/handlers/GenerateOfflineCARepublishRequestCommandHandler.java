@@ -1,6 +1,7 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
+import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
@@ -38,6 +39,6 @@ public class GenerateOfflineCARepublishRequestCommandHandler extends AbstractCer
 
         UpStreamCARequestEntity upStreamCARequest = new UpStreamCARequestEntity(ca, trustAnchorRequest);
 
-        ca.setUpStreamCARequestEntity(upStreamCARequest);
+        ((AllResourcesCertificateAuthority) ca).setUpStreamCARequestEntity(upStreamCARequest);
     }
 }

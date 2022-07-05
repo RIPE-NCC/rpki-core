@@ -32,8 +32,8 @@ public class ProductionCertificateAuthority extends HostedCertificateAuthority {
     protected ProductionCertificateAuthority() {
     }
 
-    public ProductionCertificateAuthority(long id, X500Principal name, AllResourcesCertificateAuthority parent, int randomSerialIncrement) {
-        super(id, name, parent, randomSerialIncrement);
+    public ProductionCertificateAuthority(long id, X500Principal name, AllResourcesCertificateAuthority parent) {
+        super(id, name, parent);
     }
 
     @Override
@@ -44,28 +44,6 @@ public class ProductionCertificateAuthority extends HostedCertificateAuthority {
     @Override
     public Optional<IpResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
         return resourceLookupService.lookupProductionCaResourcesSet();
-    }
-
-    /**
-     * Let the CA create resource classes and request certificates as needed,
-     * based on the IpResourceSet supplied and its internal state.
-     * Will result in the creation of an UpstreamCARequest if new certificates needed to
-     * be requested.
-     */
-    public void processCertifiableResources(IpResourceSet certifiableResources,
-                                            KeyPairService keyPairService,
-                                            CertificateRequestCreationService certificateRequestCreationService) {
-        List<TaRequest> signingRequests = new ArrayList<>();
-        if (!certifiableResources.isEmpty()) {
-            if (getKeyPairs().isEmpty()) {
-                createNewKeyPair(keyPairService);
-            }
-            signingRequests.addAll(certificateRequestCreationService.requestProductionCertificates(certifiableResources, this));
-        }
-
-        // TODO: Important when normal hosted CAs use this: Remove resource classes that disappeared & revoke the keys
-        setUpStreamCARequestEntity(new UpStreamCARequestEntity(this,
-            certificateRequestCreationService.createTrustAnchorRequest(signingRequests)));
     }
 
     public void setMyDownStreamProvisioningCommunicator(DownStreamProvisioningCommunicator myIdentityMaterial) {

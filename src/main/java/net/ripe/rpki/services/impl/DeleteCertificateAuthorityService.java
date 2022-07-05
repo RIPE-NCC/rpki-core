@@ -14,10 +14,11 @@ import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
-import net.ripe.rpki.util.DBComponent;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
+import java.util.Collection;
+import java.util.HashSet;
 
 @Slf4j
 @Component
@@ -46,7 +47,7 @@ public class DeleteCertificateAuthorityService {
         this.roaAlertConfigurationRepository = roaAlertConfigurationRepository;
     }
 
-    public void deleteNonHosted(long id) {
+    public void revokeNonHosted(long id) {
         final NonHostedCertificateAuthority nonHostedCa = caRepository.findNonHostedCa(id);
         if (nonHostedCa != null) {
             for (PublicKeyEntity publicKey : nonHostedCa.getPublicKeys()) {
@@ -59,12 +60,14 @@ public class DeleteCertificateAuthorityService {
         }
     }
 
-    public void deleteCa(long id) {
+    public void revokeCa(long id) {
         final HostedCertificateAuthority hostedCa = caRepository.findHostedCa(id);
         if (hostedCa != null) {
             log.warn("Deleting hosted CA with id " + id);
 
-            hostedCa.getKeyPairs().forEach(keyPair -> deleteArtifactsOfKeyPairEntity(hostedCa, keyPair));
+            // List of keypairs is duplicated to prevent concurrent modification of underlying collection during iteration, e.g during key rollover when a CA has multiple keypairs
+            final Collection<KeyPairEntity> keyPairs = new HashSet<>(hostedCa.getKeyPairs());
+            keyPairs.forEach(keyPair -> deleteArtifactsOfKeyPairEntity(hostedCa, keyPair));
 
             commandAuditService.deleteCommandsForCa(hostedCa.getId());
 
@@ -78,7 +81,7 @@ public class DeleteCertificateAuthorityService {
         } else {
             log.warn("Could not find hosted CA with id " + id);
 
-            deleteNonHosted(id);
+            revokeNonHosted(id);
         }
     }
 

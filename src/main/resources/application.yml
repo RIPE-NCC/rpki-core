@@ -123,13 +123,6 @@ keypair:
 
 manifest.crl.update.interval.minutes: 10
 
-# Certificate serial number generation. A new certificate's serial number is calculated using
-# lastSerialNumber + random(1 .. max.serial.increment)
-max.serial.increment: 100000
-# TODO: check if this is actuall unused. Seems that `max.serial.increment` is used to set the random serial increment on CAs.
-random.serial.increment: 100000
-
-
 # When enabled some invariants of the certificate authority aggregate are checked after every command is executed.
 # In case of child-parent commands the parent CA invariant is also checked. Since this is often the production CA
 # invariant checking can be slow (more than a second), causing some background jobs to run for much longer. Therefore,

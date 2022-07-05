@@ -9,17 +9,15 @@ import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningPayload;
 import net.ripe.rpki.commons.provisioning.x509.*;
 import net.ripe.rpki.domain.naming.UuidRepositoryObjectNamingStrategy;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
+import net.ripe.rpki.util.SerialNumberSupplier;
 import org.apache.commons.lang.Validate;
-import org.joda.time.DateTimeUtils;
 
 import javax.persistence.*;
 import javax.security.auth.x500.X500Principal;
 import javax.validation.constraints.NotNull;
 import java.math.BigInteger;
 import java.security.KeyPair;
-import java.security.SecureRandom;
 import java.security.cert.X509CRL;
-import java.util.Random;
 
 
 /**
@@ -30,9 +28,6 @@ import java.util.Random;
 @Table(name = "down_stream_provisioning_communicator")
 @SequenceGenerator(name = "seq_identity_material", sequenceName = "seq_all", allocationSize = 1)
 public class DownStreamProvisioningCommunicator extends EntitySupport {
-
-    private static final Random SECURE_RANDOM = new SecureRandom();
-    private static final int SERIAL_RANDOM_BITS = 64;
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_identity_material")
@@ -123,7 +118,7 @@ public class DownStreamProvisioningCommunicator extends EntitySupport {
 
         builder.withIssuerDN(getProvisioningIdentityCertificate().getSubject());
 
-        BigInteger serial = generateCertificateSerialNumber();
+        BigInteger serial = SerialNumberSupplier.getInstance().get();
 
         builder.withSerial(serial);
         builder.withPublicKey(eeKeyPair.getPublic());
@@ -132,12 +127,6 @@ public class DownStreamProvisioningCommunicator extends EntitySupport {
         builder.withSigningKeyPair(getKeyPair());
         builder.withSignatureProvider(persistedKeyPair.getSignatureProvider());
         return builder.build();
-    }
-
-    private BigInteger generateCertificateSerialNumber() {
-        BigInteger now = BigInteger.valueOf(DateTimeUtils.currentTimeMillis());
-        BigInteger random = new BigInteger(SERIAL_RANDOM_BITS, SECURE_RANDOM);
-        return now.shiftLeft(SERIAL_RANDOM_BITS).or(random);
     }
 
 }

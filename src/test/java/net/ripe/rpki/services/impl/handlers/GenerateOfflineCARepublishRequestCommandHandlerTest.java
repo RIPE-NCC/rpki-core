@@ -23,7 +23,7 @@ public class GenerateOfflineCARepublishRequestCommandHandlerTest {
 
     private static final VersionedId CA_VERSIONED_ID = new VersionedId(0l);
 
-    private HostedCertificateAuthority allResourcesCa;
+    private AllResourcesCertificateAuthority allResourcesCa;
     private CertificateAuthorityRepository certificateAuthorityRepository;
     private RepositoryConfiguration certificationConfiguration;
 

@@ -134,7 +134,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     @Test
     @Transactional
     public void countNonExpiredOutgoingCertificates() {
-        ProductionCertificateAuthority ca = createInitialisedProdOrgCaWithRipeResources(certificateManagementService);
+        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources(certificateManagementService);
         entityManager.persist(ca);
 
         assertThat(subject.countNonExpiredOutgoingCertificates(TEST_KEY_PAIR.getPublic(), ca.getCurrentKeyPair())).isZero();
@@ -143,7 +143,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     @Test
     @Transactional
     public void findCurrentOutgoingChildCertificateResources() {
-        ProductionCertificateAuthority ca = createInitialisedProdOrgCaWithRipeResources(certificateManagementService);
+        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources(certificateManagementService);
         entityManager.persist(ca);
 
         assertThat(subject.findCurrentOutgoingChildCertificateResources(ca.getName())).isEqualTo(new IpResourceSet());
@@ -152,7 +152,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     @Test
     @Transactional
     public void findCurrentOutgoingNonChildCertificateResources() {
-        ProductionCertificateAuthority ca = createInitialisedProdOrgCaWithRipeResources(certificateManagementService);
+        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources(certificateManagementService);
         entityManager.persist(ca);
 
         assertThat(subject.findCurrentOutgoingRpkiObjectCertificateResources(ca.getName())).isEqualTo(PRODUCTION_CA_RESOURCES);
@@ -161,7 +161,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     @Test
     @Transactional
     public void existsCurrentOutgoingChildCertificates() {
-        ProductionCertificateAuthority ca = createInitialisedProdOrgCaWithRipeResources(certificateManagementService);
+        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources(certificateManagementService);
         entityManager.persist(ca);
 
         assertThat(subject.existsCurrentOutgoingCertificatesExceptForManifest(ca.getCurrentKeyPair())).isFalse();

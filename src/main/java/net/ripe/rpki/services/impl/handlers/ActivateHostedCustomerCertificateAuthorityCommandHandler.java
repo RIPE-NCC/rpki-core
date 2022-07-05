@@ -1,13 +1,12 @@
 package net.ripe.rpki.services.impl.handlers;
 
-import net.ripe.rpki.application.CertificationConfiguration;
+import lombok.NonNull;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CustomerCertificateAuthority;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairService;
 import net.ripe.rpki.server.api.commands.ActivateCustomerCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
-import org.apache.commons.lang.Validate;
 
 import javax.inject.Inject;
 
@@ -15,17 +14,14 @@ import javax.inject.Inject;
 // TODO(yg) rename to ActivateCustomerCertificateAuthorityCommandHandler
 public class ActivateHostedCustomerCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<ActivateCustomerCertificateAuthorityCommand> {
 
-    private final CertificationConfiguration certificationConfiguration;
     private final KeyPairService keyPairService;
     private final ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga;
 
     @Inject
     ActivateHostedCustomerCertificateAuthorityCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
-                                                             CertificationConfiguration certificationConfiguration,
                                                              KeyPairService keyPairService,
                                                              ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga) {
         super(certificateAuthorityRepository);
-        this.certificationConfiguration = certificationConfiguration;
         this.keyPairService = keyPairService;
         this.childParentCertificateUpdateSaga = childParentCertificateUpdateSaga;
     }
@@ -36,8 +32,7 @@ public class ActivateHostedCustomerCertificateAuthorityCommandHandler extends Ab
     }
 
     @Override
-    public void handle(ActivateCustomerCertificateAuthorityCommand command, CommandStatus commandStatus) {
-        Validate.notNull(command);
+    public void handle(@NonNull ActivateCustomerCertificateAuthorityCommand command, CommandStatus commandStatus) {
         HostedCertificateAuthority productionCa = lookupHostedCA(command.getParentId());
         CustomerCertificateAuthority memberCa = createMemberCA(command, productionCa);
         memberCa.createNewKeyPair(keyPairService);
@@ -46,7 +41,7 @@ public class ActivateHostedCustomerCertificateAuthorityCommandHandler extends Ab
 
     private CustomerCertificateAuthority createMemberCA(ActivateCustomerCertificateAuthorityCommand command, HostedCertificateAuthority parentCa) {
         CustomerCertificateAuthority ca = new CustomerCertificateAuthority(command.getCertificateAuthorityVersionedId().getId(),
-                command.getName(), parentCa, certificationConfiguration.getMaxSerialIncrement());
+                command.getName(), parentCa);
         getCertificateAuthorityRepository().add(ca);
         return ca;
     }

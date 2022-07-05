@@ -3,6 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.ta.domain.request.RevocationRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
+import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
@@ -63,7 +64,7 @@ public class KeyManagementRevokeOldKeysCommandHandler implements CertificateAuth
         }
 
         if (hostedCa.isAllResourcesCa()) {
-            hostedCa.setUpStreamCARequestEntity(new UpStreamCARequestEntity(hostedCa,
+            ((AllResourcesCertificateAuthority) hostedCa).setUpStreamCARequestEntity(new UpStreamCARequestEntity(hostedCa,
                 certificateRequestCreationService.createTrustAnchorRequest(toTaRequests(requests))));
         } else {
             requests.stream()

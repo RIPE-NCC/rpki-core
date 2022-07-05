@@ -1,11 +1,11 @@
 package net.ripe.rpki.domain;
 
+import lombok.NonNull;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
-import org.apache.commons.lang.Validate;
 
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
@@ -23,9 +23,8 @@ public class CustomerCertificateAuthority extends HostedCertificateAuthority {
 
     protected CustomerCertificateAuthority() { }
 
-    public CustomerCertificateAuthority(long id, X500Principal name, ParentCertificateAuthority parent, int randomSerialIncrement) {
-        super(id, name, parent, randomSerialIncrement);
-        Validate.notNull(parent);
+    public CustomerCertificateAuthority(long id, X500Principal name, @NonNull ParentCertificateAuthority parent) {
+        super(id, name, parent);
     }
 
     @Override

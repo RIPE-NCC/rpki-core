@@ -10,9 +10,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class CertificationConfigurationBean implements CertificationConfiguration {
 
-    @Value("${max.serial.increment}")
-    private String maxSerialIncrementString;
-
     @Value("${autokeyrollover.maxage.days}")
     @Getter
     private int autoKeyRolloverMaxAgeDays;
@@ -35,11 +32,6 @@ public class CertificationConfigurationBean implements CertificationConfiguratio
     @Value("${api-keys.properties}")
     @Getter
     private Resource apiKeys;
-
-    @Override
-    public int getMaxSerialIncrement() {
-        return Integer.parseInt(maxSerialIncrementString);
-    }
 
     @Override
     public Duration getStagingPeriod() {

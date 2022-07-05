@@ -19,10 +19,8 @@ import net.ripe.rpki.ncc.core.services.activation.CertificateManagementServiceIm
 import net.ripe.rpki.server.api.configuration.Environment;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
-import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.util.DBComponent;
-import net.ripe.rpki.util.MemoryDBComponent;
+import net.ripe.rpki.util.SerialNumberSupplier;
 import org.apache.commons.lang.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -32,14 +30,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.inject.Named;
 import javax.persistence.EntityManager;
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
+import java.util.List;
 import java.util.function.Supplier;
 
 import static net.ripe.rpki.domain.CertificateAuthority.GRACEPERIOD;
@@ -83,9 +80,6 @@ public abstract class CertificationDomainTestCase {
     protected PublishedObjectRepository publishedObjectRepository;
 
     @Autowired
-    protected MemoryDBComponent dbComponent;
-
-    @Autowired
     protected EntityManager entityManager;
 
     @Autowired
@@ -111,7 +105,7 @@ public abstract class CertificationDomainTestCase {
     @Before
     public void setupTest() {
         meterRegistry = new SimpleMeterRegistry();
-        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, dbComponent, crlEntityRepository, manifestEntityRepository, singleUseKeyPairFactory, meterRegistry);
+        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, crlEntityRepository, manifestEntityRepository, singleUseKeyPairFactory, meterRegistry);
         Environment.load();
     }
 
@@ -121,27 +115,27 @@ public abstract class CertificationDomainTestCase {
     }
 
     protected ProductionCertificateAuthority createInitializedAllResourcesAndProductionCertificateAuthority() {
-        AllResourcesCertificateAuthority allResources = new AllResourcesCertificateAuthority(ACA_ID, ALL_RESOURCES_CA_NAME, 1);
+        AllResourcesCertificateAuthority allResources = new AllResourcesCertificateAuthority(ACA_ID, ALL_RESOURCES_CA_NAME);
         KeyPairEntity acaKeyPair = keyPairService.createKeyPairEntity("ACA-TEST-KEY");
         allResources.addKeyPair(acaKeyPair);
         certificateAuthorityRepository.add(allResources);
 
         allResources.processCertifiableResources(keyPairService, certificateRequestCreationService);
         KeyPairEntity allResourcesKeyPair = allResources.getKeyPairs().iterator().next();
-        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, repositoryConfiguration, allResources, allResourcesKeyPair,
-            allResources.getName(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES, dbComponent);
+        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, repositoryConfiguration, allResourcesKeyPair,
+            allResources.getName(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES);
 
         allResources.updateIncomingResourceCertificate(allResourcesKeyPair, response.getCertificate(), response.getPublicationUri());
         allResources.setUpStreamCARequestEntity(null);
         assertThat(acaKeyPair.isCurrent()).isTrue();
 
-        ProductionCertificateAuthority production = new ProductionCertificateAuthority(CA_ID, repositoryConfiguration.getProductionCaPrincipal(), allResources, 1);
+        ProductionCertificateAuthority production = new ProductionCertificateAuthority(CA_ID, repositoryConfiguration.getProductionCaPrincipal(), allResources);
         KeyPairEntity productionKeyPair = keyPairService.createKeyPairEntity("TEST-KEY");
         production.addKeyPair(productionKeyPair);
         certificateAuthorityRepository.add(production);
 
         CertificateIssuanceRequest issuanceRequest = (CertificateIssuanceRequest) production.processResourceClassListResponse(new ResourceClassListResponse(PRODUCTION_CA_RESOURCES), certificateRequestCreationService).get(0);
-        CertificateIssuanceResponse issuanceResponse = allResources.processCertificateIssuanceRequest(production, issuanceRequest, resourceCertificateRepository, dbComponent, Integer.MAX_VALUE);
+        CertificateIssuanceResponse issuanceResponse = allResources.processCertificateIssuanceRequest(production, issuanceRequest, resourceCertificateRepository, Integer.MAX_VALUE);
         production.processCertificateIssuanceResponse(issuanceResponse, resourceCertificateRepository);
         assertThat(productionKeyPair.isCurrent()).isTrue();
 
@@ -149,51 +143,23 @@ public abstract class CertificationDomainTestCase {
     }
 
     protected static ProductionCertificateAuthority createProductionCertificateAuthority(long id, X500Principal name) {
-        return createProductionCertificateAuthority(id, name, PRODUCTION_CA_RESOURCES);
-    }
-
-    protected static ProductionCertificateAuthority createProductionCertificateAuthority(long id, X500Principal name, IpResourceSet resources) {
-        return new ProductionCertificateAuthority(id, name, null, 1);
+        return new ProductionCertificateAuthority(id, name, null);
     }
 
     protected static AllResourcesCertificateAuthority createAllResourcesCertificateAuthority(long id, X500Principal name) {
-        return new AllResourcesCertificateAuthority(id, name, 1);
+        return new AllResourcesCertificateAuthority(id, name);
     }
 
     public static ProductionCertificateAuthority createInitialisedProdCaWithRipeResources(CertificateManagementService certificateManagementService) {
-        return createInitialisedProdCaWithRipeResources(certificateManagementService, new MemoryDBComponent());
-    }
-
-    public static ProductionCertificateAuthority createInitialisedProdOrgCaWithRipeResources(CertificateManagementService certificateManagementService) {
-        return createInitialisedProdCaWithRipeResources(certificateManagementService, new MemoryDBComponent(), PRODUCTION_CA_NAME);
-    }
-
-    public static ProductionCertificateAuthority createInitialisedProdCaWithRipeResources(CertificateManagementService certificateManagementService, DBComponent dbComponent) {
-        return createInitialisedProdCaWithRipeResources(certificateManagementService, dbComponent, PRODUCTION_CA_NAME);
-    }
-
-    public static ProductionCertificateAuthority createInitialisedProdCaWithRipeResources(CertificateManagementService certificateManagementService,
-                                                                                          DBComponent dbComponent,
-                                                                                          X500Principal principal) {
         RepositoryConfiguration certificationConfiguration = mock(RepositoryConfiguration.class);
         when(certificationConfiguration.getPublicRepositoryUri()).thenReturn(BASE_URI);
-        when(certificationConfiguration.getTrustAnchorRepositoryUri()).thenReturn(BASE_URI);
         CertificateRequestCreationService certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificationConfiguration);
-        ProductionCertificateAuthority ca = createProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, PRODUCTION_CA_RESOURCES);
+        ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, null);
         KeyPairEntity kp = TestObjects.createActiveKeyPair("TEST-KEY");
 
-        KeyPairService keyPairService = mock(KeyPairService.class);
         ca.addKeyPair(kp);
 
-        ca.processCertifiableResources(PRODUCTION_CA_RESOURCES, keyPairService, certificateRequestCreationService);
-        TrustAnchorRequest trustAnchorRequest = ca.getUpStreamCARequestEntity().getUpStreamCARequest();
-        SigningRequest request = (SigningRequest) trustAnchorRequest.getTaRequests().get(0);
-
-        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, certificationConfiguration, ca, kp,
-                request.getResourceCertificateRequest().getSubjectDN(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES, dbComponent);
-
-        ca.updateIncomingResourceCertificate(kp, response.getCertificate(), response.getPublicationUri());
-        ca.setUpStreamCARequestEntity(null);
+        issueSelfSignedCertificate(certificateManagementService, certificationConfiguration, certificateRequestCreationService, ca, kp);
 
         Validate.isTrue(kp.isCurrent());
 
@@ -203,9 +169,8 @@ public abstract class CertificationDomainTestCase {
     public ProductionCertificateAuthority createInitialisedProdCaWithRipeResources() {
         RepositoryConfiguration certificationConfiguration = mock(RepositoryConfiguration.class);
         when(certificationConfiguration.getPublicRepositoryUri()).thenReturn(BASE_URI);
-        when(certificationConfiguration.getTrustAnchorRepositoryUri()).thenReturn(BASE_URI);
         CertificateRequestCreationService certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificationConfiguration);
-        ProductionCertificateAuthority ca = createProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, PRODUCTION_CA_RESOURCES);
+        ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, null);
 
         KeyPairEntity kp = createInitialisedProductionCaKeyPair(certificateRequestCreationService, ca, "TEST-KEY");
 
@@ -219,56 +184,43 @@ public abstract class CertificationDomainTestCase {
         ca.addKeyPair(kp);
         certificateAuthorityRepository.add(ca);
 
-        ca.processCertifiableResources(PRODUCTION_CA_RESOURCES, keyPairService, certificateRequestCreationService);
-        TrustAnchorRequest trustAnchorRequest = ca.getUpStreamCARequestEntity().getUpStreamCARequest();
-        SigningRequest request = (SigningRequest) trustAnchorRequest.getTaRequests().get(0);
-
-        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, repositoryConfiguration, ca, kp,
-                request.getResourceCertificateRequest().getSubjectDN(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES, dbComponent);
-
-        ca.updateIncomingResourceCertificate(kp, response.getCertificate(), response.getPublicationUri());
-        ca.setUpStreamCARequestEntity(null);
+        issueSelfSignedCertificate(certificateManagementService, repositoryConfiguration, certificateRequestCreationService, ca, kp);
 
         return kp;
     }
 
-    public static AllResourcesCertificateAuthority createInitialisedAllResourcesCaWithRipeResources(CertificateManagementService certificateManagementService) {
-        return createInitialisedAllResourcesCaWithRipeResources(certificateManagementService, new MemoryDBComponent());
-    }
 
-    public static AllResourcesCertificateAuthority createInitialisedAllResourcesCaWithRipeResources(CertificateManagementService certificateManagementService, DBComponent dbComponent) {
+    public static AllResourcesCertificateAuthority createInitialisedAllResourcesCaWithRipeResources(CertificateManagementService certificateManagementService) {
         final AllResourcesCertificateAuthority allResourcesCertificateAuthority = createAllResourcesCertificateAuthority(ACA_ID, ALL_RESOURCES_CA_NAME);
         RepositoryConfiguration certificationConfiguration = mock(RepositoryConfiguration.class);
         when(certificationConfiguration.getPublicRepositoryUri()).thenReturn(BASE_URI);
-        when(certificationConfiguration.getTrustAnchorRepositoryUri()).thenReturn(BASE_URI);
         CertificateRequestCreationService certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificationConfiguration);
-        ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, allResourcesCertificateAuthority, 1);
+        ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, allResourcesCertificateAuthority);
         KeyPairEntity kp = TestObjects.createActiveKeyPair("TEST-KEY");
 
-        KeyPairService keyPairService = mock(KeyPairService.class);
         ca.addKeyPair(kp);
 
-        ca.processCertifiableResources(PRODUCTION_CA_RESOURCES, keyPairService, certificateRequestCreationService);
-        TrustAnchorRequest trustAnchorRequest = ca.getUpStreamCARequestEntity().getUpStreamCARequest();
-        SigningRequest request = (SigningRequest) trustAnchorRequest.getTaRequests().get(0);
-
-        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, certificationConfiguration, ca, kp, request.getResourceCertificateRequest().getSubjectDN(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES, dbComponent);
-
-        ca.updateIncomingResourceCertificate(kp, response.getCertificate(), response.getPublicationUri());
-        ca.setUpStreamCARequestEntity(null);
+        issueSelfSignedCertificate(certificateManagementService, certificationConfiguration, certificateRequestCreationService, ca, kp);
 
         Validate.isTrue(kp.isCurrent());
 
         return allResourcesCertificateAuthority;
     }
 
+    private static void issueSelfSignedCertificate(CertificateManagementService certificateManagementService, RepositoryConfiguration certificationConfiguration, CertificateRequestCreationService certificateRequestCreationService, ProductionCertificateAuthority ca, KeyPairEntity kp) {
+        List<SigningRequest> signingRequests = certificateRequestCreationService.requestProductionCertificates(PRODUCTION_CA_RESOURCES, ca);
+        SigningRequest request = signingRequests.get(0);
+        CertificateIssuanceResponse response = makeSelfSignedCertificate(certificateManagementService, certificationConfiguration, kp,
+            request.getResourceCertificateRequest().getSubjectDN(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES);
+        ca.updateIncomingResourceCertificate(kp, response.getCertificate(), response.getPublicationUri());
+    }
+
 
     private static CertificateIssuanceResponse makeSelfSignedCertificate(CertificateManagementService certificateManagementService,
                                                                          RepositoryConfiguration configuration,
-                                                                         HostedCertificateAuthority ca,
                                                                          KeyPairEntity signingKeyPair,
                                                                          X500Principal subject,
-                                                                         IpResourceSet resources, DBComponent dbComponent) {
+                                                                         IpResourceSet resources) {
         DateTime now = new DateTime(DateTimeZone.UTC);
         ResourceCertificateInformationAccessStrategy ias = new ResourceCertificateInformationAccessStrategyBean();
         X509CertificateInformationAccessDescriptor[] sia = {
@@ -288,7 +240,7 @@ public abstract class CertificationDomainTestCase {
         builder.withFilename(ias.caCertificateFilename(signingKeyPair.getPublicKey()));
         builder.withParentPublicationDirectory(BASE_URI);
         builder.withSubjectInformationAccess(sia);
-        builder.withSerial(dbComponent.nextSerial(ca));
+        builder.withSerial(SerialNumberSupplier.getInstance().get());
         OutgoingResourceCertificate outgoing = builder.build();
 
         certificateManagementService.addOutgoingResourceCertificate(outgoing);
@@ -296,12 +248,7 @@ public abstract class CertificationDomainTestCase {
     }
 
     protected void inTx(Runnable r) {
-        transactionTemplate.execute(new TransactionCallbackWithoutResult() {
-            @Override
-            protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
-                r.run();
-            }
-        });
+        transactionTemplate.executeWithoutResult((status) -> r.run());
     }
 
     protected <T> T withTx(Supplier<T> c) {

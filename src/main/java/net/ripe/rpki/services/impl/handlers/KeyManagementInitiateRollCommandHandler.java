@@ -11,7 +11,6 @@ import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
-import net.ripe.rpki.util.DBComponent;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -27,19 +26,16 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
     private final CertificateRequestCreationService certificationRequestCreationService;
 
     private final ResourceCertificateRepository resourceCertificateRepository;
-    private final DBComponent dbComponent;
 
     @Inject
     public KeyManagementInitiateRollCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
                                                    KeyPairService keyPairService,
                                                    CertificateRequestCreationService certificateRequestCreationService,
-                                                   ResourceCertificateRepository resourceCertificateRepository,
-                                                   DBComponent dbComponent) {
+                                                   ResourceCertificateRepository resourceCertificateRepository) {
         super(certificateAuthorityRepository);
         this.keyPairService = keyPairService;
         this.certificationRequestCreationService = certificateRequestCreationService;
         this.resourceCertificateRepository = resourceCertificateRepository;
-        this.dbComponent = dbComponent;
     }
 
     @Override
@@ -79,7 +75,7 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
     private void handleForHostedCertificateAuthority(HostedCertificateAuthority ca, List<CertificateIssuanceRequest> requests) {
         for (CertificateIssuanceRequest request : requests) {
             CertificateIssuanceResponse response = ca.getParent().processCertificateIssuanceRequest(
-                    ca, request, resourceCertificateRepository, dbComponent, Integer.MAX_VALUE);
+                    ca, request, resourceCertificateRepository, Integer.MAX_VALUE);
             ca.processCertificateIssuanceResponse(response, resourceCertificateRepository);
         }
     }

@@ -10,7 +10,6 @@ import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.services.impl.DeleteCertificateAuthorityService;
-import net.ripe.rpki.util.MemoryDBComponent;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.junit.Before;
 import org.junit.Test;

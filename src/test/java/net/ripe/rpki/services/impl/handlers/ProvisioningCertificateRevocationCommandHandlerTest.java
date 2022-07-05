@@ -40,7 +40,7 @@ public class ProvisioningCertificateRevocationCommandHandlerTest {
 
     @Before
     public void setUp() {
-        ParentCertificateAuthority parent = new AllResourcesCertificateAuthority(1L, ALL_RESOURCES_CA_NAME, 1);
+        ParentCertificateAuthority parent = new AllResourcesCertificateAuthority(1L, ALL_RESOURCES_CA_NAME);
         nonHostedCertificateAuthority = new NonHostedCertificateAuthority(12L, new X500Principal("CN=101"), ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, parent);
         nonHostedCertificateAuthority.findOrCreatePublicKeyEntityByPublicKey(publicKey);
 

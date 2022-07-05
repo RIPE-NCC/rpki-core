@@ -55,8 +55,6 @@ keypair:
     revocation.interval.hours: 240
     generator.provider: SunRsaSign
 
-random.serial.increment: 1
-
 online.repository:
     notification.uri: https://localhost:7788/notification.xml
     directory: ${HOME}/export/bad/certification/repository/online

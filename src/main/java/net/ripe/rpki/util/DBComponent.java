@@ -1,9 +1,5 @@
 package net.ripe.rpki.util;
 
-import net.ripe.rpki.domain.HostedCertificateAuthority;
-
-import java.math.BigInteger;
-
 public interface DBComponent {
     /**
      * Locks the certificate authority with the specified id.
@@ -18,5 +14,4 @@ public interface DBComponent {
      */
     void lockCertificateAuthorityForceIncrement(long caId);
 
-    BigInteger nextSerial(HostedCertificateAuthority caId);
 }

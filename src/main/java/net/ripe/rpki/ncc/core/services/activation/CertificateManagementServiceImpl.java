@@ -21,7 +21,7 @@ import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.domain.manifest.ManifestEntityRepository;
-import net.ripe.rpki.util.DBComponent;
+import net.ripe.rpki.util.SerialNumberSupplier;
 import org.apache.commons.lang.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -47,7 +47,6 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
 
     private final ResourceCertificateRepository resourceCertificateRepository;
     private final PublishedObjectRepository publishedObjectRepository;
-    private final DBComponent dbComponent;
     private final CrlEntityRepository crlEntityRepository;
     private final ManifestEntityRepository manifestEntityRepository;
     private final SingleUseKeyPairFactory singleUseKeyPairFactory;
@@ -58,14 +57,12 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
     @Autowired
     public CertificateManagementServiceImpl(ResourceCertificateRepository resourceCertificateRepository,
                                             PublishedObjectRepository publishedObjectRepository,
-                                            DBComponent dbComponent,
                                             CrlEntityRepository crlEntityRepository,
                                             ManifestEntityRepository manifestEntityRepository,
                                             SingleUseKeyPairFactory singleUseKeyPairFactory,
                                             MeterRegistry meterRegistry) {
         this.resourceCertificateRepository = resourceCertificateRepository;
         this.publishedObjectRepository = publishedObjectRepository;
-        this.dbComponent = dbComponent;
         this.crlEntityRepository = crlEntityRepository;
         this.manifestEntityRepository = manifestEntityRepository;
         this.singleUseKeyPairFactory = singleUseKeyPairFactory;
@@ -96,7 +93,7 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
             Validate.isTrue(active.getResources().contains(request.getResources()), "EE certificate resources MUST BE contained in the parent certificate");
             builder.withResources(request.getResources());
         }
-        builder.withSerial(dbComponent.nextSerial(hostedCa));
+        builder.withSerial(SerialNumberSupplier.getInstance().get());
         builder.withSubjectDN(request.getSubjectDN());
         builder.withSubjectPublicKey(request.getSubjectPublicKey());
         builder.withSubjectInformationAccess(request.getSubjectInformationAccess());

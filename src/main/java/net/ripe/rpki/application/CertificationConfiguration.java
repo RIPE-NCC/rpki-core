@@ -7,8 +7,6 @@ public interface CertificationConfiguration {
 
 	String getProvisioningBaseUrl();
 
-	int getMaxSerialIncrement();
-
 	int getAutoKeyRolloverMaxAgeDays();
     Duration getStagingPeriod();
 

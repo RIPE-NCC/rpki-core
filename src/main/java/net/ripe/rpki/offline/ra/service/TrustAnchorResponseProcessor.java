@@ -184,7 +184,7 @@ public class TrustAnchorResponseProcessor {
         // Remove the existing request entity.
         // I tried all possible permutation of @Cascade on the field in
         // CertificateAuthority (most likely first), but no success that way :(
-        HostedCertificateAuthority allResourcesCa = getAllResourcesCa();
+        AllResourcesCertificateAuthority allResourcesCa = getAllResourcesCa();
         UpStreamCARequestEntity upStreamCARequestEntity = allResourcesCa.getUpStreamCARequestEntity();
         allResourcesCa.setUpStreamCARequestEntity(null);
         entityManager.remove(upStreamCARequestEntity);

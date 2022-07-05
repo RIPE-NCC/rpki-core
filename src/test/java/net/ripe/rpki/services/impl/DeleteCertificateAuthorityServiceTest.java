@@ -67,7 +67,7 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
 
         VersionedId caId = new VersionedId(HOSTED_CA_ID);
         DeleteCertificateAuthorityCommand command = new DeleteCertificateAuthorityCommand(caId, new X500Principal("CN=Test"), new RoaConfigurationData(new ArrayList<>()));
-        HostedCertificateAuthority hostedCA = new CustomerCertificateAuthority(HOSTED_CA_ID, name, parentCA, 1);
+        HostedCertificateAuthority hostedCA = new CustomerCertificateAuthority(HOSTED_CA_ID, name, parentCA);
         hostedCA.addKeyPair(keyPair);
 
         when(keyPair.getEncodedKeyIdentifier()).thenReturn(KeyPairUtil.getEncodedKeyIdentifier(publicKey));
@@ -85,7 +85,7 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
         when(keyPair.getPublicKey())
                 .thenReturn(publicKey);
 
-        subject.deleteCa(HOSTED_CA_ID);
+        subject.revokeCa(HOSTED_CA_ID);
 
         verify(keyPair).deleteIncomingResourceCertificate();
         verify(keyPair).requestRevoke();

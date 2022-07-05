@@ -5,7 +5,6 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.ProductionCertificateAuthorityTest;
 import net.ripe.rpki.domain.PublicationStatus;
 import net.ripe.rpki.domain.PublishedObject;
 import net.ripe.rpki.domain.PublishedObjectData;
@@ -60,7 +59,7 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
     public void setUp() {
         clearDatabase();
 
-        ProductionCertificateAuthority ca = ProductionCertificateAuthorityTest.createInitialisedProdOrgCaWithRipeResources(TestServices.createCertificateManagementService());
+        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources(TestServices.createCertificateManagementService());
         entityManager.persist(ca);
 
         issuingKeyPair = ca.getCurrentKeyPair();

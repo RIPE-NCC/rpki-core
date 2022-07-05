@@ -4,11 +4,9 @@ package net.ripe.rpki.rest.service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.AllResourcesCaResourcesCommand;
 import net.ripe.rpki.server.api.commands.CreateRootCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.ProductionCaResourcesCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
@@ -29,7 +27,6 @@ import javax.ws.rs.core.Response;
 import static com.google.common.collect.ImmutableMap.of;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
-import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 import static javax.ws.rs.core.Response.Status.NO_CONTENT;
 
 @Slf4j
@@ -65,25 +62,6 @@ public class ProductionCAService {
             activeNodeService.activateCurrentNode();
 
             return Response.status(NO_CONTENT).build();
-        } catch (Exception e) {
-            log.error("", e);
-            return Response.status(BAD_REQUEST).entity(of("error", e.getMessage())).build();
-        }
-    }
-
-    @POST
-    @Path("generate-sign-request")
-    @Operation(summary = "Generate Sign Request for New resources")
-    public Response generateSignRequest() {
-        try {
-            X500Principal productionCaName = certificationConfiguration.getProductionCaPrincipal();
-            final IpResourceSet certifiableResources = resourceCache.lookupProductionCaResources();
-            if (!certifiableResources.isEmpty()) {
-                CertificateAuthorityData productionCaData = certificateAuthorityViewService.findCertificateAuthorityByName(productionCaName);
-                commandService.execute(new ProductionCaResourcesCommand(productionCaData.getVersionedId(), certifiableResources));
-                return Response.status(NO_CONTENT).build();
-            }
-            return Response.status(INTERNAL_SERVER_ERROR).entity(of("error", "Resource cache is empty")).build();
         } catch (Exception e) {
             log.error("", e);
             return Response.status(BAD_REQUEST).entity(of("error", e.getMessage())).build();

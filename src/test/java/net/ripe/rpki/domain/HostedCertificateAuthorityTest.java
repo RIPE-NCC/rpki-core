@@ -13,7 +13,6 @@ import net.ripe.rpki.domain.manifest.ManifestEntityRepository;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementServiceImpl;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
-import net.ripe.rpki.util.MemoryDBComponent;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Before;
@@ -57,7 +56,7 @@ public class HostedCertificateAuthorityTest {
 
     @Before
     public void setUp() {
-        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, new MemoryDBComponent(), crlEntityRepository, manifestEntityRepository,
+        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, crlEntityRepository, manifestEntityRepository,
             new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), new SimpleMeterRegistry());
         subject = createInitialisedProdCaWithRipeResources(certificateManagementService);
         keyPair = subject.getCurrentKeyPair();

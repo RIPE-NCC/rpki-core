@@ -1,6 +1,5 @@
 package net.ripe.rpki.services.impl.handlers;
 
-import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
@@ -19,36 +18,33 @@ import static org.mockito.Mockito.*;
 
 public class CreateAllResourcesCertificateAuthorityCommandHandlerTest {
 
-	private CreateAllResourcesCertificateAuthorityCommandHandler subject;
+    private CreateAllResourcesCertificateAuthorityCommandHandler subject;
 
-	private CertificateAuthorityRepository certificateAuthorityRepository;
+    private CertificateAuthorityRepository certificateAuthorityRepository;
 
     private RepositoryConfiguration repositoryConfiguration;
-	private CertificationConfiguration certificationConfiguration;
 
-	private CreateAllResourcesCertificateAuthorityCommand command;
+    private CreateAllResourcesCertificateAuthorityCommand command;
 
 
-	@Before
+    @Before
     public void setUp() {
         certificateAuthorityRepository = mock(CertificateAuthorityRepository.class);
-        certificationConfiguration = mock(CertificationConfiguration.class);
         repositoryConfiguration = mock(RepositoryConfiguration.class);
-        subject = new CreateAllResourcesCertificateAuthorityCommandHandler(certificateAuthorityRepository, repositoryConfiguration, certificationConfiguration);
+        subject = new CreateAllResourcesCertificateAuthorityCommandHandler(certificateAuthorityRepository, repositoryConfiguration);
         command = new CreateAllResourcesCertificateAuthorityCommand(new VersionedId(12));
     }
 
-	@Test
-	public void shouldReturnCorrectCommandType() {
-		Class<? extends CertificateAuthorityCommand> commandType = subject.commandType();
+    @Test
+    public void shouldReturnCorrectCommandType() {
+        Class<? extends CertificateAuthorityCommand> commandType = subject.commandType();
 
-		assertSame(CreateAllResourcesCertificateAuthorityCommand.class, commandType);
-	}
+        assertSame(CreateAllResourcesCertificateAuthorityCommand.class, commandType);
+    }
 
     @Test
     public void shouldCreateRootCertificateAuthority() {
         final ArgumentCaptor<AllResourcesCertificateAuthority> ca = ArgumentCaptor.forClass(AllResourcesCertificateAuthority.class);
-        when(certificationConfiguration.getMaxSerialIncrement()).thenReturn(9);
 
         final X500Principal prodCaName = new X500Principal("CN=All Resources CA");
 

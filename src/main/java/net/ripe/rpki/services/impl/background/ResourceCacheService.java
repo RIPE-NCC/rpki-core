@@ -43,7 +43,6 @@ public class ResourceCacheService {
 
     private static final double MAX_CHANGE_RELATIVE_THRESHOLD = 0.005;
 
-    private final RoaConfigUpdater roaConfigUpdater;
     private final TransactionOperations transactionTemplate;
     private final ResourceServicesClient resourceServicesClient;
     private final ResourceCache resourceCache;
@@ -60,8 +59,7 @@ public class ResourceCacheService {
     private final ResourceCacheServiceMetrics resourceCacheServiceMetrics;
 
     @Autowired
-    public ResourceCacheService(RoaConfigUpdater roaConfigUpdater,
-                                TransactionOperations transactionTemplate,
+    public ResourceCacheService(TransactionOperations transactionTemplate,
                                 ResourceServicesClient resourceServicesClient,
                                 ResourceCache resourceCache,
                                 DelegationsCache delegationsCache,
@@ -69,7 +67,6 @@ public class ResourceCacheService {
                                 @Value("${" + RepositoryConfiguration.ALL_RESOURCES_CA_NAME + "}") X500Principal allResourcesCaName,
                                 @Value("${accept.one.rejected.resource.cache.update:false}") boolean acceptOneRejectedResourceCacheUpdate,
                                 MeterRegistry meterRegistry) {
-        this.roaConfigUpdater = roaConfigUpdater;
         this.resourceServicesClient = resourceServicesClient;
         this.resourceCache = resourceCache;
         this.transactionTemplate = transactionTemplate;
@@ -133,7 +130,6 @@ public class ResourceCacheService {
         CacheUpdate applyUpdate = new CacheUpdate.Apply(() -> {
             resourceStats.set(new ResourceStat(resourcesDiff, Instant.now()));
             resourceCache.populateCache(registryResources);
-            roaConfigUpdater.updateRoaConfig(registryResources);
             resourceCacheServiceMetrics.onMemberCacheAccepted();
             if (resourcesDiff.absoluteSizeDiff() == 0) {
                 log.info("Resource cache has no update; remaining at {} entries", resourcesDiff.localSize);

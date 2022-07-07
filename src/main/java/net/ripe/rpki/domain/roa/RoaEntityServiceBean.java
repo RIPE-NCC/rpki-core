@@ -13,7 +13,7 @@ import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
-import net.ripe.rpki.core.events.CertificateAuthorityEventAdapter;
+import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
 import net.ripe.rpki.core.events.KeyPairActivatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
@@ -25,6 +25,7 @@ import net.ripe.rpki.domain.SingleUseKeyPairFactory;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.naming.RepositoryObjectNamingStrategy;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
+import net.ripe.rpki.server.api.commands.CommandContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -40,7 +41,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service("roaEntityServiceBean")
-public class RoaEntityServiceBean extends CertificateAuthorityEventAdapter implements RoaEntityService {
+public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, RoaEntityService {
 
     private final RoaConfigurationRepository roaConfigurationRepository;
 
@@ -68,7 +69,7 @@ public class RoaEntityServiceBean extends CertificateAuthorityEventAdapter imple
     }
 
     @Override
-    public void visitKeyPairActivatedEvent(KeyPairActivatedEvent event) {
+    public void visitKeyPairActivatedEvent(KeyPairActivatedEvent event, CommandContext context) {
         HostedCertificateAuthority ca = certificateAuthorityRepository.findHostedCa(event.getCertificateAuthorityVersionedId().getId());
         if (ca == null) {
             return;

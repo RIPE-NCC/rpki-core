@@ -12,6 +12,7 @@ import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.core.events.CertificateAuthorityEvent;
 import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
+import net.ripe.rpki.core.events.IncomingCertificateUpdatedEvent;
 import net.ripe.rpki.core.events.KeyPairActivatedEvent;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
@@ -27,6 +28,7 @@ import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.ripencc.support.event.DefaultEventDelegate;
 import net.ripe.rpki.ripencc.support.event.EventDelegate;
 import net.ripe.rpki.ripencc.support.event.EventSubscription;
+import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.KeyPairData;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
@@ -44,8 +46,6 @@ import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
 import javax.security.auth.x500.X500Principal;
-import javax.validation.constraints.NotNull;
-import java.math.BigInteger;
 import java.net.URI;
 import java.security.PublicKey;
 import java.util.Arrays;
@@ -73,20 +73,9 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
 
     public static final EventDelegate<CertificateAuthorityEvent> EVENTS = new DefaultEventDelegate<>();
 
-    public static EventSubscription subscribe(final CertificateAuthorityEventVisitor listener) {
-        return EVENTS.subscribe(event -> event.accept(listener));
+    public static EventSubscription subscribe(final CertificateAuthorityEventVisitor listener, CommandContext recording) {
+        return EVENTS.subscribe(event -> event.accept(listener, recording));
     }
-
-    @NotNull
-    @Column(name = "last_issued_serial")
-    @Deprecated
-    private BigInteger lastIssuedSerial = BigInteger.ZERO;
-
-    @NotNull
-    @Column(nullable = false, name = "random_serial_increment")
-    @Deprecated
-    // Initialised to 100000 to be compatible with previous version that may be running on the other node during upgrade.
-    private int randomSerialIncrement = 100000;
 
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL )
     @JoinColumn(name = "ca_id", nullable = false)
@@ -328,6 +317,11 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
             activatePendingKey(subjectKeyPair, getVersionedId());
         }
 
+        // status can change after activatePendingKey
+        if (subjectKeyPair.isCurrent()) {
+            HostedCertificateAuthority.EVENTS.publish(this, new IncomingCertificateUpdatedEvent(getVersionedId(), certificate));
+        }
+
         this.manifestAndCrlCheckNeeded = true;
     }
 
@@ -335,7 +329,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
         Optional<KeyPairEntity> currentKeyPair = findCurrentKeyPair();
         currentKeyPair.ifPresent(KeyPairEntity::deactivate);
         newKeyPair.activate();
-        HostedCertificateAuthority.EVENTS.publish(this, new KeyPairActivatedEvent(versionedId, newKeyPair.getName()));
+        HostedCertificateAuthority.EVENTS.publish(this, new KeyPairActivatedEvent(versionedId, newKeyPair));
     }
 
     /**
@@ -362,7 +356,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
             .ifPresent(pkp -> {
                 findCurrentKeyPair().ifPresent(KeyPairEntity::deactivate);
                 pkp.activate();
-                EVENTS.publish(this, new KeyPairActivatedEvent(getVersionedId(), pkp.getName()));
+                EVENTS.publish(this, new KeyPairActivatedEvent(getVersionedId(), pkp));
                 anyKeysActivated.set(true);
                 this.manifestAndCrlCheckNeeded = true;
             });

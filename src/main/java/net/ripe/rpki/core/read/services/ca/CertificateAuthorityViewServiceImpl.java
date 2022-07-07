@@ -134,7 +134,7 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
 
     @Override
     public List<CommandAuditData> findMostRecentCommandsForCa(long caId) {
-        return commandAuditService.findMostRecentUserCommandsForCa(caId);
+        return commandAuditService.findMostRecentCommandsForCa(caId);
     }
 
     @Override

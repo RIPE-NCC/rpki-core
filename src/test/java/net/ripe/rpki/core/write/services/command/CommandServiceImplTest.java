@@ -2,7 +2,9 @@ package net.ripe.rpki.core.write.services.command;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 import net.ripe.rpki.services.impl.handlers.CertificateAuthorityCommandHandler;
@@ -42,6 +44,8 @@ public class CommandServiceImplTest {
         command = mock(CertificateAuthorityCommand.class);
         messageDispatcher = mock(MessageDispatcher.class);
         transactionStatus = mock(TransactionStatus.class);
+        CommandAuditService commandAuditService = mock(CommandAuditService.class);
+        when(commandAuditService.startRecording(any())).thenAnswer((args) -> new CommandContext(args.getArgument(0)));
 
         final TransactionTemplate transactionTemplate = new TransactionTemplate() {
             @Override
@@ -51,7 +55,7 @@ public class CommandServiceImplTest {
         };
 
         meterRegistry = new SimpleMeterRegistry();
-        subject = new CommandServiceImpl(messageDispatcher, transactionTemplate, null, null, meterRegistry);
+        subject = new CommandServiceImpl(messageDispatcher, transactionTemplate, null, null, null, commandAuditService, null, meterRegistry);
     }
 
     @Test
@@ -213,7 +217,7 @@ public class CommandServiceImplTest {
 
     @Test
     public void should_retry_transaction_on_locking_exception() {
-        assertThat(meterRegistry.get("rpkicore.command.transaction.retries").counter().count()).isEqualTo(0);
+        assertThat(meterRegistry.get("rpkicore.command.transaction.retries").counter().count()).isZero();
 
         AtomicInteger count = new AtomicInteger(0);
         doAnswer((invocation) -> {

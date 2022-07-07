@@ -5,7 +5,6 @@ package net.ripe.rpki.ripencc.support.event;
  * listeners.
  * 
  * @param <Event> the event type.
- * @param <Listener> the listener type.
  */
 public interface EventDelegate<Event> {
     

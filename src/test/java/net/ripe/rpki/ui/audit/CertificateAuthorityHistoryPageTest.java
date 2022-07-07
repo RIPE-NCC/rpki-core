@@ -60,7 +60,7 @@ public class CertificateAuthorityHistoryPageTest extends CertificationWicketTest
 
     @Test
     public void shouldRenderSummaryWithCommandsAndMessagesOrderedByTime() {
-        CommandAuditData command = new CommandAuditData(new DateTime().minusMinutes(20), VersionedId.parse("0"), "admin", "type", CertificateAuthorityCommandGroup.SYSTEM, "just a command");
+        CommandAuditData command = new CommandAuditData(new DateTime().minusMinutes(20), VersionedId.parse("0"), "admin", "type", CertificateAuthorityCommandGroup.SYSTEM, "just a command", "");
         ProvisioningAuditData provisioningMessage = new ProvisioningAuditData(new DateTime().minusMinutes(10), "principal", "summary");
 
         List<CommandAuditData> commandList = new ArrayList<>(1);
@@ -112,7 +112,7 @@ public class CertificateAuthorityHistoryPageTest extends CertificationWicketTest
     }
 
     private CommandAuditData auditEntry(CertificateAuthorityCommand command) {
-        CommandAuditData commandData = new CommandAuditData(new DateTime().minusMinutes(10), PRODUCTION_CA_VERSIONED_ID, "admin", command.getCommandType(), command.getCommandGroup(), command.getCommandSummary());
+        CommandAuditData commandData = new CommandAuditData(new DateTime().minusMinutes(10), PRODUCTION_CA_VERSIONED_ID, "admin", command.getCommandType(), command.getCommandGroup(), command.getCommandSummary(), "");
         return commandData;
     }
 }

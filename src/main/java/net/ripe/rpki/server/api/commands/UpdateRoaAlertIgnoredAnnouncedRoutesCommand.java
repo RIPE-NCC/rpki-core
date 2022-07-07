@@ -41,7 +41,7 @@ public class UpdateRoaAlertIgnoredAnnouncedRoutesCommand extends CertificateAuth
                 "Deletions: " + StringUtils.join(getHumanReadableAnnouncedRoutes(deletions), ", ") + ".";
     }
 
-    private List<String> getHumanReadableAnnouncedRoutes(List<AnnouncedRoute> announcedRoutes) {
+    public static List<String> getHumanReadableAnnouncedRoutes(List<AnnouncedRoute> announcedRoutes) {
         List<String> announcedRoutesAsString = new ArrayList<>();
         for (AnnouncedRoute announcedRoute : announcedRoutes) {
             announcedRoutesAsString.add("[asn=" + announcedRoute.getOriginAsn() + ", prefix=" + announcedRoute.getPrefix() + "]");

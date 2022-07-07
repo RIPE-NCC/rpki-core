@@ -4,14 +4,18 @@ import com.google.common.annotations.VisibleForTesting;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.alerts.RoaAlertMaintenanceService;
+import net.ripe.rpki.domain.audit.CommandAuditService;
+import net.ripe.rpki.domain.roa.RoaConfigurationMaintenanceService;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.ripencc.support.event.EventDelegateTracker;
 import net.ripe.rpki.ripencc.support.event.EventSubscription;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
@@ -22,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.persistence.EntityManager;
 import javax.persistence.FlushModeType;
 import javax.persistence.OptimisticLockException;
@@ -36,13 +39,17 @@ import java.util.concurrent.TimeUnit;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
+@Setter
 @Service
 @Slf4j
 public class CommandServiceImpl implements CommandService {
 
     private MessageDispatcher commandDispatcher;
     private final TransactionTemplate transactionTemplate;
-    private final CertificateAuthorityEventVisitor roaEntityService;
+    private final RoaAlertMaintenanceService roaAlertMaintenanceService;
+    private final RoaConfigurationMaintenanceService roaConfigurationMaintenanceService;
+    private final RoaEntityService roaEntityService;
+    private final CommandAuditService commandAuditService;
     private final EntityManager entityManager;
 
     private final MeterRegistry meterRegistry;
@@ -53,13 +60,19 @@ public class CommandServiceImpl implements CommandService {
     public CommandServiceImpl(
         MessageDispatcher commandDispatcher,
         TransactionTemplate transactionTemplate,
-        @Named("roaEntityServiceBean") RoaEntityService roaEntityService,
+        RoaAlertMaintenanceService roaAlertMaintenanceService,
+        RoaConfigurationMaintenanceService roaConfigurationMaintenanceService,
+        RoaEntityService roaEntityService,
+        CommandAuditService commandAuditService,
         EntityManager entityManager,
         MeterRegistry meterRegistry
     ) {
         this.commandDispatcher = commandDispatcher;
         this.transactionTemplate = transactionTemplate;
+        this.roaAlertMaintenanceService = roaAlertMaintenanceService;
+        this.roaConfigurationMaintenanceService = roaConfigurationMaintenanceService;
         this.roaEntityService = roaEntityService;
+        this.commandAuditService = commandAuditService;
         this.entityManager = entityManager;
 
         this.meterRegistry = meterRegistry;
@@ -78,16 +91,13 @@ public class CommandServiceImpl implements CommandService {
         return new VersionedId(next.longValue());
     }
 
+    @SuppressWarnings("try")
     @Override
     public CommandStatus execute(final CertificateAuthorityCommand command) {
         MDC.put("command", command.getCommandGroup() + ":" + command.getCommandType() + ":" + command.getCertificateAuthorityId());
-        EventDelegateTracker.get().reset();
-        EventSubscription roaEntityServiceSubscription = HostedCertificateAuthority.subscribe(roaEntityService);
         try {
             return executeCommandWithRetries(command);
         } finally {
-            roaEntityServiceSubscription.cancel();
-            EventDelegateTracker.get().reset();
             MDC.remove("command");
         }
     }
@@ -127,7 +137,14 @@ public class CommandServiceImpl implements CommandService {
     private CommandStatus executeCommand(CertificateAuthorityCommand command) {
         final CommandStatus commandStatus = new CommandStatus();
         transactionTemplate.executeWithoutResult(status -> {
-            try {
+            EventDelegateTracker.get().reset();
+            CommandContext commandContext = commandAuditService.startRecording(command);
+            try (
+                EventSubscription commandAuditSubscription = HostedCertificateAuthority.EVENTS.subscribe(commandContext::recordEvent);
+                EventSubscription roaEntityServiceSubscription = HostedCertificateAuthority.subscribe(roaEntityService, commandContext);
+                EventSubscription roaAlertMaintenanceSubscription = HostedCertificateAuthority.subscribe(roaAlertMaintenanceService, commandContext);
+                EventSubscription roaConfigurationMaintenanceSubscription = HostedCertificateAuthority.subscribe(roaConfigurationMaintenanceService, commandContext)
+            ) {
                 commandStatus.setTransactionStatus(status);
                 commandDispatcher.dispatch(command, commandStatus);
                 log.debug("Command completed.");
@@ -138,6 +155,11 @@ public class CommandServiceImpl implements CommandService {
                 log.warn("Error processing command: {}", command, e);
                 status.setRollbackOnly();
                 throw e;
+            } finally {
+                EventDelegateTracker.get().reset();
+                if (commandStatus.isHasEffect()) {
+                    commandAuditService.finishRecording(commandContext);
+                }
             }
         });
         return commandStatus;

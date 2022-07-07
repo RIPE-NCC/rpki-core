@@ -43,15 +43,12 @@ public class ResourceCacheServiceTest {
     @Mock
     private ResourceServicesClient resourceServicesClient;
 
-    @Mock
-    private RoaConfigUpdater roaConfigUpdater;
-
     private ResourceCacheService subject;
 
     @Before
     public void setUp() {
         transactionTemplate.reset();
-        subject = new ResourceCacheService(roaConfigUpdater, transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
+        subject = new ResourceCacheService(transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
             new X500Principal("CN=666"), new X500Principal("CN=123"), false, new SimpleMeterRegistry());
     }
 
@@ -115,7 +112,7 @@ public class ResourceCacheServiceTest {
         when(resourceServicesClient.fetchAllMemberResources()).thenReturn(DataSamples.rejectedMemberResources());
         when(resourceServicesClient.findProductionCaDelegations()).thenReturn(DataSamples.productionCaDelegations(DataSamples.rejectedMemberResources()));
 
-        subject = new ResourceCacheService(roaConfigUpdater, transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
+        subject = new ResourceCacheService(transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
                 new X500Principal("CN=666"), new X500Principal("CN=123"), true, new SimpleMeterRegistry());
         subject.updateFullResourceCache();
 

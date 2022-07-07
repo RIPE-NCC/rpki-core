@@ -4,24 +4,24 @@ import org.apache.commons.lang.Validate;
 
 import java.util.Collection;
 
-class EventSubscriptionImpl<Listener> implements EventSubscription {
+class EventSubscriptionImpl<L> implements EventSubscription, AutoCloseable {
 
-    private final Listener listener;
+    private final L listener;
     private final Collection<? extends EventSubscription> subscriptions;
 
-    public EventSubscriptionImpl(Listener listener, Collection<? extends EventSubscription> subscriptions) {
+    public EventSubscriptionImpl(L listener, Collection<? extends EventSubscription> subscriptions) {
         Validate.notNull(listener, "listener is required");
         Validate.notNull(subscriptions, "subscriptions is required");
         this.listener = listener;
         this.subscriptions = subscriptions;
     }
     
-    public Listener getListener() {
+    public L getListener() {
         return listener;
     }
-    
-    public void cancel() {
+
+    @Override
+    public void close() {
         subscriptions.remove(this);
     }
-
 }

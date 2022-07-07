@@ -1,11 +1,14 @@
 package net.ripe.rpki.application.impl;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.audit.CommandAudit;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup;
+import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.dto.CommandAuditData;
 import net.ripe.rpki.server.api.security.RoleBasedAuthenticationStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,17 +41,16 @@ public class CommandAuditServiceBean implements CommandAuditService {
         this.entityManager = entityManager;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public List<CommandAuditData> findMostRecentUserCommandsForCa(long caId) {
-        final Query query = entityManager.createQuery(
+    public List<CommandAuditData> findMostRecentCommandsForCa(long caId) {
+        List<CommandAudit> commands = entityManager.createQuery(
                 "SELECT cd FROM CommandAudit cd WHERE deletedAt IS NULL AND cd.certificateAuthorityId = :caId " +
-                        "AND cd.commandGroup = :commandGroup ORDER BY cd.certificateAuthorityVersion DESC");
-
-        query.setParameter("caId", caId);
-        query.setParameter("commandGroup", CertificateAuthorityCommandGroup.USER.toString());
-        query.setMaxResults(MAX_HISTORY_ENTRIES_RETURNED);
-        List<CommandAudit> commands = query.getResultList();
+                    "ORDER BY cd.certificateAuthorityVersion DESC",
+                CommandAudit.class
+            )
+            .setParameter("caId", caId)
+            .setMaxResults(MAX_HISTORY_ENTRIES_RETURNED)
+            .getResultList();
         return convertToData(commands);
     }
 
@@ -67,19 +69,36 @@ public class CommandAuditServiceBean implements CommandAuditService {
     }
 
     @Override
-    public void record(CertificateAuthorityCommand command, VersionedId caId) {
+    @NonNull
+    public CommandContext startRecording(CertificateAuthorityCommand command) {
+        return new CommandContext(command);
+    }
+
+    @Override
+    public void finishRecording(CommandContext context) {
         final String userId = authenticationStrategy.getOriginalUserId().getId().toString();
 
+        CertificateAuthorityCommand command = context.getCommand();
+
+        CertificateAuthority ca = entityManager.find(CertificateAuthority.class, command.getCertificateAuthorityId());
+        // The CA may have been deleted so fall back to the (possibly incorrect) versioned ID in the command.
+        VersionedId caVersionedId = ca != null ? ca.getVersionedId() : command.getCertificateAuthorityVersionedId();
+
+        List<String> events = context.getRecordedEvents().stream().map(Object::toString).collect(Collectors.toList());
+
+        String commandEvents = events.stream().collect(Collectors.joining("\n    ", "\n    ", ""));
+
         log.info(
-            "principal={} caId={} commandType={} commandGroup={} commandSummary={}",
+            "principal={} caId={} commandType={} commandGroup={} commandSummary={}, events=[{}]",
             userId,
-            caId,
+            caVersionedId,
             command.getCommandType(),
             command.getCommandGroup().name(),
-            command.getCommandSummary()
+            command.getCommandSummary(),
+            commandEvents
         );
-        if (command.getCommandGroup() == CertificateAuthorityCommandGroup.USER) {
-            CommandAudit commandAudit = new CommandAudit(userId, command, caId);
+        if (command.getCommandGroup() == CertificateAuthorityCommandGroup.USER || !events.isEmpty()) {
+            CommandAudit commandAudit = new CommandAudit(userId, caVersionedId, command, String.join("\n", events));
             entityManager.persist(commandAudit);
         }
     }

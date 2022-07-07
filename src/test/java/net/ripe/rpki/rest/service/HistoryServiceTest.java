@@ -69,8 +69,8 @@ public class HistoryServiceTest {
         List<CommandAuditData> commandHistory = Collections.singletonList(new CommandAuditData(
                 DateTime.parse("2012-11-12T23:59:21.123Z"),
                 new VersionedId(1L), "principal 1", "Some command type",
-                CertificateAuthorityCommandGroup.USER, "Some cool command"
-        ));
+                CertificateAuthorityCommandGroup.USER, "Some cool command",
+            ""));
 
         List<ProvisioningAuditData> messageHistory = Collections.singletonList(new ProvisioningAuditData(
                 DateTime.parse("2013-04-24T11:43:07.789Z"), "principal 2", "Some message"

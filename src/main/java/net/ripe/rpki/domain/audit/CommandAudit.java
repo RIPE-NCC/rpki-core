@@ -19,14 +19,20 @@ import java.sql.Timestamp;
 @Table(name = "commandaudit")
 public class CommandAudit extends AbstractAuditRecord {
 
+    @Getter
     @Column(name = "commandtype", nullable = false)
     private String commandType;
 
     @Column(name = "commandgroup", nullable = false)
     private String commandGroup;
 
+    @Getter
     @Column(name = "commandsummary", nullable = false)
     private String commandSummary;
+
+    @Getter
+    @Column(name = "commandevents", nullable = false)
+    private String commandEvents;
 
     @Getter
     @Setter
@@ -37,23 +43,16 @@ public class CommandAudit extends AbstractAuditRecord {
     }
 
     // TODO: Change principal to CertificationUserId after migrating existing entries
-    public CommandAudit(String principal, CertificateAuthorityCommand command, VersionedId caId) {
+    public CommandAudit(String principal, VersionedId caId, CertificateAuthorityCommand command, String commandEvents) {
         super(principal, caId);
         this.commandType = command.getCommandType();
         this.commandGroup = command.getCommandGroup().name();
         this.commandSummary = command.getCommandSummary();
-    }
-
-    public String getCommandType() {
-        return commandType;
+        this.commandEvents = commandEvents;
     }
 
     public CertificateAuthorityCommandGroup getCommandGroup() {
         return CertificateAuthorityCommandGroup.valueOf(commandGroup);
-    }
-
-    public String getCommandSummary() {
-        return commandSummary;
     }
 
     public CommandAuditData toData() {
@@ -63,6 +62,8 @@ public class CommandAudit extends AbstractAuditRecord {
                 getPrincipal(),
                 getCommandType(),
                 getCommandGroup(),
-                getCommandSummary());
+                getCommandSummary(),
+                getCommandEvents()
+        );
     }
 }

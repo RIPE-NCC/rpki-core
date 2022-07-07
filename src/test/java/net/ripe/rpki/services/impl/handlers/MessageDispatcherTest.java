@@ -30,13 +30,15 @@ public class MessageDispatcherTest {
 
     private List<String> executedHandlers = new ArrayList<>();
 
+    public static abstract class TestHandler implements CertificateAuthorityCommandHandler<CertificateAuthorityCommand> {
+        @Override
+        public Class<CertificateAuthorityCommand> commandType() {
+            return CertificateAuthorityCommand.class;
+        }
+    }
 
     @Handler(order = 200)
-    private final class MyCommandPersistenceHandler extends CommandPersistenceHandler {
-        public MyCommandPersistenceHandler() {
-            super(certificateAuthorityRepository, null);
-        }
-
+    private final class MyCommandPersistenceHandler extends TestHandler {
         @Override
         public void handle(CertificateAuthorityCommand command, CommandStatus commandStatus) {
             executedHandlers.add("Persistence");
@@ -44,11 +46,7 @@ public class MessageDispatcherTest {
     }
 
     @Handler(order = 0)
-    private final class MyCertificateAuthorityConcurrentModificationHandler extends CommandPersistenceHandler {
-        public MyCertificateAuthorityConcurrentModificationHandler() {
-            super(certificateAuthorityRepository, null);
-        }
-
+    private final class MyCertificateAuthorityConcurrentModificationHandler extends TestHandler {
         @Override
         public void handle(CertificateAuthorityCommand command, CommandStatus commandStatus) {
             executedHandlers.add("Concurrency");
@@ -84,7 +82,7 @@ public class MessageDispatcherTest {
         MyCertificateAuthorityConcurrentModificationHandler concurrentModificationHandler = new MyCertificateAuthorityConcurrentModificationHandler();
         beans.put("concurrent", concurrentModificationHandler);
 
-        CommandPersistenceHandler commandPersistenceHandler = new MyCommandPersistenceHandler();
+        TestHandler commandPersistenceHandler = new MyCommandPersistenceHandler();
         beans.put("persist", commandPersistenceHandler);
 
         when(applicationContext.getBeansWithAnnotation(Handler.class)).thenReturn(beans);

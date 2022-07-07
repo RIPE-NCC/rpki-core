@@ -26,7 +26,7 @@ public class DefaultEventDelegateTest {
         subject.publish(this, "hello world");
         assertEquals(Collections.singletonList("hello world"), events);
         
-        sub.cancel();
+        sub.close();
 
         events.clear();
         subject.publish(this, "hallo wereld");
@@ -40,8 +40,8 @@ public class DefaultEventDelegateTest {
         subject.publish(this, "hello world");
         assertEquals(Arrays.asList("hello world", "hello world"), events);
 
-        sub1.cancel();
-        sub2.cancel();
+        sub1.close();
+        sub2.close();
 
         events.clear();
         subject.publish(this, "hallo wereld");

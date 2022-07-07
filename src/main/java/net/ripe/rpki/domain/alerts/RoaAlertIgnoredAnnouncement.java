@@ -1,18 +1,16 @@
 package net.ripe.rpki.domain.alerts;
 
+import lombok.Data;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
-import net.ripe.rpki.server.api.support.objects.ValueObjectSupport;
 
 import javax.persistence.Basic;
 import javax.persistence.Embeddable;
 
-
+@Data
 @Embeddable
-public class RoaAlertIgnoredAnnouncement extends ValueObjectSupport {
-    private static final long serialVersionUID = 1L;
-
+public class RoaAlertIgnoredAnnouncement {
     @Basic(optional = false)
     private String asn;
 

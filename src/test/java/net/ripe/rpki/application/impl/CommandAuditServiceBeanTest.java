@@ -1,7 +1,9 @@
 package net.ripe.rpki.application.impl;
 
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.audit.CommandAudit;
+import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.commands.CreateRootCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.security.CertificationUserId;
@@ -30,6 +32,10 @@ public class CommandAuditServiceBeanTest {
         entityManager = mock(EntityManager.class);
         authStrategy = mock(RoleBasedAuthenticationStrategy.class);
         subject = new CommandAuditServiceBean(authStrategy, entityManager);
+
+        CertificateAuthority ca = mock(CertificateAuthority.class);
+        when(ca.getVersionedId()).thenReturn(new VersionedId(12));
+        when(entityManager.find(eq(CertificateAuthority.class), any())).thenReturn(ca);
     }
 
     @Test
@@ -38,7 +44,8 @@ public class CommandAuditServiceBeanTest {
         ArgumentCaptor<CommandAudit> capturedArgument = ArgumentCaptor.forClass(CommandAudit.class);
 
         CreateRootCertificateAuthorityCommand command = new CreateRootCertificateAuthorityCommand(new VersionedId(12));
-        subject.record(command, new VersionedId(12));
+        CommandContext commandContext = subject.startRecording(command);
+        subject.finishRecording(commandContext);
 
         verify(entityManager).persist(capturedArgument.capture());
 
@@ -58,8 +65,9 @@ public class CommandAuditServiceBeanTest {
         when(authStrategy.getOriginalUserId()).thenReturn(TEST_USER);
 
         KeyManagementInitiateRollCommand command = new KeyManagementInitiateRollCommand(new VersionedId(1), 120);
-        subject.record(command, new VersionedId(12));
+        CommandContext commandContext = subject.startRecording(command);
+        subject.finishRecording(commandContext);
 
-        verifyNoInteractions(entityManager);
+        verify(entityManager, never()).persist(isA(CommandAudit.class));
     }
 }

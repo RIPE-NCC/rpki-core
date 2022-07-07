@@ -57,7 +57,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
             ca.getVersionedId(),
             Collections.singleton(new RoaConfigurationPrefixData(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"), null)),
             Collections.emptyList()));
-        inTx(() -> commandService.execute(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId())));
+        commandService.execute(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId()));
 
         // CA certificate, EE certificate for ROA, EE certificate for manifest
         assertThat(subject.findAllBySigningKeyPair(ca.getCurrentKeyPair()))

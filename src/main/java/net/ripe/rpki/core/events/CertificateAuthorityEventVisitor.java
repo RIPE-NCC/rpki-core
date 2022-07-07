@@ -1,7 +1,10 @@
 package net.ripe.rpki.core.events;
 
 
-public interface CertificateAuthorityEventVisitor {
+import net.ripe.rpki.server.api.commands.CommandContext;
 
-    void visitKeyPairActivatedEvent(KeyPairActivatedEvent event);
+public interface CertificateAuthorityEventVisitor {
+    default void visitKeyPairActivatedEvent(KeyPairActivatedEvent event, CommandContext context) {}
+
+    default void visitIncomingCertificateUpdatedEvent(IncomingCertificateUpdatedEvent event, CommandContext context) {}
 }

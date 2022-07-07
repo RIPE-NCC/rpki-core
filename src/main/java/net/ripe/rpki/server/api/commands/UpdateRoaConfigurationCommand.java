@@ -41,7 +41,7 @@ public class UpdateRoaConfigurationCommand extends CertificateAuthorityModificat
                 "Deletions: " + StringUtils.join(getHumanReadableRoaPrefixData(deletions), ", ") + ".";
     }
 
-    private List<String> getHumanReadableRoaPrefixData(List<RoaConfigurationPrefixData> roaPrefixDataList) {
+    public static List<String> getHumanReadableRoaPrefixData(Collection<RoaConfigurationPrefixData> roaPrefixDataList) {
         List<String> roaPrefixDataAsString = new ArrayList<>();
         for (RoaConfigurationPrefixData roaPrefixData : roaPrefixDataList) {
             roaPrefixDataAsString.add("[asn=" + roaPrefixData.getAsn() + ", prefix=" + roaPrefixData.getPrefix() + ", maximumLength=" + roaPrefixData.getMaximumLength() + "]");

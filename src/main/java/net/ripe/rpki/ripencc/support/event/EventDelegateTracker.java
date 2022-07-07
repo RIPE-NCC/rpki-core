@@ -27,7 +27,7 @@ public final class EventDelegateTracker {
     /*
      * Map used as a set, since there is no WeakHashSet implementation.
      */
-    private Map<EventDelegate<?>, Object> eventDelegates = new WeakHashMap<>();
+    private Map<EventDelegate<?>, Void> eventDelegates = new WeakHashMap<>();
 
     private EventDelegateTracker() {
     }
@@ -37,8 +37,8 @@ public final class EventDelegateTracker {
     }
 
     public void reset() {
-        for (Map.Entry<EventDelegate<?>, Object> eventDelegate : eventDelegates.entrySet()) {
-            eventDelegate.getKey().reset();
+        for (EventDelegate<?> eventDelegate : eventDelegates.keySet()) {
+            eventDelegate.reset();
         }
         trackers.remove();
     }

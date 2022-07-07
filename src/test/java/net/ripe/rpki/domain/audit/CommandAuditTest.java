@@ -42,7 +42,7 @@ public class CommandAuditTest {
 
     @Before
     public void setUp() {
-        subject = new CommandAudit(PRINCIPAL, TEST_COMMAND, CA_ID);
+        subject = new CommandAudit(PRINCIPAL, TEST_COMMAND.getCertificateAuthorityVersionedId(), TEST_COMMAND, "");
     }
 
     @Test

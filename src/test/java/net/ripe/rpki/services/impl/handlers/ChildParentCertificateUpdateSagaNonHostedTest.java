@@ -1,6 +1,5 @@
 package net.ripe.rpki.services.impl.handlers;
 
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
@@ -33,6 +32,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static net.ripe.ipresource.IpResourceSet.parse;
 import static net.ripe.rpki.domain.NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -74,7 +74,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
 
     @Test
     public void should_issue_certificate_for_non_hosted_child_certified_resources() {
-        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16"));
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse("10.10.0.0/16"));
 
         CommandStatus status = execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
@@ -85,7 +85,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
         assertThat(certificate).isPresent();
-        assertThat(certificate.get().getResources()).isEqualTo(resources("10.10.0.0/16"));
+        assertThat(certificate.get().getResources()).isEqualTo(parse("10.10.0.0/16"));
 
         assertChildParentInvariants(child, parent);
     }
@@ -103,9 +103,9 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     }
 
     @Test
-    public void should_revoke_issued_certificate_for_hosted_child_without_certifiable_resources() {
+    public void should_revoke_issued_certificate_for_hosted_child_without_certifiable_parse() {
         should_issue_certificate_for_non_hosted_child_certified_resources();
-        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources(""));
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse(""));
 
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
@@ -123,7 +123,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         should_issue_certificate_for_non_hosted_child_certified_resources();
         publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(
                 Optional.empty(),
-                Optional.of(IpResourceSet.parse("192.168.0.0/16")),
+                Optional.of(parse("192.168.0.0/16")),
                 Optional.empty()
             ),
             SIA
@@ -161,14 +161,14 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     // the certificates using the information from the latest issuance request.
     @Test
     public void should_reissue_certificate_when_child_has_resources_again() {
-        should_revoke_issued_certificate_for_hosted_child_without_certifiable_resources();
-        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16"));
+        should_revoke_issued_certificate_for_hosted_child_without_certifiable_parse();
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse("10.10.0.0/16"));
 
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
         assertThat(certificate).hasValueSatisfying(cert -> {
-            assertThat(cert.getResources()).isEqualTo(resources("10.10.0.0/16"));
+            assertThat(cert.getResources()).isEqualTo(parse("10.10.0.0/16"));
         });
 
         assertChildParentInvariants(child, parent);
@@ -179,32 +179,32 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         should_issue_certificate_for_non_hosted_child_certified_resources();
         publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(
                 Optional.empty(),
-                Optional.of(IpResourceSet.parse("10.10.0.0/16")),
+                Optional.of(parse("10.10.0.0/16")),
                 Optional.empty()
             ),
             SIA
         );
-        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16, 10.20.0.0/16"));
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse("10.10.0.0/16, 10.20.0.0/16"));
 
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
         assertThat(certificate).isPresent();
-        assertThat(certificate.get().getResources()).isEqualTo(resources("10.10.0.0/16"));
+        assertThat(certificate.get().getResources()).isEqualTo(parse("10.10.0.0/16"));
 
         assertChildParentInvariants(child, parent);
     }
 
     @Test
-    public void should_update_certificates_resources_when_non_hosted_child_resources_expand_and_are_included_in_requested_resources() {
+    public void should_update_certificates_resources_when_non_hosted_child_resources_expand_and_are_included_in_requested_parse() {
         should_issue_certificate_for_non_hosted_child_certified_resources();
-        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/16, 10.20.0.0/16"));
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse("10.10.0.0/16, 10.20.0.0/16"));
 
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
         assertThat(certificate).isPresent();
-        assertThat(certificate.get().getResources()).isEqualTo(resources("10.10.0.0/16, 10.20.0.0/16"));
+        assertThat(certificate.get().getResources()).isEqualTo(parse("10.10.0.0/16, 10.20.0.0/16"));
 
         assertChildParentInvariants(child, parent);
     }
@@ -212,13 +212,13 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     @Test
     public void should_issue_new_certificate_when_non_hosted_child_resources_contract() {
         should_issue_certificate_for_non_hosted_child_certified_resources();
-        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), resources("10.10.0.0/20"));
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse("10.10.0.0/20"));
 
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
         assertThat(certificate).isPresent();
-        assertThat(certificate.get().getResources()).isEqualTo(resources("10.10.0.0/20"));
+        assertThat(certificate.get().getResources()).isEqualTo(parse("10.10.0.0/20"));
 
         assertChildParentInvariants(child, parent);
     }
@@ -257,7 +257,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         should_issue_certificate_for_non_hosted_child_certified_resources();
         publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(
                 Optional.empty(),
-                Optional.of(IpResourceSet.parse("10.10.8.0/24")),
+                Optional.of(parse("10.10.8.0/24")),
                 Optional.empty()
             ),
             SIA
@@ -307,10 +307,6 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
 
     private Optional<OutgoingResourceCertificate> findCurrentResourceCertificate(NonHostedCertificateAuthority ca) {
         return ca.getPublicKeys().iterator().next().findCurrentOutgoingResourceCertificate();
-    }
-
-    private static IpResourceSet resources(String resources) {
-        return IpResourceSet.parse(resources);
     }
 
     private CommandStatus execute(CertificateAuthorityCommand command) {

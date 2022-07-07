@@ -1,14 +1,14 @@
 package net.ripe.rpki.core.events;
 
-import net.ripe.rpki.commons.util.EqualsSupport;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.server.api.commands.CommandContext;
 import org.apache.commons.lang.Validate;
 
-import java.io.Serializable;
-
-public abstract class CertificateAuthorityEvent extends EqualsSupport implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+@EqualsAndHashCode
+@ToString
+public abstract class CertificateAuthorityEvent {
 
     private final VersionedId certificateAuthorityId; // Maybe change name to certificationAuthorityVersionedId? If so, need to migrate existing serialised history
 
@@ -21,5 +21,5 @@ public abstract class CertificateAuthorityEvent extends EqualsSupport implements
         return certificateAuthorityId;
     }
 
-    public abstract void accept(CertificateAuthorityEventVisitor visitor);
+    public abstract void accept(CertificateAuthorityEventVisitor visitor, CommandContext recording);
 }

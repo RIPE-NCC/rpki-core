@@ -96,7 +96,7 @@ public class AnnouncementServiceTest {
     }
 
     @Test
-    public void shouldGetAnnouncement() throws Exception {
+    public void announcements_shouldGetAnnouncement() throws Exception {
 
         final IpResourceSet ipResourceSet = new IpResourceSet();
         when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(ipResourceSet);
@@ -130,6 +130,52 @@ public class AnnouncementServiceTest {
     }
 
     @Test
+    public void announcements_shouldIncludeSilencesThatAreNotVisibleInBGP() throws Exception {
+
+        final IpResourceSet ipResourceSet = new IpResourceSet();
+        when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(ipResourceSet);
+
+        final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
+        final BgpRisEntry e2 = new BgpRisEntry(new Asn(20), IpRange.parse("192.168.128.0/24"), 20);
+        Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
+        bgpRisEntries.put(true, Collections.singletonList(e1));
+        bgpRisEntries.put(false, Collections.singletonList(e2));
+        when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
+
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(
+                getRoaAlertConfigurationData(e1.getOrigin(), e1.getPrefix()).withIgnoredAnnouncements(
+                        Collections.singleton(new AnnouncedRoute(Asn.parse("AS64496"), IpRange.parse("203.0.113.0/24")))
+
+                )
+        );
+
+        when(roaService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(new ArrayList<>()));
+
+        mockMvc.perform(
+                        Rest.get(API_URL_PREFIX + "/123/announcements")
+                                .accept(APPLICATION_JSON)
+                                .contentType(APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                // The two announcements are still present
+                .andExpect(jsonPath("$.length()").value("3"))
+                .andExpect(jsonPath("$.[0].asn").value("AS10"))
+                .andExpect(jsonPath("$.[0].prefix").value("192.168.0.0/16"))
+                .andExpect(jsonPath("$.[1].asn").value("AS20"))
+                .andExpect(jsonPath("$.[1].prefix").value("192.168.128.0/24"))
+                // And the announcement not in BGP, but suppressed, is present
+                .andExpect(jsonPath("$.[2].asn").value("AS64496"))
+                .andExpect(jsonPath("$.[2].prefix").value("203.0.113.0/24"))
+                .andExpect(jsonPath("$.[2].visibility").value("0"))
+                .andExpect(jsonPath("$.[2].suppressed").value("true"))
+                .andExpect(jsonPath("$.[2].verified").value("false"))
+                .andExpect(jsonPath("$.[2].currentState").value("UNKNOWN"))
+
+        ;
+    }
+
+    @Test
     public void shouldGetError404ForNotExistingAnnouncement() throws Exception {
         when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(null);
 
@@ -156,7 +202,7 @@ public class AnnouncementServiceTest {
     }
 
     @Test
-    public void shouldReturnAnnouncementAffectedByROA() throws Exception {
+    public void affected_shouldReturnAnnouncementAffectedByROA() throws Exception {
 
         final IpResourceSet ipResourceSet = new IpResourceSet();
         when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(ipResourceSet);
@@ -198,7 +244,7 @@ public class AnnouncementServiceTest {
     }
 
     @Test
-    public void shouldReturnAnnouncementAffectedByROAValidatedByOtherROAs() throws Exception {
+    public void affected_shouldReturnAnnouncementAffectedByROAValidatedByOtherROAs() throws Exception {
 
         final IpResourceSet ipResourceSet = new IpResourceSet();
         when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(ipResourceSet);
@@ -234,7 +280,7 @@ public class AnnouncementServiceTest {
 
 
     @Test
-    public void shouldNotReturnUnknownAnnouncements() throws Exception {
+    public void affected_shouldNotReturnUnknownAnnouncements() throws Exception {
 
         final IpResourceSet ipResourceSet = new IpResourceSet(IpRange.parse("192.168.0.0/16"));
         when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(ipResourceSet);

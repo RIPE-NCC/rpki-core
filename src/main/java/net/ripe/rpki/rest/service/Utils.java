@@ -16,37 +16,38 @@ import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy.allowedRoutesToNestedIntervalMap;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 class Utils {
+    // current implementation in commons is stateless, however, likely not made static to be able to parameterize it
+    // later.
+    public static final RouteOriginValidationPolicy ROUTE_VALIDATION_POLICY = new RouteOriginValidationPolicy();
+
     static List<BgpAnnouncement> makeBgpAnnouncementList(Map<Boolean, Collection<BgpRisEntry>> announcements,
                                                          Iterable<? extends AllowedRoute> currentAllowedRoutes,
                                                          Set<AnnouncedRoute> ignoredAnnouncements) {
         final NestedIntervalMap<IpResource, List<AllowedRoute>> currentRouteMap = allowedRoutesToNestedIntervalMap(currentAllowedRoutes);
-        final RouteOriginValidationPolicy routeOriginValidationPolicy = new RouteOriginValidationPolicy();
-        final List<BgpAnnouncement> result = new ArrayList<>();
-        for (Boolean verifiedOrNot : new Boolean[]{true, false}) {
-            if (announcements.containsKey(verifiedOrNot)) {
-                for (BgpRisEntry announcement : announcements.get(verifiedOrNot)) {
-                    final AnnouncedRoute announcedRoute = new AnnouncedRoute(announcement.getOrigin(), announcement.getPrefix());
-                    final RouteValidityState currentValidityState = routeOriginValidationPolicy.validateAnnouncedRoute(currentRouteMap, announcedRoute);
+
+        // Verified announcements first, then the rest.
+        return Stream.of(true, false)
+            .flatMap(verifiedOrNot -> announcements.getOrDefault(verifiedOrNot, Collections.emptyList()).stream()
+                .map(announcement -> {
+                    // Create BgbAnnouncement, this needs the BgpRisEntry as well as the derived AnnouncedRoute
+                    final AnnouncedRoute announcedRoute = announcement.toAnnouncedRoute();
+
+                    final RouteValidityState currentValidityState = ROUTE_VALIDATION_POLICY.validateAnnouncedRoute(currentRouteMap, announcedRoute);
                     final boolean isSuppressed = ignoredAnnouncements.contains(announcedRoute);
-                    result.add(new BgpAnnouncement(announcement.getOrigin().toString(), announcement.getPrefix().toString(), announcement.getVisibility(),
-                            currentValidityState, isSuppressed, verifiedOrNot));
-                }
-            }
-        }
-        return result;
+                    return new BgpAnnouncement(
+                        announcement.getOrigin().toString(), announcement.getPrefix().toString(),
+                        announcement.getVisibility(), currentValidityState,
+                        isSuppressed, verifiedOrNot);
+                }))
+            .collect(Collectors.toList());
     }
 
     static Set<AnnouncedRoute> getIgnoredAnnouncements(RoaAlertConfigurationViewService roaAlertConfigurationViewService, long caId) {

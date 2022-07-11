@@ -1,6 +1,6 @@
 package net.ripe.rpki.rest.service;
 
-
+import com.google.common.collect.Sets;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -71,7 +72,7 @@ public class AnnouncementService extends AbstractCaRestService {
     }
 
     @GetMapping
-    @Operation(summary = "Get all announcements belonging to a CA")
+    @Operation(summary = "Get all announcements, as well as not-announced ignored announcements for the CA")
     public ResponseEntity<List<BgpAnnouncement>> getResourcesForCa(@PathVariable("caName") final String caName) {
         log.info("Getting resources for CA: {}", caName);
 
@@ -86,8 +87,31 @@ public class AnnouncementService extends AbstractCaRestService {
         final Map<Boolean, Collection<BgpRisEntry>> announcements = bgpRisEntryViewService.findMostSpecificContainedAndNotContained(certifiedResources);
         final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(this.getCaId());
         final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, getCaId());
-        return ok(Utils.makeBgpAnnouncementList(announcements, roaConfiguration.toAllowedRoutes(), ignoredAnnouncements));
+
+        final List<BgpAnnouncement> announcedAnnouncements = Utils.makeBgpAnnouncementList(announcements, roaConfiguration.toAllowedRoutes(), ignoredAnnouncements);
+
+        // ignoredAnnouncements \ bgp announcements
+        final Set<AnnouncedRoute> notSeenIgnoredAnnouncedRoutes = Sets.difference(ignoredAnnouncements, bgpRisMapToAnnouncedRoutes(announcements));
+
+        final NestedIntervalMap<IpResource, List<AllowedRoute>> currentRouteMap = allowedRoutesToNestedIntervalMap(roaConfiguration.toAllowedRoutes());
+
+        // Create synthetic 'not seen' announcements for which a suppression exists.
+        final List<BgpAnnouncement> notSeenAnnouncements = notSeenIgnoredAnnouncedRoutes.stream().map(
+                ar -> new BgpAnnouncement(ar.getOriginAsn().toString(), ar.getPrefix().toString(),
+                        0, Utils.ROUTE_VALIDATION_POLICY.validateAnnouncedRoute(currentRouteMap, ar),
+                        true)
+        ).collect(Collectors.toList());
+
+        return ok(Stream.concat(announcedAnnouncements.stream(), notSeenAnnouncements.stream()).collect(Collectors.toList()));
     }
+
+    private Set<AnnouncedRoute> bgpRisMapToAnnouncedRoutes(Map<Boolean, Collection<BgpRisEntry>> announcements) {
+        return announcements.values().stream()
+                .flatMap(Collection::stream)
+                .map(BgpRisEntry::toAnnouncedRoute)
+                .collect(Collectors.toSet());
+    }
+
 
     @PostMapping("/affected")
     @Operation(summary = "Get all announcements affected by the given ROA configuration of a CA")
@@ -118,7 +142,7 @@ public class AnnouncementService extends AbstractCaRestService {
         Stream.of(true, false)
                 .filter(announcements::containsKey)
                 .flatMap(verifiedOrNot -> announcements.get(verifiedOrNot).stream())
-                .map(announcement -> new AnnouncedRoute(announcement.getOrigin(), announcement.getPrefix()))
+                .map(BgpRisEntry::toAnnouncedRoute)
                 .forEach(announcedRoute -> {
                     final RouteValidityState currentValidityState = routeOriginValidationPolicy.validateAnnouncedRoute(currentRouteMap, announcedRoute);
                     if (currentValidityState == RouteValidityState.VALID &&

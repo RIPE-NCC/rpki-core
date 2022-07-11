@@ -1,4 +1,4 @@
-image: gradle:jdk8
+image: gradle:jdk11
 
 # Explicit version of the Mergerequests-Pipelines workflow, with the main branch
 # added.
@@ -34,7 +34,6 @@ variables:
 ######## Build stage ########
 build:
   stage: build
-  image: gradle:jdk8
   services:
     - postgres:12
   variables:
@@ -68,7 +67,6 @@ build:
 build-image:
   stage: package
   needs: ["build"]
-  image: gradle:jdk8
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:

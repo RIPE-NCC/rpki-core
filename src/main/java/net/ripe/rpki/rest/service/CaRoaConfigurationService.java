@@ -106,7 +106,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
         // and don't have ROAs validating them
         final Set<BgpRisEntry> invalidAnnouncements = new HashSet<>();
         for (BgpRisEntry bgp : announcements) {
-            final AnnouncedRoute announcedRoute = new AnnouncedRoute(bgp.getOrigin(), bgp.getPrefix());
+            final AnnouncedRoute announcedRoute = bgp.toAnnouncedRoute();
             if (!ignoredAnnouncements.contains(announcedRoute)) {
                 final RouteValidityState validityState = routeOriginValidationPolicy.validateAnnouncedRoute(allowedRouteMap, announcedRoute);
                 if (validityState == RouteValidityState.INVALID_ASN || validityState == RouteValidityState.INVALID_LENGTH) {
@@ -226,7 +226,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
         for (Boolean verifiedOrNot : new Boolean[]{true, false}) {
             if (bgpAnnouncements.containsKey(verifiedOrNot)) {
                 for (BgpRisEntry bgp : bgpAnnouncements.get(verifiedOrNot)) {
-                    final AnnouncedRoute announcedRoute = new AnnouncedRoute(bgp.getOrigin(), bgp.getPrefix());
+                    final AnnouncedRoute announcedRoute = bgp.toAnnouncedRoute();
                     final RouteValidityState currentValidityState = routeOriginValidationPolicy.validateAnnouncedRoute(currentRouteMap, announcedRoute);
                     final RouteValidityState futureValidityState = routeOriginValidationPolicy.validateAnnouncedRoute(futureRouteMap, announcedRoute);
                     final boolean isSuppressed = ignoredAnnouncements.contains(announcedRoute);

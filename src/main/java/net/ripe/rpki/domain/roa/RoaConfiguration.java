@@ -2,6 +2,7 @@ package net.ripe.rpki.domain.roa;
 
 import com.google.common.base.Preconditions;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
@@ -37,12 +38,11 @@ import java.util.stream.Collectors;
  * created and managed. The ROA specification can be edited by the user. The
  * system will then take care of managing the required ROAs.
  */
+@Slf4j
 @Entity
 @Table(name = "roaconfiguration")
 @SequenceGenerator(name = "seq_roaconfiguration", sequenceName = "seq_all", allocationSize = 1)
 public class RoaConfiguration extends EntitySupport {
-
-    private static final Logger LOG = LoggerFactory.getLogger(RoaConfiguration.class);
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_roaconfiguration")
@@ -111,7 +111,7 @@ public class RoaConfiguration extends EntitySupport {
                 }
                 specification.putPrefix(prefix.getPrefix(), prefix.getMaximumLength());
             } else {
-                LOG.warn("Prefix " + prefix.getPrefix() + " in the Roa configuration is not covered by the resources of CA: " + certificateAuthority.getName().toString());
+                log.warn("Prefix {} in the Roa configuration is not covered by the resources of CA: {}", prefix.getPrefix(), certificateAuthority.getName());
             }
         }
         return result;

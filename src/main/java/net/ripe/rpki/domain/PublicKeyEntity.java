@@ -45,12 +45,8 @@ public class PublicKeyEntity extends EntitySupport {
     @JoinColumn(name="subject_public_key_id")
     private Collection<OutgoingResourceCertificate> outgoingResourceCertificates = new ArrayList<>();
 
-    // TODO Remove this column and field once all instances are upgraded
-    @Basic
-    @Deprecated
-    private boolean revoked;
-
     @Enumerated(EnumType.STRING)
+    @Getter
     private PayloadMessageType latestProvisioningRequestType;
 
     @Embedded
@@ -94,26 +90,12 @@ public class PublicKeyEntity extends EntitySupport {
         return getLatestProvisioningRequestType() == PayloadMessageType.revoke;
     }
 
-    public PayloadMessageType getLatestProvisioningRequestType() {
-        if (latestProvisioningRequestType == null) {
-            // TODO once all systems are upgraded and all non-hosted CAs have requested an updated certificate
-            //  the `latestProvisioningRequestType` will never be null so this if branch can be removed
-            return findCurrentOutgoingResourceCertificate().isPresent() ? PayloadMessageType.issue : PayloadMessageType.revoke;
-        }
-        return latestProvisioningRequestType;
-    }
-
     public RequestedResourceSets getRequestedResourceSets() {
         // Hibernate will make an embedded object null if all its fields are null, so fix this here.
         return requestedResourceSets == null ? new RequestedResourceSets() : requestedResourceSets;
     }
 
     public List<X509CertificateInformationAccessDescriptor> getRequestedSia() {
-        if (latestProvisioningRequestType == null) {
-            // TODO once all systems are upgraded and all non-hosted CAs have requested an updated certificate
-            //  the `requestedSia` will never be invalid so this if branch can be removed
-            return findCurrentOutgoingResourceCertificate().map(x -> Arrays.asList(x.getSia())).orElse(Collections.emptyList());
-        }
         return requestedSia.stream().map(EmbeddedInformationAccessDescriptor::toDescriptor).collect(Collectors.toList());
     }
 

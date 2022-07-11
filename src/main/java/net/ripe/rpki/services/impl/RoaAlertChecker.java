@@ -28,8 +28,8 @@ import static net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy.a
 @Component
 @Slf4j
 public class RoaAlertChecker {
-    private final static String METRIC_NAME = "rpkicore.roa.alert";
-    private final static String METRIC_DESCRIPTION = "Number of alert emails sent";
+    private static final String METRIC_NAME = "rpkicore.roa.alert";
+    private static final String METRIC_DESCRIPTION = "Number of alert emails sent";
 
     private final Counter countTriggeredByInvalidAsn;
     private final Counter countTriggeredByInvalidLength;
@@ -111,9 +111,10 @@ public class RoaAlertChecker {
         NestedIntervalMap<IpResource, List<AllowedRoute>> allowedRoutes = allowedRoutesToNestedIntervalMap(roaConfiguration.toAllowedRoutes());
 
         AnnouncedRoutes announcedRoutes = new AnnouncedRoutes();
-        for (BgpRisEntry announcement : announcements) {
-            AnnouncedRoute announcedRoute = new AnnouncedRoute(announcement.getOrigin(), announcement.getPrefix());
-            if (!ignoredAnnouncements.contains(announcedRoute)) {
+        announcements.stream().map(BgpRisEntry::toAnnouncedRoute)
+            .filter(x -> !ignoredAnnouncements.contains(x))
+            .forEach(announcedRoute -> {
+
                 RouteValidityState validityState = policy.validateAnnouncedRoute(allowedRoutes, announcedRoute);
                 switch (validityState) {
                     case VALID:
@@ -129,13 +130,12 @@ public class RoaAlertChecker {
                         announcedRoutes.invalidLengths.add(announcedRoute);
                         break;
                 }
-            }
-        }
+            });
 
         return announcedRoutes;
     }
 
-    // TODO Add invalidAsns and invalidLenght
+    // TODO Add invalidAsns and invalidLength
     private void sendRoaAlertEmailToSubscription(RoaAlertConfigurationData configuration,
                                                  List<AnnouncedRoute> invalidAsnsToMail,
                                                  List<AnnouncedRoute> invalidLengthsToMail,

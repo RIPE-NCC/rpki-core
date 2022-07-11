@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
+import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import org.apache.commons.lang.Validate;
 
 @EqualsAndHashCode
@@ -21,5 +22,9 @@ public final class BgpRisEntry {
         this.origin = origin;
         this.prefix = prefix;
         this.visibility = visibility;
+    }
+
+    public AnnouncedRoute toAnnouncedRoute() {
+        return new AnnouncedRoute(origin, prefix);
     }
 }

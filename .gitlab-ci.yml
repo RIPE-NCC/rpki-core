@@ -18,11 +18,14 @@ stages:
   - publish
 
 include:
-  # Use gitlab security scanning
+  # Use gitlab security scanning iff it is available
   - template: Dependency-Scanning.gitlab-ci.yml
-  # Whitesource
+  # Mend (dependency scanning)
   - project: 'swe/gitlab-ci'
-    file: '/templates/whitesource-scanning.yml'
+    file: '/templates/mend-scanning.yml'
+  - project: 'swe/gitlab-ci'
+    file: '/templates/mend-generate-badge.yml'
+
 
 variables:
   BUILD_NUMBER: ${CI_COMMIT_REF_SLUG}-${CI_PIPELINE_ID}

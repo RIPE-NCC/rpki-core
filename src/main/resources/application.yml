@@ -73,7 +73,7 @@ sentry:
 iana:
     ASN.delegations: https://www.iana.org/assignments/as-numbers/as-numbers.xml
     IPv4.delegations: https://www.iana.org/assignments/ipv4-address-space/ipv4-address-space.xml
-    IPv6.delegations: http://www.iana.org/assignments/ipv6-unicast-address-assignments/ipv6-unicast-address-assignments.xml
+    IPv6.delegations: https://www.iana.org/assignments/ipv6-unicast-address-assignments/ipv6-unicast-address-assignments.xml
 
 riswhoisdump:
     base.url: https://www.ris.ripe.net/dumps/

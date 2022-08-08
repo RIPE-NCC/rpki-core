@@ -67,8 +67,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureWebMvc
 @SpringBootTest(classes = TestRpkiBootApplication.class)
 public class CaServiceTest {
-    private final static RoaConfigurationData EMPTY_ROA_CONFIGURATION = new RoaConfigurationData(Collections.emptyList());
-
     @MockBean
     private CertificateAuthorityCreateService certificateAuthorityCreateService;
 
@@ -320,6 +318,12 @@ public class CaServiceTest {
         ProvisioningIdentityCertificate identityCertificate = builder.build();
 
         final X500Principal principal = CaName.parse("123").getPrincipal();
+        HostedCertificateAuthorityData hostedCertificateAuthorityData = new HostedCertificateAuthorityData(
+            VersionedId.parse("1"), principal, UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
+            IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList()
+        );
+        when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(hostedCertificateAuthorityData);
+
         final ParentIdentity parentId = new ParentIdentity(new URI("http://bla.bla/bla"), "parentHandle", "childHandle", identityCertificate);
         when(delegationCaProvisioningService.getParentIdentityForNonHostedCa(principal)).thenReturn(parentId);
 

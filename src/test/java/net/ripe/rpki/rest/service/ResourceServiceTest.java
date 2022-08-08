@@ -64,7 +64,7 @@ public class ResourceServiceTest {
     public void shouldGetResources() throws Exception {
 
         IpResourceSet ipResourceSet = new IpResourceSet(Ipv4Address.parse("127.0.0.1"), Ipv6Address.parse("::1"));
-        when(resourceCertificateViewService.findCertifiedResources(456L)).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/resources"))
                 .andExpect(status().isOk())
@@ -84,7 +84,7 @@ public class ResourceServiceTest {
     public void shouldInvalidateIllegalPrefix() throws Exception {
 
         IpResourceSet ipResourceSet = new IpResourceSet(Ipv4Address.parse("127.0.0.1"), Ipv6Address.parse("::1"));
-        when(resourceCertificateViewService.findCertifiedResources(456L)).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/resources/validate-prefix/{prefix}", "192.168.0.0-192.168.12.0"))
                 .andExpect(status().isOk())
@@ -98,7 +98,7 @@ public class ResourceServiceTest {
     public void shouldInvalidateNotOwnedPrefix() throws Exception {
 
         IpResourceSet ipResourceSet = new IpResourceSet(Ipv4Address.parse("127.0.0.1"), Ipv6Address.parse("::1"));
-        when(resourceCertificateViewService.findCertifiedResources(456L)).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/resources/validate-prefix/{prefix}", "192.168.0.0/16"))
                 .andExpect(status().isOk())
@@ -111,7 +111,7 @@ public class ResourceServiceTest {
     @Test
     public void shouldValidatePrefixWhenCAOwnsLargerPrefix() throws Exception {
         IpResourceSet ipResourceSet = new IpResourceSet(IpRange.parse("192.18.0.0/15"), Ipv6Address.parse("::1"));
-        when(resourceCertificateViewService.findCertifiedResources(456L)).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/resources/validate-prefix/{prefix}", "192.18.0.0/16"))
                 .andExpect(status().isOk())

@@ -3,7 +3,9 @@ package net.ripe.rpki.rest.service;
 import com.google.common.collect.ImmutableMap;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.provisioning.identity.ChildIdentity;
 import net.ripe.rpki.commons.provisioning.identity.ChildIdentitySerializer;
 import net.ripe.rpki.commons.provisioning.identity.ParentIdentity;
@@ -43,7 +45,9 @@ import javax.security.auth.x500.X500Principal;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static com.google.common.collect.ImmutableMap.of;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -58,7 +62,7 @@ import static org.springframework.http.MediaType.TEXT_XML;
 @RequestMapping(path = API_URL_PREFIX + "/{caName}", produces = {APPLICATION_JSON})
 @Tag(name = "/ca/{caName}", description = "Operations on CAs")
 public class CaService extends AbstractCaRestService {
-    private static final String CHARSET_NAME = "UTF-8";
+    private static final Charset CHARSET_NAME = StandardCharsets.UTF_8;
 
     private final CertificateAuthorityCreateService certificateAuthorityCreateService;
     private final CertificateAuthorityViewService certificateAuthorityViewService;
@@ -123,6 +127,7 @@ public class CaService extends AbstractCaRestService {
     @DeleteMapping(path = "non-hosted")
     @Operation(summary = "Revoke non-hosted CA")
     public ResponseEntity<?> revokeNonHosted(@PathVariable("caName") final String rawCaName) {
+        verifyCaExists();
         log.info("Revoking non-hosted CA: {}", rawCaName);
         try {
             commandService.execute(new DeleteNonHostedCertificateAuthorityCommand(getVersionedId()));
@@ -137,6 +142,7 @@ public class CaService extends AbstractCaRestService {
     @DeleteMapping(path = "hosted")
     @Operation(summary = "Revoke hosted CA")
     public ResponseEntity<RevokeHostedResult> revokeHosted(@PathVariable("caName") final String rawCaName) {
+        verifyCaExists();
         log.info("Revocation attempt for hosted CA '{}'", rawCaName);
 
         final X500Principal principal = CaName.parse(rawCaName).getPrincipal();
@@ -192,8 +198,14 @@ public class CaService extends AbstractCaRestService {
             isHosted = CertificateAuthorityType.HOSTED == certificateAuthority.getType();
         }
 
-        boolean hasCertifiableResources = !resourceCache.lookupMemberCaPotentialResources(principal).isEmpty();
-        return ok(of("summary", new Summary(wasInstantiated, hasCertifiableResources, isHosted)));
+        IpResourceSet certifiableResources = resourceCache.lookupMemberCaPotentialResources(principal);
+
+        return ok(of("summary", new Summary(
+                wasInstantiated,
+                !certifiableResources.isEmpty(),
+                isHosted,
+                Utils.toStringList(certifiableResources)
+        )));
     }
 
     private ProvisioningIdentityCertificate parseCertificate(InputStream uploadedInputStream) throws IOException {
@@ -205,6 +217,7 @@ public class CaService extends AbstractCaRestService {
     @GetMapping(path = "issuer-identity")
     @Operation(summary = "CA identity certificate")
     public ResponseEntity<?> identity(@PathVariable("caName") final String rawCaName) {
+        verifyCaExists();
         log.info("Downloading identity certificate for CA: {}", rawCaName);
 
         final X500Principal principal = CaName.parse(rawCaName).getPrincipal();
@@ -214,17 +227,11 @@ public class CaService extends AbstractCaRestService {
             final String xml = new ParentIdentitySerializer().serialize(parentId);
             final DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyyMMdd");
             final String fileName = "issuer-identity-" + new DateTime().toString(fmt) + ".xml";
-            try {
-                return ResponseEntity
-                        .status(HttpStatus.OK)
-                        .contentType(TEXT_XML)
-                        .header("content-disposition", "attachment; filename = " + fileName)
-                        .body(xml.getBytes(CHARSET_NAME));
-            } catch (UnsupportedEncodingException e) {
-                return ResponseEntity
-                        .status(INTERNAL_SERVER_ERROR)
-                        .body(of("error", "Could not serialize the certificate"));
-            }
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .contentType(TEXT_XML)
+                    .header("content-disposition", "attachment; filename = " + fileName)
+                    .body(xml.getBytes(CHARSET_NAME));
         } else {
             return ResponseEntity
                     .status(BAD_REQUEST)
@@ -232,32 +239,15 @@ public class CaService extends AbstractCaRestService {
         }
     }
 
+    @Value
     private class Summary {
-
         boolean instantiated;
 
         boolean hasCertifiableResources;
 
         boolean hosted;
 
-        Summary(boolean instantiated, boolean hasCertifiableResources, boolean hosted) {
-            this.instantiated = instantiated;
-            this.hasCertifiableResources = hasCertifiableResources;
-            this.hosted = hosted;
-        }
-
-        public boolean isInstantiated() {
-            return instantiated;
-        }
-
-        public boolean getHasCertifiableResources() {
-            return hasCertifiableResources;
-        }
-
-        public boolean isHosted() {
-            return hosted;
-        }
-
+        List<String> certifiableResources;
     }
 
 }

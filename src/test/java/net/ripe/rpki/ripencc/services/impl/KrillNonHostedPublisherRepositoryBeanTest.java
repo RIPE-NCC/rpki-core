@@ -131,7 +131,7 @@ public class KrillNonHostedPublisherRepositoryBeanTest {
 
         stubForGetPublishers();
         Set<UUID> uuids = subject.listPublishers();
-        String publisher = JsonUtils.readJsonFile("/repository-publisher/publishers.json")
+        String publisher = JsonTestUtils.readJsonFile("/repository-publisher/publishers.json")
                 .getAsJsonObject().getAsJsonArray("publishers").get(0)
                 .getAsJsonObject().get("handle").getAsString();
         
@@ -145,7 +145,7 @@ public class KrillNonHostedPublisherRepositoryBeanTest {
 
         Set<UUID> uuids = subject.listPublishers();
 
-        String publisher = JsonUtils.readJsonFile("/repository-publisher/publishers.json")
+        String publisher = JsonTestUtils.readJsonFile("/repository-publisher/publishers.json")
                 .getAsJsonObject().getAsJsonArray("publishers").get(0)
                 .getAsJsonObject().get("handle").getAsString();
 

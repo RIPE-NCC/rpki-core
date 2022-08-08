@@ -4,7 +4,6 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Collections;
 
@@ -93,6 +92,6 @@ public class RestResourceServicesClientTest {
     }
 
     private String jsonFromFile(String pathToJsonFile) {
-        return JsonUtils.readJsonFile(pathToJsonFile).toString();
+        return JsonTestUtils.readJsonFile(pathToJsonFile).toString();
     }
 }

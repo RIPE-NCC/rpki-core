@@ -1,23 +1,17 @@
 package net.ripe.rpki.rest.service;
 
+import com.google.common.collect.ImmutableMap;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResourceSet;
-import net.ripe.rpki.rest.exception.CaNotFoundException;
 import net.ripe.rpki.rest.pojo.ResourcesCollection;
-import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import static com.google.common.collect.ImmutableMap.of;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -30,37 +24,26 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @RequestMapping(path = API_URL_PREFIX + "/{caName}/resources", produces = APPLICATION_JSON)
 @Tag(name = "/ca/{caName}/resources", description = "Operations on CA resources")
 public class ResourceService extends AbstractCaRestService {
-    private final ResourceCertificateViewService resourceCertificateViewService;
-
-    @Autowired
-    public ResourceService(ResourceCertificateViewService resourceCertificateViewService) {
-        this.resourceCertificateViewService = resourceCertificateViewService;
+    public ResourceService() {
+        super(false, true);
     }
 
     @GetMapping
-    @Operation(summary = "Get all resources belonging to a CA")
+    @Operation(summary = "Get all **certified** resources belonging to a CA")
     public ResponseEntity<ResourcesCollection> getResourcesForCa(@PathVariable("caName") final String rawCaName) {
         log.info("Getting resources for CA: {}", rawCaName);
 
-        final IpResourceSet certifiedResources = resourceCertificateViewService.findCertifiedResources(this.getCaId());
-        if (certifiedResources == null) {
-            throw new CaNotFoundException(String.format("unknown CA: %s", rawCaName));
-        }
-        final List<String> resources =
-                StreamSupport.stream(certifiedResources.spliterator(), false)
-                        .map(Object::toString)
-                        .collect(Collectors.toList());
-        return ok(new ResourcesCollection(resources));
-
+        final IpResourceSet certifiedResources = ca.getResources();
+        return ok(new ResourcesCollection(Utils.toStringList(certifiedResources)));
     }
 
     @GetMapping(path = "validate-prefix/{prefix}")
     @Operation(summary ="Validate prefix for a CA")
-    public ResponseEntity<?> validatePrefix(@PathVariable("caName") final String rawCaName,
-                                            @PathVariable("prefix") final String prefix) {
+    public ResponseEntity<ImmutableMap<String, String>> validatePrefix(@PathVariable("caName") final String rawCaName,
+                                                                       @PathVariable("prefix") final String prefix) {
         log.info("Validating prefix[{}] prefix for caName[{}]", prefix, rawCaName);
 
-        final IpResourceSet certifiedResources = resourceCertificateViewService.findCertifiedResources(this.getCaId());
+        final IpResourceSet certifiedResources = ca.getResources();
         if (certifiedResources == null) {
             return ResponseEntity.status(NOT_FOUND).body(of("error", "unknown CA: " + rawCaName));
         }
@@ -79,7 +62,7 @@ public class ResourceService extends AbstractCaRestService {
      */
     @GetMapping(path = "validate-prefix/{address}/{length}")
     @Operation(summary ="Validate prefix for a CA (this endpoint exists to avoid troubles with '/' encoding)")
-    public ResponseEntity<?> validatePrefixByParts(@PathVariable("caName") final String rawCaName,
+    public ResponseEntity<ImmutableMap<String, String>> validatePrefixByParts(@PathVariable("caName") final String rawCaName,
                                                    @PathVariable("address") final String address,
                                                    @PathVariable("length") final String length) {
         final String prefix = address + "/" + length;

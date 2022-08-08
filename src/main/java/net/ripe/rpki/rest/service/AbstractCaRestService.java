@@ -45,7 +45,7 @@ public class AbstractCaRestService {
     private static final Pattern CA_NAME_PATTERN = Pattern.compile("^(/certification)?" + API_URL_PREFIX + "/([a-zA-Z0-9-]+)");
 
     private String rawCaName;
-    private CertificateAuthorityData ca;
+    protected CertificateAuthorityData ca;
     private final boolean exclusiveForHosted;
     private final boolean verifyCaExists;
 

@@ -1,7 +1,6 @@
 package net.ripe.rpki.ripencc.services.impl;
 
 import net.ripe.ipresource.IpResourceSet;
-import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient.MemberResourceResponse;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient.MemberResources;
@@ -39,7 +38,7 @@ public class RestResourceServicesClientIT {
         final long membershipId = 1104L;
         final CaName ripeNccTsMemberId = CaName.of(membershipId);
 
-        final MemberResources allResources = subject.fetchAllMemberResources();
+        final MemberResources allResources = subject.fetchAllResources().getAllMembersResources();
 
         // Now fetch for individual membershipID
         final MemberResourceResponse memberResources = subject.httpGetJson(
@@ -57,22 +56,12 @@ public class RestResourceServicesClientIT {
         for (CaName caName : certifiableResources.keySet()) {
             if (caName.hasOrganizationId()) {
                 if (individualMemberResources.containsKey(caName)) {
-                    System.err.println(caName.toString());
+                    System.err.println(caName);
                 }
             }
         }
 
         assertTrue(ipResourcesByMemberId.contains(individualMemberResources.get(ripeNccTsMemberId)));
-    }
-
-    @Test
-    public void shouldFindProductionCaDelegations() {
-        final IpResourceSet delegationResult = subject.findProductionCaDelegations();
-
-        assertTrue("No ipv4-delegations found. Should be at least 1 matching", delegationResult.containsType(IpResourceType.IPv4));
-        assertTrue("No ipv6-delegations found. Should be at least 1 matching", delegationResult.containsType(IpResourceType.IPv6));
-        assertTrue("No asn-delegations found. Should be atleast 1 matching", delegationResult.containsType(IpResourceType.ASN));
-
     }
 
 }

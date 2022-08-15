@@ -5,6 +5,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -14,13 +15,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.head;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static net.ripe.rpki.server.api.ports.ResourceServicesClient.AsnResource;
-import static net.ripe.rpki.server.api.ports.ResourceServicesClient.Ipv4Allocation;
-import static net.ripe.rpki.server.api.ports.ResourceServicesClient.Ipv4Assignment;
-import static net.ripe.rpki.server.api.ports.ResourceServicesClient.Ipv4ErxResource;
-import static net.ripe.rpki.server.api.ports.ResourceServicesClient.Ipv6Allocation;
-import static net.ripe.rpki.server.api.ports.ResourceServicesClient.Ipv6Assignment;
-import static net.ripe.rpki.server.api.ports.ResourceServicesClient.MemberResources;
+import static net.ripe.rpki.server.api.ports.ResourceServicesClient.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -29,6 +24,7 @@ public class RestResourceServicesClientTest {
 
     private static final String BASE_URL = "/resource-services/";
     private static final String MEMBER_RESOURCES_URL = "member-resources";
+    private static final String TOTAL_RESOURCES_URL = "total-resources";
     private static final String MONITORING_HEALTHCHECK = "monitoring/healthcheck";
 
     private static final int PORT = 7575;
@@ -69,9 +65,9 @@ public class RestResourceServicesClientTest {
 
     @Test
     public void should_fetch_and_deserialize_all_member_resources() {
-        givenMemberResourcesHttpCallWillReturn("/internet-resources/sample_member_resources_response.json");
+        givenTotalResourcesHttpCallWillReturn("/internet-resources/sample_total_resources_response.json");
 
-        MemberResources expected = new MemberResources(
+        final MemberResources expectedMember = new MemberResources(
                 Collections.singletonList(new AsnResource(1111L, "AS1111", "ASSIGNED", "1111")),
                 Collections.singletonList(new Ipv4Allocation(1111L, "193.1.0.0/21", "ALLOCATED", "1111")),
                 Collections.singletonList(new Ipv4Assignment(1111L, "193.6.0.0/21", "ASSIGNED", "ORG-BLUELIGHT")),
@@ -80,11 +76,24 @@ public class RestResourceServicesClientTest {
                 Collections.singletonList(new Ipv4ErxResource("51.0.0.0/8", "ISSUED", 1111L, "1111"))
         );
 
-        assertEquals(expected, subject.fetchAllMemberResources());
+        final RipeNccDelegations ripeNccDelegations = new RipeNccDelegations(
+            Collections.singletonList(new RipeNccDelegation("AS7-AS7")),
+            Arrays.asList(
+                new RipeNccDelegation("1.178.112.0/20"),
+                new RipeNccDelegation("1.178.128.0/20")
+            ),
+            Arrays.asList(
+                new RipeNccDelegation("2001:600::-2001:7f9:ffff:ffff:ffff:ffff:ffff:ffff"),
+                new RipeNccDelegation("2001:7fb::-2001:7ff:ffff:ffff:ffff:ffff:ffff:ffff")
+            )
+        );
+
+        final TotalResources totalExpected = new TotalResources(expectedMember, ripeNccDelegations);
+        assertEquals(totalExpected, subject.fetchAllResources());
     }
 
-    private void givenMemberResourcesHttpCallWillReturn(String pathToJsonFile) {
-        stubFor(get(urlEqualTo(BASE_URL + MEMBER_RESOURCES_URL))
+    private void givenTotalResourcesHttpCallWillReturn(String pathToJsonFile) {
+        stubFor(get(urlEqualTo(BASE_URL + TOTAL_RESOURCES_URL))
                 .withHeader("Accept", equalTo(APPLICATION_JSON))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", APPLICATION_JSON)

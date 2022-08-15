@@ -5,6 +5,12 @@ import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.server.api.ports.DelegationsCache;
 import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient;
+import net.ripe.rpki.server.api.ports.ResourceServicesClient.AsnResource;
+import net.ripe.rpki.server.api.ports.ResourceServicesClient.Ipv4Allocation;
+import net.ripe.rpki.server.api.ports.ResourceServicesClient.MemberResources;
+import net.ripe.rpki.server.api.ports.ResourceServicesClient.RipeNccDelegation;
+import net.ripe.rpki.server.api.ports.ResourceServicesClient.RipeNccDelegations;
+import net.ripe.rpki.server.api.ports.ResourceServicesClient.TotalResources;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.joda.time.DateTime;
 import org.junit.Before;
@@ -18,7 +24,12 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionOperations;
 
 import javax.security.auth.x500.X500Principal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,7 +41,6 @@ import static java.util.Collections.emptyMap;
 import static net.ripe.rpki.services.impl.background.ResourceCacheService.resourcesDiff;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -54,8 +64,7 @@ public class ResourceCacheServiceTest {
 
     @Test
     public void shouldUpdateDelegations() {
-        when(resourceServicesClient.findProductionCaDelegations()).thenReturn(DataSamples.productionCaDelegations(DataSamples.memberResources()));
-        when(resourceServicesClient.fetchAllMemberResources()).thenReturn(DataSamples.memberResources());
+        when(resourceServicesClient.fetchAllResources()).thenReturn(DataSamples.totalResources());
         subject.updateFullResourceCache();
         assertThat(delegationsCache.getDelegationsCache()).isPresent();
         assertThat(transactionTemplate.getCommits()).isOne();
@@ -64,8 +73,7 @@ public class ResourceCacheServiceTest {
 
     @Test
     public void shouldUpdateResourceCache() {
-        when(resourceServicesClient.findProductionCaDelegations()).thenReturn(DataSamples.productionCaDelegations(DataSamples.memberResources()));
-        when(resourceServicesClient.fetchAllMemberResources()).thenReturn(DataSamples.memberResources());
+        when(resourceServicesClient.fetchAllResources()).thenReturn(DataSamples.totalResources());
         subject.updateFullResourceCache();
         assertThat(resourceCache.allMemberResources()).isNotEmpty();
         assertThat(transactionTemplate.getCommits()).isOne();
@@ -77,8 +85,6 @@ public class ResourceCacheServiceTest {
         resourceCache.populateCache(Collections.emptyMap()); // empty cache allows for any update
         delegationsCache.cacheDelegations(DataSamples.productionCaDelegations(DataSamples.memberResources()));
         DateTime lastUpdate = resourceCache.lastUpdateTime();
-
-        when(resourceServicesClient.findProductionCaDelegations()).thenReturn(DataSamples.productionCaDelegations(DataSamples.rejectedMemberResources()));
         subject.updateFullResourceCache();
         assertThat(delegationsCache.getDelegationsCache()).hasValue(DataSamples.productionCaDelegations(DataSamples.memberResources()));
         assertThat(resourceCache.allMemberResources()).isEmpty();
@@ -92,9 +98,6 @@ public class ResourceCacheServiceTest {
         resourceCache.populateCache(DataSamples.memberResources().getCertifiableResources());
         delegationsCache.cacheDelegations(null); // empty cache allows for any update
         DateTime lastUpdate = resourceCache.lastUpdateTime();
-
-        when(resourceServicesClient.fetchAllMemberResources()).thenReturn(DataSamples.rejectedMemberResources());
-        when(resourceServicesClient.findProductionCaDelegations()).thenReturn(DataSamples.productionCaDelegations(DataSamples.rejectedMemberResources()));
         subject.updateFullResourceCache();
         assertThat(delegationsCache.getDelegationsCache()).isEmpty();
         assertThat(resourceCache.allMemberResources()).isEqualTo(DataSamples.memberResources().getCertifiableResources());
@@ -105,19 +108,25 @@ public class ResourceCacheServiceTest {
 
     @Test
     public void shouldAllowOneTimeOverrideOfRejections() {
-        resourceCache.populateCache(DataSamples.memberResources().getCertifiableResources());
-        delegationsCache.cacheDelegations(DataSamples.productionCaDelegations(DataSamples.memberResources()));
+        final MemberResources memberResources = DataSamples.memberResources();
+        final RipeNccDelegations ripeNccDelegations = DataSamples.ripeNccDelegations(memberResources);
+
+        resourceCache.populateCache(memberResources.getCertifiableResources());
+        delegationsCache.cacheDelegations(ripeNccDelegations.allDelegationResources());
+
         DateTime lastUpdate = resourceCache.lastUpdateTime();
 
-        when(resourceServicesClient.fetchAllMemberResources()).thenReturn(DataSamples.rejectedMemberResources());
-        when(resourceServicesClient.findProductionCaDelegations()).thenReturn(DataSamples.productionCaDelegations(DataSamples.rejectedMemberResources()));
+        final MemberResources resourcesToReject = DataSamples.rejectedMemberResources();
+        when(resourceServicesClient.fetchAllResources()).thenReturn(
+            new TotalResources(resourcesToReject, DataSamples.ripeNccDelegations(resourcesToReject)));
 
         subject = new ResourceCacheService(transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
                 new X500Principal("CN=666"), new X500Principal("CN=123"), true, new SimpleMeterRegistry());
         subject.updateFullResourceCache();
 
-        assertThat(delegationsCache.getDelegationsCache()).hasValue(DataSamples.productionCaDelegations(DataSamples.rejectedMemberResources()));
-        assertThat(resourceCache.allMemberResources()).isEqualTo(DataSamples.rejectedMemberResources().getCertifiableResources());
+        final IpResourceSet expectedValue = DataSamples.ripeNccDelegations(resourcesToReject).allDelegationResources();
+        assertThat(delegationsCache.getDelegationsCache()).hasValue(expectedValue);
+        assertThat(resourceCache.allMemberResources()).isEqualTo(resourcesToReject.getCertifiableResources());
         assertThat(resourceCache.lastUpdateTime()).isGreaterThan(lastUpdate);
         assertThat(transactionTemplate.getCommits()).isOne();
         assertThat(transactionTemplate.getRollbacks()).isZero();
@@ -125,12 +134,19 @@ public class ResourceCacheServiceTest {
 
     @Test
     public void shouldFailIfInternetResourceServicesIsNotAvailable() throws Exception {
-        when(resourceServicesClient.findProductionCaDelegations()).thenReturn(DataSamples.productionCaDelegations(DataSamples.memberResources()));
-        given(resourceServicesClient.fetchAllMemberResources()).willReturn(null);
         subject.updateFullResourceCache();
         assertThat(resourceCache.lastUpdateTime().getMillis()).isZero();
         assertThat(transactionTemplate.getCommits()).isZero();
         assertThat(transactionTemplate.getRollbacks()).isOne();
+    }
+
+    @Test
+    public void shouldProcessExceptions() throws Exception {
+        when(resourceServicesClient.fetchAllResources()).thenThrow(new RuntimeException("RSNG BRKN"));
+        subject.updateFullResourceCache();
+        assertThat(resourceCache.lastUpdateTime().getMillis()).isZero();
+        assertThat(transactionTemplate.getCommits()).isZero();
+        assertThat(transactionTemplate.getRollbacks()).isZero();
     }
 
     @Test
@@ -230,23 +246,23 @@ public class ResourceCacheServiceTest {
     }
 
     private static class DataSamples {
-        static ResourceServicesClient.MemberResources memberResources() {
-            return new ResourceServicesClient.MemberResources(
-                    asList(new ResourceServicesClient.AsnResource(1L, "AS59946", "ALLOCATED", "ORG-123")),
-                    asList(new ResourceServicesClient.Ipv4Allocation(1L, "10.0.0.0/8", "ALLOCATED", "ORG-123")),
+        static MemberResources memberResources() {
+            return new MemberResources(
+                    asList(new AsnResource(1L, "AS59946", "ALLOCATED", "ORG-123")),
+                    asList(new Ipv4Allocation(1L, "10.0.0.0/8", "ALLOCATED", "ORG-123")),
                     emptyList(),
                     emptyList(),
                     emptyList(),
                     emptyList()
             );
         }
-        static ResourceServicesClient.MemberResources rejectedMemberResources() {
-            List<ResourceServicesClient.Ipv4Allocation> ipv4Allocations = new ArrayList<>(128);
+        static MemberResources rejectedMemberResources() {
+            List<Ipv4Allocation> ipv4Allocations = new ArrayList<>(128);
             for (int i = 0; i <= 127; i++) {
-                ipv4Allocations.add(new ResourceServicesClient.Ipv4Allocation(1L, i*2 + ".0.0.0/8", "ALLOCATED", "ORG-123"));
+                ipv4Allocations.add(new Ipv4Allocation(1L, i*2 + ".0.0.0/8", "ALLOCATED", "ORG-123"));
             }
-            return new ResourceServicesClient.MemberResources(
-                    asList(new ResourceServicesClient.AsnResource(1L, "AS59946", "ALLOCATED", "ORG-123")),
+            return new MemberResources(
+                    asList(new AsnResource(1L, "AS59946", "ALLOCATED", "ORG-123")),
                     ipv4Allocations,
                     emptyList(),
                     emptyList(),
@@ -255,9 +271,34 @@ public class ResourceCacheServiceTest {
             );
         }
 
-        static IpResourceSet productionCaDelegations(ResourceServicesClient.MemberResources memberResources) {
+        static TotalResources totalResources() {
+            final MemberResources allMembersResources = memberResources();
+            return new TotalResources(allMembersResources, ripeNccDelegations(allMembersResources));
+        }
+
+        static IpResourceSet productionCaDelegations(MemberResources memberResources) {
             return memberResources.getCertifiableResources().values().stream()
                     .collect(IpResourceSet::new, IpResourceSet::addAll, IpResourceSet::addAll);
+        }
+
+        static RipeNccDelegations ripeNccDelegations(MemberResources memberResources) {
+            final List<RipeNccDelegation> ripeNccAsnDelegations = new ArrayList<>();
+            final List<RipeNccDelegation> ripeNccIpv4Delegations = new ArrayList<>();
+            final List<RipeNccDelegation> ripeNccIpv6Delegations = new ArrayList<>();
+            memberResources.getCertifiableResources().values().forEach(rs ->
+                rs.iterator().forEachRemaining(i -> {
+                    switch (i.getType()) {
+                        case ASN:
+                            ripeNccAsnDelegations.add(new RipeNccDelegation(i.toString()));
+                            return;
+                        case IPv4:
+                            ripeNccIpv4Delegations.add(new RipeNccDelegation(i.toString()));
+                            return;
+                        case IPv6:
+                            ripeNccIpv6Delegations.add(new RipeNccDelegation(i.toString()));
+                    }
+                }));
+            return new RipeNccDelegations(ripeNccAsnDelegations, ripeNccIpv4Delegations, ripeNccIpv6Delegations);
         }
     }
 

@@ -1,0 +1,145 @@
+{
+  "response": {
+    "status": 200,
+    "message": "OK",
+    "totalSize": 1,
+    "links": [
+      {
+        "rel": "self",
+        "href": "/member-resources?api-key=BAD-TEST-D2Shtf2n5Bwh02P7&format=json"
+      }
+    ],
+    "content": {
+      "allMembersResources": {
+        "asns": [
+          {
+            "resource": "AS1111",
+            "registrationDate": "2012-10-23",
+            "actor": "joe",
+            "ticketNumber": "NCC#2000000101",
+            "organisationName": "Bluelight Ltd.",
+            "irStatus": "INFRA",
+            "resourceStatus": "ASSIGNED",
+            "countryCode": "NL",
+            "organisationObjectId": null,
+            "legacy": true,
+            "assignmentType": "NORMAL",
+            "caName": "1111",
+            "membershipId": 1111
+          }
+        ],
+        "ipv4Allocations": [
+          {
+            "resource": "193.1.0.0/21",
+            "registrationDate": "2012-10-23",
+            "actor": "joe",
+            "ticketNumber": "NCC#2000000101",
+            "resourceStatus": "ALLOCATED",
+            "countryCode": "NL",
+            "legacy": false,
+            "allocationType": "PA",
+            "caName": "1111",
+            "membershipId": 1111
+          }
+        ],
+        "ipv4Assignments": [
+          {
+            "resource": "193.6.0.0/21",
+            "registrationDate": "2012-10-23",
+            "actor": "joe",
+            "ticketNumber": "NCC#2000000101",
+            "organisationName": "Bluelight Ltd.",
+            "irStatus": "INFRA",
+            "irTimestamp": 1350943200000,
+            "resourceStatus": "ASSIGNED",
+            "countryCode": "NL",
+            "organisationObjectId": "ORG-BLUELIGHT",
+            "legacy": false,
+            "assignmentType": "PI",
+            "tld": null,
+            "caName": "ORG-BLUELIGHT",
+            "membershipId": 1111
+          }
+        ],
+        "ipv4ErxResources": [
+          {
+            "resource": "51.0.0.0/8",
+            "registrationDate": "1993-09-01",
+            "actor": "joe",
+            "ticketNumber": "NCC#2000000101",
+            "organisationName": null,
+            "resourceStatus": "ISSUED",
+            "countryCode": "NL",
+            "organisationObjectId": null,
+            "membershipId": 1111,
+            "caName": "1111",
+            "contractStatus": "INFRA"
+          }
+        ],
+        "ipv6Allocations": [
+          {
+            "resource": "2001:0:1::/64",
+            "registrationDate": "2012-10-23",
+            "actor": "joe",
+            "ticketNumber": "NCC#2000000101",
+            "resourceStatus": "ALLOCATED",
+            "countryCode": "NL",
+            "caName": "1111",
+            "membershipId": 1111
+          }
+        ],
+        "ipv6Assignments": [
+          {
+            "resource": "2001:0:6::/64",
+            "registrationDate": "2012-10-23",
+            "actor": "joe",
+            "ticketNumber": "NCC#2000000101",
+            "organisationName": "Bluelight Ltd.",
+            "irStatus": "ENDUSER-APPROVEDDOCS",
+            "irTimestamp": 1350943200000,
+            "resourceStatus": "ASSIGNED",
+            "countryCode": "NL",
+            "organisationObjectId": "ORG-BLUELIGHT",
+            "assignmentType": "PI",
+            "tld": null,
+            "caName": "ORG-BLUELIGHT",
+            "membershipId": 1111
+          }
+        ]
+      },
+      "ripeNccDelegations": {
+        "ripeNccIpv4Delegations": [
+          {
+            "range": "1.178.112.0/20",
+            "majorityRir": "APNIC",
+            "date": "2021-12-06",
+            "comment": "comment v4"
+          },
+          {
+            "range": "1.178.128.0/20",
+            "majorityRir": "",
+            "date": "2021-12-06"
+          }
+        ],
+        "ripeNccIpv6Delegations": [
+          {
+            "range": "2001:600::-2001:7f9:ffff:ffff:ffff:ffff:ffff:ffff",
+            "date": "1999-07-01"
+          },
+          {
+            "range": "2001:7fb::-2001:7ff:ffff:ffff:ffff:ffff:ffff:ffff",
+            "date": "1999-07-01",
+            "comment": "comment 1"
+          }
+        ],
+        "ripeNccAsnDelegations": [
+          {
+            "range": "AS7-AS7",
+            "date": "2001-11-23",
+            "comment": "ERX"
+          }
+        ]
+      }
+    }
+  }
+}

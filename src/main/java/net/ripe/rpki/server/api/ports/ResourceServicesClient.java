@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
@@ -16,15 +17,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public interface ResourceServicesClient {
 
     boolean isAvailable();
 
-    IpResourceSet findProductionCaDelegations();
-
-    MemberResources fetchAllMemberResources();
+    TotalResources fetchAllResources();
 
     @AllArgsConstructor
     class Delegation extends EqualsSupport {
@@ -41,7 +41,18 @@ public interface ResourceServicesClient {
         private MemberResources content;
     }
 
-    class MemberResources extends EqualsSupport {
+    class TotalResourceResponse {
+        @Getter
+        private TotalResourceContent response;
+    }
+
+    class TotalResourceContent {
+        @Getter
+        private TotalResources content;
+    }
+
+    @EqualsAndHashCode
+    class MemberResources {
         private List<AsnResource> asns;
         private final List<Ipv4Allocation> ipv4Allocations;
         private final List<Ipv6Allocation> ipv6Allocations;
@@ -111,6 +122,46 @@ public interface ResourceServicesClient {
                 return result;
         }
     }
+
+    @AllArgsConstructor
+    @Getter
+    @EqualsAndHashCode
+    class TotalResources {
+        private final MemberResources allMembersResources;
+        private final RipeNccDelegations ripeNccDelegations;
+
+        public IpResourceSet allDelegationResources() {
+            return ripeNccDelegations.allDelegationResources();
+        }
+    }
+
+    @AllArgsConstructor
+    @Getter
+    @EqualsAndHashCode
+    class RipeNccDelegations {
+        private final List<RipeNccDelegation> ripeNccAsnDelegations;
+        private final List<RipeNccDelegation> ripeNccIpv4Delegations;
+        private final List<RipeNccDelegation> ripeNccIpv6Delegations;
+
+        public IpResourceSet allDelegationResources() {
+            return Stream.of(
+                ripeNccAsnDelegations.stream(),
+                ripeNccIpv4Delegations.stream(),
+                ripeNccIpv6Delegations.stream())
+                .flatMap(Function.identity())
+                .map(r -> IpResourceSet.parse(r.range))
+                .collect(IpResourceSet::new, IpResourceSet::addAll, IpResourceSet::addAll);
+        }
+    }
+
+    @AllArgsConstructor
+    @Getter
+    @EqualsAndHashCode
+    class RipeNccDelegation {
+        // we ignore all the other fields here for now
+        private final String range;
+    }
+
 
     abstract class Resource extends EqualsSupport {
         protected final Long membershipId;

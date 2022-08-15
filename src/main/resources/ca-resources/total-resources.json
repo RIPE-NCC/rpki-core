@@ -1,0 +1,224 @@
+{
+  "response": {
+    "status": 200,
+    "message": "OK",
+    "totalSize": 1,
+    "content": {
+      "allMembersResources": {
+        "asns": [
+          {
+            "resource": "AS3933",
+            "version": 2,
+            "registrationDate": "1998-11-05",
+            "actor": "anon10",
+            "ticketNumber": "NCC#1995001804",
+            "organisationName": "India Charlie India Alpha",
+            "irStatus": "INFRA",
+            "irTimestamp": 1267484400000,
+            "resourceStatus": "ASSIGNED",
+            "countryCode": "SE",
+            "organisationObjectId": "ORG-XX2-RIPE",
+            "legacy": false,
+            "assignmentType": "NORMAL",
+            "membershipId": 136,
+            "caName": "136"
+          },
+          {
+            "resource": "AS29827",
+            "version": 3,
+            "registrationDate": "2011-04-24",
+            "actor": "anon12",
+            "ticketNumber": "NCC#2011045850",
+            "organisationName": "Victor Bravo Charlie Lima",
+            "irStatus": "INFRA",
+            "irTimestamp": 1326927600000,
+            "resourceStatus": "ASSIGNED",
+            "countryCode": "GB",
+            "organisationObjectId": "ORG-XY5-RIPE",
+            "legacy": false,
+            "assignmentType": "NORMAL",
+            "membershipId": 7862,
+            "caName": "7862"
+          }
+        ],
+        "ipv4Allocations": [
+          {
+            "resource": "234.64.0.0/10",
+            "version": 1,
+            "registrationDate": "1998-12-20",
+            "actor": "anon",
+            "ticketNumber": "NCC#838364899",
+            "resourceStatus": "ALLOCATED",
+            "countryCode": "SE",
+            "allocationType": "PA",
+            "membershipId": 136,
+            "caName": "136"
+          },
+          {
+            "resource": "123.251.224.0/19",
+            "version": 1,
+            "registrationDate": "2007-02-05",
+            "actor": "anon",
+            "ticketNumber": "NCC#73549365894",
+            "resourceStatus": "ALLOCATED",
+            "countryCode": "GB",
+            "allocationType": "PA",
+            "membershipId": 7862,
+            "caName": "7862"
+          }
+        ],
+        "ipv4Assignments": [
+          {
+            "resource": "240.77.104.232/29",
+            "version": 5,
+            "registrationDate": "2004-09-07",
+            "actor": "anon",
+            "ticketNumber": "987654321",
+            "organisationName": "Bla Bla",
+            "irStatus": "INFRA",
+            "irTimestamp": 1568067700000,
+            "resourceStatus": "ASSIGNED",
+            "countryCode": "US",
+            "organisationObjectId": "ORG-ZWE765-RIPE",
+            "assignmentType": "PI",
+            "membershipId": 32960,
+            "caName": "32960"
+          },
+          {
+            "resource": "193.163.56.0/21",
+            "version": 2,
+            "registrationDate": "1994-08-10",
+            "actor": "anon1",
+            "ticketNumber": "14479",
+            "organisationName": "Echo Kilo",
+            "irStatus": "INFRA",
+            "irTimestamp": 1582585200000,
+            "resourceStatus": "ASSIGNED",
+            "countryCode": "DK",
+            "organisationObjectId": "ORG-PQ08-RIPE",
+            "assignmentType": "PI",
+            "membershipId": 77391,
+            "caName": "77391"
+          }
+        ],
+        "ipv4ErxResources": [
+          {
+            "resource": "145.252.0.0/16",
+            "version": 5,
+            "registrationDate": "1993-11-10",
+            "actor": "anon33",
+            "ticketNumber": "NCC#6554433221",
+            "organisationName": "Golf Kilo",
+            "resourceStatus": "ISSUED",
+            "countryCode": "CH",
+            "organisationObjectId": null,
+            "membershipId": 52087
+          },
+          {
+            "resource": "228.110.128.0/17",
+            "version": 0,
+            "registrationDate": "1999-11-14",
+            "actor": "anon33",
+            "ticketNumber": "NCC#3838383838",
+            "organisationName": "Alpha Bravo",
+            "resourceStatus": "ISSUED",
+            "countryCode": "NL",
+            "organisationObjectId": null,
+            "membershipId": 39721
+          }
+        ],
+        "ipv6Allocations": [
+          {
+            "resource": "1:7730:5:f890::/60",
+            "version": 0,
+            "registrationDate": "2011-02-15",
+            "actor": "anon2",
+            "ticketNumber": "NCC#987638756",
+            "resourceStatus": "ALLOCATED",
+            "countryCode": "GB",
+            "membershipId": 7862,
+            "caName": "7862"
+          },
+          {
+            "resource": "be00:f:5d00:29:9b80::/73",
+            "version": 1,
+            "registrationDate": "2008-05-14",
+            "actor": "anon3",
+            "ticketNumber": "240374",
+            "resourceStatus": "ALLOCATED",
+            "countryCode": "SE",
+            "membershipId": 5632,
+            "caName": "5632"
+          }
+        ],
+        "ipv6Assignments": [
+          {
+            "resource": "7400:e:6500:2a:3500::/72",
+            "version": 0,
+            "registrationDate": "2008-09-19",
+            "actor": "anon4",
+            "ticketNumber": "837353894",
+            "organisationName": "CH IX",
+            "irStatus": "ENDUSER_APPROVEDDOCS",
+            "irTimestamp": 1537308000000,
+            "resourceStatus": "ASSIGNED",
+            "countryCode": "RU",
+            "organisationObjectId": "ORG-NCJK6-RIPE",
+            "assignmentType": "IXP",
+            "membershipId": 29456,
+            "caName": "ORG-CI103-RIPE"
+          },
+          {
+            "resource": "d2a:0:1850::/48",
+            "version": 0,
+            "registrationDate": "2009-03-22",
+            "actor": "anon5",
+            "ticketNumber": "NCC#88757865",
+            "organisationName": "Alvondo AB",
+            "irStatus": "ENDUSER_APPROVEDDOCS",
+            "irTimestamp": 1467669600000,
+            "resourceStatus": "ASSIGNED",
+            "countryCode": "SE",
+            "organisationObjectId": "ORG-ZSHJ34-RIPE",
+            "assignmentType": "PI",
+            "membershipId": 67839,
+            "caName": "ORG-ZSHJ34-RIPE"
+          }
+        ]
+      }
+    },
+    "ripeNccDelegations": {
+      "ripeNccIpv4Delegations": [
+        {
+          "range": "1.178.112.0/20",
+          "majorityRir": "APNIC",
+          "date": "2021-12-06",
+          "comment": "comment v4"
+        },
+        {
+          "range": "1.178.128.0/20",
+          "majorityRir": "",
+          "date": "2021-12-06"
+        }
+      ],
+      "ripeNccIpv6Delegations": [
+        {
+          "range": "2001:600::-2001:7f9:ffff:ffff:ffff:ffff:ffff:ffff",
+          "date": "1999-07-01"
+        },
+        {
+          "range": "2001:7fb::-2001:7ff:ffff:ffff:ffff:ffff:ffff:ffff",
+          "date": "1999-07-01",
+          "comment": "comment 1"
+        }
+      ],
+      "ripeNccAsnDelegations": [
+        {
+          "range": "AS7-AS7",
+          "date": "2001-11-23",
+          "comment": "ERX"
+        }
+      ]
+    }
+  }
+}

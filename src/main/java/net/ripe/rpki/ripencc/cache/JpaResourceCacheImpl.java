@@ -84,6 +84,8 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
     @Override
     public void populateCache(Map<CaName, IpResourceSet> certifiableResources) {
         clearCache();
+        // clear the session to avoid "duplicate entity in the session error from Hibernate"
+        entityManager.clear();
         populateWith(certifiableResources);
         registerUpdateCompleted();
     }

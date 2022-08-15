@@ -29,16 +29,9 @@ public class StubResourceServicesClient implements ResourceServicesClient {
 
     @SneakyThrows
     @Override
-    public IpResourceSet findProductionCaDelegations() {
-        final String productionCaResources = readAsString("/ca-resources/production-delegations.txt");
-        return IpResourceSet.parse(productionCaResources);
-    }
-
-    @SneakyThrows
-    @Override
-    public MemberResources fetchAllMemberResources() {
-        final String productionCaResources = readAsString("/ca-resources/member-resources.json");
-        final MemberResourceResponse response = new Gson().fromJson(productionCaResources, MemberResourceResponse.class);
+    public TotalResources fetchAllResources() {
+        final String productionCaResources = readAsString("/ca-resources/total-resources.json");
+        final TotalResourceResponse response = new Gson().fromJson(productionCaResources, TotalResourceResponse.class);
         return response.getResponse().getContent();
     }
 

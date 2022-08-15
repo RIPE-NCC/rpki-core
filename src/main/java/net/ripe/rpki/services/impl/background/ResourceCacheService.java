@@ -30,7 +30,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 
@@ -91,86 +91,51 @@ public class ResourceCacheService {
     }
 
     public void updateFullResourceCache() {
-        CacheUpdate update = updateProductionCaCache().chain(this::updateMembersCache);
+        ResourceServicesClient.TotalResources allResources;
+        try {
+            allResources = resourceServicesClient.fetchAllResources();
+        } catch (Exception e) {
+            log.error("The RIPE NCC internet resources REST API is not available", e);
+            resourceCacheServiceMetrics.onMemberCacheException();
+            resourceCacheServiceMetrics.onDelegationsUpdateException();
+            return;
+        }
+
         transactionTemplate.executeWithoutResult(status -> {
-            update.run(status);
+            final Update productionUpdate = productionResourcesUpdate(allResources.allDelegationResources());
+            final Update membersUpdate = memberResourcesUpdate(allResources.getAllMembersResources());
+            if (acceptOneRejectedResourceCacheUpdate) {
+                // we are allowed to ignore rejections here
+                logToleratedRejections(productionUpdate, membersUpdate);
+            }
+            interpretUpdate(productionUpdate, acceptOneRejectedResourceCacheUpdate);
+            interpretUpdate(membersUpdate, acceptOneRejectedResourceCacheUpdate);
+
             if (!status.isRollbackOnly()) {
                 acceptOneRejectedResourceCacheUpdate = false;
             }
         });
     }
 
-    private CacheUpdate updateMembersCache() {
-        final Map<CaName, IpResourceSet> registryResources;
-
-        try {
-            ResourceServicesClient.MemberResources memberResources = resourceServicesClient.fetchAllMemberResources();
-            Map<String, Integer> certifiableResourcesCounts = memberResources.getMemberResourcesCounts();
-            registryResources = memberResources.getCertifiableResources();
-            /// Make sure this is in one long line to prevent multiple messages in the logfile, which may be interleaved.
-            if (log.isInfoEnabled()) {
-                final StringBuilder out = new StringBuilder("Fetched resources from RSNG:\n");
-
-                certifiableResourcesCounts.forEach((resource, count) -> out.append(String.format("   %-20s: %d%n", resource, count)));
-                out.append(String.format("Fetched resources total: %d%n", certifiableResourcesCounts.values().stream().reduce(0, Integer::sum)))
-                   .append(String.format("Certifiable resources  : %d", accumulateResourcesSize(registryResources)));
-                log.info(out.toString());
-            }
-
-        } catch (Exception e) {
-            return new CacheUpdate.Reject(() -> {
-                log.error("The RIPE NCC internet resources REST API is not available", e);
-                resourceCacheServiceMetrics.onMemberCacheException();
-            });
+    private void logToleratedRejections(Update productionUpdate, Update membersUpdate) {
+        if (productionUpdate.getRejection().isPresent() && membersUpdate.getRejection().isPresent()) {
+            log.error("One-time overriding rejection for reason: {}, \nalso \n {}",
+                productionUpdate.getRejection().get().message, membersUpdate.getRejection().get().message);
+        } else {
+            final Rejection rejection = productionUpdate.getRejection().orElse(membersUpdate.getRejection().get());
+            log.error("One-time overriding rejection for reason: \n {}", rejection.message);
         }
-
-        final Map<CaName, IpResourceSet> localResources = resourceCache.allMemberResources();
-        final ResourceDiffStat resourcesDiff = resourcesDiff(registryResources, localResources);
-
-        CacheUpdate applyUpdate = new CacheUpdate.Apply(() -> {
-            resourceStats.set(new ResourceStat(resourcesDiff, Instant.now()));
-            resourceCache.populateCache(registryResources);
-            resourceCacheServiceMetrics.onMemberCacheAccepted();
-            if (resourcesDiff.absoluteSizeDiff() == 0) {
-                log.info("Resource cache has no update; remaining at {} entries", resourcesDiff.localSize);
-            } else {
-                log.info(
-                        "Resource cache has been updated from {} entries to {}\n{}",
-                        resourcesDiff.localSize,
-                        resourcesDiff.registrySize,
-                        showDiffSummary(resourcesDiff)
-                );
-            }
-        });
-        Function<Rejection, CacheUpdate> trackRejected = x -> new CacheUpdate.Reject(() -> {
-            // update the resource diff, but keep the old time
-            resourceStats.getAndUpdate(rs -> new ResourceStat(resourcesDiff, rs.lastUpdated));
-            resourceCacheServiceMetrics.onMemberCacheRejected();
-            log.error(String.format("Resource cache update has been rejected, reason: %s%n%s", x.message, x.summary));
-        });
-        return maybeOneTimeOverrideRejection(isAcceptableDiff(resourcesDiff))
-                .map(trackRejected).orElse(applyUpdate);
     }
 
-    private Optional<Rejection> maybeOneTimeOverrideRejection(Optional<Rejection> rejection) {
-        if (rejection.isPresent() && acceptOneRejectedResourceCacheUpdate) {
-            log.error("one-time overriding rejection for reason: {}", rejection.get().message);
-            return Optional.empty();
+    private void interpretUpdate(Update r, boolean acceptUpdateAnyway) {
+        if (acceptUpdateAnyway || !r.getRejection().isPresent()) {
+            r.getAccepted().run();
+        } else {
+            r.getRejected().accept(r.getRejection().get());
         }
-        return rejection;
     }
 
-    private CacheUpdate updateProductionCaCache() {
-        IpResourceSet retrieved;
-        try {
-            retrieved = resourceServicesClient.findProductionCaDelegations();
-        } catch (Exception e) {
-            return new CacheUpdate.Reject(() -> {
-                resourceCacheServiceMetrics.onDelegationsUpdateException();
-                log.error("Couldn't retrieve Production CA resources, probably RSNG is not available.", e);
-            });
-        }
-
+    private Update productionResourcesUpdate(final IpResourceSet retrieved) {
         final IpResourceSet cached = delegationsCache.getDelegationsCache().orElse(new IpResourceSet());
 
         // Cached but no longer in the retrieved set, should be the ones removed.
@@ -181,22 +146,64 @@ public class ResourceCacheService {
 
         final DelegationDiffStat resourcesDiff = delegationsDiff(retrieved, cached);
 
-        CacheUpdate applyUpdate = new CacheUpdate.Apply(() -> {
+        final Runnable accepted = () -> {
             delegationsCache.cacheDelegations(retrieved);
             resourceCacheServiceMetrics.onDelegationsUpdateAccepted(added, removed);
             log.info(
-                    "Production CA delegations cache has been updated from {} entries to {}",
-                    resourcesDiff.localResourceCount,
-                    resourcesDiff.registrySizeResourceCount
+                "Production CA delegations cache has been updated from {} entries to {}",
+                resourcesDiff.localResourceCount,
+                resourcesDiff.registrySizeResourceCount
             );
-        });
-        Function<Rejection, CacheUpdate> trackRejection = x -> new CacheUpdate.Reject(() -> {
+        };
+
+        final Consumer<Rejection> rejected = x -> {
             resourceCacheServiceMetrics.onDelegationsUpdateRejected();
             log.error("Production CA delegations cache update with diff {} has been rejected, reason: {}", resourcesDiff, x.message);
-        });
+        };
 
-        return maybeOneTimeOverrideRejection(isAcceptableDiff(resourcesDiff))
-                .map(trackRejection).orElse(applyUpdate);
+        return new Update(isAcceptableDiff(resourcesDiff), accepted, rejected);
+    }
+
+
+    private Update memberResourcesUpdate(ResourceServicesClient.MemberResources memberResources) {
+        final Map<String, Integer> certifiableResourcesCounts = memberResources.getMemberResourcesCounts();
+        final Map<CaName, IpResourceSet> registryResources = memberResources.getCertifiableResources();
+        /// Make sure this is in one long line to prevent multiple messages in the logfile, which may be interleaved.
+        if (log.isInfoEnabled()) {
+            final StringBuilder out = new StringBuilder("Fetched resources from RSNG:\n");
+            certifiableResourcesCounts.forEach((resource, count) -> out.append(String.format("   %-20s: %d%n", resource, count)));
+            out.append(String.format("Fetched resources total: %d%n", certifiableResourcesCounts.values().stream().reduce(0, Integer::sum)))
+                .append(String.format("Certifiable resources  : %d", accumulateResourcesSize(registryResources)));
+            log.info(out.toString());
+        }
+
+        final Map<CaName, IpResourceSet> localResources = resourceCache.allMemberResources();
+        final ResourceDiffStat resourcesDiff = resourcesDiff(registryResources, localResources);
+
+        Runnable accepted = () -> {
+            resourceStats.set(new ResourceStat(resourcesDiff, Instant.now()));
+            resourceCache.populateCache(registryResources);
+            resourceCacheServiceMetrics.onMemberCacheAccepted();
+            if (resourcesDiff.absoluteSizeDiff() == 0) {
+                log.info("Resource cache has no update; remaining at {} entries", resourcesDiff.localSize);
+            } else {
+                log.info(
+                    "Resource cache has been updated from {} entries to {}\n{}",
+                    resourcesDiff.localSize,
+                    resourcesDiff.registrySize,
+                    showDiffSummary(resourcesDiff)
+                );
+            }
+        };
+
+        final Consumer<Rejection> rejected = x -> {
+            // update the resource diff, but keep the old time
+            resourceStats.getAndUpdate(rs -> new ResourceStat(resourcesDiff, rs.lastUpdated));
+            resourceCacheServiceMetrics.onMemberCacheRejected();
+            log.error(String.format("Resource cache update has been rejected, reason: %s%n%s", x.message, x.summary));
+        };
+
+        return new Update(isAcceptableDiff(resourcesDiff), accepted, rejected);
     }
 
     private static IpResourceSet subtract(IpResourceSet s1, IpResourceSet s2) {
@@ -383,6 +390,14 @@ public class ResourceCacheService {
     static class Rejection {
         private String message;
         private Optional<String> summary;
+    }
+
+    @Data
+    @AllArgsConstructor
+    static class Update {
+        private Optional<Rejection> rejection;
+        private Runnable accepted;
+        private Consumer<Rejection> rejected;
     }
 
     private static class ResourceCacheServiceMetrics {

@@ -12,14 +12,12 @@ import net.ripe.rpki.server.api.commands.SubscribeToRoaAlertCommand;
 import net.ripe.rpki.server.api.commands.UnsubscribeFromRoaAlertCommand;
 import net.ripe.rpki.server.api.commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaAlertSubscriptionData;
 import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
-import net.ripe.rpki.server.api.services.read.RoaViewService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,12 +44,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -67,16 +60,7 @@ public class AlertServiceTest {
     public static final long CA_ID = 456L;
 
     @MockBean
-    private ResourceCertificateViewService resourceCertificateViewService;
-
-    @MockBean
     private CertificateAuthorityViewService certificateAuthorityViewService;
-
-    @MockBean
-    private BgpRisEntryViewService bgpRisEntryViewService;
-
-    @MockBean
-    private RoaViewService roaService;
 
     @MockBean
     private RoaAlertConfigurationViewService roaAlertConfigurationViewService;
@@ -84,19 +68,16 @@ public class AlertServiceTest {
     @MockBean
     private CommandService commandService;
 
-    private CertificateAuthorityData certificateAuthorityData = mock(CertificateAuthorityData.class);
+    private CustomerCertificateAuthorityData certificateAuthorityData = mock(CustomerCertificateAuthorityData.class);
 
     @Autowired
     private MockMvc mockMvc;
 
     @Before
     public void init() {
-        reset(resourceCertificateViewService, certificateAuthorityViewService, bgpRisEntryViewService,
-                roaService, roaAlertConfigurationViewService, commandService);
-
         when(certificateAuthorityViewService.findCertificateAuthorityByName(any(X500Principal.class))).thenReturn(certificateAuthorityData);
         when(certificateAuthorityData.getId()).thenReturn(CA_ID);
-        when(certificateAuthorityData.getVersionedId()).thenReturn(VersionedId.parse("1"));
+        when(certificateAuthorityData.getVersionedId()).thenReturn(new VersionedId(CA_ID));
     }
 
     @Test

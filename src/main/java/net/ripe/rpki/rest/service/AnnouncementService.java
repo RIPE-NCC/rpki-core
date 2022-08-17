@@ -14,16 +14,15 @@ import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.rest.exception.BadRequestException;
-import net.ripe.rpki.rest.exception.ObjectNotFoundException;
 import net.ripe.rpki.rest.pojo.BgpAnnouncement;
 import net.ripe.rpki.rest.pojo.ROA;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
+import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
-import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
-import org.apache.commons.lang.StringUtils;
+import net.ripe.rpki.server.api.support.objects.CaName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.ResponseEntity;
@@ -55,17 +54,14 @@ import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 @RequestMapping(path = API_URL_PREFIX + "/{caName}/announcements", produces = { APPLICATION_JSON })
 @Tag(name = "/ca/{caName}/announcements", description = "View of CA announcements")
 public class AnnouncementService extends AbstractCaRestService {
-    private final ResourceCertificateViewService resourceCertificateViewService;
     private final BgpRisEntryViewService bgpRisEntryViewService;
     private final RoaViewService roaViewService;
     private final RoaAlertConfigurationViewService roaAlertConfigurationViewService;
 
     @Autowired
-    public AnnouncementService(ResourceCertificateViewService resourceCertificateViewService,
-                               BgpRisEntryViewService bgpRisEntryViewService,
+    public AnnouncementService(BgpRisEntryViewService bgpRisEntryViewService,
                                RoaViewService roaViewService,
                                RoaAlertConfigurationViewService roaAlertConfigurationViewService) {
-        this.resourceCertificateViewService = resourceCertificateViewService;
         this.bgpRisEntryViewService = bgpRisEntryViewService;
         this.roaViewService = roaViewService;
         this.roaAlertConfigurationViewService = roaAlertConfigurationViewService;
@@ -73,20 +69,14 @@ public class AnnouncementService extends AbstractCaRestService {
 
     @GetMapping
     @Operation(summary = "Get all announcements, as well as not-announced ignored announcements for the CA")
-    public ResponseEntity<List<BgpAnnouncement>> getResourcesForCa(@PathVariable("caName") final String caName) {
+    public ResponseEntity<List<BgpAnnouncement>> getResourcesForCa(@PathVariable("caName") final CaName caName) {
         log.info("Getting resources for CA: {}", caName);
 
-        if (StringUtils.isEmpty(caName)) {
-            throw new BadRequestException("Passed CA name is empty.");
-        }
-
-        final IpResourceSet certifiedResources = resourceCertificateViewService.findCertifiedResources(this.getCaId());
-        if (certifiedResources == null) {
-            throw new ObjectNotFoundException(String.format("unknown CA: %s", caName));
-        }
+        final CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        final IpResourceSet certifiedResources = ca.getResources();
         final Map<Boolean, Collection<BgpRisEntry>> announcements = bgpRisEntryViewService.findMostSpecificContainedAndNotContained(certifiedResources);
-        final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(this.getCaId());
-        final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, getCaId());
+        final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
+        final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, ca.getId());
 
         final List<BgpAnnouncement> announcedAnnouncements = Utils.makeBgpAnnouncementList(announcements, roaConfiguration.toAllowedRoutes(), ignoredAnnouncements);
 
@@ -115,26 +105,24 @@ public class AnnouncementService extends AbstractCaRestService {
 
     @PostMapping("/affected")
     @Operation(summary = "Get all announcements affected by the given ROA configuration of a CA")
-    public ResponseEntity<List<BgpAnnouncement>> getAffectedAnnouncementsForCaAndRoa(@PathVariable("caName") final String caName, @RequestBody final ROA roa) {
-        log.info("Get all announcements affected by the given ROA configuration for CA: {}", getRawCaName());
+    public ResponseEntity<List<BgpAnnouncement>> getAffectedAnnouncementsForCaAndRoa(@PathVariable("caName") final CaName caName, @RequestBody final ROA roa) {
+        log.info("Get all announcements affected by the given ROA configuration for CA: {}", caName);
 
         final Optional<String> addedRoasErrorMessage = Utils.errorsInUserInputRoas(roa);
         if (addedRoasErrorMessage.isPresent()) {
             throw new BadRequestException(String.format("Passed ROA is incorrect: %s", addedRoasErrorMessage.get()));
         }
 
-        IpResourceSet certifiedResources = resourceCertificateViewService.findCertifiedResources(getCaId());
-        if (certifiedResources == null) {
-            throw new ObjectNotFoundException(String.format("Could find any resources belonging to CA: %s", getRawCaName()));
-        }
+        CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        IpResourceSet certifiedResources = ca.getResources();
 
         final Asn roaAsn = Asn.parse(roa.getAsn());
         final IpRange roaPrefix = IpRange.parse(roa.getPrefix());
 
         final Map<Boolean, Collection<BgpRisEntry>> announcements = bgpRisEntryViewService.
             findMostSpecificContainedAndNotContained(certifiedResources);
-        final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(this.getCaId());
-        final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, getCaId());
+        final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
+        final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, ca.getId());
 
         final Set<AnnouncedRoute> routesValidatedByOthers = new HashSet<>();
         final NestedIntervalMap<IpResource, List<AllowedRoute>> currentRouteMap = allowedRoutesToNestedIntervalMap(roaConfiguration.toAllowedRoutes());

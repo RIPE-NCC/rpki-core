@@ -8,6 +8,7 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityHistoryItem;
 import net.ripe.rpki.server.api.ports.InternalNamePresenter;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import net.ripe.rpki.server.api.support.objects.CaName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.ResponseEntity;
@@ -35,17 +36,16 @@ public class HistoryService extends AbstractCaRestService {
     @Autowired
     public HistoryService(InternalNamePresenter statsCollectorNames,
                           CertificateAuthorityViewService certificateAuthorityViewService) {
-        super(false, true);
         this.statsCollectorNames = statsCollectorNames;
         this.certificateAuthorityViewService = certificateAuthorityViewService;
     }
 
     @GetMapping
     @Operation(summary = "Get history of a CA")
-    public ResponseEntity<List<HistoryItem>> getHistoryForCa(@PathVariable("caName") final String caName) {
-        log.info("Getting history for CA: {}", getRawCaName());
+    public ResponseEntity<List<HistoryItem>> getHistoryForCa(@PathVariable("caName") final CaName caName) {
+        log.info("Getting history for CA: {}", caName);
 
-        final List<HistoryItem> items = getHistoryItems(this.getCaId()).stream()
+        final List<HistoryItem> items = getHistoryItems(caName).stream()
                 .map(caHistoryItem -> {
                     final String humanizedUserPrincipal = getHumanizedUserPrincipal(caHistoryItem);
                     return new HistoryItem(humanizedUserPrincipal, caHistoryItem);
@@ -54,13 +54,13 @@ public class HistoryService extends AbstractCaRestService {
         return ok(items);
     }
 
-    private String getHumanizedUserPrincipal(CertificateAuthorityHistoryItem cahistoryItem) {
-        String humanizedUserPrincipal = statsCollectorNames.humanizeUserPrincipal(cahistoryItem.getPrincipal());
-        return humanizedUserPrincipal != null ? humanizedUserPrincipal : cahistoryItem.getPrincipal();
+    private String getHumanizedUserPrincipal(CertificateAuthorityHistoryItem historyItem) {
+        String humanizedUserPrincipal = statsCollectorNames.humanizeUserPrincipal(historyItem.getPrincipal());
+        return humanizedUserPrincipal != null ? humanizedUserPrincipal : historyItem.getPrincipal();
     }
 
-    private List<CertificateAuthorityHistoryItem> getHistoryItems(Long caId) {
-        final CertificateAuthorityData certificateAuthority = certificateAuthorityViewService.findCertificateAuthority(caId);
+    private List<CertificateAuthorityHistoryItem> getHistoryItems(CaName caName) {
+        final CertificateAuthorityData certificateAuthority = getCa(CertificateAuthorityData.class, caName);
         List<CertificateAuthorityHistoryItem> historyItems = new ArrayList<>();
         historyItems.addAll(certificateAuthorityViewService.findMostRecentCommandsForCa(certificateAuthority.getId()));
         historyItems.addAll(certificateAuthorityViewService.findMostRecentMessagesForCa(certificateAuthority.getUuid()));

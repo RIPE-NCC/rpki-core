@@ -5,12 +5,16 @@ import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
+import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.KeyPairData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 import javax.security.auth.x500.X500Principal;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Locally hosted certificate authority.
@@ -30,6 +34,18 @@ public class CustomerCertificateAuthority extends HostedCertificateAuthority {
     @Override
     public CertificateAuthorityType getType() {
         return CertificateAuthorityType.HOSTED;
+    }
+
+    @Override
+    public CustomerCertificateAuthorityData toData() {
+        final List<KeyPairData> keys = getKeyPairs().stream()
+            .map(KeyPairEntity::toData)
+            .collect(Collectors.toList());
+
+        return new CustomerCertificateAuthorityData(
+            getVersionedId(), getName(), getUuid(),
+            getParent().getId(),
+            getCertifiedResources(), keys);
     }
 
     @Override

@@ -30,10 +30,10 @@ public class ResourceServicesClientTest {
                 Collections.singletonList(new Ipv4ErxResource("51.0.0.0/8", "ISSUED", 1L, "1")));
 
         ImmutableMap<CaName, IpResourceSet> expected = ImmutableMap.of(
-                CaName.of(1L), IpResourceSet.parse("AS123, 10.0.0.0/8, 51.0.0.0/8, ::1/128"),
-                CaName.of(2L), IpResourceSet.parse("::3/128, 12.0.0.0/8"),
-                CaName.of("ORG-BLUELIGHT"), IpResourceSet.parse("11.0.0.0/8, ::2/128"),
-                CaName.of("ORG-GREENLIGHT"), IpResourceSet.parse("13.0.0.0/8, ::4/128")
+                CaName.fromMembershipId(1L), IpResourceSet.parse("AS123, 10.0.0.0/8, 51.0.0.0/8, ::1/128"),
+                CaName.fromMembershipId(2L), IpResourceSet.parse("::3/128, 12.0.0.0/8"),
+                CaName.fromOrganisationId("ORG-BLUELIGHT"), IpResourceSet.parse("11.0.0.0/8, ::2/128"),
+                CaName.fromOrganisationId("ORG-GREENLIGHT"), IpResourceSet.parse("13.0.0.0/8, ::4/128")
         );
 
         assertEquals(expected, subject.getCertifiableResources());

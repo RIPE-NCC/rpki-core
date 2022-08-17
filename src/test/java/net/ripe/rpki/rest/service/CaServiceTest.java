@@ -17,6 +17,7 @@ import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityComm
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateService;
@@ -292,7 +293,7 @@ public class CaServiceTest {
     @Test
     public void shouldCreateNonHostedCAAndRevokeIt() throws Exception {
 
-        CertificateAuthorityData ca = mock(CertificateAuthorityData.class);
+        NonHostedCertificateAuthorityData ca = mock(NonHostedCertificateAuthorityData.class);
 
         X500Principal principal = CaName.parse("123").getPrincipal();
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(ca);

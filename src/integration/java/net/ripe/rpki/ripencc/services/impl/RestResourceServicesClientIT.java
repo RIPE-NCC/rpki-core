@@ -36,7 +36,7 @@ public class RestResourceServicesClientIT {
     @Test
     public void shouldFindAllMemberSummaries() {
         final long membershipId = 1104L;
-        final CaName ripeNccTsMemberId = CaName.of(membershipId);
+        final CaName ripeNccTsMemberId = CaName.fromMembershipId(membershipId);
 
         final MemberResources allResources = subject.fetchAllResources().getAllMembersResources();
 

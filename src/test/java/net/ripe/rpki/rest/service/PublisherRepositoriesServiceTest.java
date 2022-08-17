@@ -15,7 +15,6 @@ import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateSe
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +41,6 @@ import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -72,14 +70,11 @@ public class PublisherRepositoriesServiceTest {
     @MockBean
     private CertificateAuthorityViewService certificateAuthorityViewService;
 
-
-
     @MockBean
     private ResourceLookupService resourceCache;
 
     @MockBean
     private CommandService commandService;
-
 
     @Autowired
     private MockMvc mockMvc;
@@ -107,13 +102,6 @@ public class PublisherRepositoriesServiceTest {
             "1BjcmhYHqott+cnK1ITOjLe9EKejRZv/7/BFsmpzm2Zbq1KA\n" +
             "</ns0:publisher_bpki_ta>\n" +
             "</ns0:publisher_request>";
-
-    @Before
-    public void init() {
-        reset(certificateAuthorityCreateService, certificateAuthorityViewService, resourceCache, commandService);
-    }
-
-
 
     @Test
     public void should_provision_non_hosted_publisher_repository() throws Exception {

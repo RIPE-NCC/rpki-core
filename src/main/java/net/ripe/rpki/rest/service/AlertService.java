@@ -15,9 +15,11 @@ import net.ripe.rpki.rest.pojo.Subscriptions;
 import net.ripe.rpki.server.api.commands.SubscribeToRoaAlertCommand;
 import net.ripe.rpki.server.api.commands.UnsubscribeFromRoaAlertCommand;
 import net.ripe.rpki.server.api.commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand;
+import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
+import net.ripe.rpki.server.api.support.objects.CaName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.ResponseEntity;
@@ -59,10 +61,11 @@ public class AlertService extends AbstractCaRestService {
 
     @Operation(summary = "Get all alerts belonging to a CA")
     @GetMapping
-    public ResponseEntity<Subscriptions> getAlertsForCa(@PathVariable("caName") final String rawCaName) {
-        log.info("Getting alerts for CA: {}", rawCaName);
+    public ResponseEntity<Subscriptions> getAlertsForCa(@PathVariable("caName") final CaName caName) {
+        log.info("Getting alerts for CA: {}", caName);
 
-        final RoaAlertConfigurationData configuration = roaAlertConfigurationViewService.findRoaAlertSubscription(this.getCaId());
+        final CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        final RoaAlertConfigurationData configuration = roaAlertConfigurationViewService.findRoaAlertSubscription(ca.getId());
         if (configuration == null) {
             return ok(new Subscriptions(Collections.emptySet(), Collections.emptySet()));
         }
@@ -79,9 +82,8 @@ public class AlertService extends AbstractCaRestService {
 
     @PostMapping(consumes = {APPLICATION_JSON})
     @Operation(summary = "Subscribe/Unsubscribe for alerts about invalid or unknown announcements")
-    public ResponseEntity<Map<String, String>> subscribe(@PathVariable("caName") final String rawCaName, @RequestBody final Subscriptions newSubscription) {
-        log.info("Subscribing to alerts about invalid or unknown announcement caName[{}], subscription {}", rawCaName, newSubscription);
-
+    public ResponseEntity<Map<String, String>> subscribe(@PathVariable("caName") final CaName caName, @RequestBody final Subscriptions newSubscription) {
+        log.info("Subscribing to alerts about invalid or unknown announcement caName[{}], subscription {}", caName, newSubscription);
         if (newSubscription == null) {
             return ResponseEntity.status(BAD_REQUEST).body(of("error", "No valid subscription provided"));
         }
@@ -92,7 +94,8 @@ public class AlertService extends AbstractCaRestService {
 
         final Set<String> newEmails = newSubscription.getEmails();
 
-        final RoaAlertConfigurationData currentConfiguration = roaAlertConfigurationViewService.findRoaAlertSubscription(this.getCaId());
+        final CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        final RoaAlertConfigurationData currentConfiguration = roaAlertConfigurationViewService.findRoaAlertSubscription(ca.getId());
         final Set<String> currentEmails = currentConfiguration == null || currentConfiguration.getEmails() == null ?
             Collections.emptySet() : new HashSet<>(currentConfiguration.getEmails());
         final Set<RouteValidityState> currentValidityStates = currentConfiguration == null || currentConfiguration.getRouteValidityStates() == null ?
@@ -102,24 +105,24 @@ public class AlertService extends AbstractCaRestService {
 
         if (newValidityStates.isEmpty()) {
             currentEmails.forEach(email ->
-                commandService.execute(new UnsubscribeFromRoaAlertCommand(getVersionedId(), email)));
+                commandService.execute(new UnsubscribeFromRoaAlertCommand(ca.getVersionedId(), email)));
         } else {
             // Unsubscribe addresses that are no longer in the new subscription list.
             currentEmails.stream()
                 .filter(object -> !newEmails.contains(object))
-                .forEach(email -> commandService.execute(new UnsubscribeFromRoaAlertCommand(getVersionedId(), email)));
+                .forEach(email -> commandService.execute(new UnsubscribeFromRoaAlertCommand(ca.getVersionedId(), email)));
 
             // If both validity and frequency remains, only subscribe additional email.
             if (newValidityStates.equals(currentValidityStates) && newSubscription.getFrequency().equals(currentFrequency)) {
                 newEmails.stream()
                     .filter(email -> !currentEmails.contains(email))
                     .forEach(email ->
-                        commandService.execute(new SubscribeToRoaAlertCommand(getVersionedId(), email, newValidityStates, newSubscription.getFrequency())));
+                        commandService.execute(new SubscribeToRoaAlertCommand(ca.getVersionedId(), email, newValidityStates, newSubscription.getFrequency())));
 
             } else {
                 // Either validity or frequency changes so these guys have to be subscribed.
                 newEmails.forEach(email ->
-                    commandService.execute(new SubscribeToRoaAlertCommand(getVersionedId(), email, newValidityStates, newSubscription.getFrequency())));
+                    commandService.execute(new SubscribeToRoaAlertCommand(ca.getVersionedId(), email, newValidityStates, newSubscription.getFrequency())));
             }
         }
         return ok();
@@ -127,20 +130,22 @@ public class AlertService extends AbstractCaRestService {
 
     @PostMapping(path = "/suppress", consumes = {APPLICATION_JSON})
     @Operation(summary = "Suppress alerts for announcements")
-    public ResponseEntity<?> suppress(@PathVariable("caName") final String rawCaName, @RequestBody final List<BgpAnnouncement> announcements) {
-        log.info("Suppress alerts for announcements for CA: {}", rawCaName);
-        return processMuteOrUnMute(getAnnouncedRoutes(announcements), Collections.emptySet());
+    public ResponseEntity<?> suppress(@PathVariable("caName") final CaName caName, @RequestBody final List<BgpAnnouncement> announcements) {
+        log.info("Suppress alerts for announcements for CA: {}", caName);
+        CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        return processMuteOrUnMute(ca, getAnnouncedRoutes(announcements), Collections.emptySet());
     }
 
     @PostMapping(path = "/unsuppress", consumes = {APPLICATION_JSON})
     @Operation(summary = "Enable alerts for announcements")
-    public ResponseEntity<?> enable(@PathVariable("caName") final String rawCaName, @RequestBody final List<BgpAnnouncement> announcements) {
-        log.info("Enable alerts for announcements for CA: {}", rawCaName);
-        return processMuteOrUnMute(Collections.emptySet(), getAnnouncedRoutes(announcements));
+    public ResponseEntity<?> enable(@PathVariable("caName") final CaName caName, @RequestBody final List<BgpAnnouncement> announcements) {
+        log.info("Enable alerts for announcements for CA: {}", caName);
+        CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        return processMuteOrUnMute(ca, Collections.emptySet(), getAnnouncedRoutes(announcements));
     }
 
-    private ResponseEntity<?> processMuteOrUnMute(final Collection<AnnouncedRoute> toMute, final Collection<AnnouncedRoute> toUnmute) {
-        commandService.execute(new UpdateRoaAlertIgnoredAnnouncedRoutesCommand(getVersionedId(), toMute, toUnmute));
+    private ResponseEntity<?> processMuteOrUnMute(final CustomerCertificateAuthorityData ca, final Collection<AnnouncedRoute> toMute, final Collection<AnnouncedRoute> toUnmute) {
+        commandService.execute(new UpdateRoaAlertIgnoredAnnouncedRoutesCommand(ca.getVersionedId(), toMute, toUnmute));
         return created();
     }
 

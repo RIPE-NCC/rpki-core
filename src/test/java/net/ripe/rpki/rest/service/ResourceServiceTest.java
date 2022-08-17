@@ -7,7 +7,6 @@ import net.ripe.ipresource.Ipv6Address;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,7 +25,6 @@ import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -42,9 +40,6 @@ public class ResourceServiceTest {
     public static final long CA_ID = 456L;
 
     @MockBean
-    private ResourceCertificateViewService resourceCertificateViewService;
-
-    @MockBean
     private CertificateAuthorityViewService certificateAuthorityViewService;
 
     private CertificateAuthorityData certificateAuthorityData = mock(CertificateAuthorityData.class);
@@ -54,8 +49,6 @@ public class ResourceServiceTest {
 
     @Before
     public void init() {
-        reset(resourceCertificateViewService, certificateAuthorityViewService);
-
         when(certificateAuthorityViewService.findCertificateAuthorityByName(any(X500Principal.class))).thenReturn(certificateAuthorityData);
         when(certificateAuthorityData.getId()).thenReturn(CA_ID);
     }

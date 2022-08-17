@@ -1,22 +1,23 @@
 package net.ripe.rpki.rest.service;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResourceSet;
-import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.rest.exception.CaNameInvalidException;
 import net.ripe.rpki.rest.exception.CaNotFoundException;
 import net.ripe.rpki.rest.exception.UserIdRequiredException;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.security.RunAsUser;
 import net.ripe.rpki.server.api.security.RunAsUserHolder;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import net.ripe.rpki.server.api.support.objects.CaName.BadCaNameException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.Formatter;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -26,10 +27,9 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.Produces;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.security.ApiKeySecurity.USER_ID_HEADER;
@@ -42,49 +42,16 @@ public class AbstractCaRestService {
 
     static final String API_URL_PREFIX = "/api/ca";
 
-    private static final Pattern CA_NAME_PATTERN = Pattern.compile("^(/certification)?" + API_URL_PREFIX + "/([a-zA-Z0-9-]+)");
-
-    private String rawCaName;
-    protected CertificateAuthorityData ca;
-    private final boolean exclusiveForHosted;
-    private final boolean verifyCaExists;
-
-    public AbstractCaRestService() {
-        exclusiveForHosted = true;
-        verifyCaExists = true;
-    }
-
-    public AbstractCaRestService(Boolean exclusiveForHosted, Boolean verifyCaExists) {
-        this.exclusiveForHosted = exclusiveForHosted;
-        this.verifyCaExists = verifyCaExists;
-    }
-
     @Autowired
     private CertificateAuthorityViewService certificateAuthorityViewService;
 
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        binder.addCustomFormatter(new CaNameFormatter());
+    }
+
     @PostConstruct
     protected void init() {
-
-        int contextLength = getRequest().getContextPath().length();
-        String apiRelativePath = getRequest().getRequestURI().substring(contextLength);
-        if(!apiRelativePath.startsWith(API_URL_PREFIX)) {
-            return;
-        }
-        rawCaName = getRawCaNameFromRequest();
-        try {
-            ca = getCaByName(rawCaName);
-        } catch (BadCaNameException e) {
-            throw new CaNameInvalidException(rawCaName);
-        }
-
-        if (verifyCaExists) {
-            verifyCaExists();
-        }
-
-        if (exclusiveForHosted && CertificateAuthorityType.NONHOSTED == ca.getType()) {
-            throw new CaNotFoundException(String.format("operation not available for non-hosted CA: %s", rawCaName));
-        }
-
         final HttpServletRequest request = getRequest();
         final RunAsUser user = getUserId(request)
                 .orElseThrow(() -> new UserIdRequiredException("The cookie '" + USER_ID_HEADER + "' is not defined."));
@@ -92,36 +59,18 @@ public class AbstractCaRestService {
         RunAsUserHolder.set(user);
     }
 
-    protected void verifyCaExists() {
-        if (ca == null) {
-            throw new CaNotFoundException(String.format("unknown CA: %s", rawCaName));
+    protected <T extends CertificateAuthorityData> Optional<T> findCa(Class<T> type, CaName caName) {
+        try {
+            return Optional.ofNullable(type.cast(
+                certificateAuthorityViewService.findCertificateAuthorityByName(caName.getPrincipal())
+            ));
+        } catch (ClassCastException ex) {
+            throw new CaNotFoundException("certificate authority '" + caName + "' has incorrect type");
         }
     }
 
-    protected String getRawCaName() {
-        return rawCaName;
-    }
-
-    protected long getCaId() {
-        return ca.getId();
-    }
-
-    protected VersionedId getVersionedId() {
-        return ca.getVersionedId();
-    }
-
-    private String getRawCaNameFromRequest() {
-        String path = getRequest().getRequestURI();
-        Matcher matcher = CA_NAME_PATTERN.matcher(path);
-        if (!matcher.find()) {
-            throw new IllegalArgumentException("Request doesn't start with [/api/ca/{caName}] found [" + path + "]");
-        }
-        return matcher.group(2);
-    }
-
-    protected CertificateAuthorityData getCaByName(String unparsedCaName) {
-        CaName caName = CaName.parse(unparsedCaName);
-        return certificateAuthorityViewService.findCertificateAuthorityByName(caName.getPrincipal());
+    protected <T extends CertificateAuthorityData> T getCa(Class<T> type, CaName caName) {
+        return findCa(type, caName).orElseThrow(() -> new CaNotFoundException("certificate authority '" + caName + "' not found"));
     }
 
     protected HttpServletRequest getRequest() {
@@ -199,6 +148,23 @@ public class AbstractCaRestService {
 
         public String getType() {
             return type;
+        }
+    }
+
+    private static class CaNameFormatter implements Formatter<CaName> {
+        @Override
+        public @NonNull CaName parse(@NonNull String text, @NonNull Locale locale) {
+            try {
+                return CaName.parse(text);
+            } catch (CaName.BadCaNameException e) {
+                // Will cause a bad request response (see the RestExceptionControllerAdvice)
+                throw new CaNameInvalidException(text);
+            }
+        }
+
+        @Override
+        public @NonNull String print(@NonNull CaName object, @NonNull Locale locale) {
+            return object.toString();
         }
     }
 }

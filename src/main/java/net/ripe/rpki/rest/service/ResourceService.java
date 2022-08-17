@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.rest.pojo.ResourcesCollection;
+import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
+import net.ripe.rpki.server.api.support.objects.CaName;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 import static com.google.common.collect.ImmutableMap.of;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Slf4j
 @Scope("prototype")
@@ -24,29 +25,25 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @RequestMapping(path = API_URL_PREFIX + "/{caName}/resources", produces = APPLICATION_JSON)
 @Tag(name = "/ca/{caName}/resources", description = "Operations on CA resources")
 public class ResourceService extends AbstractCaRestService {
-    public ResourceService() {
-        super(false, true);
-    }
 
     @GetMapping
     @Operation(summary = "Get all **certified** resources belonging to a CA")
-    public ResponseEntity<ResourcesCollection> getResourcesForCa(@PathVariable("caName") final String rawCaName) {
-        log.info("Getting resources for CA: {}", rawCaName);
+    public ResponseEntity<ResourcesCollection> getResourcesForCa(@PathVariable("caName") final CaName caName) {
+        log.info("Getting resources for CA: {}", caName);
 
+        final CertificateAuthorityData ca = getCa(CertificateAuthorityData.class, caName);
         final IpResourceSet certifiedResources = ca.getResources();
         return ok(new ResourcesCollection(Utils.toStringList(certifiedResources)));
     }
 
     @GetMapping(path = "validate-prefix/{prefix}")
     @Operation(summary ="Validate prefix for a CA")
-    public ResponseEntity<ImmutableMap<String, String>> validatePrefix(@PathVariable("caName") final String rawCaName,
+    public ResponseEntity<ImmutableMap<String, String>> validatePrefix(@PathVariable("caName") final CaName caName,
                                                                        @PathVariable("prefix") final String prefix) {
-        log.info("Validating prefix[{}] prefix for caName[{}]", prefix, rawCaName);
+        log.info("Validating prefix[{}] prefix for caName[{}]", prefix, caName);
 
+        final CertificateAuthorityData ca = getCa(CertificateAuthorityData.class, caName);
         final IpResourceSet certifiedResources = ca.getResources();
-        if (certifiedResources == null) {
-            return ResponseEntity.status(NOT_FOUND).body(of("error", "unknown CA: " + rawCaName));
-        }
 
         PrefixValidationResult prefixValidation = validatePrefix(prefix, certifiedResources);
 
@@ -62,11 +59,11 @@ public class ResourceService extends AbstractCaRestService {
      */
     @GetMapping(path = "validate-prefix/{address}/{length}")
     @Operation(summary ="Validate prefix for a CA (this endpoint exists to avoid troubles with '/' encoding)")
-    public ResponseEntity<ImmutableMap<String, String>> validatePrefixByParts(@PathVariable("caName") final String rawCaName,
+    public ResponseEntity<ImmutableMap<String, String>> validatePrefixByParts(@PathVariable("caName") final CaName caName,
                                                    @PathVariable("address") final String address,
                                                    @PathVariable("length") final String length) {
         final String prefix = address + "/" + length;
-        log.info("Validating prefix[{}] for caName[{}]", prefix, rawCaName);
-        return validatePrefix(rawCaName, prefix);
+        log.info("Validating prefix[{}] for caName[{}]", prefix, caName);
+        return validatePrefix(caName, prefix);
     }
 }

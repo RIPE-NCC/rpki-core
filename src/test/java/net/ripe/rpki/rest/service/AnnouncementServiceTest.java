@@ -11,6 +11,7 @@ import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
+import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaAlertSubscriptionData;
@@ -18,7 +19,6 @@ import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
 import org.junit.Before;
@@ -49,8 +49,8 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.security.ApiKeySecurity.API_KEY_HEADER;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static net.ripe.rpki.rest.service.Rest.TESTING_API_KEY;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -67,9 +67,6 @@ public class AnnouncementServiceTest {
     private static final long CA_ID = 456L;
 
     @MockBean
-    private ResourceCertificateViewService resourceCertificateViewService;
-
-    @MockBean
     private CertificateAuthorityViewService certificateAuthorityViewService;
 
     @MockBean
@@ -82,15 +79,13 @@ public class AnnouncementServiceTest {
     private RoaAlertConfigurationViewService roaAlertConfigurationViewService;
 
     @MockBean
-    private CertificateAuthorityData certificateAuthorityData;
+    private CustomerCertificateAuthorityData certificateAuthorityData;
 
     @Autowired
     private MockMvc mockMvc;
 
     @Before
     public void init() {
-        reset(resourceCertificateViewService, certificateAuthorityViewService, bgpRisEntryViewService, roaService, roaAlertConfigurationViewService);
-
         when(certificateAuthorityViewService.findCertificateAuthorityByName(any(X500Principal.class))).thenReturn(certificateAuthorityData);
         when(certificateAuthorityData.getId()).thenReturn(CA_ID);
     }
@@ -99,7 +94,7 @@ public class AnnouncementServiceTest {
     public void announcements_shouldGetAnnouncement() throws Exception {
 
         final IpResourceSet ipResourceSet = new IpResourceSet();
-        when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
         final BgpRisEntry e2 = new BgpRisEntry(new Asn(20), IpRange.parse("192.168.128.0/24"), 20);
@@ -133,7 +128,7 @@ public class AnnouncementServiceTest {
     public void announcements_shouldIncludeSilencesThatAreNotVisibleInBGP() throws Exception {
 
         final IpResourceSet ipResourceSet = new IpResourceSet();
-        when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
         final BgpRisEntry e2 = new BgpRisEntry(new Asn(20), IpRange.parse("192.168.128.0/24"), 20);
@@ -177,7 +172,7 @@ public class AnnouncementServiceTest {
 
     @Test
     public void shouldGetError404ForNotExistingAnnouncement() throws Exception {
-        when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(null);
+        when(certificateAuthorityViewService.findCertificateAuthorityByName(any(X500Principal.class))).thenReturn(null);
 
         mockMvc.perform(
                 Rest.get(API_URL_PREFIX + "/123/announcements")
@@ -186,7 +181,7 @@ public class AnnouncementServiceTest {
         )
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(APPLICATION_JSON))
-                .andExpect(jsonPath("$.error").value("unknown CA: 123"));
+                .andExpect(jsonPath("$.error").value("certificate authority 'CN=123' not found"));
     }
 
     @Test
@@ -197,15 +192,15 @@ public class AnnouncementServiceTest {
                         .contentType(APPLICATION_JSON)
                         .header(API_KEY_HEADER, TESTING_API_KEY)
         )
-                .andExpect(status().isForbidden());
-//                .andExpect(content().string(containsString("The cookie 'user-id' is not defined.")));
+                .andExpect(status().isForbidden())
+                .andExpect(content().string(containsString("The cookie 'user-id' is not defined.")));
     }
 
     @Test
     public void affected_shouldReturnAnnouncementAffectedByROA() throws Exception {
 
         final IpResourceSet ipResourceSet = new IpResourceSet();
-        when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
         final BgpRisEntry e2 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.128.0/24"), 20);
@@ -247,7 +242,7 @@ public class AnnouncementServiceTest {
     public void affected_shouldReturnAnnouncementAffectedByROAValidatedByOtherROAs() throws Exception {
 
         final IpResourceSet ipResourceSet = new IpResourceSet();
-        when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
         final BgpRisEntry e2 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.128.0/24"), 20);
@@ -283,7 +278,7 @@ public class AnnouncementServiceTest {
     public void affected_shouldNotReturnUnknownAnnouncements() throws Exception {
 
         final IpResourceSet ipResourceSet = new IpResourceSet(IpRange.parse("192.168.0.0/16"));
-        when(resourceCertificateViewService.findCertifiedResources(CA_ID)).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("191.168.0.0/16"), 10);
         final BgpRisEntry e2 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);

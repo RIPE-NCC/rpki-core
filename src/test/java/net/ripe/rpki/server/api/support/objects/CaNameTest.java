@@ -36,9 +36,15 @@ public class CaNameTest {
     }
 
     @Test
+    public void shouldUseGetNameForStringConversion() {
+        CaName name = CaName.parse("CN=ALL Resources,O=RIPE NCC,C=NL");
+        assertEquals(name.getPrincipal().getName(), name.toString());
+    }
+
+    @Test
     public void shouldPreserveCaseOfCaName() {
-        assertEquals("CN=ALL Resources, O=RIPE NCC, C=NL", CaName.parse("CN=ALL Resources,O=RIPE NCC,C=NL").toString());
-        assertEquals("CN=ALL Resources, O=RIPE NCC, C=NL", CaName.of(new X500Principal("CN=ALL Resources,O=RIPE NCC,C=NL")).toString());
+        assertEquals("CN=ALL Resources,O=RIPE NCC,C=NL", CaName.parse("CN=ALL Resources,O=RIPE NCC,C=NL").toString());
+        assertEquals("CN=ALL Resources,O=RIPE NCC,C=NL", CaName.of(new X500Principal("CN=ALL Resources,O=RIPE NCC,C=NL")).toString());
     }
 
     @Test

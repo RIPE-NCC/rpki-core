@@ -52,7 +52,7 @@ public class CaName {
     }
 
     public Long getMembershipId() {
-        String encodedName = principal.toString();
+        String encodedName = principal.getName();
         if (encodedName.startsWith(CA_MEMBER_PREFIX)) {
             final String rawMembershipId = encodedName.replaceFirst(CA_MEMBER_PREFIX, "");
             try {
@@ -69,7 +69,7 @@ public class CaName {
     }
 
     public String getOrganisationId() {
-        String encodedName = principal.toString();
+        String encodedName = principal.getName();
         if (encodedName.startsWith(CA_ORGANISATION_PREFIX)) {
             return encodedName.replaceFirst(CA_ORGANISATION_PREFIX, "");
         }
@@ -81,9 +81,12 @@ public class CaName {
        return principal;
     }
 
+    /**
+     * @return the principal name converted to string in the RFC2253 format
+     */
     @Override
     public String toString() {
-        return principal.toString();
+        return principal.getName();
     }
 
     public static CaName parse(String rawCaName) {

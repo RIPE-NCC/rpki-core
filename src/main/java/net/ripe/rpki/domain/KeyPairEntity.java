@@ -34,8 +34,6 @@ import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
 import java.math.BigInteger;
 import java.net.URI;
 import java.security.KeyPair;
@@ -67,19 +65,9 @@ import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 @SequenceGenerator(name = "seq_keypair", sequenceName = "seq_all", allocationSize = 1)
 public class KeyPairEntity extends EntitySupport {
 
-    public static final String NAME_PATTERN = "[A-Za-z0-9-_:@.+ <>]{1,2000}";
-
-    static final int MAX_NAME_LENGTH = 2000;
-
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_keypair")
     private Long id;
-
-    @NotNull
-    @Size(min = 1, max = MAX_NAME_LENGTH)
-    @Pattern(regexp = NAME_PATTERN)
-    @Column(nullable = false)
-    private String name;
 
     @NotNull
     @Enumerated(value = EnumType.STRING)
@@ -115,14 +103,13 @@ public class KeyPairEntity extends EntitySupport {
         setStatus(KeyPairStatus.NEW);
     }
 
-    public KeyPairEntity(KeyPairEntityKeyInfo keyInfo,
+    public KeyPairEntity(KeyPair keyPair,
                          KeyPairEntitySignInfo signInfo,
                          String crlFilename,
                          String manifestFilename) {
         this();
-        this.name = keyInfo.getName();
-        this.size = ((RSAPublicKey) keyInfo.getKeyPair().getPublic()).getModulus().bitLength();
-        this.persistedKeyPair = new PersistedKeyPair(keyInfo, signInfo);
+        this.size = ((RSAPublicKey) keyPair.getPublic()).getModulus().bitLength();
+        this.persistedKeyPair = new PersistedKeyPair(keyPair, signInfo);
         this.crlFilename = crlFilename;
         this.manifestFilename = manifestFilename;
         assertValid();
@@ -133,10 +120,6 @@ public class KeyPairEntity extends EntitySupport {
         return id;
     }
 
-    public String getName() {
-        return name;
-    }
-
     public KeyPairStatus getStatus() {
         return status;
     }
@@ -144,15 +127,6 @@ public class KeyPairEntity extends EntitySupport {
     public DateTime getCreationDate() {
         return new DateTime(getCreatedAt(), DateTimeZone.UTC);
     }
-
-    public DateTime getUpdatedDate() {
-        return new DateTime(getUpdatedAt(), DateTimeZone.UTC);
-    }
-
-    protected boolean hasName(String keyPairName) {
-        return getName().equalsIgnoreCase(keyPairName);
-    }
-
 
     // Key Pair Life Cycle support
 
@@ -240,7 +214,7 @@ public class KeyPairEntity extends EntitySupport {
     }
 
     public IncomingResourceCertificate getCurrentIncomingCertificate() {
-        Validate.notNull(incomingResourceCertificate, "no current incoming certificate for key pair " + name);
+        Validate.notNull(incomingResourceCertificate, "no current incoming certificate for key pair " + this);
         return incomingResourceCertificate;
     }
 
@@ -267,7 +241,6 @@ public class KeyPairEntity extends EntitySupport {
     public String toString() {
         ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
         builder.append("id", getId());
-        builder.append("name", getName());
         builder.append("status", getStatus());
         builder.append("algorithm", algorithm);
         builder.append("size", size);
@@ -319,7 +292,6 @@ public class KeyPairEntity extends EntitySupport {
         Optional<IncomingResourceCertificate> currentIncomingCertificate = findCurrentIncomingCertificate();
         return new KeyPairData(
             getId(),
-            getName(),
             getKeyStoreString(),
             getStatus(),
             getCreationDate(),

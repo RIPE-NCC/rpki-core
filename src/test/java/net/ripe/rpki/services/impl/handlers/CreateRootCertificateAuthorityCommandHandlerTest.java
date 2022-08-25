@@ -39,7 +39,7 @@ public class CreateRootCertificateAuthorityCommandHandlerTest {
         certificateAuthorityRepository = mock(CertificateAuthorityRepository.class);
         repositoryConfiguration = mock(RepositoryConfiguration.class);
         keyPairService = mock(KeyPairService.class);
-        when(keyPairService.createKeyPairEntity(any())).thenReturn(TestObjects.TEST_KEY_PAIR_2);
+        when(keyPairService.createKeyPairEntity()).thenReturn(TestObjects.TEST_KEY_PAIR_2);
         subject = new CreateRootCertificateAuthorityCommandHandler(certificateAuthorityRepository, repositoryConfiguration, keyPairService);
         command = new CreateRootCertificateAuthorityCommand(new VersionedId(12));
     }

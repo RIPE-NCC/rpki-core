@@ -31,13 +31,13 @@ public class PersistedKeyPair {
 
     protected PersistedKeyPair() {}
 
-    public PersistedKeyPair(KeyPairEntityKeyInfo keyInfo, KeyPairEntitySignInfo signInfo) {
+    public PersistedKeyPair(KeyPair keyPair, KeyPairEntitySignInfo signInfo) {
         this.keyStoreProvider = signInfo.getKeyStoreProvider();
         this.signatureProvider = signInfo.getSignatureProvider();
         this.keyStoreType = signInfo.getKeyStoreType();
 
         // Must be done after provider has been set!
-        setKeyPair(keyInfo.getKeyPair());
+        setKeyPair(keyPair);
     }
 
     private void setKeyPair(KeyPair keyPair) {

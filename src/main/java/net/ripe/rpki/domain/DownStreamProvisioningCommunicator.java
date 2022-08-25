@@ -2,7 +2,6 @@ package net.ripe.rpki.domain;
 
 import net.ripe.rpki.commons.crypto.crl.X509Crl;
 import net.ripe.rpki.commons.crypto.crl.X509CrlBuilder;
-import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObjectBuilder;
 import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningPayload;
@@ -52,8 +51,8 @@ public class DownStreamProvisioningCommunicator extends EntitySupport {
     protected DownStreamProvisioningCommunicator() {
     }
 
-    public DownStreamProvisioningCommunicator(KeyPairEntityKeyInfo keyInfo, KeyPairEntitySignInfo signInfo, X500Principal identityCertificateSubject) {
-        this.persistedKeyPair = new PersistedKeyPair(keyInfo, signInfo);
+    public DownStreamProvisioningCommunicator(KeyPair keyPair, KeyPairEntitySignInfo signInfo, X500Principal identityCertificateSubject) {
+        this.persistedKeyPair = new PersistedKeyPair(keyPair, signInfo);
 
         ProvisioningIdentityCertificate identityCertificate = createProvisioningIdentityCertificate(identityCertificateSubject);
         this.encodedIdentityCertificate = identityCertificate.getEncoded();

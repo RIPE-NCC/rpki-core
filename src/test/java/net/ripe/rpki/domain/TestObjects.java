@@ -49,12 +49,11 @@ public class TestObjects {
     private static final AtomicLong serial = new AtomicLong(0L);
 
     public static KeyPairEntity createTestKeyPair(String name) {
-        KeyPairEntityKeyInfo keyInfo = new KeyPairEntityKeyInfo(name, KeyPairFactoryTest.getKeyPair(name));
         KeyPairEntitySignInfo signInfo = new KeyPairEntitySignInfo(DEFAULT_KEYSTORE_PROVIDER,
                 DEFAULT_SIGNATURE_PROVIDER,
                 DEFAULT_KEYSTORE_TYPE);
         try {
-            return new KeyPairEntity(keyInfo, signInfo,
+            return new KeyPairEntity(KeyPairFactoryTest.getKeyPair(name), signInfo,
                     URLEncoder.encode(name + ".crl", "utf-8"),
                     URLEncoder.encode(name + ".mft", "utf-8"));
         } catch (UnsupportedEncodingException e) {

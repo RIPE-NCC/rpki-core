@@ -28,10 +28,9 @@ public class DownStreamProvisioningCommunicatorTest {
     @Before
     public void setUp() {
         expectedKeyPair = KeyPairFactoryTest.TEST_KEY_PAIR;
-        KeyPairEntityKeyInfo keyInfo = new KeyPairEntityKeyInfo("test", expectedKeyPair);
         KeyPairEntitySignInfo signInfo = new KeyPairEntitySignInfo(KeyStoreUtilTest.DEFAULT_KEYSTORE_PROVIDER, KeyPairFactoryTest.DEFAULT_KEYPAIR_GENERATOR_PROVIDER, KeyStoreUtilTest.DEFAULT_KEYSTORE_TYPE);
 
-        subject = new DownStreamProvisioningCommunicator(keyInfo, signInfo, ID_CERT_SUBJECT);
+        subject = new DownStreamProvisioningCommunicator(expectedKeyPair, signInfo, ID_CERT_SUBJECT);
     }
 
     @Test

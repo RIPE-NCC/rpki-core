@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KeyPairDeletionServiceTest {
-    private static final String REVOKED_KEY = "key to be revoked";
     private static final String KEY_STORE_NAME = "keyStore";
     private static final PublicKey PUBLIC_KEY = TestObjects.createTestKeyPair().getPublicKey();
     private KeyPairDeletionService subject;
@@ -56,7 +55,7 @@ public class KeyPairDeletionServiceTest {
     }
 
     private Optional<KeyPairData> keyPairData(String keyStoreName) {
-        KeyPairData keyPairData = new KeyPairData(null, null, keyStoreName, null, null, null, null, null, null, false);
+        KeyPairData keyPairData = new KeyPairData(null, keyStoreName, null, null, null, null, null, null, false);
         return Optional.of(keyPairData);
     }
 

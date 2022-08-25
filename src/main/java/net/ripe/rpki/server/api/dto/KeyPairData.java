@@ -23,11 +23,11 @@ public class KeyPairData extends ValueObjectSupport {
     private final URI certificateRepositoryLocation;
     private final boolean isDbProvider;
 
-    public KeyPairData(Long keyPairId, String name, String keystoreName, KeyPairStatus status, DateTime creationDate,
+    public KeyPairData(Long keyPairId, String keystoreName, KeyPairStatus status, DateTime creationDate,
                        Map<KeyPairStatus, DateTime> statusChangedTimestamps, URI certificateRepositoryLocation,
                        String crlFilename, String manifestFilename, boolean isDbProvider) {
         this.keyPairId = keyPairId;
-        this.name = name;
+        this.name = "KEY-" + keyPairId; // API backwards compatibility?
         this.keystoreName = keystoreName;
         this.status = status;
         this.creationDate = creationDate;

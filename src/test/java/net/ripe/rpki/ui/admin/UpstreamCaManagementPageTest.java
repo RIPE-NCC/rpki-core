@@ -182,7 +182,7 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
     }
 
     private void givenCurrentKeyExists() {
-        List<KeyPairData> keys = Collections.singletonList(new KeyPairData(1L, "currentKey", "currentKeyStore",
+        List<KeyPairData> keys = Collections.singletonList(new KeyPairData(1L, "currentKeyStore",
             KeyPairStatus.CURRENT, new DateTime(), null, REPO_LOCATION, "key1.crl", "key1.mft", false));
 
         IpResourceSet resources = new IpResourceSet(RESOURCES);
@@ -194,7 +194,7 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
     }
 
     private void givenNewKeyExists() {
-        List<KeyPairData> keys = Collections.singletonList(new KeyPairData(1L, "newKey", "currentKeyStore",
+        List<KeyPairData> keys = Collections.singletonList(new KeyPairData(1L, "currentKeyStore",
             KeyPairStatus.NEW, new DateTime(), null, REPO_LOCATION, "key1.crl", "key1.mft", false));
 
         IpResourceSet resources = new IpResourceSet(RESOURCES);
@@ -207,9 +207,9 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
 
     private void givenPendingAndCurrentKeysExist() {
         List<KeyPairData> keys = new ArrayList<>();
-        keys.add(new KeyPairData(1L, "currentKey", "currentKeyStore", KeyPairStatus.CURRENT,
+        keys.add(new KeyPairData(1L, "currentKeyStore", KeyPairStatus.CURRENT,
             new DateTime().minusMonths(1), null, REPO_LOCATION, "key1.crl", "key1.mft", false));
-        keys.add(new KeyPairData(1L, "pendingKey", "pendingKeyStore", KeyPairStatus.PENDING,
+        keys.add(new KeyPairData(1L, "pendingKeyStore", KeyPairStatus.PENDING,
             new DateTime(), null, REPO_LOCATION, "key2.crl", "key2.mft", false));
 
         IpResourceSet resources = new IpResourceSet(RESOURCES);
@@ -221,8 +221,8 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
 
     private void givenOldAndCurrentKeysExist() {
         List<KeyPairData> keys = new ArrayList<>();
-        keys.add(new KeyPairData(1L, "oldKey", "oldKeyStore", KeyPairStatus.OLD, new DateTime().minusMonths(1), null, REPO_LOCATION, "key1.crl", "key1.mft", false));
-        keys.add(new KeyPairData(1L, "currentKey", "currentKeyStore", KeyPairStatus.CURRENT, new DateTime(), null, REPO_LOCATION, "key2.crl", "key2.mft", false));
+        keys.add(new KeyPairData(1L, "oldKeyStore", KeyPairStatus.OLD, new DateTime().minusMonths(1), null, REPO_LOCATION, "key1.crl", "key1.mft", false));
+        keys.add(new KeyPairData(1L, "currentKeyStore", KeyPairStatus.CURRENT, new DateTime(), null, REPO_LOCATION, "key2.crl", "key2.mft", false));
 
         IpResourceSet resources = new IpResourceSet(RESOURCES);
         resources.addAll(IpResourceSet.IP_PRIVATE_USE_RESOURCES);

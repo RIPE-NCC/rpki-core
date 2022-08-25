@@ -4,7 +4,6 @@ import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
-import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationServiceBean;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -26,14 +25,11 @@ import static org.mockito.Mockito.when;
 public class ProductionCertificateAuthorityTest extends CertificationDomainTestCase {
     private ProductionCertificateAuthority prodCa;
     private KeyPairEntity kp;
-    private KeyPairService keyPairService;
-    private CertificateRequestCreationService certificateRequestCreationService;
     private CertificateManagementService certificateManagementService;
 
     @Before
     public void setUp() {
         prodCa = createProductionCertificateAuthority(12, PRODUCTION_CA_NAME);
-        keyPairService = mock(KeyPairService.class);
         kp = TestObjects.createActiveKeyPair("TEST-KEY");
         RepositoryConfiguration certificateConfiguration = mock(RepositoryConfiguration.class);
         when(certificateConfiguration.getPublicRepositoryUri()).thenReturn(BASE_URI);
@@ -73,7 +69,7 @@ public class ProductionCertificateAuthorityTest extends CertificationDomainTestC
         prodCa.addKeyPair(kp);
 
         assertFalse(kp.isRemovable());
-        prodCa.removeKeyPair(kp.getName());
+        prodCa.removeKeyPair(kp);
     }
 
     private X509CertificateInformationAccessDescriptor[] createSia() {

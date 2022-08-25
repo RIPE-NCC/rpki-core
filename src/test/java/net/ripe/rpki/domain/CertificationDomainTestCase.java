@@ -5,7 +5,6 @@ import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
-import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
@@ -91,7 +90,6 @@ public abstract class CertificationDomainTestCase {
     @Autowired
     protected KeyPairService keyPairService;
 
-    protected KeyPairFactory keyPairFactory = PregeneratedKeyPairFactory.getInstance();
     protected SingleUseKeyPairFactory singleUseKeyPairFactory = new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance());
 
     @Autowired
@@ -116,7 +114,7 @@ public abstract class CertificationDomainTestCase {
 
     protected ProductionCertificateAuthority createInitializedAllResourcesAndProductionCertificateAuthority() {
         AllResourcesCertificateAuthority allResources = new AllResourcesCertificateAuthority(ACA_ID, ALL_RESOURCES_CA_NAME);
-        KeyPairEntity acaKeyPair = keyPairService.createKeyPairEntity("ACA-TEST-KEY");
+        KeyPairEntity acaKeyPair = keyPairService.createKeyPairEntity();
         allResources.addKeyPair(acaKeyPair);
         certificateAuthorityRepository.add(allResources);
 
@@ -130,7 +128,7 @@ public abstract class CertificationDomainTestCase {
         assertThat(acaKeyPair.isCurrent()).isTrue();
 
         ProductionCertificateAuthority production = new ProductionCertificateAuthority(CA_ID, repositoryConfiguration.getProductionCaPrincipal(), allResources);
-        KeyPairEntity productionKeyPair = keyPairService.createKeyPairEntity("TEST-KEY");
+        KeyPairEntity productionKeyPair = keyPairService.createKeyPairEntity();
         production.addKeyPair(productionKeyPair);
         certificateAuthorityRepository.add(production);
 

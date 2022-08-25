@@ -5,7 +5,7 @@ package net.ripe.rpki.domain;
  */
 public interface KeyPairService {
 
-    KeyPairEntity createKeyPairEntity(String name);
+    KeyPairEntity createKeyPairEntity();
 
     DownStreamProvisioningCommunicator createMyIdentityMaterial(HostedCertificateAuthority ca);
 }

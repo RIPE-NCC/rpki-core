@@ -20,7 +20,6 @@ import static net.ripe.rpki.domain.CertificationDomainTestCase.BASE_URI;
 import static net.ripe.rpki.domain.CertificationDomainTestCase.createAllResourcesCertificateAuthority;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,7 +42,7 @@ public class AllResourcesCertificateAuthorityTest  {
         when(repositoryConfiguration.getTrustAnchorRepositoryUri()).thenReturn(BASE_URI);
         certificateRequestCreationService = new CertificateRequestCreationServiceBean(repositoryConfiguration);
 
-        when(keyPairService.createKeyPairEntity(isA(String.class))).thenReturn(kp);
+        when(keyPairService.createKeyPairEntity()).thenReturn(kp);
     }
 
     @Test
@@ -55,7 +54,7 @@ public class AllResourcesCertificateAuthorityTest  {
         assertEquals(1, taRequests.size());
         assertTrue(taRequests.get(0) instanceof SigningRequest);
 
-        verify(keyPairService).createKeyPairEntity(isA(String.class));
+        verify(keyPairService).createKeyPairEntity();
     }
 
     @Test
@@ -63,7 +62,7 @@ public class AllResourcesCertificateAuthorityTest  {
         allResourcesCa.processCertifiableResources(keyPairService, certificateRequestCreationService);
         TrustAnchorRequest trustAnchorRequest = allResourcesCa.getUpStreamCARequestEntity().getUpStreamCARequest();
 
-        verify(keyPairService).createKeyPairEntity(isA(String.class));
+        verify(keyPairService).createKeyPairEntity();
 
         List<TaRequest> taRequests = trustAnchorRequest.getTaRequests();
         assertEquals(1, taRequests.size());

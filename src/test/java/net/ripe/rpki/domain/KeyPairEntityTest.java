@@ -56,7 +56,6 @@ public class KeyPairEntityTest {
         assertTrue(keyPair.getPrivateKey().getEncoded().length > 0);
         assertTrue(keyPair.getPublicKey().getEncoded().length > 0);
         assertEquals(KeyPairFactory.ALGORITHM, keyPair.getAlgorithm());
-        assertEquals(TEST_KEY_PAIR_NAME, keyPair.getName());
         assertEquals(KeyPairStatus.NEW, keyPair.getStatus());
     }
 

@@ -57,7 +57,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -120,22 +119,13 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
             getCertifiedResources(), upStreamCARequest, keys);
     }
 
-    public void removeKeyPair(final String name) {
-        Optional<KeyPairEntity> keyPair = findKeyPairByName(name);
-        Validate.isTrue(keyPair.isPresent(), "Key pair is not present '" + name + "'");
-
-        keyPair.ifPresent(kp -> {
-            Validate.isTrue(kp.isRemovable(), "Key pair is in use '" + name + "'");
-            keyPairs.remove(kp);
-        });
+    public void removeKeyPair(final KeyPairEntity keyPair) {
+        Validate.isTrue(keyPair.isRemovable(), "Key pair is in use");
+        keyPairs.remove(keyPair);
     }
 
     public Collection<KeyPairEntity> getKeyPairs() {
         return keyPairs;
-    }
-
-    public Optional<KeyPairEntity> findKeyPairByName(String keyPairName) {
-        return keyPairs.stream().filter(keyPair -> keyPair.hasName(keyPairName)).findFirst();
     }
 
     public Optional<KeyPairEntity> findKeyPairByEncodedPublicKey(String encodedPublicKey) {
@@ -451,24 +441,12 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     }
 
     public KeyPairEntity createNewKeyPair(KeyPairService keyPairService) {
-        final Set<String> uniqueNames = keyPairs.stream()
-            .map(KeyPairEntity::getName)
-            .collect(Collectors.toSet());
-
-        String newKeyPairName;
-        do {
-            newKeyPairName = getId() + "-" + DEFAULT_RESOURCE_CLASS + "-" + UUID.randomUUID();
-        } while(uniqueNames.contains(newKeyPairName));
-
-        KeyPairEntity keyPair = keyPairService.createKeyPairEntity(newKeyPairName);
+        KeyPairEntity keyPair = keyPairService.createKeyPairEntity();
         keyPairs.add(keyPair);
         return keyPair;
     }
 
     public void addKeyPair(KeyPairEntity keyPair) {
-        if (findKeyPairByName(keyPair.getName()).isPresent()) {
-            throw new NameNotUniqueException(keyPair.getName());
-        }
         keyPairs.add(keyPair);
     }
 

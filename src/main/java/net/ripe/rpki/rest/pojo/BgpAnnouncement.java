@@ -1,7 +1,9 @@
 package net.ripe.rpki.rest.pojo;
 
+import lombok.NoArgsConstructor;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 
+@NoArgsConstructor
 public class BgpAnnouncement {
 
     private String asn;
@@ -9,10 +11,9 @@ public class BgpAnnouncement {
     private int visibility;
     private RouteValidityState currentState;
     private boolean suppressed;
-    private boolean verified;
 
-    public BgpAnnouncement() {
-    }
+    /** Whether the space is completely covered by the certified resources or not. */
+    private boolean verified;
 
     public BgpAnnouncement(String asn, String prefix, int visibility, RouteValidityState currentState, boolean suppressed) {
         this.asn = asn;

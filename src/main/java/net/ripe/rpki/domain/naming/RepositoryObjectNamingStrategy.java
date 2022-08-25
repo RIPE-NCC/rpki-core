@@ -2,11 +2,11 @@ package net.ripe.rpki.domain.naming;
 
 import com.google.common.collect.ImmutableSet;
 import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.KeyPairEntityKeyInfo;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.Serializable;
+import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.Set;
 
@@ -28,11 +28,11 @@ public interface RepositoryObjectNamingStrategy extends Serializable {
 
     String roaFileName(OutgoingResourceCertificate eeCertificate);
 
-    String crlFileName(KeyPairEntityKeyInfo keyInfo);
+    String crlFileName(KeyPair keyPair);
 
     String signedObjectFileName(String extension, X500Principal certificateSubject, PublicKey certificatePublicKey);
 
-    String manifestFileName(KeyPairEntityKeyInfo keyInfo);
+    String manifestFileName(KeyPair keyPair);
 
     X500Principal caCertificateSubject(PublicKey subjectKey);
 

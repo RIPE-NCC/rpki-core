@@ -166,7 +166,7 @@ public class TrustAnchorResponseProcessor {
             final EncodedPublicKey encodedPublicKey = new EncodedPublicKey(signingRequest.getResourceCertificateRequest().getEncodedSubjectPublicKey());
             allResourcesCa.findKeyPairByPublicKey(encodedPublicKey).ifPresent(keyPairEntity -> {
                 if (keyPairEntity.isNew()) {
-                    allResourcesCa.removeKeyPair(keyPairEntity.getName());
+                    allResourcesCa.removeKeyPair(keyPairEntity);
                 }
             });
         }

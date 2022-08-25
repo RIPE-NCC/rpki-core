@@ -5,7 +5,6 @@ import net.ripe.rpki.domain.DownStreamProvisioningCommunicator;
 import net.ripe.rpki.domain.HardwareKeyPairFactory;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.KeyPairEntityKeyInfo;
 import net.ripe.rpki.domain.KeyPairEntitySignInfo;
 import net.ripe.rpki.domain.KeyPairService;
 import net.ripe.rpki.domain.naming.UuidRepositoryObjectNamingStrategy;
@@ -33,19 +32,19 @@ public class KeyPairServiceBean implements KeyPairService {
     }
 
     @Override
-    public KeyPairEntity createKeyPairEntity(String name) {
-        KeyPairEntityKeyInfo keyInfo = createKeyInfo(name);
+    public KeyPairEntity createKeyPairEntity() {
+        KeyPair keyPair = hardwareKeyPairFactory.get();
         KeyPairEntitySignInfo signInfo = createSignInfo();
-        String crlFilename = namingStrategy.crlFileName(keyInfo);
-        String manifestFilename = namingStrategy.manifestFileName(keyInfo);
-        return new KeyPairEntity(keyInfo, signInfo, crlFilename, manifestFilename);
+        String crlFilename = namingStrategy.crlFileName(keyPair);
+        String manifestFilename = namingStrategy.manifestFileName(keyPair);
+        return new KeyPairEntity(keyPair, signInfo, crlFilename, manifestFilename);
     }
 
     @Override
     public DownStreamProvisioningCommunicator createMyIdentityMaterial(HostedCertificateAuthority ca) {
-        KeyPairEntityKeyInfo keyInfo = createKeyInfo("");
+        KeyPair keyPair = hardwareKeyPairFactory.get();
         KeyPairEntitySignInfo signInfo = createSignInfo();
-        return new DownStreamProvisioningCommunicator(keyInfo, signInfo, ca.getName());
+        return new DownStreamProvisioningCommunicator(keyPair, signInfo, ca.getName());
     }
 
     private KeyPairEntitySignInfo createSignInfo() {
@@ -55,8 +54,4 @@ public class KeyPairServiceBean implements KeyPairService {
                 providerConfiguration.getKeyStoreType());
     }
 
-    private KeyPairEntityKeyInfo createKeyInfo(String name) {
-        KeyPair keyPair = hardwareKeyPairFactory.get();
-        return new KeyPairEntityKeyInfo(name, keyPair);
-    }
 }

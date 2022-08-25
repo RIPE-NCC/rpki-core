@@ -34,7 +34,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
@@ -100,7 +99,7 @@ public class CertificateRequestCreationServiceBeanTest {
         when(productionCa.getCurrentIncomingCertificate()).thenReturn(currentCertificate);
 
         KeyPairEntity newKp = mock(KeyPairEntity.class);
-        when(keyPairService.createKeyPairEntity(isA(String.class))).thenReturn(newKp);
+        when(keyPairService.createKeyPairEntity()).thenReturn(newKp);
         when(newKp.getStatus()).thenReturn(KeyPairStatus.NEW);
         when(newKp.getPublicKey()).thenReturn(TestObjects.createTestKeyPair().getPublicKey());
         when(newKp.getManifestFilename()).thenReturn("test.mft");

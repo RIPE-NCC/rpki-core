@@ -2,11 +2,11 @@ package net.ripe.rpki.domain.naming;
 
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.KeyPairEntityKeyInfo;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import org.apache.commons.lang.Validate;
 
 import javax.security.auth.x500.X500Principal;
+import java.security.KeyPair;
 import java.security.PublicKey;
 
 public class UuidRepositoryObjectNamingStrategy implements RepositoryObjectNamingStrategy {
@@ -22,8 +22,8 @@ public class UuidRepositoryObjectNamingStrategy implements RepositoryObjectNamin
     }
 
     @Override
-    public String crlFileName(KeyPairEntityKeyInfo keyInfo) {
-        return getDashSafeEncodedPublicKeyHash(keyInfo.getKeyPair().getPublic()) + "." + CRL_FILE_EXTENSION;
+    public String crlFileName(KeyPair keyPair) {
+        return getDashSafeEncodedPublicKeyHash(keyPair.getPublic()) + "." + CRL_FILE_EXTENSION;
     }
 
     @Override
@@ -38,8 +38,8 @@ public class UuidRepositoryObjectNamingStrategy implements RepositoryObjectNamin
     }
 
     @Override
-    public String manifestFileName(KeyPairEntityKeyInfo keyInfo) {
-        return getDashSafeEncodedPublicKeyHash(keyInfo.getKeyPair().getPublic()) + "." + MANIFEST_FILE_EXTENSION;
+    public String manifestFileName(KeyPair keyPair) {
+        return getDashSafeEncodedPublicKeyHash(keyPair.getPublic()) + "." + MANIFEST_FILE_EXTENSION;
     }
 
     @Override

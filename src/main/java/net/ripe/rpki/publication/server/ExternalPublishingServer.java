@@ -80,14 +80,14 @@ public class ExternalPublishingServer {
         this.publishingServerClient = publishingServerClient;
         this.publishingServerUrl = publishingServerUrl;
 
-        rrdpPublicationSuccesses = Counter.builder("rpkicore.publication")
+        rrdpPublicationSuccesses = Counter.builder("rpkicore.publication.messages")
             .description("The number of publication messages successfully sent to RRDP repository")
             .tag(METRIC_TAG_STATUS, "success")
             .tag(METRIC_TAG_PUBLICATION, "rrdp")
             .tag(METRIC_TAG_URI, publishingServerUrl.toString())
             .register(meterRegistry);
 
-        rrdpPublicationFailures = Counter.builder("rpkicore.publication")
+        rrdpPublicationFailures = Counter.builder("rpkicore.publication.messages")
             .description("The number of publication messages failed to be sent to RRDP repository")
             .tag(METRIC_TAG_STATUS, "failure")
             .tag(METRIC_TAG_PUBLICATION, "rrdp")

@@ -26,7 +26,7 @@ public interface CertificateAuthorityRepository extends Repository<CertificateAu
 
     Collection<CertificateAuthority> findAllByParent(ParentCertificateAuthority parent);
 
-    HostedCertificateAuthority findHostedCa(Long id);
+    ManagedCertificateAuthority findManagedCa(Long id);
 
     NonHostedCertificateAuthority findNonHostedCa(Long id);
 
@@ -34,13 +34,13 @@ public interface CertificateAuthorityRepository extends Repository<CertificateAu
 
     Collection<CaStatEvent> getCAStatEvents();
 
-    List<HostedCertificateAuthority> findAllWithManifestsExpiringBefore(DateTime notValidAfterCutoff, int maxResult);
+    List<ManagedCertificateAuthority> findAllWithManifestsExpiringBefore(DateTime notValidAfterCutoff, int maxResult);
 
-    Collection<HostedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff);
+    Collection<ManagedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff);
 
-    TypedQuery<HostedCertificateAuthority> findAllWithManifestAndCrlCheckNeeded();
+    TypedQuery<ManagedCertificateAuthority> findAllWithManifestAndCrlCheckNeeded();
 
     int deleteNonHostedPublicKeysWithoutSigningCertificates();
 
-    Collection<HostedCertificateAuthority> getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear();
+    Collection<ManagedCertificateAuthority> getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear();
 }

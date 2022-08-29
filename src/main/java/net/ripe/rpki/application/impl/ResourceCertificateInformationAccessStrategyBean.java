@@ -2,7 +2,7 @@ package net.ripe.rpki.application.impl;
 
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.CertificateAuthority;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
@@ -64,7 +64,7 @@ public class ResourceCertificateInformationAccessStrategyBean implements Resourc
     }
 
     @Override
-    public URI defaultCertificateRepositoryLocation(HostedCertificateAuthority ca, String resourceClassName) {
+    public URI defaultCertificateRepositoryLocation(ManagedCertificateAuthority ca, String resourceClassName) {
         if (ca.isAllResourcesCa()) {
             return URI.create(ACA_PUBLICATION_SUBDIRECTORY + '/');
         } else if (ca.isProductionCa()) {

@@ -2,7 +2,7 @@ package net.ripe.rpki.services.impl.handlers;
 
 
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
@@ -35,7 +35,7 @@ public class IssueUpdatedManifestAndCrlCommandHandler extends AbstractCertificat
 
     @Override
     public void handle(IssueUpdatedManifestAndCrlCommand command, CommandStatus commandStatus) {
-        HostedCertificateAuthority hostedCa = lookupHostedCA(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority hostedCa = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
 
         roaEntityService.updateRoasIfNeeded(hostedCa);
 

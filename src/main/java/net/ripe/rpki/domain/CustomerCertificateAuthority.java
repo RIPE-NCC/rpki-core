@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  */
 @Entity
 @DiscriminatorValue(value = "HOSTED")
-public class CustomerCertificateAuthority extends HostedCertificateAuthority {
+public class CustomerCertificateAuthority extends ManagedCertificateAuthority {
 
     protected CustomerCertificateAuthority() { }
 

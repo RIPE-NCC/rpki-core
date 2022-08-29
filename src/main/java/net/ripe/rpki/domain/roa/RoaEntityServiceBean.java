@@ -9,14 +9,13 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCms;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsBuilder;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsParser;
-import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
 import net.ripe.rpki.core.events.KeyPairActivatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
@@ -29,7 +28,6 @@ import net.ripe.rpki.server.api.commands.CommandContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.inject.Named;
 import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 import java.net.URI;
@@ -70,7 +68,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
 
     @Override
     public void visitKeyPairActivatedEvent(KeyPairActivatedEvent event, CommandContext context) {
-        HostedCertificateAuthority ca = certificateAuthorityRepository.findHostedCa(event.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(event.getCertificateAuthorityVersionedId().getId());
         if (ca == null) {
             return;
         }
@@ -78,7 +76,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
         revokeRoasSignedByOldKeys(ca);
     }
 
-    private void revokeRoasSignedByOldKeys(HostedCertificateAuthority ca) {
+    private void revokeRoasSignedByOldKeys(ManagedCertificateAuthority ca) {
         ca.getKeyPairs().stream()
                 .filter(KeyPairEntity::isOld)
                 .flatMap(keyPair -> repository.findByCertificateSigningKeyPair(keyPair).stream())
@@ -90,7 +88,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
     }
 
     @Override
-    public void updateRoasIfNeeded(HostedCertificateAuthority ca) {
+    public void updateRoasIfNeeded(ManagedCertificateAuthority ca) {
         final RoaConfiguration configuration = roaConfigurationRepository.getOrCreateByCertificateAuthority(ca);
         ca.findCurrentKeyPair()
             .ifPresent(currentKeyPair ->
@@ -175,7 +173,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
 
     private OutgoingResourceCertificate createEndEntityCertificateForRoa(RoaSpecification specification,
                                                                          ValidityPeriod roaValidityPeriod, KeyPair eeKeyPair, KeyPairEntity signingKeyPair) {
-        HostedCertificateAuthority certificateAuthority = specification.getCertificateAuthority();
+        ManagedCertificateAuthority certificateAuthority = specification.getCertificateAuthority();
         CertificateIssuanceRequest request = requestForRoaEeCertificate(specification.getNormalisedResources(), signingKeyPair, eeKeyPair, specification);
         return certificateManagementService.issueSingleUseEeResourceCertificate(
                 certificateAuthority, request, roaValidityPeriod, signingKeyPair);

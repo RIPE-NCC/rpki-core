@@ -2,7 +2,7 @@ package net.ripe.rpki.services.impl.background;
 
 import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -42,7 +42,7 @@ public abstract class AbstractKeyRolloverManagementServiceBean extends Sequentia
 
     private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-    protected void runService(Class<? extends HostedCertificateAuthority> type) {
+    protected void runService(Class<? extends ManagedCertificateAuthority> type) {
         final MaxExceptionsTemplate template = new MaxExceptionsTemplate(MAX_ALLOWED_EXCEPTIONS);
         final Integer batchSize = 1000;
         final Instant oldestCreationTime = Instant.now().minus(

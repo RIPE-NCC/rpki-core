@@ -1,7 +1,7 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
@@ -28,7 +28,7 @@ public class KeyManagementActivatePendingKeysCommandHandler extends AbstractCert
      */
     @Override
     public void handle(KeyManagementActivatePendingKeysCommand command, CommandStatus commandStatus) {
-        HostedCertificateAuthority ca = lookupHostedCA(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
         if (!ca.activatePendingKeys(command.getMinStagingTime())) {
             throw new CommandWithoutEffectException("No keys to activate for ca: " + ca.getName());
         }

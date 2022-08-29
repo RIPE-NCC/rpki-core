@@ -7,7 +7,7 @@ import io.micrometer.core.instrument.Timer;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.alerts.RoaAlertMaintenanceService;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.domain.roa.RoaConfigurationMaintenanceService;
@@ -140,10 +140,10 @@ public class CommandServiceImpl implements CommandService {
             EventDelegateTracker.get().reset();
             CommandContext commandContext = commandAuditService.startRecording(command);
             try (
-                EventSubscription commandAuditSubscription = HostedCertificateAuthority.EVENTS.subscribe(commandContext::recordEvent);
-                EventSubscription roaEntityServiceSubscription = HostedCertificateAuthority.subscribe(roaEntityService, commandContext);
-                EventSubscription roaAlertMaintenanceSubscription = HostedCertificateAuthority.subscribe(roaAlertMaintenanceService, commandContext);
-                EventSubscription roaConfigurationMaintenanceSubscription = HostedCertificateAuthority.subscribe(roaConfigurationMaintenanceService, commandContext)
+                EventSubscription commandAuditSubscription = ManagedCertificateAuthority.EVENTS.subscribe(commandContext::recordEvent);
+                EventSubscription roaEntityServiceSubscription = ManagedCertificateAuthority.subscribe(roaEntityService, commandContext);
+                EventSubscription roaAlertMaintenanceSubscription = ManagedCertificateAuthority.subscribe(roaAlertMaintenanceService, commandContext);
+                EventSubscription roaConfigurationMaintenanceSubscription = ManagedCertificateAuthority.subscribe(roaConfigurationMaintenanceService, commandContext)
             ) {
                 commandStatus.setTransactionStatus(status);
                 commandDispatcher.dispatch(command, commandStatus);

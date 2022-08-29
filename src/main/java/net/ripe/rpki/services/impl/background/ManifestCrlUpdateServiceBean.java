@@ -6,7 +6,7 @@ import net.ripe.rpki.commons.util.UTC;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementServiceImpl;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
@@ -62,7 +62,7 @@ public class ManifestCrlUpdateServiceBean extends SequentialBackgroundServiceWit
     @SneakyThrows
     protected void runService() {
         // Process all CAs with pending publications and a next update time within the hard limit "time to next update"
-        Collection<HostedCertificateAuthority> mustCheckForUpdatesCAs = certificateAuthorityRepository.findAllWithOutdatedManifests(
+        Collection<ManagedCertificateAuthority> mustCheckForUpdatesCAs = certificateAuthorityRepository.findAllWithOutdatedManifests(
             UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_HARD_LIMIT)
         );
         log.info("issuing manifests/CRLs for {} CAs with changes or where next update time exceeds hard limit", mustCheckForUpdatesCAs.size());
@@ -73,7 +73,7 @@ public class ManifestCrlUpdateServiceBean extends SequentialBackgroundServiceWit
         // manifests/CRLs.
         int minutesBetweenSoftAndHardLimit = CertificateManagementServiceImpl.TIME_TO_NEXT_UPDATE.minus(ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT).toStandardMinutes().getMinutes();
         int estimatedCasToProcess = certificateAuthorityRepository.size() / Math.max(1, minutesBetweenSoftAndHardLimit / manifestCrlUpdateIntervalMinutes);
-        Collection<HostedCertificateAuthority> additionalCheckForUpdateCAs = certificateAuthorityRepository.findAllWithManifestsExpiringBefore(
+        Collection<ManagedCertificateAuthority> additionalCheckForUpdateCAs = certificateAuthorityRepository.findAllWithManifestsExpiringBefore(
             UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT),
             estimatedCasToProcess
         );
@@ -81,7 +81,7 @@ public class ManifestCrlUpdateServiceBean extends SequentialBackgroundServiceWit
         processCertificateAuthorities(additionalCheckForUpdateCAs);
     }
 
-    private void processCertificateAuthorities(Collection<HostedCertificateAuthority> certificateAuthorities) throws InterruptedException, ExecutionException {
+    private void processCertificateAuthorities(Collection<ManagedCertificateAuthority> certificateAuthorities) throws InterruptedException, ExecutionException {
         final MaxExceptionsTemplate template = new MaxExceptionsTemplate(MAX_ALLOWED_EXCEPTIONS);
         List<Future<?>> tasks = new ArrayList<>();
         for (final CertificateAuthority ca : certificateAuthorities) {

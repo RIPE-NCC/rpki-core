@@ -326,7 +326,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         assertThat(publicationUri1).isEqualTo(certificate2.getPublicationUri());
     }
 
-    private void assertChildParentInvariants(CustomerCertificateAuthority child, HostedCertificateAuthority parent) {
+    private void assertChildParentInvariants(CustomerCertificateAuthority child, ManagedCertificateAuthority parent) {
         // For every published, outgoing certificate in parent there should be a matching incoming certificate in child.
         // A child should never be left without a published outgoing certificate for each of its publishable keys.
         Set<PublicKey> childPublicKeys = child.getKeyPairs().stream()

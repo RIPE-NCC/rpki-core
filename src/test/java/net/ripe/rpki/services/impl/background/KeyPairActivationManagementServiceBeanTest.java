@@ -6,7 +6,7 @@ import net.ripe.rpki.server.api.commands.CertificateAuthorityModificationCommand
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.services.command.CommandService;
@@ -43,11 +43,11 @@ public class KeyPairActivationManagementServiceBeanTest {
 
     private static final X500Principal CA_NAME = new X500Principal("CN=nl.bluelight");
 
-    private static final CertificateAuthorityData PROD_CA = new HostedCertificateAuthorityData(new VersionedId(0L),
+    private static final CertificateAuthorityData PROD_CA = new ManagedCertificateAuthorityData(new VersionedId(0L),
         CA_NAME, UUID.randomUUID(), 1L, ROOT,
         ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
-    private static final CertificateAuthorityData MEMBER_CA = new HostedCertificateAuthorityData(new VersionedId(1L),
+    private static final CertificateAuthorityData MEMBER_CA = new ManagedCertificateAuthorityData(new VersionedId(1L),
         CA_NAME, UUID.randomUUID(), PROD_CA.getId(), HOSTED,
         ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
@@ -74,7 +74,7 @@ public class KeyPairActivationManagementServiceBeanTest {
 
     @Test
     public void shouldReturnIfNoCaFound() {
-        when(certificationService.findAllHostedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth()).thenReturn(Collections.emptyList());
+        when(certificationService.findAllManagedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth()).thenReturn(Collections.emptyList());
 
         subject.runService();
 
@@ -91,7 +91,7 @@ public class KeyPairActivationManagementServiceBeanTest {
 
     @Test
     public void shouldSendActivatePendingKeyCommandToProductionCA() {
-        when(certificationService.findAllHostedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth()).thenReturn(Collections.singletonList(PROD_CA));
+        when(certificationService.findAllManagedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth()).thenReturn(Collections.singletonList(PROD_CA));
         when(configuration.getStagingPeriod()).thenReturn(Duration.standardHours(24));
         when(commandService.execute(any())).thenReturn(CommandStatus.create());
 
@@ -104,7 +104,7 @@ public class KeyPairActivationManagementServiceBeanTest {
 
     @Test
     public void shouldTriggerMemberCertificatesUpdateAfterProductionCAKeyRollover() {
-        when(certificationService.findAllHostedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth()).thenReturn(Collections.singletonList(PROD_CA));
+        when(certificationService.findAllManagedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth()).thenReturn(Collections.singletonList(PROD_CA));
         when(certificationService.findAllChildrenForCa(PROD_CA.getName())).thenReturn(Arrays.asList(MEMBER_CA, NON_HOSTED_CA));
         when(configuration.getStagingPeriod()).thenReturn(Duration.standardHours(24));
         when(commandService.execute(any())).thenReturn(CommandStatus.create());

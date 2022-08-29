@@ -2,9 +2,6 @@ package net.ripe.rpki.domain;
 
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
-import net.ripe.rpki.commons.ta.domain.request.TaRequest;
-import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
-import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import org.hibernate.annotations.Cascade;
@@ -15,14 +12,12 @@ import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.security.auth.x500.X500Principal;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 
 @Entity
 @DiscriminatorValue(value = "ROOT")
-public class ProductionCertificateAuthority extends HostedCertificateAuthority {
+public class ProductionCertificateAuthority extends ManagedCertificateAuthority {
 
     @OneToOne
     @JoinColumn(name = "down_stream_provisioning_communicator_id", nullable = true)

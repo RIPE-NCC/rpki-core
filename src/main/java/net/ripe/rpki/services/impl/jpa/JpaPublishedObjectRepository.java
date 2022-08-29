@@ -117,7 +117,8 @@ public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject>
         createQuery("UPDATE PublishedObject po " +
             "    SET po.version = po.version + 1," +
             "        po.updatedAt = :now," +
-            "        po.issuingKeyPair = null" +
+            "        po.issuingKeyPair = null," +
+            "        po.containingManifest = null" +
             "  WHERE po.issuingKeyPair.id = :issuingKeyPair")
             .setParameter("now", Instant.now())
             .setParameter("issuingKeyPair", keyPair.getId())

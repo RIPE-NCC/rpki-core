@@ -4,7 +4,7 @@ import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.PublicationStatus;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
@@ -52,7 +52,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
 
     @Test
     public void outgoing_resource_certificate_should_change_to_expired_after_not_valid_after_timestamp() {
-        HostedCertificateAuthority ca = withTx(() -> createInitialisedProdCaWithRipeResources());
+        ManagedCertificateAuthority ca = withTx(() -> createInitialisedProdCaWithRipeResources());
         commandService.execute(new UpdateRoaConfigurationCommand(
             ca.getVersionedId(),
             Collections.singleton(new RoaConfigurationPrefixData(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"), null)),

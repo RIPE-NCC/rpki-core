@@ -1,7 +1,7 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.alerts.RoaAlertConfiguration;
 import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
 import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
@@ -92,7 +92,7 @@ public class SubscribeToRoaAlertCommandHandler extends AbstractCertificateAuthor
     }
 
     private RoaAlertConfiguration createConfiguration(SubscribeToRoaAlertCommand command) {
-        HostedCertificateAuthority certificateAuthority = lookupHostedCA(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority certificateAuthority = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
         RoaAlertConfiguration configuration = new RoaAlertConfiguration(certificateAuthority);
         configuration.setSubscription(new RoaAlertSubscriptionData(command.getEmail(),
                 command.getRouteValidityStates(), command.getFrequency()));

@@ -4,7 +4,7 @@ import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.xml.XStreamXmlSerializer;
 import net.ripe.rpki.commons.xml.XStreamXmlSerializerBuilder;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -33,14 +33,14 @@ public class UpStreamCARequestEntity {
 
     @SuppressWarnings("unused")
     // Used for hibernate mapping
-    @OneToOne(targetEntity = HostedCertificateAuthority.class)
+    @OneToOne(targetEntity = ManagedCertificateAuthority.class)
     @JoinColumn(name = "requesting_ca_id", nullable = false, unique = true)
-    private HostedCertificateAuthority certificateAuthority;
+    private ManagedCertificateAuthority certificateAuthority;
 
     protected UpStreamCARequestEntity() {
     }
 
-    public UpStreamCARequestEntity(HostedCertificateAuthority certificateAuthority, TrustAnchorRequest upStreamCARequest) {
+    public UpStreamCARequestEntity(ManagedCertificateAuthority certificateAuthority, TrustAnchorRequest upStreamCARequest) {
         this.certificateAuthority = certificateAuthority;
         this.upStreamCARequest = getRequestSerialiser().serialize(upStreamCARequest);
     }

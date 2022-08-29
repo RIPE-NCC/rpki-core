@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import lombok.NonNull;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.CreateAllResourcesCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
@@ -29,7 +29,7 @@ public class CreateAllResourcesCertificateAuthorityCommandHandler extends Abstra
 
     @Override
     public void handle(@NonNull CreateAllResourcesCertificateAuthorityCommand command, CommandStatus commandStatus) {
-        final HostedCertificateAuthority allResourcesCertificateAuthority = new AllResourcesCertificateAuthority(
+        final ManagedCertificateAuthority allResourcesCertificateAuthority = new AllResourcesCertificateAuthority(
                 command.getCertificateAuthorityVersionedId().getId(),
                 repositoryConfiguration.getAllResourcesCaPrincipal()
         );

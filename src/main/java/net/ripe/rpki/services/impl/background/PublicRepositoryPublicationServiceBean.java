@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
 import net.ripe.rpki.domain.roa.RoaEntityService;
@@ -115,7 +115,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         // List of certificate authorities that may need a new manifest/CRL. Children are sorted before parents
         // to ensure proper locking order (command handlers always lock the child CA before the parent CA). This
         // reduces the chance of deadlock or a serializable transaction rollback error.
-        List<HostedCertificateAuthority> pendingCertificateAuthorities =
+        List<ManagedCertificateAuthority> pendingCertificateAuthorities =
             certificateAuthorityRepository.findAllWithManifestAndCrlCheckNeeded()
                 .setMaxResults(MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE)
                 .getResultStream()
@@ -128,7 +128,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         log.info("Updating {} CAs with outdated manifest or CRL", pendingCertificateAuthorities.size());
 
         long updateCountTotal = 0;
-        for (HostedCertificateAuthority ca : pendingCertificateAuthorities) {
+        for (ManagedCertificateAuthority ca : pendingCertificateAuthorities) {
             entityManager.lock(ca, LockModeType.PESSIMISTIC_WRITE);
             roaEntityService.updateRoasIfNeeded(ca);
             updateCountTotal += certificateManagementService.updateManifestAndCrlIfNeeded(ca);

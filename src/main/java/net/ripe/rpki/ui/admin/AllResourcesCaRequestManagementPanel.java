@@ -3,7 +3,7 @@ package net.ripe.rpki.ui.admin;
 import net.ripe.rpki.server.api.commands.AllResourcesCaResourcesCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.apache.wicket.markup.html.link.Link;
@@ -27,7 +27,7 @@ public class AllResourcesCaRequestManagementPanel extends Panel {
         super(id);
 
 
-        final HostedCertificateAuthorityData allResourcesCA  = (HostedCertificateAuthorityData) caViewService.findCertificateAuthorityByName(repositoryConfiguration.getAllResourcesCaPrincipal());
+        final ManagedCertificateAuthorityData allResourcesCA  = (ManagedCertificateAuthorityData) caViewService.findCertificateAuthorityByName(repositoryConfiguration.getAllResourcesCaPrincipal());
         if(allResourcesCA != null) {
             add(new AllResourcesCaManagementPanel("managementPanel", allResourcesCA));
         }

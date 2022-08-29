@@ -58,7 +58,7 @@ import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
  * The private key of a KeyPair is used to sign the issued certificates.
  * <p>
  * A KeyPair is a link in a chain to a trust anchor (Trusted Third Party).
- * The key pair is part of the {@link HostedCertificateAuthority} aggregate.
+ * The key pair is part of the {@link ManagedCertificateAuthority} aggregate.
  */
 @Entity
 @Table(name = "keypair")

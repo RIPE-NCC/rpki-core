@@ -31,7 +31,7 @@ public class AllResourcesCaResourcesCommandHandler extends AbstractCertificateAu
 
     @Override
     public void handle(AllResourcesCaResourcesCommand command, CommandStatus commandStatus) {
-        final AllResourcesCertificateAuthority allResourcesCa = (AllResourcesCertificateAuthority) lookupHostedCA(command.getCertificateAuthorityVersionedId().getId());
+        final AllResourcesCertificateAuthority allResourcesCa = (AllResourcesCertificateAuthority) lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
         allResourcesCa.processCertifiableResources(keyPairService, certificateRequestCreationService);
     }
 }

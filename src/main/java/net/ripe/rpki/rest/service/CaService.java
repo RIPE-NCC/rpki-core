@@ -16,7 +16,7 @@ import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateService;
@@ -141,7 +141,7 @@ public class CaService extends AbstractCaRestService {
     @Operation(summary = "Revoke hosted CA")
     public ResponseEntity<RevokeHostedResult> revokeHosted(@PathVariable("caName") final CaName caName) {
         log.info("Revocation attempt for hosted CA '{}'", caName);
-        final HostedCertificateAuthorityData certificateAuthority = getCa(HostedCertificateAuthorityData.class, caName);
+        final ManagedCertificateAuthorityData certificateAuthority = getCa(ManagedCertificateAuthorityData.class, caName);
 
         if (certificateAuthority.getType() != CertificateAuthorityType.HOSTED) {
             log.info("Rejected deletion attempt for {} CA '{}'", certificateAuthority.getType(), caName);

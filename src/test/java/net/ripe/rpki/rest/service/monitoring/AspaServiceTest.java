@@ -3,7 +3,7 @@ package net.ripe.rpki.rest.service.monitoring;
 import lombok.Setter;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.TestRpkiBootApplication;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.aspa.AspaConfiguration;
 import net.ripe.rpki.domain.aspa.AspaConfigurationRepository;
 import net.ripe.rpki.domain.aspa.AspaProviderAsn;
@@ -48,8 +48,8 @@ public class AspaServiceTest {
     @Test
     public void shouldReturnProperAspas() throws Exception {
         when(aspaConfigurationRepository.findAll()).thenReturn(Arrays.asList(
-            new AspaConfiguration(mock(HostedCertificateAuthority.class), BigInteger.valueOf(1L), Collections.emptySet()),
-            new AspaConfiguration(mock(HostedCertificateAuthority.class), BigInteger.valueOf(2L), new HashSet<>(
+            new AspaConfiguration(mock(ManagedCertificateAuthority.class), BigInteger.valueOf(1L), Collections.emptySet()),
+            new AspaConfiguration(mock(ManagedCertificateAuthority.class), BigInteger.valueOf(2L), new HashSet<>(
                 Arrays.asList(
                     new AspaProviderAsn(BigInteger.valueOf(10), IpResourceType.IPv4),
                     new AspaProviderAsn(BigInteger.valueOf(10), IpResourceType.IPv6)

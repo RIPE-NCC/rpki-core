@@ -16,7 +16,7 @@ import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
@@ -136,7 +136,7 @@ public class CaServiceTest {
         final String caName = "123";
         X500Principal principal = CaName.parse(caName).getPrincipal();
 
-        final CertificateAuthorityData certificateAuthorityData = new HostedCertificateAuthorityData(new VersionedId(1L),
+        final CertificateAuthorityData certificateAuthorityData = new ManagedCertificateAuthorityData(new VersionedId(1L),
                 principal, UUID.randomUUID(), 2L, CertificateAuthorityType.HOSTED,
                 IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
@@ -158,7 +158,7 @@ public class CaServiceTest {
         final String caName = "123";
         X500Principal principal = CaName.parse(caName).getPrincipal();
 
-        final CertificateAuthorityData certificateAuthorityData = new HostedCertificateAuthorityData(new VersionedId(1L),
+        final CertificateAuthorityData certificateAuthorityData = new ManagedCertificateAuthorityData(new VersionedId(1L),
                 principal, UUID.randomUUID(), 2L, CertificateAuthorityType.ROOT,
                 IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
@@ -182,7 +182,7 @@ public class CaServiceTest {
         final String caName = "123";
         X500Principal principal = CaName.parse(caName).getPrincipal();
 
-        final CertificateAuthorityData certificateAuthorityData = new HostedCertificateAuthorityData(new VersionedId(1L),
+        final CertificateAuthorityData certificateAuthorityData = new ManagedCertificateAuthorityData(new VersionedId(1L),
                 principal, UUID.randomUUID(), 2L, CertificateAuthorityType.HOSTED,
                 IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
@@ -234,7 +234,7 @@ public class CaServiceTest {
     public void shouldProvideCASummary() throws Exception {
         X500Principal principal = CaName.parse("123").getPrincipal();
 
-        CertificateAuthorityData certificateAuthorityData = new HostedCertificateAuthorityData(new VersionedId(1L),
+        CertificateAuthorityData certificateAuthorityData = new ManagedCertificateAuthorityData(new VersionedId(1L),
                 new X500Principal("CN=1"), UUID.randomUUID(), 2L, CertificateAuthorityType.HOSTED,
                 IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
@@ -319,11 +319,11 @@ public class CaServiceTest {
         ProvisioningIdentityCertificate identityCertificate = builder.build();
 
         final X500Principal principal = CaName.parse("123").getPrincipal();
-        HostedCertificateAuthorityData hostedCertificateAuthorityData = new HostedCertificateAuthorityData(
+        ManagedCertificateAuthorityData managedCertificateAuthorityData = new ManagedCertificateAuthorityData(
             VersionedId.parse("1"), principal, UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
             IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList()
         );
-        when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(hostedCertificateAuthorityData);
+        when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(managedCertificateAuthorityData);
 
         final ParentIdentity parentId = new ParentIdentity(new URI("http://bla.bla/bla"), "parentHandle", "childHandle", identityCertificate);
         when(delegationCaProvisioningService.getParentIdentityForNonHostedCa(principal)).thenReturn(parentId);

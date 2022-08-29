@@ -6,7 +6,7 @@ import net.ripe.rpki.commons.ta.domain.request.ResourceCertificateRequestData;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.KeyPairService;
@@ -50,14 +50,14 @@ public class CertificateRequestCreationServiceBeanTest {
 
     private RepositoryConfiguration repositoryConfiguration;
 
-    private HostedCertificateAuthority productionCa;
+    private ManagedCertificateAuthority productionCa;
 
     private URI publicRepositoryUri = URI.create("rsync://localhost/foo/ca-repository-uri/");
     private UUID caId = UUID.randomUUID();
 
     @Before
     public void setUp() {
-        productionCa = mock(HostedCertificateAuthority.class);
+        productionCa = mock(ManagedCertificateAuthority.class);
         keyPairService = mock(KeyPairService.class);
         repositoryConfiguration = mock(RepositoryConfiguration.class);
         when(repositoryConfiguration.getPublicRepositoryUri()).thenReturn(publicRepositoryUri);
@@ -181,7 +181,7 @@ public class CertificateRequestCreationServiceBeanTest {
         assertEquals(repositoryUri, trustAnchorRequest.getSiaDescriptors()[0].getLocation());
     }
 
-    private void givenKeyPairWithoutCurrentCertificate(HostedCertificateAuthority ca) {
+    private void givenKeyPairWithoutCurrentCertificate(ManagedCertificateAuthority ca) {
         KeyPairEntity keyPair = TestObjects.createTestKeyPair();
         ca.addKeyPair(keyPair);
         when(ca.getKeyPairs()).thenReturn(Collections.singletonList(keyPair));

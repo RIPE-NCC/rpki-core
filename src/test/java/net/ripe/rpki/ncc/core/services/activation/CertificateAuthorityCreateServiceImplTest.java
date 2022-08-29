@@ -5,9 +5,9 @@ import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateParser;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.NameNotUniqueException;
+import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.commands.ActivateCustomerCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.ActivateNonHostedCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
 import net.ripe.rpki.server.api.services.command.CommandService;
@@ -53,7 +53,7 @@ public class CertificateAuthorityCreateServiceImplTest {
 
     @Test
     public void shouldProvisionMember() {
-        when(caViewService.findCertificateAuthorityIdByTypeAndName(CertificateAuthorityType.ROOT, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
+        when(caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
         when(commandService.getNextId()).thenReturn(MEMBER_CA_ID);
 
         ActivateCustomerCertificateAuthorityCommand command = new ActivateCustomerCertificateAuthorityCommand(MEMBER_CA_ID, MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_ID);
@@ -65,7 +65,7 @@ public class CertificateAuthorityCreateServiceImplTest {
 
     @Test(expected = CertificateAuthorityNameNotUniqueException.class)
     public void shouldThrowCertificateAuthorityNameNotUniqueExceptionIfCaAlreadyExists() {
-        when(caViewService.findCertificateAuthorityIdByTypeAndName(CertificateAuthorityType.ROOT, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
+        when(caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
         when(commandService.getNextId()).thenReturn(MEMBER_CA_ID);
 
         ActivateCustomerCertificateAuthorityCommand command = new ActivateCustomerCertificateAuthorityCommand(MEMBER_CA_ID, MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_ID);
@@ -77,7 +77,7 @@ public class CertificateAuthorityCreateServiceImplTest {
     @Test
     public void shouldProvisioningFailIfProductionCaDoesNotExist() {
 
-        when(caViewService.findCertificateAuthorityIdByTypeAndName(CertificateAuthorityType.ROOT, PRODUCTION_CA_NAME)).thenReturn(null);
+        when(caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, PRODUCTION_CA_NAME)).thenReturn(null);
 
         IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class, () -> subject.provisionMember(MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_NAME));
         assertEquals("Production Certificate Authority 'CN=RIPE NCC Resources,O=RIPE NCC,C=NL' not found", illegalArgumentException.getMessage());
@@ -87,7 +87,7 @@ public class CertificateAuthorityCreateServiceImplTest {
     public void shouldProvisionNonHostedMember() throws IOException {
         ProvisioningIdentityCertificate identityCertificate = loadCertificate();
 
-        when(caViewService.findCertificateAuthorityIdByTypeAndName(CertificateAuthorityType.ROOT, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
+        when(caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
         when(commandService.getNextId()).thenReturn(MEMBER_CA_ID);
 
         ActivateNonHostedCertificateAuthorityCommand command = new ActivateNonHostedCertificateAuthorityCommand(MEMBER_CA_ID, MEMBER_CA, MEMBER_RESOURCES, identityCertificate, PRODUCTION_CA_ID);

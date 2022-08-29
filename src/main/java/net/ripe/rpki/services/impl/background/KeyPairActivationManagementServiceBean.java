@@ -58,7 +58,7 @@ public class KeyPairActivationManagementServiceBean extends SequentialBackground
         // of the parent CA chain. This minimizes the number of RPKI objects that need to be generated and published.
         // Note that the stream operations must preserve the ordering of the CAs to make this work.
         forkJoinPool.submit(() -> {
-            List<CertificateAuthorityData> casWithPendingKeys = caViewService.findAllHostedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth();
+            List<CertificateAuthorityData> casWithPendingKeys = caViewService.findAllManagedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth();
             log.info("checking {} certificate authorities with pending keys for activation", casWithPendingKeys.size());
 
             List<CertificateAuthorityData> casWithActivatedKeys = casWithPendingKeys.parallelStream()

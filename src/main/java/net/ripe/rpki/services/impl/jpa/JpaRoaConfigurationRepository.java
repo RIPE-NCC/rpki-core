@@ -4,7 +4,7 @@ import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResourceRange;
 import net.ripe.ipresource.IpResourceType;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguration> implements RoaConfigurationRepository {
 
     @Override
-    public Optional<RoaConfiguration> findByCertificateAuthority(HostedCertificateAuthority certificateAuthority) {
+    public Optional<RoaConfiguration> findByCertificateAuthority(ManagedCertificateAuthority certificateAuthority) {
         try {
             return Optional.of((RoaConfiguration) createQuery("select rc from RoaConfiguration rc where rc.certificateAuthority.id = :caId")
                 .setParameter("caId", certificateAuthority.getId())
@@ -40,7 +40,7 @@ public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguratio
     }
 
     @Override
-    public RoaConfiguration getOrCreateByCertificateAuthority(HostedCertificateAuthority certificateAuthority) {
+    public RoaConfiguration getOrCreateByCertificateAuthority(ManagedCertificateAuthority certificateAuthority) {
         return findByCertificateAuthority(certificateAuthority).orElseGet(() -> {
             RoaConfiguration result = new RoaConfiguration(certificateAuthority);
             add(result);

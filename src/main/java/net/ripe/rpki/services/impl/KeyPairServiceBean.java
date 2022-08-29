@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl;
 import net.ripe.rpki.domain.CertificationProviderConfigurationData;
 import net.ripe.rpki.domain.DownStreamProvisioningCommunicator;
 import net.ripe.rpki.domain.HardwareKeyPairFactory;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.KeyPairEntitySignInfo;
 import net.ripe.rpki.domain.KeyPairService;
@@ -41,7 +41,7 @@ public class KeyPairServiceBean implements KeyPairService {
     }
 
     @Override
-    public DownStreamProvisioningCommunicator createMyIdentityMaterial(HostedCertificateAuthority ca) {
+    public DownStreamProvisioningCommunicator createMyIdentityMaterial(ManagedCertificateAuthority ca) {
         KeyPair keyPair = hardwareKeyPairFactory.get();
         KeyPairEntitySignInfo signInfo = createSignInfo();
         return new DownStreamProvisioningCommunicator(keyPair, signInfo, ca.getName());

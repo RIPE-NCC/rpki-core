@@ -72,7 +72,7 @@ public class RoaConfigurationMaintenanceServiceTest extends CertificationDomainT
         child.createNewKeyPair(keyPairService);
 
         // Add the ROA configuration
-        var ca = certificateAuthorityRepository.findHostedCa(HOSTED_CA_ID);
+        var ca = certificateAuthorityRepository.findManagedCa(HOSTED_CA_ID);
         var roaConfiguration = roaConfigurationRepository.getOrCreateByCertificateAuthority(ca);
         roaConfiguration.addPrefix(ALL_ROA_CONFIGURATIONS);
 

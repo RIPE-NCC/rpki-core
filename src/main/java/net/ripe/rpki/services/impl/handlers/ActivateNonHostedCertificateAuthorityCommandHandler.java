@@ -26,7 +26,7 @@ public class ActivateNonHostedCertificateAuthorityCommandHandler extends Abstrac
         Validate.notNull(command);
 
         ProvisioningIdentityCertificate identityCertificate = command.getIdentityCertificate();
-        HostedCertificateAuthority productionCa = lookupHostedCA(command.getParentId());
+        ManagedCertificateAuthority productionCa = lookupManagedCa(command.getParentId());
 
         NonHostedCertificateAuthority nonHosted = new NonHostedCertificateAuthority(command.getCertificateAuthorityVersionedId().getId(), command.getName(), identityCertificate, productionCa);
         getCertificateAuthorityRepository().add(nonHosted);

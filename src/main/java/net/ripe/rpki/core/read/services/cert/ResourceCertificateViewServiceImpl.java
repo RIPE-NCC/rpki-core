@@ -3,7 +3,7 @@ package net.ripe.rpki.core.read.services.cert;
 import lombok.NonNull;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
@@ -32,9 +32,9 @@ public class ResourceCertificateViewServiceImpl implements ResourceCertificateVi
 
     @Override
     public IpResourceSet findCertifiedResources(Long caId) {
-        HostedCertificateAuthority hostedCertificateAuthority = certificateAuthorityRepository.findHostedCa(caId);
-        if (hostedCertificateAuthority != null) {
-            return hostedCertificateAuthority.getCertifiedResources();
+        ManagedCertificateAuthority managedCertificateAuthority = certificateAuthorityRepository.findManagedCa(caId);
+        if (managedCertificateAuthority != null) {
+            return managedCertificateAuthority.getCertifiedResources();
         } else {
             return null;
         }
@@ -46,7 +46,7 @@ public class ResourceCertificateViewServiceImpl implements ResourceCertificateVi
             return Optional.of(
                 entityManager.createQuery(
                         "SELECT rc" +
-                            "      FROM HostedCertificateAuthority ca" +
+                            "      FROM ManagedCertificateAuthority ca" +
                             "      JOIN ca.keyPairs kp" +
                             "      JOIN kp.incomingResourceCertificate rc " +
                             " WHERE ca.id = :caId " +

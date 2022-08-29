@@ -3,7 +3,7 @@ package net.ripe.rpki.util;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthorityTest;
 import net.ripe.rpki.domain.TestServices;
@@ -49,7 +49,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
     @Test
     public void should_lock_with_force_increment() {
         transactionTemplate.executeWithoutResult((status) -> {
-            final HostedCertificateAuthority ca = (HostedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
+            final ManagedCertificateAuthority ca = (ManagedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
             assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
 
             jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
@@ -63,7 +63,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
     @Test
     public void should_still_be_locked_after_entity_manager_flush() {
         transactionTemplate.executeWithoutResult((status) -> {
-            final HostedCertificateAuthority ca = (HostedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
+            final ManagedCertificateAuthority ca = (ManagedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
             assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
 
             jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
@@ -81,7 +81,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
     @Test
     public void should_still_lock_after_entity_manager_flush() {
         transactionTemplate.executeWithoutResult((status) -> {
-            final HostedCertificateAuthority ca = (HostedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
+            final ManagedCertificateAuthority ca = (ManagedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
             assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
 
             ca.manifestAndCrlCheckCompleted();

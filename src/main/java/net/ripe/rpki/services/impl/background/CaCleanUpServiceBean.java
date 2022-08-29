@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.services.command.CommandService;
@@ -57,7 +57,7 @@ public class CaCleanUpServiceBean extends ConcurrentBackgroundServiceWithAdminPr
     @Override
     protected void runService() {
         if (enabled) {
-            final Collection<HostedCertificateAuthority> casToDelete = certificateAuthorityRepository.getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear();
+            final Collection<ManagedCertificateAuthority> casToDelete = certificateAuthorityRepository.getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear();
             deletedCasWithoutKeyPairsCounter.increment(casToDelete.size());
             casToDelete.forEach(ca -> {
                 final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(ca.getId());

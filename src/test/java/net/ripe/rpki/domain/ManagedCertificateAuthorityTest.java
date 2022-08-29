@@ -31,7 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class HostedCertificateAuthorityTest {
+public class ManagedCertificateAuthorityTest {
 
     private static final ValidityPeriod VALIDITY_PERIOD = new ValidityPeriod(new DateTime(DateTimeZone.UTC), new DateTime(DateTimeZone.UTC).plusDays(1));
 
@@ -49,7 +49,7 @@ public class HostedCertificateAuthorityTest {
     @Mock
     private ManifestEntityRepository manifestEntityRepository;
 
-    private HostedCertificateAuthority subject;
+    private ManagedCertificateAuthority subject;
     private KeyPairEntity keyPair;
     private PublishedObject toBePublished;
     private PublishedObject toBeWithdrawn;

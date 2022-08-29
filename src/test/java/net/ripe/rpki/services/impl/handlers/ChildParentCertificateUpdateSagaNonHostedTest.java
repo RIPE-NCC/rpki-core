@@ -271,7 +271,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         assertChildParentInvariants(child, parent);
     }
 
-    private void assertChildParentInvariants(NonHostedCertificateAuthority child, HostedCertificateAuthority parent) {
+    private void assertChildParentInvariants(NonHostedCertificateAuthority child, ManagedCertificateAuthority parent) {
         // For every published, outgoing certificate in parent there should be a matching incoming certificate in child.
         // A child should never be left without a published outgoing certificate for each of its publishable keys.
         Set<PublicKey> childPublicKeys = child.getPublicKeys().stream()

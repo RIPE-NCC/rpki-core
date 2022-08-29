@@ -5,7 +5,7 @@ import net.ripe.rpki.commons.ta.domain.request.RevocationRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
@@ -56,7 +56,7 @@ public class KeyManagementRevokeOldKeysCommandHandler implements CertificateAuth
      */
     @Override
     public void handle(KeyManagementRevokeOldKeysCommand command, CommandStatus commandStatus) {
-        HostedCertificateAuthority hostedCa = caRepository.findHostedCa(command.getCertificateAuthorityId());
+        ManagedCertificateAuthority hostedCa = caRepository.findManagedCa(command.getCertificateAuthorityId());
         List<CertificateRevocationRequest> requests = hostedCa.requestOldKeysRevocation(resourceCertificateRepository);
 
         if (requests.isEmpty()) {

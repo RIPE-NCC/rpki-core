@@ -6,7 +6,7 @@ import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
@@ -65,7 +65,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
             throw new RoaConfigurationForPrivateASNException(privateAsns);
         }
 
-        HostedCertificateAuthority ca = lookupHostedCA(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
         RoaConfiguration configuration = roaConfigurationRepository.getOrCreateByCertificateAuthority(ca);
         final Set<RoaConfigurationPrefix> formerPrefixes = new HashSet<>(configuration.getPrefixes());
         configuration.addPrefix(RoaConfigurationPrefix.fromData(command.getAdditions()));

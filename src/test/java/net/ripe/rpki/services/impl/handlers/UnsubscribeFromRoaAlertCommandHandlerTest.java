@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.TestServices;
 import net.ripe.rpki.domain.alerts.RoaAlertConfiguration;
 import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
@@ -32,7 +32,7 @@ public class UnsubscribeFromRoaAlertCommandHandlerTest {
 
     private static final Long TEST_CA_ID = 2L;
     private static final VersionedId TEST_VERSIONED_CA_ID = new VersionedId(TEST_CA_ID);
-    private HostedCertificateAuthority certificateAuthority;
+    private ManagedCertificateAuthority certificateAuthority;
 
     @Mock
     private CertificateAuthorityRepository certificateAuthorityRepository;

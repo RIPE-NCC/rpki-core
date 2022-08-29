@@ -7,7 +7,7 @@ import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.domain.CertificateAuthorityInvariantViolationException;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityActivationCommand;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @ConditionalOnProperty(prefix="certificate.authority.invariant.checking", value="enabled", havingValue = "true")
 @Handler(order = 1000)
 @Slf4j
-public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHandler implements CertificateAuthorityCommandHandler<CertificateAuthorityCommand> {
+public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHandler implements CertificateAuthorityCommandHandler<CertificateAuthorityCommand> {
 
     private final EntityManager entityManager;
     private final ResourceCertificateRepository resourceCertificateRepository;
@@ -32,7 +32,7 @@ public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHand
     private final Counter invariantViolationCounter;
 
     @Inject
-    public HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHandler(MeterRegistry meterRegistry, EntityManager entityManager, ResourceCertificateRepository resourceCertificateRepository) {
+    public ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHandler(MeterRegistry meterRegistry, EntityManager entityManager, ResourceCertificateRepository resourceCertificateRepository) {
         this.entityManager = entityManager;
         this.resourceCertificateRepository = resourceCertificateRepository;
 
@@ -63,7 +63,7 @@ public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHand
 
     @VisibleForTesting
     void handleInternal(CertificateAuthorityCommand command) {
-        HostedCertificateAuthority ca = entityManager.find(HostedCertificateAuthority.class, command.getCertificateAuthorityId());
+        ManagedCertificateAuthority ca = entityManager.find(ManagedCertificateAuthority.class, command.getCertificateAuthorityId());
         if (ca == null) {
             // CA was deleted or not a hosted CA, so nothing to check
             return;
@@ -72,14 +72,14 @@ public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHand
         checkCertificateAuthorityInvariants(ca);
 
         if (ca.getParent() != null && (command instanceof CertificateAuthorityActivationCommand || command instanceof ChildParentCertificateAuthorityCommand)) {
-            HostedCertificateAuthority parent = entityManager.find(HostedCertificateAuthority.class, ca.getParent().getId());
+            ManagedCertificateAuthority parent = entityManager.find(ManagedCertificateAuthority.class, ca.getParent().getId());
             if (parent != null) {
                 checkCertificateAuthorityInvariants(parent);
             }
         }
     }
 
-    private void checkCertificateAuthorityInvariants(HostedCertificateAuthority ca) {
+    private void checkCertificateAuthorityInvariants(ManagedCertificateAuthority ca) {
         IpResourceSet incomingResources = determineIncomingResources(ca);
 
         checkOutgoingChildResourcesInvariant(ca, incomingResources);
@@ -91,7 +91,7 @@ public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHand
         }
     }
 
-    private IpResourceSet determineIncomingResources(HostedCertificateAuthority ca) {
+    private IpResourceSet determineIncomingResources(ManagedCertificateAuthority ca) {
         Set<IpResourceSet> distinctIncomingResources = ca.getKeyPairs().stream()
             .filter(KeyPairEntity::isPublishable)
             .map(kp -> kp.getCurrentIncomingCertificate().getResources())
@@ -110,7 +110,7 @@ public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHand
         }
     }
 
-    private void checkOutgoingChildResourcesInvariant(HostedCertificateAuthority ca, IpResourceSet incomingResources) {
+    private void checkOutgoingChildResourcesInvariant(ManagedCertificateAuthority ca, IpResourceSet incomingResources) {
         IpResourceSet currentOutgoingChildCertificateResources = resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(ca.getName());
         if (!incomingResources.contains(currentOutgoingChildCertificateResources)) {
             IpResourceSet missing = new IpResourceSet(currentOutgoingChildCertificateResources);
@@ -124,7 +124,7 @@ public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHand
         }
     }
 
-    private void checkOutgoingRpkiObjectResourcesInvariant(HostedCertificateAuthority ca, IpResourceSet incomingResources) {
+    private void checkOutgoingRpkiObjectResourcesInvariant(ManagedCertificateAuthority ca, IpResourceSet incomingResources) {
         IpResourceSet currentOutgoingResources = resourceCertificateRepository.findCurrentOutgoingRpkiObjectCertificateResources(ca.getName());
         if (!incomingResources.contains(currentOutgoingResources)) {
             IpResourceSet missing = new IpResourceSet(currentOutgoingResources);

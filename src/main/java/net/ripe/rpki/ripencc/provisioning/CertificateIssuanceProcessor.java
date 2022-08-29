@@ -16,7 +16,7 @@ import net.ripe.rpki.commons.provisioning.x509.pkcs10.RpkiCaCertificateRequestPa
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.RequestedResourceSets;
 import net.ripe.rpki.server.api.commands.ProvisioningCertificateIssuanceCommand;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
@@ -67,7 +67,7 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
     }
 
     public CertificateIssuanceResponsePayload process(NonHostedCertificateAuthorityData nonHostedCertificateAuthority,
-                                                      HostedCertificateAuthorityData productionCA,
+                                                      ManagedCertificateAuthorityData productionCA,
                                                       CertificateIssuanceRequestPayload requestPayload) {
 
         CertificateIssuanceRequestElement request = requestPayload.getRequestElement();

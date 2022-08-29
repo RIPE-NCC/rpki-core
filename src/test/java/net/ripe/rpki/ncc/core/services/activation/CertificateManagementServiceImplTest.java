@@ -10,7 +10,7 @@ import net.ripe.rpki.commons.crypto.crl.X509Crl;
 import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.crl.CrlEntity;
@@ -47,7 +47,7 @@ import static org.junit.Assert.assertTrue;
 public class CertificateManagementServiceImplTest extends CertificationDomainTestCase {
 
     private DateTime now;
-    private HostedCertificateAuthority ca;
+    private ManagedCertificateAuthority ca;
 
     private KeyPairEntity currentKeyPair;
     private CertificateManagementService subject;

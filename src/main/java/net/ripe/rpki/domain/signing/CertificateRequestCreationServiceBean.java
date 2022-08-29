@@ -10,7 +10,7 @@ import net.ripe.rpki.commons.ta.domain.request.ResourceCertificateRequestData;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.KeyPairService;
@@ -57,7 +57,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
     @Override
     public CertificateIssuanceRequest initiateKeyRoll(int maxAge,
                                                       KeyPairService keyPairService,
-                                                      HostedCertificateAuthority ca) {
+                                                      ManagedCertificateAuthority ca) {
         if (ca.hasCurrentKeyPair() && !ca.hasRollInProgress() && ca.currentKeyPairIsOlder(maxAge)) {
             KeyPairEntity kp = ca.createNewKeyPair(keyPairService);
 
@@ -71,7 +71,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
     }
 
     @Override
-    public List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(HostedCertificateAuthority ca, IpResourceSet certifiableResources) {
+    public List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(ManagedCertificateAuthority ca, IpResourceSet certifiableResources) {
         final List<CertificateIssuanceRequest> requests = new ArrayList<>();
         for (KeyPairEntity kp : ca.getKeyPairs()) {
             if (kp.isCertificateNeeded()) {
@@ -88,7 +88,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
 
     @Override
     public List<SigningRequest> requestProductionCertificates(IpResourceSet certifiableResources,
-                                                              HostedCertificateAuthority ca) {
+                                                              ManagedCertificateAuthority ca) {
         List<SigningRequest> requests = new ArrayList<>();
         for (KeyPairEntity kp : ca.getKeyPairs()) {
             if (kp.isCertificateNeeded()) {
@@ -113,14 +113,14 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
     }
 
     @Override
-    public List<CertificateRevocationRequest> createCertificateRevocationRequestForAllKeys(HostedCertificateAuthority ca) {
+    public List<CertificateRevocationRequest> createCertificateRevocationRequestForAllKeys(ManagedCertificateAuthority ca) {
         return ca.getKeyPairs().stream()
             .map(keyPair -> new CertificateRevocationRequest(keyPair.getPublicKey()))
             .collect(Collectors.toList());
     }
 
     @Override
-    public CertificateRevocationRequest createCertificateRevocationRequestForOldKey(HostedCertificateAuthority ca) {
+    public CertificateRevocationRequest createCertificateRevocationRequestForOldKey(ManagedCertificateAuthority ca) {
         Optional<KeyPairEntity> key = ca.findOldKeyPair();
         Validate.isTrue(key.isPresent(), "Cannot find an OLD key pair");
         return new CertificateRevocationRequest(key.get().getPublicKey());
@@ -181,7 +181,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
     }
 
     private X509CertificateInformationAccessDescriptor[] getSubjectInformationAccessDescriptors(KeyPairEntity kp,
-                                                                                                HostedCertificateAuthority ca,
+                                                                                                ManagedCertificateAuthority ca,
                                                                                                 String resourceClassName) {
         Map<ASN1ObjectIdentifier, X509CertificateInformationAccessDescriptor> sias = new LinkedHashMap<>();
 

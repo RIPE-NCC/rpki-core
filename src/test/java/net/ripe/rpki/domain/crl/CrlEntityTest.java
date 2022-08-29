@@ -3,7 +3,7 @@ package net.ripe.rpki.domain.crl;
 import net.ripe.rpki.commons.FixedDateRule;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import org.joda.time.DateTime;
@@ -39,7 +39,7 @@ public class CrlEntityTest extends CertificationDomainTestCase {
 
         now = DateTime.now(DateTimeZone.UTC);
         validityPeriod = new ValidityPeriod(now, now.plusHours(24));
-        HostedCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
+        ManagedCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
         keyPair = ca.getCurrentKeyPair();
         subject = new CrlEntity(keyPair);
     }

@@ -12,9 +12,10 @@ import net.ripe.rpki.commons.provisioning.payload.issue.request.CertificateIssua
 import net.ripe.rpki.commons.provisioning.payload.list.request.ResourceClassListQueryPayload;
 import net.ripe.rpki.commons.provisioning.payload.revocation.request.CertificateRevocationRequestPayload;
 import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
+import net.ripe.rpki.domain.NonHostedCertificateAuthority;
+import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -74,7 +75,7 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
         // Update last seen signingTime for the member CA
         provisioningCmsSigningTimeStore.updateLastSeenProvisioningCmsSeenAt(nonHostedMemberCa, request.getSigningTime());
 
-        HostedCertificateAuthorityData productionCA = getProductionCertificateAuthorityWhichIsParentOf(productionCaUuid, nonHostedMemberCa);
+        ManagedCertificateAuthorityData productionCA = getProductionCertificateAuthorityWhichIsParentOf(productionCaUuid, nonHostedMemberCa);
 
         AbstractProvisioningResponsePayload responsePayload = processRequestPayload(nonHostedMemberCa, productionCA, request.getPayload());
 
@@ -86,7 +87,7 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
 
     @VisibleForTesting
     protected AbstractProvisioningResponsePayload processRequestPayload(NonHostedCertificateAuthorityData nonHostedMemberCa,
-                                                                        HostedCertificateAuthorityData productionCA,
+                                                                        ManagedCertificateAuthorityData productionCA,
                                                                         AbstractProvisioningPayload requestPayload) {
         try {
             if (requestPayload instanceof ResourceClassListQueryPayload) {
@@ -143,9 +144,9 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
      * @param nonHostedMemberCa child CA of the parent
      * @ensures \result is the parent of nonHostedMemberCa.
      */
-    private HostedCertificateAuthorityData getProductionCertificateAuthorityWhichIsParentOf(UUID parentId, NonHostedCertificateAuthorityData nonHostedMemberCa) {
-        CertificateAuthorityData parent = certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType.ROOT, parentId);
-        if (!(parent instanceof HostedCertificateAuthorityData)) {
+    private ManagedCertificateAuthorityData getProductionCertificateAuthorityWhichIsParentOf(UUID parentId, NonHostedCertificateAuthorityData nonHostedMemberCa) {
+        CertificateAuthorityData parent = certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(ProductionCertificateAuthority.class, parentId);
+        if (!(parent instanceof ManagedCertificateAuthorityData)) {
             throw new ProvisioningException(ResponseExceptionType.UNKNOWN_RECIPIENT);
         }
 
@@ -153,7 +154,7 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
             throw new ProvisioningException(ResponseExceptionType.BAD_SENDER_AND_RECIPIENT);
         }
 
-        return (HostedCertificateAuthorityData) parent;
+        return (ManagedCertificateAuthorityData) parent;
     }
 
     /**
@@ -163,7 +164,7 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
      * @ensures unvalidatedProvisioningObject is validated (EE cert is current, etc) and \result's provisioning identity certificate signed over certificateSigningCMS
      */
     private NonHostedCertificateAuthorityData getNonHostedCertificateAuthorityWithProvisioningCertificateSigning(UUID memberUuid, ProvisioningCmsObject unvalidatedProvisioningObject) throws ProvisioningException {
-        CertificateAuthorityData ca = certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType.NONHOSTED, memberUuid);
+        CertificateAuthorityData ca = certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(NonHostedCertificateAuthority.class, memberUuid);
 
         if (ca instanceof NonHostedCertificateAuthorityData) {
             NonHostedCertificateAuthorityData result = (NonHostedCertificateAuthorityData) ca;

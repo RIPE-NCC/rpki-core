@@ -1,7 +1,7 @@
 package net.ripe.rpki.services.impl;
 
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.domain.roa.RoaEntity;
@@ -35,7 +35,7 @@ public class RoaServiceBean implements RoaViewService {
         this.roaEntityRepository = roaEntityRepository;
     }
 
-    private Collection<RoaEntity> findAllRoas(HostedCertificateAuthority ca) {
+    private Collection<RoaEntity> findAllRoas(ManagedCertificateAuthority ca) {
         return ca.getKeyPairs()
             .stream()
             .flatMap(kp -> roaEntityRepository.findByCertificateSigningKeyPair(kp).stream())
@@ -44,13 +44,13 @@ public class RoaServiceBean implements RoaViewService {
 
     @Override
     public List<RoaEntityData> findAllRoasForCa(Long caId) {
-        HostedCertificateAuthority ca = caRepository.findHostedCa(caId);
+        ManagedCertificateAuthority ca = caRepository.findManagedCa(caId);
         return findAllRoas(ca).stream().map(this::convertToRoaEntityData).collect(Collectors.toList());
     }
 
     @Override
     public RoaConfigurationData getRoaConfiguration(long caId) {
-        HostedCertificateAuthority certificateAuthority = caRepository.findHostedCa(caId);
+        ManagedCertificateAuthority certificateAuthority = caRepository.findManagedCa(caId);
         if (certificateAuthority == null) {
             throw new NoResultException();
         }

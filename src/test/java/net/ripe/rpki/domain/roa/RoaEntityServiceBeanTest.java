@@ -40,7 +40,7 @@ public class RoaEntityServiceBeanTest  {
     private static final RoaConfigurationPrefix ROA_PREFIX_1 = new RoaConfigurationPrefix(ASN, RESOURCE_1, 16);
     private static final RoaConfigurationPrefix ROA_PREFIX_2 = new RoaConfigurationPrefix(ASN, RESOURCE_2, null);
 
-    private HostedCertificateAuthority ca;
+    private ManagedCertificateAuthority ca;
 
     private CertificateManagementService certificateManagementService;
 

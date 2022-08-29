@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import lombok.NonNull;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairService;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.commands.CreateRootCertificateAuthorityCommand;
@@ -38,7 +38,7 @@ public class CreateRootCertificateAuthorityCommandHandler extends AbstractCertif
         AllResourcesCertificateAuthority allResourcesCertificateAuthority = lookupAllResourcesCertificateAuthority();
         Validate.notNull(allResourcesCertificateAuthority, "all resources CA not found");
 
-        HostedCertificateAuthority ca = new ProductionCertificateAuthority(
+        ManagedCertificateAuthority ca = new ProductionCertificateAuthority(
             command.getCertificateAuthorityVersionedId().getId(),
             repositoryConfiguration.getProductionCaPrincipal(),
             allResourcesCertificateAuthority

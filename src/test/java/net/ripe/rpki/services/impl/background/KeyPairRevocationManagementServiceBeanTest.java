@@ -3,8 +3,7 @@ package net.ripe.rpki.services.impl.background;
 
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.KeyManagementRevokeOldKeysCommand;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
@@ -12,7 +11,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.Assert.*;
@@ -49,7 +47,7 @@ public class KeyPairRevocationManagementServiceBeanTest {
         ArgumentCaptor<KeyManagementRevokeOldKeysCommand> captor = ArgumentCaptor.forClass(KeyManagementRevokeOldKeysCommand.class);
         VersionedId expectedVersionedId = VersionedId.parse("1:1");
 
-        HostedCertificateAuthorityData ca = mock(HostedCertificateAuthorityData.class);
+        ManagedCertificateAuthorityData ca = mock(ManagedCertificateAuthorityData.class);
         given(ca.getVersionedId()).willReturn(expectedVersionedId);
         given(certificationService.findAllHostedCertificateAuthorities()).willReturn(Collections.singletonList(ca));
 

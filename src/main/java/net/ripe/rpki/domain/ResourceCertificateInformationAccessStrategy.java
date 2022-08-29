@@ -18,7 +18,7 @@ public interface ResourceCertificateInformationAccessStrategy {
 
     String caCertificateFilename(PublicKey subjectPublicKey);
 
-    URI defaultCertificateRepositoryLocation(HostedCertificateAuthority ca, String resourceClassName);
+    URI defaultCertificateRepositoryLocation(ManagedCertificateAuthority ca, String resourceClassName);
 
     String roaFilename(OutgoingResourceCertificate endEntityCertificate);
 }

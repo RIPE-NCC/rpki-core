@@ -201,7 +201,7 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
     public IpResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName) {
         return manager.createQuery(
                 "SELECT rc.resources " +
-                    "  FROM HostedCertificateAuthority ca JOIN ca.keyPairs kp," +
+                    "  FROM ManagedCertificateAuthority ca JOIN ca.keyPairs kp," +
                     "       OutgoingResourceCertificate rc " +
                     " WHERE rc.status = :current " +
                     "   AND upper(ca.name) = upper(:name) " +

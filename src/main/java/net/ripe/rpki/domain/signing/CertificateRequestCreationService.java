@@ -4,7 +4,7 @@ import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
@@ -22,16 +22,16 @@ public interface CertificateRequestCreationService {
      */
     CertificateIssuanceRequest initiateKeyRoll(int maxAge,
                                                KeyPairService keyPairService,
-                                               HostedCertificateAuthority ca);
+                                               ManagedCertificateAuthority ca);
 
-    List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(HostedCertificateAuthority ca, IpResourceSet certifiableResources);
+    List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(ManagedCertificateAuthority ca, IpResourceSet certifiableResources);
 
     List<SigningRequest> requestProductionCertificates(IpResourceSet certifiableResources,
-                                                       HostedCertificateAuthority ca);
+                                                       ManagedCertificateAuthority ca);
 
-    List<CertificateRevocationRequest> createCertificateRevocationRequestForAllKeys(HostedCertificateAuthority ca);
+    List<CertificateRevocationRequest> createCertificateRevocationRequestForAllKeys(ManagedCertificateAuthority ca);
 
-    CertificateRevocationRequest createCertificateRevocationRequestForOldKey(HostedCertificateAuthority ca);
+    CertificateRevocationRequest createCertificateRevocationRequestForOldKey(ManagedCertificateAuthority ca);
 
     TrustAnchorRequest createTrustAnchorRequest(List<TaRequest> signingRequests);
 }

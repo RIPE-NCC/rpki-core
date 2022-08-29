@@ -1,5 +1,7 @@
 package net.ripe.rpki.domain;
 
+import lombok.Getter;
+import lombok.NonNull;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 
 import javax.persistence.Column;
@@ -19,31 +21,35 @@ import static net.ripe.rpki.domain.PublicationStatus.TO_BE_WITHDRAWN;
 import static net.ripe.rpki.domain.PublicationStatus.WITHDRAWN;
 
 @MappedSuperclass
-abstract public class GenericPublishedObject extends EntitySupport {
+public abstract class GenericPublishedObject extends EntitySupport {
 
     @Id
     @SequenceGenerator(name = "seq_published_object", sequenceName = "seq_all", allocationSize = 1)
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_published_object")
+    @Getter
     protected Long id;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    protected PublicationStatus status;
+    @NonNull
+    @Getter
+    protected PublicationStatus status = TO_BE_PUBLISHED;
 
     @Column(nullable = false)
-    protected byte[] content;
+    @NonNull
+    protected byte[] content = new byte[0];
 
-
-    public Long getId() {
-        return id;
+    protected GenericPublishedObject() {
     }
 
-    public PublicationStatus getStatus() {
-        return status;
+    protected GenericPublishedObject(@NonNull byte[] content) {
+        this.content = Arrays.copyOf(content, content.length);
     }
 
+    @NonNull
     public abstract URI getUri();
 
+    @NonNull
     public byte[] getContent() {
         return Arrays.copyOf(content, content.length);
     }
@@ -65,7 +71,7 @@ abstract public class GenericPublishedObject extends EntitySupport {
                 break;
             case PUBLISHED:
             case WITHDRAWN:
-                throw new IllegalStateException("Published object with incorrect status for update: " + status + " at URI " + getUri().toString());
+                throw new IllegalStateException("Published object with incorrect status for update: " + status + " at URI " + getUri());
         }
     }
 
@@ -80,7 +86,7 @@ abstract public class GenericPublishedObject extends EntitySupport {
                 break;
             case TO_BE_WITHDRAWN:
             case WITHDRAWN:
-                throw new IllegalStateException("Cannot publish a (to be) withdrawn object: " + toString());
+                throw new IllegalStateException("Cannot publish a (to be) withdrawn object: " + this);
         }
     }
 
@@ -95,7 +101,7 @@ abstract public class GenericPublishedObject extends EntitySupport {
                 break;
             case TO_BE_WITHDRAWN:
             case WITHDRAWN:
-                throw new IllegalStateException("Cannot publish a (to be) withdrawn object: " + toString());
+                throw new IllegalStateException("Cannot publish a (to be) withdrawn object: " + this);
         }
     }
 

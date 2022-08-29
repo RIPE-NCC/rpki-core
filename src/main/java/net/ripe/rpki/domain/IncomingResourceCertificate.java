@@ -12,7 +12,7 @@ import javax.validation.constraints.NotNull;
 import java.net.URI;
 
 /**
- * An incoming resource certificate is used by a {@link HostedCertificateAuthority} to track its current set of
+ * An incoming resource certificate is used by a {@link ManagedCertificateAuthority} to track its current set of
  * certifiable resources. It is a copy of the parent's {@link OutgoingResourceCertificate}.
  */
 @Entity

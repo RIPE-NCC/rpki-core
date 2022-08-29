@@ -4,10 +4,10 @@ import lombok.NonNull;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.domain.NameNotUniqueException;
+import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.commands.ActivateCustomerCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.ActivateNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateService;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
@@ -104,7 +104,7 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
     }
 
     private Long findProductionCaId(X500Principal productionCaName) {
-        Long productionCaId = caViewService.findCertificateAuthorityIdByTypeAndName(CertificateAuthorityType.ROOT, productionCaName);
+        Long productionCaId = caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, productionCaName);
         Validate.notNull(productionCaId, "Production Certificate Authority '" + productionCaName.getName() + "' not found");
         return productionCaId;
     }

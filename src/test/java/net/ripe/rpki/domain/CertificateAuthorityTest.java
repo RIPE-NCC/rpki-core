@@ -32,7 +32,7 @@ public class CertificateAuthorityTest {
     @Mock private ResourceCertificateRepository resourceCertificateRepository;
     @Mock private PublishedObjectRepository publishedObjectRepository;
 
-    private HostedCertificateAuthority subject;
+    private ManagedCertificateAuthority subject;
     private KeyPairEntity keyPair;
 
     @Before

@@ -15,7 +15,7 @@ import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.ProvisioningCertificateIssuanceCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
@@ -52,7 +52,7 @@ public class CertificateIssuanceProcessorTest {
     public static final X500Principal NON_HOSTED_CA_NAME = new X500Principal("CN=non-hosted");
     private NonHostedCertificateAuthorityData nonHostedCertificateAuthority;
 
-    private HostedCertificateAuthorityData productionCA;
+    private ManagedCertificateAuthorityData productionCA;
 
     @Mock
     private ResourceLookupService resourceLookupService;
@@ -71,7 +71,7 @@ public class CertificateIssuanceProcessorTest {
     public void setUp() {
         caRepositoryUri = URI.create("rsync://tmp/repo/");
 
-        productionCA = new HostedCertificateAuthorityData(
+        productionCA = new ManagedCertificateAuthorityData(
             new VersionedId(42L, 1), PRODUCTION_CA_NAME, UUID.randomUUID(), 1L,
             CertificateAuthorityType.ROOT,
             PRODUCTION_CA_RESOURCES,

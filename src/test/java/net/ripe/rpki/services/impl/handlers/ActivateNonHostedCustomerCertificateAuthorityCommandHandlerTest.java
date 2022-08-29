@@ -49,7 +49,7 @@ public class ActivateNonHostedCustomerCertificateAuthorityCommandHandlerTest {
             IpResourceSet.ALL_PRIVATE_USE_RESOURCES
         ));
 
-        when(certificateAuthorityRepository.findHostedCa(1L)).thenReturn(parent);
+        when(certificateAuthorityRepository.findManagedCa(1L)).thenReturn(parent);
 
         ActivateNonHostedCertificateAuthorityCommand command = new ActivateNonHostedCertificateAuthorityCommand(new VersionedId(1),
             CUSTOMER_CA_NAME, IpResourceSet.ALL_PRIVATE_USE_RESOURCES, certificate, 1);

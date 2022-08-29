@@ -4,7 +4,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.CertificateAuthorityInvariantViolationException;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
@@ -29,23 +29,23 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
-public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHandlerTest {
+public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHandlerTest {
 
-    private HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHandler subject;
+    private ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHandler subject;
     @Mock
     private EntityManager entityManager;
     @Mock
     private ResourceCertificateRepository resourceCertificateRepository;
     @Mock
-    private HostedCertificateAuthority certificateAuthority;
+    private ManagedCertificateAuthority certificateAuthority;
 
     private KeyPairEntity oldKeyPair;
     private KeyPairEntity currentKeyPair;
 
     @Before
     public void setUp() {
-        subject = new HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHandler(new SimpleMeterRegistry(), entityManager, resourceCertificateRepository);
-        when(entityManager.find(HostedCertificateAuthority.class, CA_ID)).thenReturn(certificateAuthority);
+        subject = new ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHandler(new SimpleMeterRegistry(), entityManager, resourceCertificateRepository);
+        when(entityManager.find(ManagedCertificateAuthority.class, CA_ID)).thenReturn(certificateAuthority);
 
         oldKeyPair = mock(KeyPairEntity.class, RETURNS_DEEP_STUBS);
         when(oldKeyPair.isPublishable()).thenReturn(true);
@@ -112,13 +112,13 @@ public class HostedCertificateAuthorityOutgoingResourceCertificatesInvariantHand
 
     @Test
     public void should_check_parent_certificate_authority_for_commands_that_affect_child_and_parent() {
-        HostedCertificateAuthority parent = mock(HostedCertificateAuthority.class, RETURNS_DEEP_STUBS);
+        ManagedCertificateAuthority parent = mock(ManagedCertificateAuthority.class, RETURNS_DEEP_STUBS);
         // Make the CA its own parent for this test, easy hack
         when(certificateAuthority.getParent()).thenReturn(parent);
         when(parent.getId()).thenReturn(99L);
 
         subject.handle(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CA_ID), Integer.MAX_VALUE), new CommandStatus());
 
-        verify(entityManager, times(1)).find(HostedCertificateAuthority.class, 99L);
+        verify(entityManager, times(1)).find(ManagedCertificateAuthority.class, 99L);
     }
 }

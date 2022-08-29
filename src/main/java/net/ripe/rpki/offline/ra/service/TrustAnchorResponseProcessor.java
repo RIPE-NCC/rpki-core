@@ -4,7 +4,6 @@ import net.ripe.rpki.commons.crypto.CertificateRepositoryObject;
 import net.ripe.rpki.commons.crypto.util.EncodedPublicKey;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.TrustAnchorPublishedObject;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
@@ -192,8 +191,8 @@ public class TrustAnchorResponseProcessor {
     }
 
     private void validateResponse(TrustAnchorResponse response) {
-        HostedCertificateAuthority productionCa = getAllResourcesCa();
-        UpStreamCARequestEntity upStreamCaRequestEntity = productionCa.getUpStreamCARequestEntity();
+        AllResourcesCertificateAuthority allResourcesCa = getAllResourcesCa();
+        UpStreamCARequestEntity upStreamCaRequestEntity = allResourcesCa.getUpStreamCARequestEntity();
 
         validatePendingRequestExists(upStreamCaRequestEntity);
         validateResponseContainsTrustAnchorResponse(response);

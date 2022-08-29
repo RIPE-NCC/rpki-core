@@ -5,7 +5,7 @@ import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CustomerCertificateAuthority;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.ParentCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
@@ -67,7 +67,7 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
 
         VersionedId caId = new VersionedId(HOSTED_CA_ID);
         DeleteCertificateAuthorityCommand command = new DeleteCertificateAuthorityCommand(caId, new X500Principal("CN=Test"), new RoaConfigurationData(new ArrayList<>()));
-        HostedCertificateAuthority hostedCA = new CustomerCertificateAuthority(HOSTED_CA_ID, name, parentCA);
+        ManagedCertificateAuthority hostedCA = new CustomerCertificateAuthority(HOSTED_CA_ID, name, parentCA);
         hostedCA.addKeyPair(keyPair);
 
         when(keyPair.getEncodedKeyIdentifier()).thenReturn(KeyPairUtil.getEncodedKeyIdentifier(publicKey));
@@ -75,7 +75,7 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
                 .thenReturn(new CertificateRevocationResponse(DEFAULT_RESOURCE_CLASS, publicKey));
 
         when(certificateAuthorityRepository
-                .findHostedCa(HOSTED_CA_ID))
+                .findManagedCa(HOSTED_CA_ID))
                 .thenReturn(hostedCA);
 
         when(roaAlertConfigurationRepository

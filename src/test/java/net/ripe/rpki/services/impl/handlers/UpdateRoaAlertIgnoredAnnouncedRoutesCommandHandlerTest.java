@@ -5,7 +5,7 @@ import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.TestServices;
 import net.ripe.rpki.domain.alerts.RoaAlertConfiguration;
 import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
@@ -30,7 +30,7 @@ public class UpdateRoaAlertIgnoredAnnouncedRoutesCommandHandlerTest {
     private static final AnnouncedRoute ANNOUNCEMENT_1 = new AnnouncedRoute(Asn.parse("AS3333"), IpRange.parse("127.0.0.0/8"));
 
     private UpdateRoaAlertIgnoredAnnouncedRoutesCommandHandler subject;
-    private HostedCertificateAuthority certificateAuthority;
+    private ManagedCertificateAuthority certificateAuthority;
     private CertificateAuthorityRepository certificateAuthorityRepository;
     private RoaAlertConfigurationRepository roaAlertConfigurationRepository;
 
@@ -49,7 +49,7 @@ public class UpdateRoaAlertIgnoredAnnouncedRoutesCommandHandlerTest {
                 TEST_VERSIONED_CA_ID,
                 Collections.singleton(ANNOUNCEMENT_1),
                 Collections.emptySet());
-        when(certificateAuthorityRepository.findHostedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
+        when(certificateAuthorityRepository.findManagedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
 
         subject.handle(command);
 
@@ -67,7 +67,7 @@ public class UpdateRoaAlertIgnoredAnnouncedRoutesCommandHandlerTest {
                 TEST_VERSIONED_CA_ID,
                 Collections.emptySet(),
                 Collections.singleton(ANNOUNCEMENT_1));
-        when(certificateAuthorityRepository.findHostedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
+        when(certificateAuthorityRepository.findManagedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
         when(roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(TEST_CA_ID)).thenReturn(configuration);
 
         subject.handle(command);

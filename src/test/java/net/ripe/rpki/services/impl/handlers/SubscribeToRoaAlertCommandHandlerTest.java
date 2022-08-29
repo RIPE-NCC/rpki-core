@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.TestServices;
 import net.ripe.rpki.domain.alerts.RoaAlertConfiguration;
 import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
@@ -34,7 +34,7 @@ public class SubscribeToRoaAlertCommandHandlerTest {
 
     private static final VersionedId TEST_VERSIONED_CA_ID = new VersionedId(TEST_CA_ID);
 
-    private HostedCertificateAuthority certificateAuthority;
+    private ManagedCertificateAuthority certificateAuthority;
 
     @Mock
     private CertificateAuthorityRepository certificateAuthorityRepository;
@@ -69,7 +69,7 @@ public class SubscribeToRoaAlertCommandHandlerTest {
     @Test
     public void shouldCreateRoaAlertSubscriptionAndSendConfirmationEmail() {
         final String email = "joe@example.com";
-        when(certificateAuthorityRepository.findHostedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
+        when(certificateAuthorityRepository.findManagedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
         when(repository.findByCertificateAuthorityIdOrNull(TEST_CA_ID)).thenReturn(null);
 
         subject.handle(new SubscribeToRoaAlertCommand(TEST_VERSIONED_CA_ID, email,

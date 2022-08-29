@@ -58,14 +58,14 @@ public class KeyManagementInitiateRollCommandHandlerTest {
 
     @Test(expected = CommandWithoutEffectException.class)
     public void shouldThrowExceptionIfCommandHadNoEffect() {
-        when(certificateAuthorityRepository.findHostedCa(CA_ID)).thenReturn(memberCA);
+        when(certificateAuthorityRepository.findManagedCa(CA_ID)).thenReturn(memberCA);
         when(memberCA.initiateKeyRolls(THRESHOLD, keyPairService, certificateRequestCreationService)).thenReturn(Collections.emptyList());
         subject.handle(command);
     }
 
     @Test
     public void shouldDelegateRequestsToAllResourcesCa() {
-        when(certificateAuthorityRepository.findHostedCa(CA_ID)).thenReturn(allResourcesCA);
+        when(certificateAuthorityRepository.findManagedCa(CA_ID)).thenReturn(allResourcesCA);
         when(allResourcesCA.initiateKeyRolls(THRESHOLD, keyPairService, certificateRequestCreationService)).thenReturn(Collections.singletonList(request));
         when(allResourcesCA.isAllResourcesCa()).thenReturn(true);
 
@@ -76,7 +76,7 @@ public class KeyManagementInitiateRollCommandHandlerTest {
 
     @Test
     public void shouldDelegateRequestsToProductionCa() {
-        when(certificateAuthorityRepository.findHostedCa(CA_ID)).thenReturn(productionCA);
+        when(certificateAuthorityRepository.findManagedCa(CA_ID)).thenReturn(productionCA);
         when(productionCA.initiateKeyRolls(THRESHOLD, keyPairService, certificateRequestCreationService)).thenReturn(Collections.singletonList(request));
         when(productionCA.getParent()).thenReturn(allResourcesCA);
 
@@ -91,7 +91,7 @@ public class KeyManagementInitiateRollCommandHandlerTest {
 
     @Test
     public void shouldDelegateRequestsToMemberCa() {
-        when(certificateAuthorityRepository.findHostedCa(CA_ID)).thenReturn(memberCA);
+        when(certificateAuthorityRepository.findManagedCa(CA_ID)).thenReturn(memberCA);
         when(memberCA.initiateKeyRolls(THRESHOLD, keyPairService, certificateRequestCreationService)).thenReturn(Collections.singletonList(request));
         when(memberCA.getParent()).thenReturn(productionCA);
 

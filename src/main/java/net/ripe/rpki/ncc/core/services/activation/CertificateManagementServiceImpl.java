@@ -5,8 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
-import net.ripe.rpki.domain.GenericPublishedObject;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
@@ -31,8 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.KeyPair;
 import java.util.EnumSet;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.List;
 
 @Service
 public class CertificateManagementServiceImpl implements CertificateManagementService {
@@ -83,7 +81,7 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
     }
 
     @Override
-    public OutgoingResourceCertificate issueSingleUseEeResourceCertificate(HostedCertificateAuthority hostedCa, CertificateIssuanceRequest request,
+    public OutgoingResourceCertificate issueSingleUseEeResourceCertificate(ManagedCertificateAuthority hostedCa, CertificateIssuanceRequest request,
                                                                            ValidityPeriod validityPeriod, KeyPairEntity signingKeyPair) {
         IncomingResourceCertificate active = signingKeyPair.getCurrentIncomingCertificate();
         ResourceCertificateBuilder builder = new ResourceCertificateBuilder();
@@ -116,7 +114,7 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
     }
 
     @Override
-    public boolean isManifestAndCrlUpdatedNeeded(HostedCertificateAuthority certificateAuthority) {
+    public boolean isManifestAndCrlUpdatedNeeded(ManagedCertificateAuthority certificateAuthority) {
         return certificateAuthority.getKeyPairs()
             .stream()
             .filter(KeyPairEntity::isPublishable)
@@ -138,7 +136,7 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
      * Emit corresponding event, so that an update is sent to the publication server.
      */
     @Override
-    public long updateManifestAndCrlIfNeeded(HostedCertificateAuthority certificateAuthority) {
+    public long updateManifestAndCrlIfNeeded(ManagedCertificateAuthority certificateAuthority) {
         return certificateAuthority.getKeyPairs()
             .stream()
             .filter(KeyPairEntity::isPublishable)
@@ -190,19 +188,18 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
         );
     }
 
-    private void issueManifest(HostedCertificateAuthority certificateAuthority, ManifestEntity manifestEntity, ValidityPeriod validityPeriod) {
+    private void issueManifest(ManagedCertificateAuthority certificateAuthority, ManifestEntity manifestEntity, ValidityPeriod validityPeriod) {
         KeyPairEntity keyPair = manifestEntity.getKeyPair();
 
         KeyPair eeKeyPair = singleUseKeyPairFactory.get();
         CertificateIssuanceRequest request = manifestEntity.requestForManifestEeCertificate(eeKeyPair);
         OutgoingResourceCertificate manifestCertificate = issueSingleUseEeResourceCertificate(certificateAuthority, request, validityPeriod, keyPair);
 
-        Map<String, byte[]> manifestEntries = determineManifestEntries(publishedObjectRepository, keyPair);
+        List<PublishedObject> manifestEntries = determineManifestEntries(publishedObjectRepository, keyPair);
         manifestEntity.update(manifestCertificate, eeKeyPair, singleUseKeyPairFactory.signatureProvider(), manifestEntries);
     }
 
-    private static Map<String, byte[]> determineManifestEntries(PublishedObjectRepository publishedObjectRepository, KeyPairEntity keyPair) {
-        return publishedObjectRepository.findActiveManifestEntries(keyPair).stream()
-                .collect(Collectors.toMap(PublishedObject::getFilename, GenericPublishedObject::getContent, (a, b) -> b));
+    private static List<PublishedObject> determineManifestEntries(PublishedObjectRepository publishedObjectRepository, KeyPairEntity keyPair) {
+        return publishedObjectRepository.findActiveManifestEntries(keyPair);
     }
 }

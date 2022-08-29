@@ -1,6 +1,6 @@
 plugins {
     id 'rpki-ripe-ncc.build-conventions'
-    id 'org.springframework.boot' version '2.7.1'
+    id 'org.springframework.boot' version '2.7.3'
     id 'distribution'
     id 'jacoco'
     id "com.google.cloud.tools.jib" version "3.2.1"
@@ -48,7 +48,7 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-ui:1.6.8'
 
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-    runtimeOnly 'org.postgresql:postgresql:42.4.2'
+    runtimeOnly 'org.postgresql:postgresql:42.5.0'
     runtimeOnly 'org.springframework.boot:spring-boot-starter-tomcat'
 
     implementation 'com.google.code.gson:gson:2.9.1'

@@ -6,9 +6,7 @@ import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.ResourceClassData;
-import net.ripe.rpki.server.api.dto.ResourceClassDataSet;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaAlertSubscriptionData;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
@@ -21,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.security.auth.x500.X500Principal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
@@ -34,7 +31,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class RoaAlertBackgroundServiceDailyBeanTest {
 
-    private static final CertificateAuthorityData CA_DATA = new HostedCertificateAuthorityData(
+    private static final CertificateAuthorityData CA_DATA = new ManagedCertificateAuthorityData(
         new VersionedId(23L, 2L), new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
         IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 

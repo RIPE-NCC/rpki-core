@@ -6,7 +6,7 @@ import net.ripe.rpki.domain.CustomerCertificateAuthority;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
@@ -27,11 +27,11 @@ import static org.mockito.Mockito.*;
 
 public class MemberKeyRolloverManagementServiceBeanTest {
 
-    private static final CertificateAuthorityData PROD_CA = new HostedCertificateAuthorityData(new VersionedId(0L),
+    private static final CertificateAuthorityData PROD_CA = new ManagedCertificateAuthorityData(new VersionedId(0L),
         new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L, ROOT,
         ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
-    private static final CertificateAuthorityData MEMBER_CA = new HostedCertificateAuthorityData(new VersionedId(1L),
+    private static final CertificateAuthorityData MEMBER_CA = new ManagedCertificateAuthorityData(new VersionedId(1L),
         new X500Principal("CN=nl.bluelight"), UUID.randomUUID(), PROD_CA.getId(), HOSTED,
         ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 

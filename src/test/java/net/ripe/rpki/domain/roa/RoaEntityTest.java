@@ -8,7 +8,7 @@ import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsTest;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaPrefix;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.KeyPairEntityTest;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
@@ -71,7 +71,7 @@ public class RoaEntityTest {
         assertEquals(PublicationStatus.WITHDRAWN, subject.getPublishedObject().getStatus());
     }
 
-    public static RoaEntity createEeSignedRoaEntity(HostedCertificateAuthority ca, String roaName, KeyPairEntity keyPair, ValidityPeriod validityPeriod) {
+    public static RoaEntity createEeSignedRoaEntity(ManagedCertificateAuthority ca, String roaName, KeyPairEntity keyPair, ValidityPeriod validityPeriod) {
         IpRange roaPrefix = IpRange.parse("10.0.0.0/8");
         CertificateIssuanceRequest request = new CertificateIssuanceRequest(
             new IpResourceSet(roaPrefix),

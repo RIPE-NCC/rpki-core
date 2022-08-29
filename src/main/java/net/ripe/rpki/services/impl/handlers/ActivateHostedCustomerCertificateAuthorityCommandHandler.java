@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import lombok.NonNull;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CustomerCertificateAuthority;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairService;
 import net.ripe.rpki.server.api.commands.ActivateCustomerCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
@@ -33,13 +33,13 @@ public class ActivateHostedCustomerCertificateAuthorityCommandHandler extends Ab
 
     @Override
     public void handle(@NonNull ActivateCustomerCertificateAuthorityCommand command, CommandStatus commandStatus) {
-        HostedCertificateAuthority productionCa = lookupHostedCA(command.getParentId());
+        ManagedCertificateAuthority productionCa = lookupManagedCa(command.getParentId());
         CustomerCertificateAuthority memberCa = createMemberCA(command, productionCa);
         memberCa.createNewKeyPair(keyPairService);
         childParentCertificateUpdateSaga.execute(memberCa, Integer.MAX_VALUE);
     }
 
-    private CustomerCertificateAuthority createMemberCA(ActivateCustomerCertificateAuthorityCommand command, HostedCertificateAuthority parentCa) {
+    private CustomerCertificateAuthority createMemberCA(ActivateCustomerCertificateAuthorityCommand command, ManagedCertificateAuthority parentCa) {
         CustomerCertificateAuthority ca = new CustomerCertificateAuthority(command.getCertificateAuthorityVersionedId().getId(),
                 command.getName(), parentCa);
         getCertificateAuthorityRepository().add(ca);

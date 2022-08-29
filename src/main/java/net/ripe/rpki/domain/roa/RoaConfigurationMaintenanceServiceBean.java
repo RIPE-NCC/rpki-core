@@ -7,7 +7,7 @@ import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.core.events.IncomingCertificateUpdatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
@@ -37,7 +37,7 @@ public class RoaConfigurationMaintenanceServiceBean implements RoaConfigurationM
         final VersionedId caId = event.getCertificateAuthorityVersionedId();
         final IpResourceSet nowCurrentResources = event.getIncomingCertificate().getResources();
 
-        final HostedCertificateAuthority ca = certificateAuthorityRepository.findHostedCa(caId.getId());
+        final ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(caId.getId());
 
         final Optional<RoaConfiguration> maybeConfig = roaConfigurationRepository.findByCertificateAuthority(ca);
         if (!maybeConfig.isPresent()) {

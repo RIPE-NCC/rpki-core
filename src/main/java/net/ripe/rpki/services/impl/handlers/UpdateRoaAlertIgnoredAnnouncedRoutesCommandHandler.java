@@ -1,7 +1,7 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.alerts.RoaAlertConfiguration;
 import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
 import net.ripe.rpki.server.api.commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand;
@@ -28,7 +28,7 @@ public class UpdateRoaAlertIgnoredAnnouncedRoutesCommandHandler extends Abstract
 
     @Override
     public void handle(UpdateRoaAlertIgnoredAnnouncedRoutesCommand command, CommandStatus commandStatus) {
-        HostedCertificateAuthority ca = lookupHostedCA(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
         RoaAlertConfiguration configuration = repository.findByCertificateAuthorityIdOrNull(command.getCertificateAuthorityVersionedId().getId());
         if (configuration == null) {
             configuration = new RoaAlertConfiguration(ca);

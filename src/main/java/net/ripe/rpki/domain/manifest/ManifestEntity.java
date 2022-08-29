@@ -24,13 +24,17 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.security.auth.x500.X500Principal;
 import java.math.BigInteger;
 import java.security.KeyPair;
-import java.util.Map;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 /**
@@ -81,6 +85,9 @@ public class ManifestEntity extends EntitySupport {
     @JoinColumn(name = "published_object_id", nullable = false)
     private PublishedObject publishedObject;
 
+    @OneToMany(mappedBy = "containingManifest")
+    private Set<PublishedObject> entries = new HashSet<>();
+
     protected ManifestEntity() {}
 
     public ManifestEntity(KeyPairEntity keyPair) {
@@ -115,38 +122,46 @@ public class ManifestEntity extends EntitySupport {
         return parser.getManifestCms();
     }
 
-    public long getNextNumber() {
-        return nextNumber;
-    }
-
-    public boolean isUpdateNeeded(DateTime now, Map<String, byte[]> manifestEntries, IncomingResourceCertificate currentCertificate) {
+    public boolean isUpdateNeeded(DateTime now, Collection<PublishedObject> manifestEntries, IncomingResourceCertificate currentCertificate) {
         ManifestCms cms = getManifestCms();
         return cms == null
                 || isCloseToNextUpdateTime(now, cms)
                 || parentCertificatePublicationLocationChanged(cms, currentCertificate)
-                || !cms.matchesFiles(manifestEntries);
+                || !cms.matchesFiles(manifestEntries.stream().collect(Collectors.toMap(PublishedObject::getFilename, PublishedObject::getContent, (a, b) -> b)));
     }
 
     public void update(OutgoingResourceCertificate eeCertificate,
                        KeyPair eeCertificateKeyPair,
                        String signatureProvider,
-                       Map<String, byte[]> manifestEntries) {
+                       Collection<PublishedObject> updatedEntries) {
+        withdraw();
 
         this.certificate = eeCertificate;
-        ManifestCms manifestCms = buildManifestCms(manifestEntries, eeCertificateKeyPair, signatureProvider);
 
-        if (publishedObject != null) {
-            publishedObject.withdraw();
+        Set<PublishedObject> addedEntries = new HashSet<>(updatedEntries);
+        addedEntries.removeAll(entries);
+        for (PublishedObject addedEntry : addedEntries) {
+            addedEntry.setContainingManifest(this);
+            entries.add(addedEntry);
         }
+        Set<PublishedObject> removedEntries = new HashSet<>(entries);
+        removedEntries.removeAll(updatedEntries);
+        for (PublishedObject removedEntry : removedEntries) {
+            removedEntry.setContainingManifest(null);
+            entries.remove(removedEntry);
+        }
+
+        ManifestCms manifestCms = buildManifestCms(entries, eeCertificateKeyPair, signatureProvider);
+
         publishedObject = new PublishedObject(keyPair, keyPair.getManifestFilename(), manifestCms.getEncoded(), false, keyPair.getCertificateRepositoryLocation(), manifestCms.getValidityPeriod());
 
         this.nextNumber++;
     }
 
-    private ManifestCms buildManifestCms(Map<String, byte[]> manifestEntries, KeyPair eeKeyPair, String signatureProvider) {
+    private ManifestCms buildManifestCms(Collection<PublishedObject> manifestEntries, KeyPair eeKeyPair, String signatureProvider) {
         ManifestCmsBuilder builder = new ManifestCmsBuilder();
-        for (String fileName : manifestEntries.keySet()) {
-            builder.addFile(fileName, manifestEntries.get(fileName));
+        for (PublishedObject manifestEntry : manifestEntries) {
+            builder.addFile(manifestEntry.getFilename(), manifestEntry.getContent());
         }
         builder.withCertificate(certificate.getCertificate());
         builder.withManifestNumber(BigInteger.valueOf(nextNumber));
@@ -172,7 +187,7 @@ public class ManifestEntity extends EntitySupport {
         return !incomingResourceCertificate.getPublicationUri().equals(cms.getParentCertificateUri());
     }
 
-    public void withdraw() {
+    private void withdraw() {
         if (publishedObject != null) {
             publishedObject.withdraw();
         }

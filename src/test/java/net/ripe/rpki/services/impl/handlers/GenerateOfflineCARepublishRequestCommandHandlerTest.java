@@ -4,7 +4,6 @@ import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDes
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationServiceBean;
 import net.ripe.rpki.server.api.commands.GenerateOfflineCARepublishRequestCommand;
@@ -49,7 +48,7 @@ public class GenerateOfflineCARepublishRequestCommandHandlerTest {
         ArgumentCaptor<UpStreamCARequestEntity> capturedArgument = ArgumentCaptor.forClass(UpStreamCARequestEntity.class);
         allResourcesCa = mock(AllResourcesCertificateAuthority.class);
 
-        when(certificateAuthorityRepository.findHostedCa(CA_VERSIONED_ID.getId())).thenReturn(allResourcesCa);
+        when(certificateAuthorityRepository.findManagedCa(CA_VERSIONED_ID.getId())).thenReturn(allResourcesCa);
         URI notificationUri = new URI("http://bla.com/notification.xml");
         when(certificationConfiguration.getNotificationUri()).thenReturn(notificationUri);
         when(certificationConfiguration.getTrustAnchorRepositoryUri()).thenReturn(notificationUri);

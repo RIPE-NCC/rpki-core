@@ -2,10 +2,9 @@ package net.ripe.rpki.core.read.services.ca;
 
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
@@ -16,7 +15,6 @@ import javax.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,15 +26,8 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
     private CertificateAuthorityViewService subject;
 
     @Test
-    public void findCertificateAuthorityByTypeAndUuid() {
-        for (CertificateAuthorityType type : CertificateAuthorityType.values()) {
-            assertThat(subject.findCertificateAuthorityByTypeAndUuid(type, UUID.randomUUID())).isNull();
-        }
-    }
-
-    @Test
     public void findAllHostedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth() {
-        assertThat(subject.findAllHostedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth()).isEmpty();
+        assertThat(subject.findAllManagedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth()).isEmpty();
     }
     @Test
     public void findAllPublisherRequestsFromNonHostedCAs(){
@@ -45,7 +36,7 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
     @Test
     public void findAllHostedCasWithCurrentKeyOnlyAndOlderThan() {
         final Instant oldestCreationTime = Instant.now().minus(Duration.standardDays(10));
-        assertThat(subject.findAllHostedCasWithCurrentKeyOnlyAndOlderThan(HostedCertificateAuthority.class, oldestCreationTime, Optional.of(1000))).isEmpty();
+        assertThat(subject.findAllHostedCasWithCurrentKeyOnlyAndOlderThan(ManagedCertificateAuthority.class, oldestCreationTime, Optional.of(1000))).isEmpty();
     }
 
     @Test

@@ -7,5 +7,5 @@ public interface KeyPairService {
 
     KeyPairEntity createKeyPairEntity();
 
-    DownStreamProvisioningCommunicator createMyIdentityMaterial(HostedCertificateAuthority ca);
+    DownStreamProvisioningCommunicator createMyIdentityMaterial(ManagedCertificateAuthority ca);
 }

@@ -2,7 +2,7 @@ package net.ripe.rpki.services.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.PublicKeyEntity;
@@ -61,7 +61,7 @@ public class DeleteCertificateAuthorityService {
     }
 
     public void revokeCa(long id) {
-        final HostedCertificateAuthority hostedCa = caRepository.findHostedCa(id);
+        final ManagedCertificateAuthority hostedCa = caRepository.findManagedCa(id);
         if (hostedCa != null) {
             log.warn("Deleting hosted CA with id " + id);
 
@@ -85,7 +85,7 @@ public class DeleteCertificateAuthorityService {
         }
     }
 
-    private void deleteArtifactsOfKeyPairEntity(HostedCertificateAuthority ca, KeyPairEntity keyPair) {
+    private void deleteArtifactsOfKeyPairEntity(ManagedCertificateAuthority ca, KeyPairEntity keyPair) {
         CertificateRevocationRequest certificateRevocationRequest = new CertificateRevocationRequest(keyPair.getPublicKey());
         CertificateRevocationResponse certificateRevocationResponse = ca.getParent().processCertificateRevocationRequest(certificateRevocationRequest, resourceCertificateRepository);
         ca.processCertificateRevocationResponse(certificateRevocationResponse, publishedObjectRepository, keyPairDeletionService);

@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.Asn;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import net.ripe.rpki.server.api.dto.AspaConfigurationData;
 
@@ -42,7 +42,7 @@ public class AspaConfiguration extends EntitySupport {
     @OneToOne(optional = false)
     @JoinColumn(name = "certificateauthority_id")
     @Getter
-    private HostedCertificateAuthority certificateAuthority;
+    private ManagedCertificateAuthority certificateAuthority;
 
     @Column(name = "customer_asn", nullable = false)
     private BigInteger customerAsn;
@@ -51,11 +51,11 @@ public class AspaConfiguration extends EntitySupport {
     @CollectionTable(name = "aspaconfiguration_provider_asns", joinColumns = @JoinColumn(name = "aspaconfiguration_id"))
     private Set<AspaProviderAsn> providerASSet = new HashSet<>();
 
-    public AspaConfiguration(HostedCertificateAuthority ca) {
+    public AspaConfiguration(ManagedCertificateAuthority ca) {
         this(ca, null, Collections.emptySet());
     }
 
-    public AspaConfiguration(HostedCertificateAuthority ca, BigInteger customerAsn, Set<AspaProviderAsn> providerASSet) {
+    public AspaConfiguration(ManagedCertificateAuthority ca, BigInteger customerAsn, Set<AspaProviderAsn> providerASSet) {
         this.certificateAuthority = Preconditions.checkNotNull(ca, "certificateAuthority is required");
         this.customerAsn = customerAsn;
         this.providerASSet.addAll(providerASSet);

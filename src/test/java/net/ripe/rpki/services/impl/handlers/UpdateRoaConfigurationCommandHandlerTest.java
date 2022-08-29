@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.TestServices;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
@@ -34,7 +34,7 @@ public class UpdateRoaConfigurationCommandHandlerTest {
 
     private static final Long TEST_CA_ID = 2L;
 
-    private HostedCertificateAuthority certificateAuthority;
+    private ManagedCertificateAuthority certificateAuthority;
 
     private CertificateAuthorityRepository certificateAuthorityRepository;
 
@@ -56,7 +56,7 @@ public class UpdateRoaConfigurationCommandHandlerTest {
         roaEntityService = mock(RoaEntityService.class);
         roaMetricsService = mock(RoaMetricsService.class);
 
-        when(certificateAuthorityRepository.findHostedCa(certificateAuthority.getId())).thenReturn(certificateAuthority);
+        when(certificateAuthorityRepository.findManagedCa(certificateAuthority.getId())).thenReturn(certificateAuthority);
 
         subject = new UpdateRoaConfigurationCommandHandler(certificateAuthorityRepository, roaConfigurationRepository
                 , roaEntityService, PRIVATE_ASNS, roaMetricsService);

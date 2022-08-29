@@ -2,12 +2,12 @@ package net.ripe.rpki.server.api.services.read;
 
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.CertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.dto.CaIdentity;
 import net.ripe.rpki.server.api.dto.CaStat;
 import net.ripe.rpki.server.api.dto.CaStatEvent;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.CommandAuditData;
 import net.ripe.rpki.server.api.dto.ProvisioningAuditData;
 import org.joda.time.Instant;
@@ -36,12 +36,12 @@ public interface CertificateAuthorityViewService {
 
     Long findCertificateAuthorityIdByName(X500Principal name);
 
-    CertificateAuthorityData findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType type, UUID uuid);
+    CertificateAuthorityData findCertificateAuthorityByTypeAndUuid(Class<? extends CertificateAuthority> type, UUID uuid);
 
     /**
      * Find CA id based on name and type
      */
-    Long findCertificateAuthorityIdByTypeAndName(CertificateAuthorityType type, X500Principal name);
+    Long findCertificateAuthorityIdByTypeAndName(Class<? extends CertificateAuthority> type, X500Principal name);
 
     /**
      * @return non-null collection of hosted CA's
@@ -52,7 +52,7 @@ public interface CertificateAuthorityViewService {
      * @return non-null collection of hosted CA's
      */
     Collection<CertificateAuthorityData> findAllHostedCasWithCurrentKeyOnlyAndOlderThan(
-        Class<? extends HostedCertificateAuthority> type,
+        Class<? extends ManagedCertificateAuthority> type,
         Instant oldestCreationTime,
         Optional<Integer> batchSize
     );
@@ -77,10 +77,10 @@ public interface CertificateAuthorityViewService {
 
     Map<UUID, PublisherRequest> findAllPublisherRequestsFromNonHostedCAs();
     /**
-     * @return all subclass instances of {@link net.ripe.rpki.domain.HostedCertificateAuthority HostedCertificateAuthority}
+     * @return all subclass instances of {@link ManagedCertificateAuthority ManagedCertificateAuthority}
      * that have a pending key, ordered by the depth of the parent CA chain (so the
      * {@link net.ripe.rpki.domain.AllResourcesCertificateAuthority AllResourcesCertificateAuthority} will be first,
      * followed by its immediate children, followed by their immediate children, etc).
      */
-    List<CertificateAuthorityData> findAllHostedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth();
+    List<CertificateAuthorityData> findAllManagedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth();
 }

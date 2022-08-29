@@ -21,7 +21,7 @@ import java.util.Optional;
 
 @Entity
 @DiscriminatorValue(value = "ALL_RESOURCES")
-public class AllResourcesCertificateAuthority extends HostedCertificateAuthority {
+public class AllResourcesCertificateAuthority extends ManagedCertificateAuthority {
 
     @Getter
     @Setter

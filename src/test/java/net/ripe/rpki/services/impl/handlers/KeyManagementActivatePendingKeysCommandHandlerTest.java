@@ -40,7 +40,7 @@ public class KeyManagementActivatePendingKeysCommandHandlerTest {
     public void should_activate_keys_for_ProductionCertificateAuthority() {
         // Expect that the CA is looked up
         when(ca.getVersionedId()).thenReturn(new VersionedId(caId));
-        when(certificateAuthorityRepository.findHostedCa(caId)).thenReturn(ca);
+        when(certificateAuthorityRepository.findManagedCa(caId)).thenReturn(ca);
 
         // Expect that the CA is asked to activate pending keys, and return success
         when(ca.activatePendingKeys(isA(Duration.class))).thenReturn(true);
@@ -57,7 +57,7 @@ public class KeyManagementActivatePendingKeysCommandHandlerTest {
     public void should_activate_keys_for_CustomerCertificateAuthority() {
         // Expect that the CA is looked up
         when(ca.getVersionedId()).thenReturn(new VersionedId(caId));
-        when(certificateAuthorityRepository.findHostedCa(caId)).thenReturn(ca);
+        when(certificateAuthorityRepository.findManagedCa(caId)).thenReturn(ca);
 
         // Expect that the CA is asked to activate pending keys, and return success
         when(ca.activatePendingKeys(isA(Duration.class))).thenReturn(true);
@@ -74,7 +74,7 @@ public class KeyManagementActivatePendingKeysCommandHandlerTest {
     public void should_throw_CommandWithoutEffectException_when_command_has_no_effect() {
         // Expect that the CA is looked up
         when(ca.getVersionedId()).thenReturn(new VersionedId(caId));
-        when(certificateAuthorityRepository.findHostedCa(caId)).thenReturn(ca);
+        when(certificateAuthorityRepository.findManagedCa(caId)).thenReturn(ca);
 
         // Expect that the CA is asked to activate pending keys, and return success
         when(ca.activatePendingKeys(isA(Duration.class))).thenThrow(new CommandWithoutEffectException(""));

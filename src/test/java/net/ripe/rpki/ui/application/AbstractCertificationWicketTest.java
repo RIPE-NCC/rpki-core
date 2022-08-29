@@ -6,8 +6,7 @@ import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.ripencc.services.impl.RipeNccInternalNamePresenter;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.ResourceClassMap;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.InternalNamePresenter;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateService;
@@ -29,7 +28,6 @@ import org.junit.Before;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.UUID;
 
 import static net.ripe.rpki.server.api.dto.CertificateAuthorityType.ROOT;
@@ -53,7 +51,7 @@ public class AbstractCertificationWicketTest {
         RESOURCES.addAll(IpResourceSet.parse("5.0.0.0/8"));
     }
 
-    protected static final CertificateAuthorityData PRODUCTION_CA_DATA = new HostedCertificateAuthorityData(
+    protected static final CertificateAuthorityData PRODUCTION_CA_DATA = new ManagedCertificateAuthorityData(
         PRODUCTION_CA_VERSIONED_ID, PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), null, ROOT, RESOURCES, Collections.emptyList());
 
 

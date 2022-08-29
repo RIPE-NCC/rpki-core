@@ -4,7 +4,7 @@ import lombok.Setter;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.TestRpkiBootApplication;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
@@ -21,7 +21,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.sql.Date;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -78,12 +77,12 @@ public class RoaPrefixesServiceTest {
         when(roaConfigurationRepository.lastModified()).thenReturn(Optional.of(Instant.now()));
 
         when(roaConfigurationRepository.findAll()).thenReturn(Arrays.asList(
-                new RoaConfiguration(mock(HostedCertificateAuthority.class), Arrays.asList(
+                new RoaConfiguration(mock(ManagedCertificateAuthority.class), Arrays.asList(
                     new RoaConfigurationPrefix(Asn.parse("AS64496"), IpRange.parse("192.0.2.0/25"), 32),
                     new RoaConfigurationPrefix(Asn.parse("AS65536"), IpRange.parse("192.0.2.128/25"), 32),
                     new RoaConfigurationPrefix(Asn.parse("AS64496"), IpRange.parse("192.0.2.128/25"), 25)
                 )),
-                new RoaConfiguration(mock(HostedCertificateAuthority.class), Arrays.asList(
+                new RoaConfiguration(mock(ManagedCertificateAuthority.class), Arrays.asList(
                         new RoaConfigurationPrefix(Asn.parse("AS65551"), IpRange.parse("2001:DB8::/32"), 33),
                         new RoaConfigurationPrefix(Asn.parse("AS65550"), IpRange.parse("2001:DB8:ABCD::/48"), 48)
                 ))

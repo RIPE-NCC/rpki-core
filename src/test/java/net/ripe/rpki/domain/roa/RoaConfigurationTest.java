@@ -2,7 +2,7 @@ package net.ripe.rpki.domain.roa;
 
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -16,12 +16,12 @@ public class RoaConfigurationTest {
     private static final RoaConfigurationPrefix AS3333_10_8_NULL = new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10/8"), null);
     private static final RoaConfigurationPrefix AS3333_10_8_16 = new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10/8"), 16);
 
-    private HostedCertificateAuthority certificateAuthority;
+    private ManagedCertificateAuthority certificateAuthority;
     private RoaConfiguration subject;
 
     @Before
     public void setUp() {
-        certificateAuthority = mock(HostedCertificateAuthority.class);
+        certificateAuthority = mock(ManagedCertificateAuthority.class);
         subject = new RoaConfiguration(certificateAuthority, Collections.emptyList());
     }
 

@@ -7,7 +7,7 @@ import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassLis
 import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassListResponsePayload;
 import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassListResponsePayloadBuilder;
 import net.ripe.rpki.domain.CertificateAuthority;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
@@ -31,7 +31,7 @@ class ListResourceClassProcessor extends AbstractProvisioningProcessor {
     }
 
     public ResourceClassListResponsePayload process(NonHostedCertificateAuthorityData nonHostedCertificateAuthority,
-                                                    HostedCertificateAuthorityData productionCA) {
+                                                    ManagedCertificateAuthorityData productionCA) {
 
         final ResourceClassListResponsePayloadBuilder responsePayloadBuilder = new ResourceClassListResponsePayloadBuilder();
 

@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl.jpa;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.NameNotUniqueException;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.ParentCertificateAuthority;
@@ -120,10 +120,10 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     }
 
     @Override
-    public HostedCertificateAuthority findHostedCa(Long id) {
+    public ManagedCertificateAuthority findManagedCa(Long id) {
         try {
-            Query query = createQuery("from HostedCertificateAuthority ca where id = :id");
-            return (HostedCertificateAuthority) query.setParameter("id", id).getSingleResult();
+            Query query = createQuery("from ManagedCertificateAuthority ca where id = :id");
+            return (ManagedCertificateAuthority) query.setParameter("id", id).getSingleResult();
         } catch (NoResultException e) {
             return null;
         }
@@ -227,10 +227,10 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     }
 
     @Override
-    public Collection<HostedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff) {
+    public Collection<ManagedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff) {
         return manager.createQuery(
             "SELECT ca " +
-                "  FROM HostedCertificateAuthority ca" +
+                "  FROM ManagedCertificateAuthority ca" +
                 // Certificate authority configuration was updated since last check, so publish might be needed
                 " WHERE ca.manifestAndCrlCheckNeeded = TRUE" +
                 "    OR EXISTS (SELECT kp " +
@@ -255,7 +255,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
                 "                                        LEFT JOIN crl.publishedObject po " +
                 "                                       WHERE crl.keyPair = kp" +
                 "                                         AND po.validityPeriod.notValidAfter > :nextUpdateCutoff)))",
-            HostedCertificateAuthority.class)
+            ManagedCertificateAuthority.class)
             // See KeyPairEntity.isPublishable for the next two parameters
             .setParameter("publishable", Arrays.asList(KeyPairStatus.PENDING, KeyPairStatus.CURRENT, KeyPairStatus.OLD))
             // Need to update when there are published object with pending status
@@ -265,20 +265,20 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     }
 
     @Override
-    public TypedQuery<HostedCertificateAuthority> findAllWithManifestAndCrlCheckNeeded() {
+    public TypedQuery<ManagedCertificateAuthority> findAllWithManifestAndCrlCheckNeeded() {
         return manager.createQuery(
                 "SELECT ca " +
-                    "  FROM HostedCertificateAuthority ca" +
+                    "  FROM ManagedCertificateAuthority ca" +
                     // Certificate authority configuration was updated since last check, so publish might be needed
                     " WHERE ca.manifestAndCrlCheckNeeded = TRUE",
-                HostedCertificateAuthority.class);
+                ManagedCertificateAuthority.class);
     }
 
     @Override
-    public List<HostedCertificateAuthority> findAllWithManifestsExpiringBefore(DateTime notValidAfterCutoff, int maxResult) {
+    public List<ManagedCertificateAuthority> findAllWithManifestsExpiringBefore(DateTime notValidAfterCutoff, int maxResult) {
         return manager.createQuery(
                 "SELECT DISTINCT ca, MIN(po.validityPeriod.notValidAfter) " +
-                    "  FROM HostedCertificateAuthority ca" +
+                    "  FROM ManagedCertificateAuthority ca" +
                     "  JOIN ca.keyPairs kp," +
                     "       ManifestEntity mft" +
                     "  JOIN mft.publishedObject po" +
@@ -294,7 +294,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
             .setParameter("notValidAfterCutoff", notValidAfterCutoff)
             .setMaxResults(maxResult)
             .getResultStream()
-            .map(row -> (HostedCertificateAuthority) row[0])
+            .map(row -> (ManagedCertificateAuthority) row[0])
             .collect(Collectors.toList());
     }
 
@@ -305,10 +305,10 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     }
 
     @Override
-    public Collection<HostedCertificateAuthority> getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear() {
+    public Collection<ManagedCertificateAuthority> getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear() {
         // for context: deleting a CA is a USER command
         final Query sql = manager.createQuery(
-            "SELECT ca FROM HostedCertificateAuthority ca " +
+            "SELECT ca FROM ManagedCertificateAuthority ca " +
                 "WHERE ca.keyPairs IS EMPTY " +
                 "AND NOT EXISTS (" +
                 "   SELECT cau FROM CommandAudit cau " +

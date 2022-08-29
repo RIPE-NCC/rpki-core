@@ -80,7 +80,7 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
     public void should_throw_command_without_effect_exception_when_there_is_nothing_to_revoke() {
 
         when(allResourcesCa.getVersionedId()).thenReturn(new VersionedId(acaId));
-        when(certificateAuthorityRepository.findHostedCa(acaId)).thenReturn(allResourcesCa);
+        when(certificateAuthorityRepository.findManagedCa(acaId)).thenReturn(allResourcesCa);
         when(allResourcesCa.requestOldKeysRevocation(any())).thenReturn(new ArrayList<CertificateRevocationRequest>());
 
         KeyManagementRevokeOldKeysCommand command = new KeyManagementRevokeOldKeysCommand(allResourcesCa.getVersionedId());
@@ -98,7 +98,7 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
     @Test
     public void should_set_upstream_request_for_ta_for_all_resource_ca() {
         when(allResourcesCa.getVersionedId()).thenReturn(new VersionedId(acaId));
-        when(certificateAuthorityRepository.findHostedCa(acaId)).thenReturn(allResourcesCa);
+        when(certificateAuthorityRepository.findManagedCa(acaId)).thenReturn(allResourcesCa);
 
         PublicKey publicKey = KeyPairFactoryTest.TEST_KEY_PAIR.getPublic();
         ArrayList<CertificateRevocationRequest> revocationRequests = new ArrayList<>();
@@ -115,7 +115,7 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
     public void member_ca_should_request_revocation_of_old_keys() {
         CertificateRevocationResponse response = new CertificateRevocationResponse(DEFAULT_RESOURCE_CLASS, TestObjects.TEST_KEY_PAIR_2.getPublicKey());
 
-        when(certificateAuthorityRepository.findHostedCa(membershipId)).thenReturn(memberCa);
+        when(certificateAuthorityRepository.findManagedCa(membershipId)).thenReturn(memberCa);
 
         CertificateRevocationRequest request = createRevocationRequest();
         when(memberCa.requestOldKeysRevocation(any())).thenReturn(Collections.singletonList(request));

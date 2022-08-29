@@ -1,7 +1,7 @@
 package net.ripe.rpki.domain.archive.test;
 
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.domain.TestObjects;
@@ -43,7 +43,7 @@ public class KeyPairDeletionServiceTest {
     @Mock
     private PublishedObjectRepository publishedObjectRepository;
     @Mock
-    private HostedCertificateAuthority ca;
+    private ManagedCertificateAuthority ca;
 
     @Before
     public void initKeyPairArchivingService() {

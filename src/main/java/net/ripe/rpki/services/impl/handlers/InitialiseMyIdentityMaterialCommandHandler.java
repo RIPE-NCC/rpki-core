@@ -28,7 +28,7 @@ public class InitialiseMyIdentityMaterialCommandHandler extends AbstractCertific
     @Override
     public void handle(InitialiseMyIdentityMaterialCommand command, CommandStatus commandStatus) {
 
-        HostedCertificateAuthority ca = lookupHostedCA(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
 
         if(CertificateAuthorityType.ROOT == ca.getType()) {
             DownStreamProvisioningCommunicator identityMaterial = keyPairService.createMyIdentityMaterial(ca);

@@ -4,7 +4,7 @@ import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
 import net.ripe.rpki.domain.RequestedResourceSets;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
@@ -19,7 +19,7 @@ abstract class AbstractProvisioningProcessor {
         this.resourceLookupService = resourceLookupService;
     }
 
-    protected IpResourceSet getCertifiableResources(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, HostedCertificateAuthorityData productionCA) {
+    protected IpResourceSet getCertifiableResources(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, ManagedCertificateAuthorityData productionCA) {
         // We cannot use `nonHostedCertificateAuthority.getResources()` here since they only include _certified_
         // resources (which may be limited by the requested resource set) and we must include all _certifiable_
         // resources.

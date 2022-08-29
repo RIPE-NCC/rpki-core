@@ -54,7 +54,7 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
      */
     @Override
     public void handle(KeyManagementInitiateRollCommand command, CommandStatus commandStatus) {
-        HostedCertificateAuthority ca = lookupHostedCA(command.getCertificateAuthorityId());
+        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityId());
         List<CertificateIssuanceRequest> requests = ca.initiateKeyRolls(command.getMaxAgeDays(), keyPairService, certificationRequestCreationService);
 
         if (requests.isEmpty()) {
@@ -72,7 +72,7 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
         ca.setUpStreamCARequestEntity(new UpStreamCARequestEntity(ca, certificationRequestCreationService.createTrustAnchorRequest(toTaRequests(requests))));
     }
 
-    private void handleForHostedCertificateAuthority(HostedCertificateAuthority ca, List<CertificateIssuanceRequest> requests) {
+    private void handleForHostedCertificateAuthority(ManagedCertificateAuthority ca, List<CertificateIssuanceRequest> requests) {
         for (CertificateIssuanceRequest request : requests) {
             CertificateIssuanceResponse response = ca.getParent().processCertificateIssuanceRequest(
                     ca, request, resourceCertificateRepository, Integer.MAX_VALUE);

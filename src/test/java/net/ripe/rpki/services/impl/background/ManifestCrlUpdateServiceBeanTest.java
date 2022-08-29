@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl.background;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.core.services.background.BackgroundServiceException;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
@@ -43,11 +43,11 @@ public class ManifestCrlUpdateServiceBeanTest {
 
     @Test
     public void should_publish_for_each_CA() {
-        HostedCertificateAuthority prodCa = mock(HostedCertificateAuthority.class);
+        ManagedCertificateAuthority prodCa = mock(ManagedCertificateAuthority.class);
         VersionedId prodCaId = new VersionedId(42L);
         when(prodCa.getVersionedId()).thenReturn(prodCaId);
 
-        HostedCertificateAuthority memberCa = mock(HostedCertificateAuthority.class);
+        ManagedCertificateAuthority memberCa = mock(ManagedCertificateAuthority.class);
         VersionedId memberCaId = new VersionedId(43L);
         when(memberCa.getVersionedId()).thenReturn(memberCaId);
 
@@ -66,18 +66,18 @@ public class ManifestCrlUpdateServiceBeanTest {
     public void should_throw_exception_when_too_many_exceptions_are_encountered() {
 
         doThrow(new RuntimeException()).when(commandService).execute(isA(IssueUpdatedManifestAndCrlCommand.class));
-        List<HostedCertificateAuthority> caData = createCertificateAuthorityDataMocks(15);
+        List<ManagedCertificateAuthority> caData = createCertificateAuthorityDataMocks(15);
         when(certificateAuthorityRepository.findAllWithOutdatedManifests(any())).thenReturn(caData);
 
         BackgroundServiceException backgroundServiceException = assertThrows(BackgroundServiceException.class, () -> subject.runService());
         assertEquals("Too many exceptions encountered running job: 'Manifest and CRL Update Service'. Suspecting problems that affect ALL CAs.", backgroundServiceException.getMessage());
     }
 
-    private List<HostedCertificateAuthority> createCertificateAuthorityDataMocks(int count) {
-        List<HostedCertificateAuthority> hostedCAs = new ArrayList<>();
+    private List<ManagedCertificateAuthority> createCertificateAuthorityDataMocks(int count) {
+        List<ManagedCertificateAuthority> result = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            hostedCAs.add(mock(HostedCertificateAuthority.class));
+            result.add(mock(ManagedCertificateAuthority.class));
         }
-        return hostedCAs;
+        return result;
     }
 }

@@ -7,7 +7,7 @@ import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
 import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassListResponseClassElement;
 import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassListResponsePayload;
 import net.ripe.rpki.domain.RequestedResourceSets;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
@@ -47,7 +47,7 @@ public class ListResourceClassProcessorTest {
     private NonHostedCertificateAuthorityData nonHostedCertificateAuthority;
 
     @Mock
-    private HostedCertificateAuthorityData productionCA;
+    private ManagedCertificateAuthorityData productionCA;
 
     @Mock
     private ResourceLookupService resourceLookupService;

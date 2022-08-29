@@ -18,8 +18,8 @@ public abstract class AbstractCertificateAuthorityCommandHandler<T extends Certi
         this.certificateAuthorityRepository = Objects.requireNonNull(certificateAuthorityRepository, "certificateAuthorityRepository is null");
     }
 
-    protected HostedCertificateAuthority lookupHostedCA(Long id) {
-        HostedCertificateAuthority result = certificateAuthorityRepository.findHostedCa(id);
+    protected ManagedCertificateAuthority lookupManagedCa(Long id) {
+        ManagedCertificateAuthority result = certificateAuthorityRepository.findManagedCa(id);
         if (result == null) {
             throw new EntityNotFoundException("hosted CA not found: " + id);
         }

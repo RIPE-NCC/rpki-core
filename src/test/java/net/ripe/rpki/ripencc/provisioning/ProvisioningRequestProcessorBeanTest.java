@@ -15,10 +15,12 @@ import net.ripe.rpki.commons.provisioning.payload.revocation.request.Certificate
 import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.domain.NonHostedCertificateAuthority;
+import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.RequestedResourceSets;
 import net.ripe.rpki.server.api.commands.ProvisioningCertificateRevocationCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
 import net.ripe.rpki.server.api.services.command.CommandService;
@@ -66,7 +68,7 @@ public class ProvisioningRequestProcessorBeanTest {
     private ProvisioningCmsSigningTimeStore provisioningCmsSigningTimeStore;
     @Mock
     private CommandService commandService;
-    private HostedCertificateAuthorityData parent;
+    private ManagedCertificateAuthorityData parent;
     private NonHostedCertificateAuthorityData child;
     @Mock
     private ProvisioningCmsValidationStrategy validationStrategy;
@@ -75,7 +77,7 @@ public class ProvisioningRequestProcessorBeanTest {
 
     @Before
     public void setUp() {
-        parent = new HostedCertificateAuthorityData(
+        parent = new ManagedCertificateAuthorityData(
             new VersionedId(42L, 1), PRODUCTION_CA_NAME, UUID.randomUUID(), 1L,
             CertificateAuthorityType.ROOT,
             PRODUCTION_CA_RESOURCES,
@@ -101,21 +103,21 @@ public class ProvisioningRequestProcessorBeanTest {
         listCms = givenListResourceClassRequestCms();
 
         // set up mocks
-        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType.ROOT,
+        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(ProductionCertificateAuthority.class,
                 UUID.fromString(listCms.getPayload().getRecipient()))).thenReturn(parent);
-        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType.NONHOSTED,
+        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(NonHostedCertificateAuthority.class,
                 UUID.fromString(listCms.getPayload().getSender()))).thenReturn(child);
     }
 
     @Test
     public void shouldEnsureNonHostedMemberIsChildOfDelegationCa() {
-        parent = new HostedCertificateAuthorityData(
+        parent = new ManagedCertificateAuthorityData(
             new VersionedId(99L, 1), PRODUCTION_CA_NAME, UUID.randomUUID(), 1L,
             CertificateAuthorityType.ROOT,
             PRODUCTION_CA_RESOURCES,
             Collections.emptyList()
         );
-        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType.ROOT,
+        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(ProductionCertificateAuthority.class,
             UUID.fromString(listCms.getPayload().getRecipient()))).thenReturn(parent);
 
         try {
@@ -157,7 +159,7 @@ public class ProvisioningRequestProcessorBeanTest {
 
         final UUID sender = UUID.randomUUID(), recipient = UUID.randomUUID();
 
-        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType.NONHOSTED, sender)).thenReturn(child);
+        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(NonHostedCertificateAuthority.class, sender)).thenReturn(child);
 
         listCms = givenListResourceClassRequestCms(sender.toString(), recipient.toString(), cmsCertificate);
 

@@ -7,7 +7,7 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.roa.Roa;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaPrefix;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import org.joda.time.DateTime;
 import org.junit.Before;
@@ -39,13 +39,13 @@ public class RoaSpecificationTest {
     private RoaStub roa;
     private ValidityPeriod caCertValidityPeriod;
 
-    private HostedCertificateAuthority certificateAuthority;
+    private ManagedCertificateAuthority certificateAuthority;
     private IncomingResourceCertificate incomingCertificate;
 
     private IpResourceSet resources;
 
 
-    public static RoaSpecification createRoaSpecification(HostedCertificateAuthority ca) {
+    public static RoaSpecification createRoaSpecification(ManagedCertificateAuthority ca) {
         RoaSpecification result = new RoaSpecification(ca, ASN, VALIDITY_PERIOD);
         result.addAllowedRoute(ROA_PREFIX_1);
         result.addAllowedRoute(ROA_PREFIX_2);
@@ -55,7 +55,7 @@ public class RoaSpecificationTest {
     @Before
     public void setUp() {
         caCertValidityPeriod = new ValidityPeriod(NOW, NOW.plusYears(2));
-        certificateAuthority = mock(HostedCertificateAuthority.class);
+        certificateAuthority = mock(ManagedCertificateAuthority.class);
         incomingCertificate = mock(IncomingResourceCertificate.class);
 
         resources = new IpResourceSet(RESOURCE_1, RESOURCE_2);

@@ -1,7 +1,7 @@
 package net.ripe.rpki.domain.archive;
 
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
@@ -37,14 +37,14 @@ public class KeyPairDeletionService {
         this.publishedObjectRepository = publishedObjectRepository;
     }
 
-    public void deleteRevokedKeysFromResponses(HostedCertificateAuthority ca, List<CertificateRevocationResponse> revocationResponses) {
+    public void deleteRevokedKeysFromResponses(ManagedCertificateAuthority ca, List<CertificateRevocationResponse> revocationResponses) {
         final List<String> encodedKeyIdentifiers = revocationResponses.stream()
                 .map(response -> KeyPairUtil.getEncodedKeyIdentifier(response.getSubjectPublicKey()))
                 .collect(Collectors.toList());
         deleteRevokedKeys(ca, encodedKeyIdentifiers);
     }
 
-    public void deleteRevokedKeys(HostedCertificateAuthority ca, List<String> revokedKeys) {
+    public void deleteRevokedKeys(ManagedCertificateAuthority ca, List<String> revokedKeys) {
         revokedKeys.forEach(revokedKey ->
             ca.deleteRevokedKey(revokedKey, crlEntityRepository, manifestEntityRepository,
                 roaRepository, resourceCertificateRepository, publishedObjectRepository));

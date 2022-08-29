@@ -2,10 +2,9 @@ package net.ripe.rpki.core.read.services.ca;
 
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
-import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.NonHostedPublisherRepository;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
@@ -62,26 +61,26 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     }
 
     @Override
-    public CertificateAuthorityData findCertificateAuthorityByTypeAndUuid(CertificateAuthorityType type, UUID uuid) {
-        CertificateAuthority ca = certificateAuthorityRepository.findByTypeAndUuid(resolveClassForType(type), uuid, LockModeType.NONE);
+    public CertificateAuthorityData findCertificateAuthorityByTypeAndUuid(Class<? extends CertificateAuthority> type, UUID uuid) {
+        CertificateAuthority ca = certificateAuthorityRepository.findByTypeAndUuid(type, uuid, LockModeType.NONE);
         return convertToCaData(ca);
     }
 
     @Override
-    public Long findCertificateAuthorityIdByTypeAndName(CertificateAuthorityType type, X500Principal name) {
-        CertificateAuthority ca = certificateAuthorityRepository.findByTypeAndName(resolveClassForType(type), name);
+    public Long findCertificateAuthorityIdByTypeAndName(Class<? extends CertificateAuthority> type, X500Principal name) {
+        CertificateAuthority ca = certificateAuthorityRepository.findByTypeAndName(type, name);
         return ca == null ? null : ca.getVersionedId().getId();
     }
 
     @Override
     public CertificateAuthorityData findCertificateAuthority(Long caId) {
-        CertificateAuthority ca = certificateAuthorityRepository.findHostedCa(caId);
+        CertificateAuthority ca = certificateAuthorityRepository.findManagedCa(caId);
         return convertToCaData(ca);
     }
 
     @Override
     public Collection<CertificateAuthorityData> findAllChildrenForCa(X500Principal caName) {
-        HostedCertificateAuthority parent = certificateAuthorityRepository.findByTypeAndName(HostedCertificateAuthority.class, caName);
+        ManagedCertificateAuthority parent = certificateAuthorityRepository.findByTypeAndName(ManagedCertificateAuthority.class, caName);
         return certificateAuthorityRepository.findAllByParent(parent).stream()
                 .map(this::convertToCaData)
                 .collect(Collectors.toList());
@@ -91,7 +90,7 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     // when it's not needed.
     @Override
     public Collection<CaIdentity> findAllChildrenIdsForCa(X500Principal productionCaName) {
-        HostedCertificateAuthority parent = certificateAuthorityRepository.findByTypeAndName(ProductionCertificateAuthority.class, productionCaName);
+        ManagedCertificateAuthority parent = certificateAuthorityRepository.findByTypeAndName(ProductionCertificateAuthority.class, productionCaName);
         return certificateAuthorityRepository.findAllByParent(parent).stream()
             .map(ca -> new CaIdentity(ca.getVersionedId(), CaName.of(ca.getName())))
             .collect(Collectors.toList());
@@ -104,23 +103,23 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
 
     @Override
     public Collection<CertificateAuthorityData> findAllHostedCasWithCurrentKeyOnlyAndOlderThan(
-        Class<? extends HostedCertificateAuthority> type,
+        Class<? extends ManagedCertificateAuthority> type,
         final Instant oldestCreationTime,
         final Optional<Integer> batchSize
     ) {
-        final TypedQuery<HostedCertificateAuthority> query = entityManager.createQuery(
+        final TypedQuery<ManagedCertificateAuthority> query = entityManager.createQuery(
             "SELECT ca " +
                 " FROM " + type.getSimpleName() + " ca " +
                 " WHERE EXISTS (SELECT kp FROM ca.keyPairs kp" +
                 "                WHERE kp.status = :current " +
                 "                  AND kp.createdAt < :maxAge)" +
                 " AND NOT EXISTS (SELECT kp FROM ca.keyPairs kp WHERE kp.status <> :current)",
-            HostedCertificateAuthority.class)
+            ManagedCertificateAuthority.class)
             .setParameter("current", KeyPairStatus.CURRENT)
             .setParameter("maxAge", oldestCreationTime);
         batchSize.ifPresent(query::setMaxResults);
         return query.getResultStream()
-            .map(HostedCertificateAuthority::toData)
+            .map(ManagedCertificateAuthority::toData)
             .collect(Collectors.toList());
     }
 
@@ -172,32 +171,18 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     }
 
     @Override
-    public List<CertificateAuthorityData> findAllHostedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth() {
-        Stream<HostedCertificateAuthority> certificateAuthorities = entityManager.createQuery(
+    public List<CertificateAuthorityData> findAllManagedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth() {
+        Stream<ManagedCertificateAuthority> certificateAuthorities = entityManager.createQuery(
                 "SELECT DISTINCT ca " +
-                    " FROM HostedCertificateAuthority ca JOIN ca.keyPairs kp" +
+                    " FROM ManagedCertificateAuthority ca JOIN ca.keyPairs kp" +
                     " WHERE kp.status = :pending",
-                HostedCertificateAuthority.class)
+                ManagedCertificateAuthority.class)
             .setParameter("pending", KeyPairStatus.PENDING)
             .getResultStream();
         return certificateAuthorities
             .sorted(Comparator.comparingInt(CertificateAuthority::depth))
-            .map(HostedCertificateAuthority::toData)
+            .map(ManagedCertificateAuthority::toData)
             .collect(Collectors.toList());
-    }
-
-    private Class<? extends CertificateAuthority> resolveClassForType(CertificateAuthorityType type) {
-        switch (type) {
-        case ALL_RESOURCES:
-            return AllResourcesCertificateAuthority.class;
-        case ROOT:
-            return ProductionCertificateAuthority.class;
-        case HOSTED:
-            return HostedCertificateAuthority.class;
-        case NONHOSTED:
-            return NonHostedCertificateAuthority.class;
-        }
-        throw new IllegalArgumentException("Unrecognised CertificateAuthorityType: " + type);
     }
 
     private CertificateAuthorityData convertToCaData(CertificateAuthority ca) {

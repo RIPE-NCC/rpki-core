@@ -1,13 +1,17 @@
 package net.ripe.rpki.domain;
 
+import lombok.Getter;
+import lombok.NonNull;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
+import net.ripe.rpki.domain.manifest.ManifestEntity;
+import org.apache.commons.lang3.Validate;
 
 import javax.persistence.*;
 import java.net.URI;
-import java.util.Arrays;
+import java.util.Objects;
 
 
-/* for PublishedObjectentry, needs to be on an @Entity for Hibernate to detect it */
+/* for PublishedObjectEntry, needs to be on an @Entity for Hibernate to detect it */
 @SqlResultSetMapping(name="PublishedObjectEntryResult", classes = {
         @ConstructorResult(targetClass = PublishedObjectEntry.class, columns = {
                 @ColumnResult(name="updated_at"),
@@ -22,58 +26,61 @@ public class PublishedObject extends GenericPublishedObject {
 
     @ManyToOne(optional = true)
     @JoinColumn(name = "issuing_key_pair_id", nullable = true)
+    @Getter
     private KeyPairEntity issuingKeyPair;
 
     @Column(name = "filename", nullable = false)
-    private String filename;
+    @Getter
+    @NonNull
+    private String filename = "";
 
+    /**
+     * Indicates if this object should be included as an entry in the manifest. Currently only the manifest CMS object
+     * itself is _not_ included in the manifest, but there might be future object types that are not intended to be
+     * part of the manifest.
+     */
     @Column(name = "included_in_manifest", nullable = false)
+    @Getter
     private boolean includedInManifest;
 
     @Column(name = "directory", nullable = false)
-    private String directory;
+    @Getter
+    @NonNull
+    private String directory = "";
 
-    // Nullable until all data has been migrated to fill in these columns
+    @ManyToOne
+    @Getter
+    private ManifestEntity containingManifest;
+
     @Embedded
-    @AttributeOverrides( {
-        @AttributeOverride(name = "notValidBefore", column = @Column(name = "validity_not_before", nullable = false)),
-        @AttributeOverride(name = "notValidAfter", column = @Column(name = "validity_not_after", nullable = false))
-    })
-    private EmbeddedValidityPeriod validityPeriod;
+    @AttributeOverride(name = "notValidBefore", column = @Column(name = "validity_not_before", nullable = false))
+    @AttributeOverride(name = "notValidAfter", column = @Column(name = "validity_not_after", nullable = false))
+    @NonNull
+    private EmbeddedValidityPeriod validityPeriod = new EmbeddedValidityPeriod();
 
     protected PublishedObject() {
     }
 
-    public PublishedObject(KeyPairEntity issuingKeyPair, String filename, byte[] content, boolean includedInManifest,
-                           URI publicationDirectory, ValidityPeriod validityPeriod) {
-        this.status = PublicationStatus.TO_BE_PUBLISHED;
+    public PublishedObject(
+        @NonNull KeyPairEntity issuingKeyPair,
+        @NonNull String filename,
+        byte[] content,
+        boolean includedInManifest,
+        @NonNull URI publicationDirectory,
+        @NonNull ValidityPeriod validityPeriod
+    ) {
+        super(content);
         this.issuingKeyPair = issuingKeyPair;
         this.filename = filename;
-        this.content = Arrays.copyOf(content, content.length);
         this.includedInManifest = includedInManifest;
         String dir = publicationDirectory.toString();
         this.directory = (dir.endsWith("/")) ? dir : dir + "/";
         this.validityPeriod = new EmbeddedValidityPeriod(validityPeriod);
     }
 
-    public KeyPairEntity getIssuingKeyPair() {
-        return issuingKeyPair;
-    }
-
-    public String getFilename() {
-        return filename;
-    }
-
+    @NonNull
     public URI getUri() {
         return URI.create(directory).resolve(filename);
-    }
-
-    public String getDirectory() {
-        return directory;
-    }
-
-    public boolean isIncludedInManifest() {
-        return includedInManifest;
     }
 
     /**
@@ -83,11 +90,21 @@ public class PublishedObject extends GenericPublishedObject {
         return status.isPublished();
     }
 
+    @NonNull
     public ValidityPeriod getValidityPeriod() {
-        return validityPeriod == null ? null : validityPeriod.toValidityPeriod();
+        return validityPeriod.toValidityPeriod();
     }
 
-    public void setValidityPeriod(ValidityPeriod validityPeriod) {
-        this.validityPeriod = validityPeriod == null ? null : new EmbeddedValidityPeriod(validityPeriod);
+    public void setValidityPeriod(@NonNull ValidityPeriod validityPeriod) {
+        this.validityPeriod = new EmbeddedValidityPeriod(validityPeriod);
+    }
+
+    public void setContainingManifest(ManifestEntity containingManifest) {
+        Validate.isTrue(isIncludedInManifest(), "only published objects that must be included in the manifest can have a containing manifest");
+        Validate.isTrue(
+            containingManifest == null || Objects.equals(this.getIssuingKeyPair(), containingManifest.getKeyPair()),
+            "published object and manifest must be issued by same key pair"
+        );
+        this.containingManifest = containingManifest;
     }
 }

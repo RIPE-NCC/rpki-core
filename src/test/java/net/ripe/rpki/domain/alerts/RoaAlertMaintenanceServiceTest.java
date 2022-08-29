@@ -76,7 +76,7 @@ public class RoaAlertMaintenanceServiceTest extends CertificationDomainTestCase 
         child.createNewKeyPair(keyPairService);
 
         // Add an alert
-        var ca = certificateAuthorityRepository.findHostedCa(HOSTED_CA_ID);
+        var ca = certificateAuthorityRepository.findManagedCa(HOSTED_CA_ID);
         RoaAlertConfiguration weekly = new RoaAlertConfiguration(ca, "weekly@example.org", Arrays.asList(INVALID_ASN, INVALID_LENGTH, UNKNOWN), RoaAlertFrequency.WEEKLY);
         weekly.update(ALL_ROUTES, Collections.emptyList());
         roaAlertConfigurationRepository.add(weekly);

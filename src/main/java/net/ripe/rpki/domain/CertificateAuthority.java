@@ -29,7 +29,7 @@ import static java.util.Objects.requireNonNull;
  * A certificate authority is a trusted authority within an PKI responsible for certifying Internet
  * Resources and its Holders.
  *
- * This is the root entity of the {@link HostedCertificateAuthority} aggregate.
+ * This is the root entity of the {@link CertificateAuthority} aggregate.
  *
  * It is implemented in this system by two types of hosted CAs: the production CA and customer CA,
  */
@@ -50,7 +50,7 @@ public abstract class CertificateAuthority extends AggregateRoot implements Chil
     @Column(nullable = false, unique = true)
     private X500Principal name;
 
-    @ManyToOne(targetEntity = HostedCertificateAuthority.class, fetch = FetchType.EAGER)
+    @ManyToOne(targetEntity = ManagedCertificateAuthority.class, fetch = FetchType.EAGER)
     @JoinColumn(name = "parent_id")
     private ParentCertificateAuthority parent;
 

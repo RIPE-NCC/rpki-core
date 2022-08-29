@@ -12,7 +12,7 @@ import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaAlertSubscriptionData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
@@ -303,7 +303,7 @@ public class AnnouncementServiceTest {
     }
 
     private RoaAlertConfigurationData getRoaAlertConfigurationData(Asn asn, IpRange range) {
-        final CertificateAuthorityData caData = new HostedCertificateAuthorityData(new VersionedId(CA_ID, 1L),
+        final CertificateAuthorityData caData = new ManagedCertificateAuthorityData(new VersionedId(CA_ID, 1L),
             new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
             IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 

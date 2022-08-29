@@ -7,12 +7,10 @@ import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.persistence.CollectionTable;
 import javax.persistence.ElementCollection;
@@ -51,7 +49,7 @@ public class RoaConfiguration extends EntitySupport {
 
     @OneToOne(optional = false)
     @JoinColumn(name = "certificateauthority_id")
-    private HostedCertificateAuthority certificateAuthority;
+    private ManagedCertificateAuthority certificateAuthority;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "roaconfiguration_prefixes", joinColumns = @JoinColumn(name = "roaconfiguration_id"))
@@ -60,11 +58,11 @@ public class RoaConfiguration extends EntitySupport {
     public RoaConfiguration() {
     }
 
-    public RoaConfiguration(HostedCertificateAuthority certificateAuthority) {
+    public RoaConfiguration(ManagedCertificateAuthority certificateAuthority) {
         this(certificateAuthority, Collections.emptySet());
     }
 
-    public RoaConfiguration(HostedCertificateAuthority certificateAuthority, Collection<? extends RoaConfigurationPrefix> prefixes) {
+    public RoaConfiguration(ManagedCertificateAuthority certificateAuthority, Collection<? extends RoaConfigurationPrefix> prefixes) {
         this.certificateAuthority = Preconditions.checkNotNull(certificateAuthority, "certificateAuthority is required");
         this.prefixes.addAll(prefixes);
     }
@@ -77,7 +75,7 @@ public class RoaConfiguration extends EntitySupport {
         return Collections.unmodifiableSet(prefixes);
     }
 
-    public HostedCertificateAuthority getCertificateAuthority() {
+    public ManagedCertificateAuthority getCertificateAuthority() {
         return certificateAuthority;
     }
 

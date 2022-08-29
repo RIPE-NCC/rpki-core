@@ -2,7 +2,7 @@ package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
@@ -24,7 +24,7 @@ public class IssueUpdatedManifestAndCrlCommandHandlerTest {
     private IssueUpdatedManifestAndCrlCommandHandler subject;
 
     @Mock
-    private HostedCertificateAuthority rootCa;
+    private ManagedCertificateAuthority rootCa;
     @Mock
     private CertificateAuthorityRepository certificateAuthorityRepository;
     @Mock
@@ -37,7 +37,7 @@ public class IssueUpdatedManifestAndCrlCommandHandlerTest {
         VersionedId versionedId = new VersionedId(1L, 1L);
         when(rootCa.getId()).thenReturn(versionedId.getId());
         when(rootCa.getVersionedId()).thenReturn(versionedId);
-        when(certificateAuthorityRepository.findHostedCa(rootCa.getId())).thenReturn(rootCa);
+        when(certificateAuthorityRepository.findManagedCa(rootCa.getId())).thenReturn(rootCa);
 
         this.subject = new IssueUpdatedManifestAndCrlCommandHandler(certificateAuthorityRepository, roaEntityService, certificateManagementService);
     }

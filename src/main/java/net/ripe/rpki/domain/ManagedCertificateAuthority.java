@@ -29,7 +29,7 @@ import net.ripe.rpki.ripencc.support.event.DefaultEventDelegate;
 import net.ripe.rpki.ripencc.support.event.EventDelegate;
 import net.ripe.rpki.ripencc.support.event.EventSubscription;
 import net.ripe.rpki.server.api.commands.CommandContext;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.KeyPairData;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
@@ -68,7 +68,7 @@ import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
  */
 @Entity
 @Slf4j
-public abstract class HostedCertificateAuthority extends CertificateAuthority implements ParentCertificateAuthority {
+public abstract class ManagedCertificateAuthority extends CertificateAuthority implements ParentCertificateAuthority {
 
     public static final EventDelegate<CertificateAuthorityEvent> EVENTS = new DefaultEventDelegate<>();
 
@@ -92,10 +92,10 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     @Column(name = "manifest_and_crl_check_needed")
     private boolean manifestAndCrlCheckNeeded;
 
-    protected HostedCertificateAuthority() {
+    protected ManagedCertificateAuthority() {
     }
 
-    protected HostedCertificateAuthority(long id, X500Principal name, ParentCertificateAuthority parent) {
+    protected ManagedCertificateAuthority(long id, X500Principal name, ParentCertificateAuthority parent) {
         super(id, parent, name);
         this.manifestAndCrlCheckNeeded = true;
     }
@@ -105,14 +105,14 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
     }
 
     @Override
-    public HostedCertificateAuthorityData toData() {
+    public ManagedCertificateAuthorityData toData() {
         TrustAnchorRequest upStreamCARequest = getUpStreamCARequestEntity() != null ? getUpStreamCARequestEntity().getUpStreamCARequest() : null;
 
         final List<KeyPairData> keys = getKeyPairs().stream()
             .map(KeyPairEntity::toData)
             .collect(Collectors.toList());
 
-        return new HostedCertificateAuthorityData(
+        return new ManagedCertificateAuthorityData(
             getVersionedId(), getName(), getUuid(),
             getParent() == null ? null : getParent().getId(),
             getType(),
@@ -309,7 +309,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
 
         // status can change after activatePendingKey
         if (subjectKeyPair.isCurrent()) {
-            HostedCertificateAuthority.EVENTS.publish(this, new IncomingCertificateUpdatedEvent(getVersionedId(), certificate));
+            ManagedCertificateAuthority.EVENTS.publish(this, new IncomingCertificateUpdatedEvent(getVersionedId(), certificate));
         }
 
         this.manifestAndCrlCheckNeeded = true;
@@ -319,7 +319,7 @@ public abstract class HostedCertificateAuthority extends CertificateAuthority im
         Optional<KeyPairEntity> currentKeyPair = findCurrentKeyPair();
         currentKeyPair.ifPresent(KeyPairEntity::deactivate);
         newKeyPair.activate();
-        HostedCertificateAuthority.EVENTS.publish(this, new KeyPairActivatedEvent(versionedId, newKeyPair));
+        ManagedCertificateAuthority.EVENTS.publish(this, new KeyPairActivatedEvent(versionedId, newKeyPair));
     }
 
     /**

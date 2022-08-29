@@ -5,7 +5,7 @@ import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
@@ -37,7 +37,7 @@ public class RoaServiceBeanTest {
     private static final Long TEST_CA_ID = 2L;
     private static final String ROA_SPECIFICATION_NAME = "ROA1";
 
-    private HostedCertificateAuthority certificateAuthority;
+    private ManagedCertificateAuthority certificateAuthority;
     private CertificateAuthorityRepository caRepository;
     private RoaConfigurationRepository roaConfigurationRepository;
     private RoaEntityRepository roaEntityRepository;
@@ -61,7 +61,7 @@ public class RoaServiceBeanTest {
             certificateAuthority.getCurrentKeyPair(), new ValidityPeriod(now, now.plusYears(1)));
         RoaEntity roa2 = RoaEntityTest.createEeSignedRoaEntity(certificateAuthority, "ROA2",
             certificateAuthority.getCurrentKeyPair(), new ValidityPeriod(now, now.plusYears(1)));
-        when(caRepository.findHostedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
+        when(caRepository.findManagedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
         when(roaEntityRepository.findByCertificateSigningKeyPair(isA(KeyPairEntity.class))).thenReturn(Arrays.asList(roa1, roa2));
 
         List<RoaEntityData> result = subject.findAllRoasForCa(TEST_CA_ID);
@@ -73,14 +73,14 @@ public class RoaServiceBeanTest {
 
     @Test
     public void getRoaConfiguration_should_throw_NoResultException_when_ca_is_not_found() {
-        when(caRepository.findHostedCa(TEST_CA_ID)).thenReturn(null);
+        when(caRepository.findManagedCa(TEST_CA_ID)).thenReturn(null);
 
         assertThatThrownBy(() -> subject.getRoaConfiguration(TEST_CA_ID)).isInstanceOf(NoResultException.class);
     }
 
     @Test
     public void getRoaConfiguration_should_default_to_empty_configuration() {
-        when(caRepository.findHostedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
+        when(caRepository.findManagedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
         when(roaConfigurationRepository.findByCertificateAuthority(certificateAuthority)).thenReturn(Optional.empty());
 
         assertThat(subject.getRoaConfiguration(TEST_CA_ID)).isEqualTo(new RoaConfiguration(certificateAuthority).convertToData());
@@ -91,7 +91,7 @@ public class RoaServiceBeanTest {
         RoaConfiguration roaConfiguration = new RoaConfiguration(certificateAuthority);
         roaConfiguration.addPrefix(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("127.0.0.0/8"))));
 
-        when(caRepository.findHostedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
+        when(caRepository.findManagedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
         when(roaConfigurationRepository.findByCertificateAuthority(certificateAuthority)).thenReturn(Optional.of(roaConfiguration));
 
         assertThat(subject.getRoaConfiguration(TEST_CA_ID)).isEqualTo(roaConfiguration.convertToData());

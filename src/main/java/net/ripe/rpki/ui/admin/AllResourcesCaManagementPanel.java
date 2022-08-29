@@ -7,7 +7,7 @@ import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementRevokeOldKeysCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.KeyPairData;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
@@ -43,7 +43,7 @@ public class AllResourcesCaManagementPanel extends Panel {
     @SpringBean(name = BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE)
     private BackgroundService allCertificateUpdateService;
 
-    public AllResourcesCaManagementPanel(String id, HostedCertificateAuthorityData allResourcesCA) {
+    public AllResourcesCaManagementPanel(String id, ManagedCertificateAuthorityData allResourcesCA) {
         super(id);
 
         addJustRepublishButton();
@@ -51,7 +51,7 @@ public class AllResourcesCaManagementPanel extends Panel {
         addManageKeysLifeCycleButton(allResourcesCA);
     }
 
-    private void addManageKeysLifeCycleButton(HostedCertificateAuthorityData allResourcesCA) {
+    private void addManageKeysLifeCycleButton(ManagedCertificateAuthorityData allResourcesCA) {
         KeyPairStatus overallStatus = overallKeyPairLifeCyclePhase(allResourcesCA);
 
         switch (overallStatus) {
@@ -77,7 +77,7 @@ public class AllResourcesCaManagementPanel extends Panel {
             @Override
             public void onClick() {
                 X500Principal allResourcesCaName = repositoryConfiguration.getAllResourcesCaPrincipal();
-                HostedCertificateAuthorityData allResourcesCaData = (HostedCertificateAuthorityData) caViewService.findCertificateAuthorityByName(allResourcesCaName);
+                ManagedCertificateAuthorityData allResourcesCaData = (ManagedCertificateAuthorityData) caViewService.findCertificateAuthorityByName(allResourcesCaName);
 
                 GenerateOfflineCARepublishRequestCommand republishCommand = new GenerateOfflineCARepublishRequestCommand(allResourcesCaData.getVersionedId());
                 commandService.execute(republishCommand);
@@ -90,7 +90,7 @@ public class AllResourcesCaManagementPanel extends Panel {
     }
 
 
-    private KeyPairStatus overallKeyPairLifeCyclePhase(HostedCertificateAuthorityData allResourcesCA) {
+    private KeyPairStatus overallKeyPairLifeCyclePhase(ManagedCertificateAuthorityData allResourcesCA) {
         if (hasKeyWithStatus(allResourcesCA.getKeys(), KeyPairStatus.OLD)) {
             return KeyPairStatus.OLD;
         }

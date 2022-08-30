@@ -1,6 +1,7 @@
 package db.migration;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.xml.transform.TransformerException;
 import java.io.IOException;
@@ -9,7 +10,7 @@ import java.util.List;
 public class V49__Migrate_command_history_from_xml_to_clear_text extends RpkiJavaMigration {
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+    public void migrate(NamedParameterJdbcTemplate jdbcTemplate) throws Exception {
         transformCommandOfType("UpdateAllIncomingResourceCertificatesCommand", "Updated all incoming certificates.", jdbcTemplate);
         transformCommandOfType("KeyManagementInitiateRollCommand", "Initiated key roll over.", jdbcTemplate);
         transformCommandOfType("KeyManagementActivatePendingKeysCommand", "Activated pending keys.", jdbcTemplate);
@@ -33,20 +34,29 @@ public class V49__Migrate_command_history_from_xml_to_clear_text extends RpkiJav
         xslTransformCommandOfType("DeleteRoaSpecificationCommand", jdbcTemplate);
     }
 
-    private void transformCommandOfType(String commandType, String commandSummary, JdbcTemplate jdbcTemplate) {
-        jdbcTemplate.update("UPDATE commandaudit SET commandsummary = '" + commandSummary + "' where commandtype = '" + commandType + "'");
+    private void transformCommandOfType(String commandType, String commandSummary, NamedParameterJdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("UPDATE commandaudit SET commandsummary = :summary where commandtype = :type",
+                new MapSqlParameterSource()
+                        .addValue("summary", commandSummary)
+                        .addValue("type", commandType));
     }
     
-    private void xslTransformCommandOfType(String commandType, JdbcTemplate jdbcTemplate) throws IOException, TransformerException {
+    private void xslTransformCommandOfType(String commandType, NamedParameterJdbcTemplate jdbcTemplate) throws IOException, TransformerException {
         String xsl = RpkiJavaMigration.load("V49_" + commandType + ".xsl");
         for (RowData row : findCommandsOfType(commandType, jdbcTemplate)) {
             String transformed = XmlTransformer.transform(xsl, row.command);
-            jdbcTemplate.update("UPDATE commandaudit SET commandsummary = ? where id = ?", transformed, row.id);
+            jdbcTemplate.update("UPDATE commandaudit SET commandsummary = :command where id = :id",
+                    new MapSqlParameterSource()
+                            .addValue("command", transformed)
+                            .addValue("id", row.id));
         }
     }
 
-    private List<RowData> findCommandsOfType(String commandType, JdbcTemplate jdbcTemplate) {
-        return jdbcTemplate.query("SELECT * FROM commandaudit WHERE commandtype = '" + commandType + "'", (rs, rowNum) -> {
+    private List<RowData> findCommandsOfType(String commandType, NamedParameterJdbcTemplate jdbcTemplate) {
+        return jdbcTemplate.query(
+                "SELECT * FROM commandaudit WHERE commandtype = :commandType",
+                new MapSqlParameterSource().addValue("commandType", commandType),
+                (rs, rowNum) -> {
             Long id = rs.getLong("id");
             String command = rs.getString("commandsummary");
             return new RowData(id, command);

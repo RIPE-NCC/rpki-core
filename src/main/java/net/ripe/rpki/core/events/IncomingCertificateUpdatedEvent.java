@@ -26,11 +26,19 @@ public class IncomingCertificateUpdatedEvent extends CertificateAuthorityEvent {
 
     @Override
     public String toString() {
+        String displayResources = incomingCertificate.getResources().toString();
+        // prevent extremely long lines when resource certificate is updated. The full resources are in logfiles.
+        //
+        // This limit is ~2x what is needed for all CAs except the production CA. When truncating we log a short prefix.
+        if (displayResources.length() > 16384) {
+            displayResources = displayResources.substring(0, 1024) + " [truncated]...";
+        }
+
         // This string representation is stored in the command audit table and shown to the user
         return String.format(
             "Incoming resource certificate updated [public key hash=%s, resources=%s, serial number=%s, not valid before=%s, not valid after=%s]",
             KeyPairUtil.getAsciiHexEncodedPublicKeyHash(incomingCertificate.getPublicKey()),
-            incomingCertificate.getResources(),
+            displayResources,
             incomingCertificate.getSerialNumber(),
             incomingCertificate.getValidityPeriod().getNotValidBefore(),
             incomingCertificate.getValidityPeriod().getNotValidAfter()

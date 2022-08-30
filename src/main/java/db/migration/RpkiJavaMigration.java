@@ -4,7 +4,7 @@ import org.apache.commons.io.IOUtils;
 import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
 import javax.sql.DataSource;
@@ -24,10 +24,10 @@ public abstract class RpkiJavaMigration extends BaseJavaMigration {
     @Override
     public void migrate(Context context) throws Exception {
         DataSource ds = new SingleConnectionDataSource(context.getConnection(), true);
-        migrate(new JdbcTemplate(ds));
+        migrate(new NamedParameterJdbcTemplate(ds));
     }
 
-    public void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+    public void migrate(NamedParameterJdbcTemplate jdbcTemplate) throws Exception {
         throw new FlywayException("RPKI Java migration must override #migrate(Content) or #migrate(JdbcTemplate)");
     }
 }

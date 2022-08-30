@@ -97,7 +97,7 @@ public class ChildParentCertificateUpdateSaga {
             this.overclaimingResourcesCounts.put(childCa.getName(), Iterators.size(overclaimingResources.iterator()));
 
             log.warn(
-                "Not revoking resources {} for CA {} since these are still on issued child CA certificates",
+                "Not removing resources {} for CA {} since these are still on issued child CA certificate(s)",
                 overclaimingResources,
                 childCa.getName()
             );

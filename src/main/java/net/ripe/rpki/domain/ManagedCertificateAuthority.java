@@ -60,6 +60,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import static net.logstash.logback.argument.StructuredArguments.v;
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 
 
@@ -237,10 +238,21 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         if (Objects.equals(request.getResources(), latestOutgoingCertificate.getResources())) {
             return false;
         }
-        log.info(
-            "Current certificate for resource class {}, has different resources. Was: {}, will request: {}",
-            DEFAULT_RESOURCE_CLASS, latestOutgoingCertificate.getResources(), request.getResources()
-        );
+
+        if (log.isInfoEnabled()) {
+            final IpResourceSet added = new IpResourceSet(request.getResources());
+            added.removeAll(latestOutgoingCertificate.getResources());
+
+            final IpResourceSet removed = new IpResourceSet(latestOutgoingCertificate.getResources());
+            removed.removeAll(request.getResources());
+
+            log.info(
+                    "Current certificate for resource class {} of {} has different resources. Added resources: {}, removed resources: {}",
+                    DEFAULT_RESOURCE_CLASS, v("subject", request.getSubjectDN()),
+                    v("addedResources", added), v("removedResources", removed),
+                    v("currentResources", latestOutgoingCertificate.getResources()), v("requestedResources", request.getResources())
+            );
+        }
         return true;
     }
 

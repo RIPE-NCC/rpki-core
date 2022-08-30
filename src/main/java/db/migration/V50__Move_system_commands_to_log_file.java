@@ -3,19 +3,20 @@ package db.migration;
 import net.ripe.rpki.commons.util.VersionedId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class V50__Move_system_commands_to_log_file extends RpkiJavaMigration {
 
     private static final Logger LOG = LoggerFactory.getLogger("audit-log");
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) {
+    public void migrate(NamedParameterJdbcTemplate jdbcTemplate) {
         logAllCommands(jdbcTemplate);
         deleteSystemCommandsFromDatabase(jdbcTemplate);
     }
 
-    private void logAllCommands(JdbcTemplate jdbcTemplate) {
+    private void logAllCommands(NamedParameterJdbcTemplate jdbcTemplate) {
         jdbcTemplate.query("SELECT * FROM commandaudit ORDER BY executionTime", (rs, rowNum) -> {
             LOG.info("executionTime=" + rs.getTimestamp("executiontime") +
                     " principal=" + rs.getString("principal") +
@@ -28,7 +29,7 @@ public class V50__Move_system_commands_to_log_file extends RpkiJavaMigration {
         });
     }
 
-    private void deleteSystemCommandsFromDatabase(JdbcTemplate jdbcTemplate) {
-        jdbcTemplate.update("DELETE from commandaudit where commandgroup = 'SYSTEM'");
+    private void deleteSystemCommandsFromDatabase(NamedParameterJdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("DELETE from commandaudit where commandgroup = 'SYSTEM'", new MapSqlParameterSource());
     }
 }

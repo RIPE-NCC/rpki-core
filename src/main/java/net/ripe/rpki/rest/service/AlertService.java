@@ -15,7 +15,7 @@ import net.ripe.rpki.rest.pojo.Subscriptions;
 import net.ripe.rpki.server.api.commands.SubscribeToRoaAlertCommand;
 import net.ripe.rpki.server.api.commands.UnsubscribeFromRoaAlertCommand;
 import net.ripe.rpki.server.api.commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand;
-import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
@@ -64,7 +64,7 @@ public class AlertService extends AbstractCaRestService {
     public ResponseEntity<Subscriptions> getAlertsForCa(@PathVariable("caName") final CaName caName) {
         log.info("Getting alerts for CA: {}", caName);
 
-        final CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         final RoaAlertConfigurationData configuration = roaAlertConfigurationViewService.findRoaAlertSubscription(ca.getId());
         if (configuration == null) {
             return ok(new Subscriptions(Collections.emptySet(), Collections.emptySet()));
@@ -94,7 +94,7 @@ public class AlertService extends AbstractCaRestService {
 
         final Set<String> newEmails = newSubscription.getEmails();
 
-        final CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         final RoaAlertConfigurationData currentConfiguration = roaAlertConfigurationViewService.findRoaAlertSubscription(ca.getId());
         final Set<String> currentEmails = currentConfiguration == null || currentConfiguration.getEmails() == null ?
             Collections.emptySet() : new HashSet<>(currentConfiguration.getEmails());
@@ -132,7 +132,7 @@ public class AlertService extends AbstractCaRestService {
     @Operation(summary = "Suppress alerts for announcements")
     public ResponseEntity<?> suppress(@PathVariable("caName") final CaName caName, @RequestBody final List<BgpAnnouncement> announcements) {
         log.info("Suppress alerts for announcements for CA: {}", caName);
-        CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         return processMuteOrUnMute(ca, getAnnouncedRoutes(announcements), Collections.emptySet());
     }
 
@@ -140,11 +140,11 @@ public class AlertService extends AbstractCaRestService {
     @Operation(summary = "Enable alerts for announcements")
     public ResponseEntity<?> enable(@PathVariable("caName") final CaName caName, @RequestBody final List<BgpAnnouncement> announcements) {
         log.info("Enable alerts for announcements for CA: {}", caName);
-        CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         return processMuteOrUnMute(ca, Collections.emptySet(), getAnnouncedRoutes(announcements));
     }
 
-    private ResponseEntity<?> processMuteOrUnMute(final CustomerCertificateAuthorityData ca, final Collection<AnnouncedRoute> toMute, final Collection<AnnouncedRoute> toUnmute) {
+    private ResponseEntity<?> processMuteOrUnMute(final HostedCertificateAuthorityData ca, final Collection<AnnouncedRoute> toMute, final Collection<AnnouncedRoute> toUnmute) {
         commandService.execute(new UpdateRoaAlertIgnoredAnnouncedRoutesCommand(ca.getVersionedId(), toMute, toUnmute));
         return created();
     }

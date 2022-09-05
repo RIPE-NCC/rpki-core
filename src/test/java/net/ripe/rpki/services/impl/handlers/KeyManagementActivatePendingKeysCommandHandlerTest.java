@@ -54,7 +54,7 @@ public class KeyManagementActivatePendingKeysCommandHandlerTest {
     }
 
     @Test
-    public void should_activate_keys_for_CustomerCertificateAuthority() {
+    public void should_activate_keys_for_HostedCertificateAuthority() {
         // Expect that the CA is looked up
         when(ca.getVersionedId()).thenReturn(new VersionedId(caId));
         when(certificateAuthorityRepository.findManagedCa(caId)).thenReturn(ca);

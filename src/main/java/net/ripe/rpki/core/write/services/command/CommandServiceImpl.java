@@ -134,6 +134,7 @@ public class CommandServiceImpl implements CommandService {
         return timer.record(() -> executeCommand(command));
     }
 
+    @SuppressWarnings("try")
     private CommandStatus executeCommand(CertificateAuthorityCommand command) {
         final CommandStatus commandStatus = new CommandStatus();
         transactionTemplate.executeWithoutResult(status -> {

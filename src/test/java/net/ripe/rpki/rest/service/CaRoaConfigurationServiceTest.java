@@ -11,7 +11,7 @@ import net.ripe.rpki.commons.validation.roa.AllowedRoute;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
-import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.services.command.CommandService;
@@ -73,7 +73,7 @@ public class CaRoaConfigurationServiceTest {
     @MockBean
     private CommandService commandService;
 
-    private CustomerCertificateAuthorityData certificateAuthorityData = mock(CustomerCertificateAuthorityData.class);
+    private HostedCertificateAuthorityData certificateAuthorityData = mock(HostedCertificateAuthorityData.class);
 
     @Autowired
     private MockMvc mockMvc;

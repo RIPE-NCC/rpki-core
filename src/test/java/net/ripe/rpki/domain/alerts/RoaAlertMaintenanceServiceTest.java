@@ -63,7 +63,7 @@ public class RoaAlertMaintenanceServiceTest extends CertificationDomainTestCase 
     private CommandAuditService commandAuditService;
 
     private ProductionCertificateAuthority parent;
-    private CustomerCertificateAuthority child;
+    private HostedCertificateAuthority child;
 
     @Before
     public void setUp() {
@@ -71,7 +71,7 @@ public class RoaAlertMaintenanceServiceTest extends CertificationDomainTestCase 
 
         parent = createInitializedAllResourcesAndProductionCertificateAuthority();
 
-        child = new CustomerCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent);
+        child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent);
         certificateAuthorityRepository.add(child);
         child.createNewKeyPair(keyPairService);
 

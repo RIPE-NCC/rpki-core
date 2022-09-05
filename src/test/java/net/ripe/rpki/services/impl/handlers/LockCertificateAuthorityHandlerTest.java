@@ -2,7 +2,7 @@ package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.server.api.commands.ActivateCustomerCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
@@ -38,8 +38,8 @@ public class LockCertificateAuthorityHandlerTest {
     }
 
     @Test
-    public void should_lock_parent_ca_for_ActivateCustomerCertificateAuthorityCommand() {
-        subject.handle(new ActivateCustomerCertificateAuthorityCommand(
+    public void should_lock_parent_ca_for_ActivateHostedCertificateAuthorityCommand() {
+        subject.handle(new ActivateHostedCertificateAuthorityCommand(
             new VersionedId(123, 0),
             new X500Principal("CN=test"),
             IpResourceSet.ALL_PRIVATE_USE_RESOURCES,

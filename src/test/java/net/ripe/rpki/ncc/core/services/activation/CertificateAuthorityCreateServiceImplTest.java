@@ -6,7 +6,7 @@ import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificatePa
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.NameNotUniqueException;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.server.api.commands.ActivateCustomerCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.ActivateNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
@@ -56,7 +56,7 @@ public class CertificateAuthorityCreateServiceImplTest {
         when(caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
         when(commandService.getNextId()).thenReturn(MEMBER_CA_ID);
 
-        ActivateCustomerCertificateAuthorityCommand command = new ActivateCustomerCertificateAuthorityCommand(MEMBER_CA_ID, MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_ID);
+        ActivateHostedCertificateAuthorityCommand command = new ActivateHostedCertificateAuthorityCommand(MEMBER_CA_ID, MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_ID);
 
         subject.provisionMember(MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_NAME);
 
@@ -68,7 +68,7 @@ public class CertificateAuthorityCreateServiceImplTest {
         when(caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
         when(commandService.getNextId()).thenReturn(MEMBER_CA_ID);
 
-        ActivateCustomerCertificateAuthorityCommand command = new ActivateCustomerCertificateAuthorityCommand(MEMBER_CA_ID, MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_ID);
+        ActivateHostedCertificateAuthorityCommand command = new ActivateHostedCertificateAuthorityCommand(MEMBER_CA_ID, MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_ID);
         doThrow(NameNotUniqueException.class).when(commandService).execute(command);
 
         subject.provisionMember(MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_NAME);

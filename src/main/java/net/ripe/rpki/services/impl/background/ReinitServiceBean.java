@@ -1,13 +1,16 @@
 package net.ripe.rpki.services.impl.background;
 
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.server.api.commands.CreateAllResourcesCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.CreateRootCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.InitialiseMyIdentityMaterialCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -24,14 +27,18 @@ public class ReinitServiceBean extends SequentialBackgroundServiceWithAdminPrivi
     private final CertificateAuthorityViewService caViewService;
     private final RepositoryConfiguration repositoryConfiguration;
 
+    private final ProvisioningIdentityViewService provisioningIdentityViewService;
+
     @Inject
     public ReinitServiceBean(ActiveNodeService activeNodeService,
                              CommandService commandService,
                              CertificateAuthorityViewService caViewService,
+                             ProvisioningIdentityViewService provisioningIdentityViewService,
                              RepositoryConfiguration repositoryConfiguration) {
         super(activeNodeService);
         this.commandService = commandService;
         this.caViewService = caViewService;
+        this.provisioningIdentityViewService = provisioningIdentityViewService;
         this.repositoryConfiguration = repositoryConfiguration;
     }
 
@@ -47,17 +54,26 @@ public class ReinitServiceBean extends SequentialBackgroundServiceWithAdminPrivi
         }
 
         final X500Principal productionCaPrincipal = repositoryConfiguration.getProductionCaPrincipal();
-        final CertificateAuthorityData productionCa = caViewService.findCertificateAuthorityByName(productionCaPrincipal);
-        if (productionCa == null) {
+        final CertificateAuthorityData maybeProductionCa = caViewService.findCertificateAuthorityByName(productionCaPrincipal);
+        if (maybeProductionCa == null) {
             commandService.execute(new CreateRootCertificateAuthorityCommand(commandService.getNextId()));
-            log.info("Created Production CA {}.", allResourcesCaPrincipal);
+            log.info("Created Production CA {}.", productionCaPrincipal);
         } else {
             log.warn("Production Certificate Authority '{}' already exists, will not try to re-create it.", productionCaPrincipal);
+        }
+
+        final CertificateAuthorityData productionCa = caViewService.findCertificateAuthorityByName(productionCaPrincipal);
+        ProvisioningIdentityCertificate identityMaterial = provisioningIdentityViewService.findProvisioningIdentityMaterial();
+
+        if (identityMaterial == null) {
+            commandService.execute(new InitialiseMyIdentityMaterialCommand(productionCa.getVersionedId()));
+        } else {
+            log.warn("Provisioning identity certificate (for up-down communication) already exist.");
         }
     }
 
     @Override
     public String getName() {
-        return "Create necessary CAs: All Resources CAs and Production CA";
+        return "Create necessary CAs: All Resources CAs and Production CA and up-down key material";
     }
 }

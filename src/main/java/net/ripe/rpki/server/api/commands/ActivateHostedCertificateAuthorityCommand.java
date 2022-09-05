@@ -17,11 +17,11 @@ import javax.security.auth.x500.X500Principal;
  * <li> If a CertificateAuthority with the same name already exists, a {@link CertificateAuthorityNameNotUniqueException} will be thrown.
  * </p>
  */
-public class ActivateCustomerCertificateAuthorityCommand extends CertificateAuthorityActivationCommand {
+public class ActivateHostedCertificateAuthorityCommand extends CertificateAuthorityActivationCommand {
 
     private static final long serialVersionUID = 1L;
 
-    public ActivateCustomerCertificateAuthorityCommand(VersionedId certificateAuthorityId, X500Principal name, IpResourceSet resources, long parentId) {
+    public ActivateHostedCertificateAuthorityCommand(VersionedId certificateAuthorityId, X500Principal name, IpResourceSet resources, long parentId) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER, name, resources, parentId);
     }
 

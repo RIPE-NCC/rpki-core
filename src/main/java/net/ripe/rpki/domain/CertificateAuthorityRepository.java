@@ -6,7 +6,6 @@ import net.ripe.rpki.server.api.dto.CaStat;
 import org.joda.time.DateTime;
 
 import javax.persistence.LockModeType;
-import javax.persistence.TypedQuery;
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
 import java.util.List;
@@ -36,9 +35,7 @@ public interface CertificateAuthorityRepository extends Repository<CertificateAu
 
     List<ManagedCertificateAuthority> findAllWithManifestsExpiringBefore(DateTime notValidAfterCutoff, int maxResult);
 
-    Collection<ManagedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff);
-
-    TypedQuery<ManagedCertificateAuthority> findAllWithManifestAndCrlCheckNeeded();
+    Collection<ManagedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff, int maxResults);
 
     int deleteNonHostedPublicKeysWithoutSigningCertificates();
 

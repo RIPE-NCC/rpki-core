@@ -40,6 +40,7 @@ public class ProvisioningAuditLogServiceBeanTest {
         provisioningAuditLogServiceBean = new ProvisioningAuditLogServiceBean(entityManager);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testFindRecentMessagesForCA() {
         TypedQuery<ProvisioningAuditLogEntity> query = mock(TypedQuery.class);

@@ -2,7 +2,7 @@ package net.ripe.rpki.services.impl.background;
 
 import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.domain.CustomerCertificateAuthority;
+import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
@@ -75,7 +75,7 @@ public class MemberKeyRolloverManagementServiceBeanTest {
     @Test
     public void shouldSendInitialiseKeyCommandToCAs() {
         int maxAge = 365;
-        when(certificationService.findAllHostedCasWithCurrentKeyOnlyAndOlderThan(eq(CustomerCertificateAuthority.class), any(), any())).thenReturn(Collections.singletonList(MEMBER_CA));
+        when(certificationService.findAllHostedCasWithCurrentKeyOnlyAndOlderThan(eq(HostedCertificateAuthority.class), any(), any())).thenReturn(Collections.singletonList(MEMBER_CA));
         when(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()).thenReturn(maxAge);
 
         subject.runService();

@@ -39,7 +39,7 @@ public class KeyManagementInitiateRollCommandHandlerTest {
     @Mock
     private KeyPairService keyPairService;
     @Mock
-    private CustomerCertificateAuthority memberCA;
+    private HostedCertificateAuthority memberCA;
     @Mock
     private AllResourcesCertificateAuthority allResourcesCA;
     @Mock

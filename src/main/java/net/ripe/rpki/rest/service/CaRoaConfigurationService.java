@@ -21,7 +21,7 @@ import net.ripe.rpki.rest.pojo.ROAExtended;
 import net.ripe.rpki.rest.pojo.ROAWithAnnouncementStatus;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
-import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
@@ -86,7 +86,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
     public ResponseEntity<List<ROAExtended>> getROAsForCAWithBrokenAnnouncements(@PathVariable("caName") final CaName caName) {
         log.info("REST call: Get all ROAs belonging to CA: {}", caName);
 
-        final CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         final IpResourceSet certifiedResources = ca.getResources();
 
         final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
@@ -144,7 +144,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
                                                                                  @RequestBody final BgpAnnouncement announcement) {
         log.info("REST call: Get ROAs affecting given BGP announcements for CA: {}", caName);
 
-        final CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         final RoaConfigurationData currentRoaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
         final List<AllowedRoute> certifiedRoutes = currentRoaConfiguration.toAllowedRoutes();
         final IpRange announcedPrefix = IpRange.parse(announcement.getPrefix());
@@ -190,7 +190,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
             return ResponseEntity.status(BAD_REQUEST).body(of(ERROR, "New ROAs are not correct: " + errorMessage.get()));
         }
 
-        final CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         final IpResourceSet certifiedResources = ca.getResources();
 
         final Map<Boolean, Collection<BgpRisEntry>> bgpAnnouncements = bgpRisEntryViewService.findMostSpecificContainedAndNotContained(certifiedResources);
@@ -250,7 +250,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
             return ResponseEntity.status(BAD_REQUEST).body(of(ERROR, "Added ROAs are incorrect: " + removedRoasErrorMessage.get()));
         }
 
-        final CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         final IpResourceSet certifiedResources = ca.getResources();
 
         final List<ROA> addedAndDeletedRoas = new ArrayList<>();

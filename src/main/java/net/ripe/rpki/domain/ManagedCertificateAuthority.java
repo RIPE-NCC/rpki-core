@@ -65,7 +65,10 @@ import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 
 
 /**
- * Hosted Certificate Authorities
+ * Managed Certificate Authorities have their key pairs stored locally, as opposed to delegated/non-hosted certificate
+ * authorities where the private key is stored on the client's servers.
+ *
+ * Managed certificate authorities publish a manifest and CRL for every active key pair.
  */
 @Entity
 @Slf4j
@@ -98,7 +101,6 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
 
     protected ManagedCertificateAuthority(long id, X500Principal name, ParentCertificateAuthority parent) {
         super(id, parent, name);
-        this.manifestAndCrlCheckNeeded = true;
     }
 
     public UpStreamCARequestEntity getUpStreamCARequestEntity() {
@@ -300,7 +302,6 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         if (count >= issuedCertificatesPerSignedKeyLimit) {
             throw new CertificationResourceLimitExceededException("number of issued certificates for public key exceeds the limit (" + count + " >= " + issuedCertificatesPerSignedKeyLimit + ")");
         }
-        this.manifestAndCrlCheckNeeded = true;
         return getCurrentKeyPair().processCertificateIssuanceRequest(requestingCa, request, SerialNumberSupplier.getInstance().get(), resourceCertificateRepository);
     }
 
@@ -323,8 +324,6 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         if (subjectKeyPair.isCurrent()) {
             ManagedCertificateAuthority.EVENTS.publish(this, new IncomingCertificateUpdatedEvent(getVersionedId(), certificate));
         }
-
-        this.manifestAndCrlCheckNeeded = true;
     }
 
     private void activatePendingKey(KeyPairEntity newKeyPair, VersionedId versionedId) {
@@ -360,7 +359,6 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
                 pkp.activate();
                 EVENTS.publish(this, new KeyPairActivatedEvent(getVersionedId(), pkp));
                 anyKeysActivated.set(true);
-                this.manifestAndCrlCheckNeeded = true;
             });
         return anyKeysActivated.get();
     }
@@ -386,8 +384,6 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
             keyPair.revoke(publishedObjectRepository);
 
             keyPairDeletionService.deleteRevokedKeysFromResponses(this, Collections.singletonList(response));
-
-            this.manifestAndCrlCheckNeeded = true;
         });
     }
 
@@ -396,7 +392,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         ResourceClassListResponse response,
         CertificateRequestCreationService certificateRequestCreationService
     ) {
-        Validate.isTrue(!isAllResourcesCa(), "Only Production and Customer CAs can do it.");
+        Validate.isTrue(!isAllResourcesCa(), "Only Production and Hosted CAs can do it.");
 
         IpResourceSet certifiableResources = response.getCertifiableResources();
         if (certifiableResources.isEmpty()) {
@@ -412,7 +408,6 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     public CertificateRevocationResponse processCertificateRevocationRequest(CertificateRevocationRequest request,
                                                                              ResourceCertificateRepository resourceCertificateRepository) {
         Validate.isTrue(hasCurrentKeyPair(), "Must have current key pair to revoke child certificates");
-        this.manifestAndCrlCheckNeeded = true;
         return getCurrentKeyPair().processCertificateRevocationRequest(request, resourceCertificateRepository);
     }
 

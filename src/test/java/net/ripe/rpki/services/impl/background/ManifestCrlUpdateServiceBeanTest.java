@@ -18,6 +18,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.mock;
@@ -51,7 +52,7 @@ public class ManifestCrlUpdateServiceBeanTest {
         VersionedId memberCaId = new VersionedId(43L);
         when(memberCa.getVersionedId()).thenReturn(memberCaId);
 
-        when(certificateAuthorityRepository.findAllWithOutdatedManifests(any()))
+        when(certificateAuthorityRepository.findAllWithOutdatedManifests(any(), anyInt()))
             .thenReturn(Arrays.asList(prodCa, memberCa))
             .thenReturn(Collections.emptyList());
 
@@ -67,7 +68,7 @@ public class ManifestCrlUpdateServiceBeanTest {
 
         doThrow(new RuntimeException()).when(commandService).execute(isA(IssueUpdatedManifestAndCrlCommand.class));
         List<ManagedCertificateAuthority> caData = createCertificateAuthorityDataMocks(15);
-        when(certificateAuthorityRepository.findAllWithOutdatedManifests(any())).thenReturn(caData);
+        when(certificateAuthorityRepository.findAllWithOutdatedManifests(any(), anyInt())).thenReturn(caData);
 
         BackgroundServiceException backgroundServiceException = assertThrows(BackgroundServiceException.class, () -> subject.runService());
         assertEquals("Too many exceptions encountered running job: 'Manifest and CRL Update Service'. Suspecting problems that affect ALL CAs.", backgroundServiceException.getMessage());

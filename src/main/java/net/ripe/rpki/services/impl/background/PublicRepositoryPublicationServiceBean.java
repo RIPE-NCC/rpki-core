@@ -3,15 +3,18 @@ package net.ripe.rpki.services.impl.background;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.commons.util.UTC;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
+import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
+import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.springframework.dao.TransientDataAccessException;
@@ -112,13 +115,14 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
     }
 
     private void runTransaction() {
+        DateTime manifestAndCrlValidityCutoff = UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_HARD_LIMIT);
+
         // List of certificate authorities that may need a new manifest/CRL. Children are sorted before parents
         // to ensure proper locking order (command handlers always lock the child CA before the parent CA). This
         // reduces the chance of deadlock or a serializable transaction rollback error.
         List<ManagedCertificateAuthority> pendingCertificateAuthorities =
-            certificateAuthorityRepository.findAllWithManifestAndCrlCheckNeeded()
-                .setMaxResults(MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE)
-                .getResultStream()
+            certificateAuthorityRepository.findAllWithOutdatedManifests(manifestAndCrlValidityCutoff, MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE)
+                .stream()
                 .sorted(Comparator.comparingInt(CertificateAuthority::depth).reversed())
                 .collect(Collectors.toList());
 
@@ -142,7 +146,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
             }
         }
 
-        if (!certificateAuthorityRepository.findAllWithManifestAndCrlCheckNeeded().setMaxResults(1).getResultList().isEmpty()) {
+        if (!certificateAuthorityRepository.findAllWithOutdatedManifests(manifestAndCrlValidityCutoff, 1).isEmpty()) {
             log.info("Not all certificate authorities are ready for publication, continuing during next run");
             return;
         }

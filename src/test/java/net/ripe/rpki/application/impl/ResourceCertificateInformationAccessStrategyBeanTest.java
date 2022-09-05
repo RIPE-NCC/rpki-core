@@ -1,6 +1,6 @@
 package net.ripe.rpki.application.impl;
 
-import net.ripe.rpki.domain.CustomerCertificateAuthority;
+import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
@@ -30,7 +30,7 @@ public class ResourceCertificateInformationAccessStrategyBeanTest {
     @Test
     public void shouldUseUuidInDefaultRepositoryLocationForChildCa() {
         ResourceCertificateInformationAccessStrategyBean subject = new ResourceCertificateInformationAccessStrategyBean();
-        CustomerCertificateAuthority memberCa = mock(CustomerCertificateAuthority.class);
+        HostedCertificateAuthority memberCa = mock(HostedCertificateAuthority.class);
         when(memberCa.isProductionCa()).thenReturn(false);
 
         UUID memberCaUuid = UUID.fromString("6d7ac25d-6e33-450d-a860-36d42c699c4f");

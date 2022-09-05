@@ -26,12 +26,12 @@ import javax.persistence.EntityNotFoundException;
 import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
-import javax.persistence.TypedQuery;
 import javax.security.auth.x500.X500Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -139,6 +139,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Collection<CaStat> getCAStats() {
         final Stream<Object[]> rowStream = manager.createNativeQuery("SELECT " +
@@ -164,7 +165,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
         final String updateRoaConf = "UpdateRoaConfigurationCommand";
         final String createRoaSpec = "CreateRoaSpecificationCommand";
         final String deleteRoaSpec = "DeleteRoaSpecificationCommand";
-        final String activateCaSpec = "ActivateCustomerCertificateAuthorityCommand";
+        final String activateCaSpec = "ActivateHostedCertificateAuthorityCommand";
         final String activateNonHostedCaSpec = "ActivateNonHostedCertificateAuthorityCommand";
         final String deleteCaSpec = "DeleteCertificateAuthorityCommand";
         final String deleteNonHostedCaSpec = "DeleteNonHostedCertificateAuthorityCommand";
@@ -227,51 +228,47 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     }
 
     @Override
-    public Collection<ManagedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff) {
+    public Collection<ManagedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff, int maxResults) {
         return manager.createQuery(
-            "SELECT ca " +
-                "  FROM ManagedCertificateAuthority ca" +
+            "SELECT ca" +
+                "  FROM " + ManagedCertificateAuthority.class.getSimpleName() + " ca" +
                 // Certificate authority configuration was updated since last check, so publish might be needed
                 " WHERE ca.manifestAndCrlCheckNeeded = TRUE" +
-                "    OR EXISTS (SELECT kp " +
+                "    OR EXISTS (SELECT kp" +
                 "                 FROM ca.keyPairs kp" +
                 "                 JOIN kp.incomingResourceCertificate incoming" +
                 // Key pair must be publishable and must have a current incoming certificate
                 "                WHERE kp.status IN (:publishable)" +
-                // Pending objects, so publish needed
+                // Active objects that are not on the manifest, or inactive objects that are on the manifest, so publish needed
                 "                  AND (       EXISTS (SELECT po" +
                 "                                        FROM PublishedObject po" +
-                "                                       WHERE po.issuingKeyPair = kp " +
-                "                                         AND po.status in :pending)" +
-                // No manifest, or manifest will expire soon, so publish needed
+                "                                       WHERE po.issuingKeyPair = kp" +
+                "                                         AND po.includedInManifest = TRUE" +
+                "                                         AND (   (po.containingManifest IS NULL AND po.status in :active)" +
+                "                                              OR (po.containingManifest IS NOT NULL AND po.status in :inactive)))" +
+                // No active manifest, or manifest will expire soon, so publish needed
                 "                       OR NOT EXISTS (SELECT mft" +
-                "                                        FROM ManifestEntity mft " +
-                "                                        LEFT JOIN mft.publishedObject po " +
-                "                                       WHERE mft.certificate.signingKeyPair = kp" +
+                "                                        FROM ManifestEntity mft" +
+                "                                        JOIN mft.publishedObject po" +
+                "                                       WHERE mft.keyPair = kp" +
+                "                                         AND po.status IN :active" +
                 "                                         AND po.validityPeriod.notValidAfter > :nextUpdateCutoff)" +
-                // No CRL, or CRL will expire soon, so publish needed
+                // No active CRL, or CRL will expire soon, so publish needed
                 "                       OR NOT EXISTS (SELECT crl" +
                 "                                        FROM CrlEntity crl" +
-                "                                        LEFT JOIN crl.publishedObject po " +
+                "                                        JOIN crl.publishedObject po" +
                 "                                       WHERE crl.keyPair = kp" +
+                "                                         AND po.status IN :active" +
                 "                                         AND po.validityPeriod.notValidAfter > :nextUpdateCutoff)))",
             ManagedCertificateAuthority.class)
             // See KeyPairEntity.isPublishable for the next two parameters
             .setParameter("publishable", Arrays.asList(KeyPairStatus.PENDING, KeyPairStatus.CURRENT, KeyPairStatus.OLD))
             // Need to update when there are published object with pending status
-            .setParameter("pending", PublicationStatus.PENDING_STATUSES)
+            .setParameter("active", PublicationStatus.ACTIVE_STATUSES)
+            .setParameter("inactive", EnumSet.complementOf(PublicationStatus.ACTIVE_STATUSES))
             .setParameter("nextUpdateCutoff", nextUpdateCutoff)
+            .setMaxResults(maxResults)
             .getResultList();
-    }
-
-    @Override
-    public TypedQuery<ManagedCertificateAuthority> findAllWithManifestAndCrlCheckNeeded() {
-        return manager.createQuery(
-                "SELECT ca " +
-                    "  FROM ManagedCertificateAuthority ca" +
-                    // Certificate authority configuration was updated since last check, so publish might be needed
-                    " WHERE ca.manifestAndCrlCheckNeeded = TRUE",
-                ManagedCertificateAuthority.class);
     }
 
     @Override
@@ -304,6 +301,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
             .executeUpdate();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Collection<ManagedCertificateAuthority> getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear() {
         // for context: deleting a CA is a USER command

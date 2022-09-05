@@ -4,8 +4,8 @@ import javax.security.auth.x500.X500Principal;
 
 /**
  * <p>
- * May be thrown when a {@link ActivateCustomerCertificateAuthorityCommand} is used but a CertificateAuthority
- * of with the same name already exists in the system.
+ * May be thrown when a {@link net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand} is used but
+ * a CertificateAuthority of with the same name already exists in the system.
  * </p>
  */
 public class CertificateAuthorityNameNotUniqueException extends CertificationException {

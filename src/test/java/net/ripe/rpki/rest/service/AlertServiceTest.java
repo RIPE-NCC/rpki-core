@@ -12,7 +12,7 @@ import net.ripe.rpki.server.api.commands.SubscribeToRoaAlertCommand;
 import net.ripe.rpki.server.api.commands.UnsubscribeFromRoaAlertCommand;
 import net.ripe.rpki.server.api.commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaAlertSubscriptionData;
 import net.ripe.rpki.server.api.services.command.CommandService;
@@ -68,7 +68,7 @@ public class AlertServiceTest {
     @MockBean
     private CommandService commandService;
 
-    private CustomerCertificateAuthorityData certificateAuthorityData = mock(CustomerCertificateAuthorityData.class);
+    private HostedCertificateAuthorityData certificateAuthorityData = mock(HostedCertificateAuthorityData.class);
 
     @Autowired
     private MockMvc mockMvc;

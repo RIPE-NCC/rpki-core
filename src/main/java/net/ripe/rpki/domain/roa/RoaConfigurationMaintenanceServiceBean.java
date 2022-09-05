@@ -53,6 +53,8 @@ public class RoaConfigurationMaintenanceServiceBean implements RoaConfigurationM
         if (!toBeRemoved.isEmpty()) {
             // Update the config, log the removed prefixes [...]
             config.removePrefix(toBeRemoved);
+            ca.roaConfigurationUpdated();
+
             roaConfigurationRepository.logRoaPrefixDeletion(config, toBeRemoved);
 
             context.recordEvent(

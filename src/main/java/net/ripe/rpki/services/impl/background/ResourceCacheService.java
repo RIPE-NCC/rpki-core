@@ -1,10 +1,14 @@
 package net.ripe.rpki.services.impl.background;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.AtomicDouble;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -25,14 +29,12 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionOperations;
 
 import javax.security.auth.x500.X500Principal;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -53,6 +55,8 @@ public class ResourceCacheService {
     @Getter
     private final CaName allResourcesCaName;
 
+    @VisibleForTesting
+    @Getter(AccessLevel.PACKAGE)
     private volatile boolean acceptOneRejectedResourceCacheUpdate;
 
     private final AtomicReference<ResourceStat> resourceStats;
@@ -104,31 +108,30 @@ public class ResourceCacheService {
         transactionTemplate.executeWithoutResult(status -> {
             final Update productionUpdate = productionResourcesUpdate(allResources.allDelegationResources());
             final Update membersUpdate = memberResourcesUpdate(allResources.getAllMembersResources());
-            if (acceptOneRejectedResourceCacheUpdate) {
-                // we are allowed to ignore rejections here
-                logToleratedRejections(productionUpdate, membersUpdate);
+
+            final List<Update> updates = ImmutableList.of(productionUpdate, membersUpdate);
+            final List<Update> rejected = updates.stream().filter(Update::isRejected).collect(Collectors.toList());
+
+            if (acceptOneRejectedResourceCacheUpdate && !rejected.isEmpty()) {
+                log.error("One-time overriding rejection for reason(s): {}", rejected.stream().map(Update::getRejectionMessage).filter(Optional::isPresent).collect(Collectors.toList()));
             }
+
             interpretUpdate(productionUpdate, acceptOneRejectedResourceCacheUpdate);
             interpretUpdate(membersUpdate, acceptOneRejectedResourceCacheUpdate);
 
+            if (!rejected.isEmpty()) {
+                acceptOneRejectedResourceCacheUpdate = false;
+            }
+
+            // status is not mutated in this scope, how can this path be triggered?
             if (!status.isRollbackOnly()) {
                 acceptOneRejectedResourceCacheUpdate = false;
             }
         });
     }
 
-    private void logToleratedRejections(Update productionUpdate, Update membersUpdate) {
-        if (productionUpdate.getRejection().isPresent() && membersUpdate.getRejection().isPresent()) {
-            log.error("One-time overriding rejection for reason: {}, \nalso \n {}",
-                productionUpdate.getRejection().get().message, membersUpdate.getRejection().get().message);
-        } else {
-            final Rejection rejection = productionUpdate.getRejection().orElse(membersUpdate.getRejection().get());
-            log.error("One-time overriding rejection for reason: \n {}", rejection.message);
-        }
-    }
-
     private void interpretUpdate(Update r, boolean acceptUpdateAnyway) {
-        if (acceptUpdateAnyway || !r.getRejection().isPresent()) {
+        if (acceptUpdateAnyway || !r.isRejected()) {
             r.getAccepted().run();
         } else {
             r.getRejected().accept(r.getRejection().get());
@@ -149,8 +152,14 @@ public class ResourceCacheService {
         final Runnable accepted = () -> {
             delegationsCache.cacheDelegations(retrieved);
             resourceCacheServiceMetrics.onDelegationsUpdateAccepted(added, removed);
+
+            if (resourcesDiff.totalMutations() == 0) {
+                log.info("Production CA delegations cache has no update, remaining at {} entries", resourcesDiff.localResourceCount);
+                return;
+            }
+
             log.info(
-                "Production CA delegations cache has been updated from {} entries to {}",
+                "Production CA delegations cache has been updated from {} entries to {}.",
                 resourcesDiff.localResourceCount,
                 resourcesDiff.registrySizeResourceCount
             );
@@ -333,7 +342,7 @@ public class ResourceCacheService {
             // Bootstrap case: local cache is empty
             return Optional.empty();
         }
-        if (diffStat.totalAdded + diffStat.totalDeleted > MAX_DELEGATIONS_CHANGE_ABSOLUTE_THRESHOLD) {
+        if (diffStat.totalMutations() > MAX_DELEGATIONS_CHANGE_ABSOLUTE_THRESHOLD) {
             return Optional.of(new Rejection(String.format("The change in the production CA delegations is too big, " +
                 "added %d prefixes, deleted %d prefixes", diffStat.totalAdded, diffStat.totalDeleted), Optional.empty()));
         }
@@ -369,35 +378,62 @@ public class ResourceCacheService {
         }
     }
 
-    @Data
-    @AllArgsConstructor
+    @lombok.Value
     static class DelegationDiffStat {
         private int localResourceCount;
         private int registrySizeResourceCount;
         private int totalAdded;
         private int totalDeleted;
+
+        public DelegationDiffStat(int localResourceCount, int registrySizeResourceCount, int totalAdded, int totalDeleted) {
+            Preconditions.checkArgument(localResourceCount >= 0);
+            Preconditions.checkArgument(registrySizeResourceCount >= 0);
+            Preconditions.checkArgument(totalAdded >= 0);
+            Preconditions.checkArgument(totalDeleted >= 0);
+
+            this.localResourceCount = localResourceCount;
+            this.registrySizeResourceCount = registrySizeResourceCount;
+            this.totalAdded = totalAdded;
+            this.totalDeleted = totalDeleted;
+        }
+
+        public int totalMutations() {
+            return totalAdded + totalDeleted;
+        }
     }
 
-    @Data
-    @AllArgsConstructor
+    @lombok.Value
     static class Changes {
         private int added;
         private int deleted;
+
+        public Changes(final int added, final int deleted) {
+            Preconditions.checkArgument(added >= 0);
+            Preconditions.checkArgument(deleted >= 0);
+            this.added = added;
+            this.deleted = deleted;
+        }
     }
 
-    @Data
-    @AllArgsConstructor
+    @lombok.Value
     static class Rejection {
         private String message;
         private Optional<String> summary;
     }
 
-    @Data
-    @AllArgsConstructor
+    @lombok.Value
     static class Update {
         private Optional<Rejection> rejection;
         private Runnable accepted;
         private Consumer<Rejection> rejected;
+
+        public boolean isRejected() {
+            return rejection.isPresent();
+        }
+
+        public Optional<String> getRejectionMessage() {
+            return rejection.map(Rejection::getMessage);
+        }
     }
 
     private static class ResourceCacheServiceMetrics {

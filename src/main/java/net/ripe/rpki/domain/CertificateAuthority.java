@@ -30,8 +30,6 @@ import static java.util.Objects.requireNonNull;
  * Resources and its Holders.
  *
  * This is the root entity of the {@link CertificateAuthority} aggregate.
- *
- * It is implemented in this system by two types of hosted CAs: the production CA and customer CA,
  */
 @Entity
 @Table(name = "certificateauthority")

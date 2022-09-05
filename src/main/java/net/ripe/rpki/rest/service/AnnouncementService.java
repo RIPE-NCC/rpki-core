@@ -17,7 +17,7 @@ import net.ripe.rpki.rest.exception.BadRequestException;
 import net.ripe.rpki.rest.pojo.BgpAnnouncement;
 import net.ripe.rpki.rest.pojo.ROA;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
-import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
@@ -72,7 +72,7 @@ public class AnnouncementService extends AbstractCaRestService {
     public ResponseEntity<List<BgpAnnouncement>> getResourcesForCa(@PathVariable("caName") final CaName caName) {
         log.info("Getting resources for CA: {}", caName);
 
-        final CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         final IpResourceSet certifiedResources = ca.getResources();
         final Map<Boolean, Collection<BgpRisEntry>> announcements = bgpRisEntryViewService.findMostSpecificContainedAndNotContained(certifiedResources);
         final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
@@ -113,7 +113,7 @@ public class AnnouncementService extends AbstractCaRestService {
             throw new BadRequestException(String.format("Passed ROA is incorrect: %s", addedRoasErrorMessage.get()));
         }
 
-        CustomerCertificateAuthorityData ca = getCa(CustomerCertificateAuthorityData.class, caName);
+        HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         IpResourceSet certifiedResources = ca.getResources();
 
         final Asn roaAsn = Asn.parse(roa.getAsn());

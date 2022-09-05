@@ -4,7 +4,7 @@ import net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.CustomerCertificateAuthority;
+import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
@@ -47,7 +47,7 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
     @Mock
     private ProductionCertificateAuthority productionCa;
     @Mock
-    private CustomerCertificateAuthority memberCa;
+    private HostedCertificateAuthority memberCa;
     @Mock
     private CertificateRequestCreationService certificateRequestCreationService;
     @Mock

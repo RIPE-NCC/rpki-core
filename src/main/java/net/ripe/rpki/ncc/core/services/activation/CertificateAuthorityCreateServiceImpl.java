@@ -5,7 +5,7 @@ import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.domain.NameNotUniqueException;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.server.api.commands.ActivateCustomerCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.ActivateNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
@@ -88,7 +88,7 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
         try {
             asAdmin(() -> {
                 Long productionCaId = findProductionCaId(productionCaName);
-                commandService.execute(new ActivateCustomerCertificateAuthorityCommand(commandService.getNextId(), caName, resources, productionCaId));
+                commandService.execute(new ActivateHostedCertificateAuthorityCommand(commandService.getNextId(), caName, resources, productionCaId));
             });
         } catch (NameNotUniqueException e) {
             throw new CertificateAuthorityNameNotUniqueException(caName);

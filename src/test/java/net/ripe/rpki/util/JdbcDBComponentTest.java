@@ -67,7 +67,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
 
             jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
-            ca.manifestAndCrlCheckCompleted();
+            ca.roaConfigurationUpdated(); // Force state change in CA so Hibernate will flush entity
             entityManager.flush();
 
             // After flush the lock type changes to OPTIMISTIC_FORCE_INCREMENT, which we should still consider "locked"
@@ -84,7 +84,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             final ManagedCertificateAuthority ca = (ManagedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
             assertEquals(LockModeType.OPTIMISTIC, entityManager.getLockMode(ca));
 
-            ca.manifestAndCrlCheckCompleted();
+            ca.roaConfigurationUpdated(); // Force state change in CA so Hibernate will flush entity
             entityManager.flush();
 
             // After flush the lock type changes to OPTIMISTIC_FORCE_INCREMENT, which we should still consider "locked"

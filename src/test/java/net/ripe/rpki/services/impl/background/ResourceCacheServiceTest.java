@@ -80,6 +80,19 @@ public class ResourceCacheServiceTest {
         assertThat(transactionTemplate.getRollbacks()).isZero();
     }
 
+
+    @Test
+    public void shouldAcceptEmptyUpdate() {
+        when(resourceServicesClient.fetchAllResources()).thenReturn(DataSamples.totalResources());
+        subject.updateFullResourceCache();
+
+        subject.updateFullResourceCache();
+
+        assertThat(resourceCache.allMemberResources()).isNotEmpty();
+        assertThat(transactionTemplate.getCommits()).isEqualTo(2);
+        assertThat(transactionTemplate.getRollbacks()).isZero();
+    }
+
     @Test
     public void shouldRollbackOnDelegationsCacheRejection() {
         resourceCache.populateCache(Collections.emptyMap()); // empty cache allows for any update
@@ -113,7 +126,6 @@ public class ResourceCacheServiceTest {
 
         resourceCache.populateCache(memberResources.getCertifiableResources());
         delegationsCache.cacheDelegations(ripeNccDelegations.allDelegationResources());
-
         DateTime lastUpdate = resourceCache.lastUpdateTime();
 
         final MemberResources resourcesToReject = DataSamples.rejectedMemberResources();
@@ -122,7 +134,11 @@ public class ResourceCacheServiceTest {
 
         subject = new ResourceCacheService(transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
                 new X500Principal("CN=666"), new X500Principal("CN=123"), true, new SimpleMeterRegistry());
+        // override is set
+        assertThat(subject.isAcceptOneRejectedResourceCacheUpdate()).isTrue();
         subject.updateFullResourceCache();
+        // The one time override was "used"
+        assertThat(subject.isAcceptOneRejectedResourceCacheUpdate()).isFalse();
 
         final IpResourceSet expectedValue = DataSamples.ripeNccDelegations(resourcesToReject).allDelegationResources();
         assertThat(delegationsCache.getDelegationsCache()).hasValue(expectedValue);
@@ -248,8 +264,8 @@ public class ResourceCacheServiceTest {
     private static class DataSamples {
         static MemberResources memberResources() {
             return new MemberResources(
-                    asList(new AsnResource(1L, "AS59946", "ALLOCATED", "ORG-123")),
-                    asList(new Ipv4Allocation(1L, "10.0.0.0/8", "ALLOCATED", "ORG-123")),
+                    asList(new AsnResource(1L, "AS64496", "ALLOCATED", "ORG-123")),
+                    asList(new Ipv4Allocation(1L, "192.0.2.0/24", "ALLOCATED", "ORG-123")),
                     emptyList(),
                     emptyList(),
                     emptyList(),
@@ -257,15 +273,15 @@ public class ResourceCacheServiceTest {
             );
         }
         static MemberResources rejectedMemberResources() {
-            List<Ipv4Allocation> ipv4Allocations = new ArrayList<>(128);
+            List<ResourceServicesClient.Ipv6Allocation> ipv6Allocations = new ArrayList<>(128);
             for (int i = 0; i <= 127; i++) {
-                ipv4Allocations.add(new Ipv4Allocation(1L, i*2 + ".0.0.0/8", "ALLOCATED", "ORG-123"));
+                ipv6Allocations.add(new ResourceServicesClient.Ipv6Allocation(1L, "2001:DB8:" + Integer.toHexString(2*i)  + "::/48", "ALLOCATED", "ORG-123"));
             }
             return new MemberResources(
-                    asList(new AsnResource(1L, "AS59946", "ALLOCATED", "ORG-123")),
-                    ipv4Allocations,
+                    asList(new AsnResource(1L, "AS64496", "ALLOCATED", "ORG-123")),
+                    asList(new Ipv4Allocation(1L, "192.0.2.0/24", "ALLOCATED", "ORG-123")),
                     emptyList(),
-                    emptyList(),
+                    ipv6Allocations,
                     emptyList(),
                     emptyList()
             );

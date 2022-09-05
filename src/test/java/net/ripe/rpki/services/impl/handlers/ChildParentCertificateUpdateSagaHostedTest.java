@@ -46,7 +46,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
     private CommandService subject;
 
     private ProductionCertificateAuthority parent;
-    private CustomerCertificateAuthority child;
+    private HostedCertificateAuthority child;
 
     @Before
     public void setUp() {
@@ -54,7 +54,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
 
         parent = createInitializedAllResourcesAndProductionCertificateAuthority();
 
-        child = new CustomerCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent);
+        child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent);
         child.addKeyPair(keyPairService.createKeyPairEntity());
 
         certificateAuthorityRepository.add(child);
@@ -326,7 +326,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         assertThat(publicationUri1).isEqualTo(certificate2.getPublicationUri());
     }
 
-    private void assertChildParentInvariants(CustomerCertificateAuthority child, ManagedCertificateAuthority parent) {
+    private void assertChildParentInvariants(HostedCertificateAuthority child, ManagedCertificateAuthority parent) {
         // For every published, outgoing certificate in parent there should be a matching incoming certificate in child.
         // A child should never be left without a published outgoing certificate for each of its publishable keys.
         Set<PublicKey> childPublicKeys = child.getKeyPairs().stream()

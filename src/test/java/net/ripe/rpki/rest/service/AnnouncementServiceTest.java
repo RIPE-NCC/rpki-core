@@ -11,7 +11,7 @@ import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
-import net.ripe.rpki.server.api.dto.CustomerCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaAlertSubscriptionData;
@@ -79,7 +79,7 @@ public class AnnouncementServiceTest {
     private RoaAlertConfigurationViewService roaAlertConfigurationViewService;
 
     @MockBean
-    private CustomerCertificateAuthorityData certificateAuthorityData;
+    private HostedCertificateAuthorityData certificateAuthorityData;
 
     @Autowired
     private MockMvc mockMvc;

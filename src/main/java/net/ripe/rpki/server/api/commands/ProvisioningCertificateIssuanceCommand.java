@@ -15,7 +15,7 @@ import java.util.List;
  * </p>
  */
 @Getter
-public class ProvisioningCertificateIssuanceCommand extends ChildParentCertificateAuthorityCommand {
+public class ProvisioningCertificateIssuanceCommand extends ChildSharedParentCertificateAuthorityCommand {
 
     private static final long serialVersionUID = 1L;
 

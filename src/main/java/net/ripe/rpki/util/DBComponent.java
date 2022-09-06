@@ -8,6 +8,8 @@ public interface DBComponent {
      */
     Long lockCertificateAuthorityForUpdate(long caId);
 
+    Long lockCertificateAuthorityForSharing(long caId);
+
     /**
      * Force version increment for the specified certificate authority
      * @param caId the id of the certificate authority to increment the version for

@@ -11,7 +11,7 @@ import org.apache.commons.lang3.Validate;
  * NOTE: This command is used by the back-end in a background service. There should be no need to use this directly.
  * </p>
  */
-public class UpdateAllIncomingResourceCertificatesCommand extends ChildParentCertificateAuthorityCommand {
+public class UpdateAllIncomingResourceCertificatesCommand extends ChildSharedParentCertificateAuthorityCommand {
 
     private static final long serialVersionUID = 1L;
 

@@ -3,7 +3,6 @@ package net.ripe.rpki.services.impl.background;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
-import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -134,10 +133,6 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
             if (updatedCounter.get() >= UPDATE_COUNT_LIMIT) {
                 return;
             }
-            boolean updateNeeded = isUpdateNeeded(member);
-            if (!updateNeeded) {
-                return;
-            }
             CommandStatus status = commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(member.getVersionedId(), Integer.MAX_VALUE));
             if (status.isHasEffect()) {
                 updatedCounter.incrementAndGet();
@@ -145,22 +140,6 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
         } catch (RuntimeException e) {
             log.error("Error for CA '{}': {}", member.getCaName().getPrincipal(), e.getMessage(), e);
         }
-    }
-
-    private boolean isUpdateNeeded(CaIdentity member) {
-        return transactionTemplate.execute((status) -> {
-            status.setRollbackOnly();
-            final CertificateAuthority certificateAuthority = certificateAuthorityRepository.find(member.getVersionedId().getId());
-            if (certificateAuthority == null) {
-                log.warn("CA {} not found, probably deleted after querying all member CAs", member.getVersionedId().getId());
-                return false;
-            } else if (certificateAuthority.getParent() == null) {
-                log.error("cannot update incoming resource certificate for CAs without parent {}", certificateAuthority);
-                return false;
-            } else {
-                return childParentCertificateUpdateSaga.isUpdateNeeded(certificateAuthority);
-            }
-        });
     }
 
     @SneakyThrows

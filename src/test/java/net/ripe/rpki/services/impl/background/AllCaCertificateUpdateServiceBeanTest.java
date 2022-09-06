@@ -34,7 +34,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -138,22 +137,6 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
         verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(productionCaMock.getVersionedId(), Integer.MAX_VALUE));
         verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa1.getVersionedId(), Integer.MAX_VALUE));
         verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa2.getVersionedId(), Integer.MAX_VALUE));
-    }
-
-    @Test
-    public void should_handle_deleted_member_ca() {
-        CertificateAuthority child1 = mock(CertificateAuthority.class);
-        CaIdentity memberCa1 = new CaIdentity(new VersionedId(10L), CaName.of(new X500Principal("CN=nl.isp")));
-
-        when(childParentCertificateUpdateSaga.isUpdateNeeded(any())).thenReturn(true);
-        when(productionCaMock.getName()).thenReturn(PRODUCTION_CA_NAME);
-        when(caViewService.findAllChildrenIdsForCa(PRODUCTION_CA_NAME)).thenReturn(Arrays.asList(memberCa1));
-        when(certificateAuthorityRepository.get(memberCa1.getVersionedId().getId())).thenReturn(null);
-        when(child1.getParent()).thenReturn(productionCa);
-
-        subject.runService();
-
-        verify(commandService, never()).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa1.getVersionedId(), Integer.MAX_VALUE));
     }
 
     @Test

@@ -13,6 +13,7 @@ import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityActivationCommand;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.ChildParentCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.ChildSharedParentCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
@@ -65,13 +66,17 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
     void handleInternal(CertificateAuthorityCommand command) {
         ManagedCertificateAuthority ca = entityManager.find(ManagedCertificateAuthority.class, command.getCertificateAuthorityId());
         if (ca == null) {
-            // CA was deleted or not a hosted CA, so nothing to check
+            // CA was deleted or not a managed CA, so nothing to check
             return;
         }
 
         checkCertificateAuthorityInvariants(ca);
 
-        if (ca.getParent() != null && (command instanceof CertificateAuthorityActivationCommand || command instanceof ChildParentCertificateAuthorityCommand)) {
+        if (ca.getParent() != null && (
+            command instanceof CertificateAuthorityActivationCommand
+                || command instanceof ChildParentCertificateAuthorityCommand
+                || command instanceof ChildSharedParentCertificateAuthorityCommand
+        )) {
             ManagedCertificateAuthority parent = entityManager.find(ManagedCertificateAuthority.class, ca.getParent().getId());
             if (parent != null) {
                 checkCertificateAuthorityInvariants(parent);

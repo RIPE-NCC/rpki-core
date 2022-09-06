@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityActivationCommand;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.ChildParentCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.ChildSharedParentCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.util.DBComponent;
 
@@ -30,31 +31,39 @@ public class LockCertificateAuthorityHandler implements CertificateAuthorityComm
 
     @Override
     public void handle(CertificateAuthorityCommand command, CommandStatus commandStatus) {
-        List<Long> lockedCaIds = new ArrayList<>(2);
+        List<Long> lockedForUpdateCaIds = new ArrayList<>(2);
 
         if (command instanceof CertificateAuthorityActivationCommand) {
             // Must lock the parent instead!
             long parentId = ((CertificateAuthorityActivationCommand) command).getParentId();
             dbComponent.lockCertificateAuthorityForUpdate(parentId);
-            lockedCaIds.add(parentId);
+            lockedForUpdateCaIds.add(parentId);
+        } else if (command instanceof ChildSharedParentCertificateAuthorityCommand) {
+            // Must lock child exclusively and parent for sharing
+            long childId = command.getCertificateAuthorityVersionedId().getId();
+            Long parentId = dbComponent.lockCertificateAuthorityForUpdate(childId);
+            lockedForUpdateCaIds.add(childId);
+            if (parentId != null) {
+                dbComponent.lockCertificateAuthorityForSharing(parentId);
+            }
         } else if (command instanceof ChildParentCertificateAuthorityCommand) {
             // Must lock child and then the parent
             long childId = command.getCertificateAuthorityVersionedId().getId();
             Long parentId = dbComponent.lockCertificateAuthorityForUpdate(childId);
-            lockedCaIds.add(childId);
+            lockedForUpdateCaIds.add(childId);
             if (parentId != null) {
                 dbComponent.lockCertificateAuthorityForUpdate(parentId);
-                lockedCaIds.add(parentId);
+                lockedForUpdateCaIds.add(parentId);
             }
         } else {
             // Other command types only affect a single CA that must be locked
             long id = command.getCertificateAuthorityVersionedId().getId();
             dbComponent.lockCertificateAuthorityForUpdate(id);
-            lockedCaIds.add(id);
+            lockedForUpdateCaIds.add(id);
         }
 
-        // Ensure the CAs version is incremented whenever it is involved in handling a command
-        for (Long caId : lockedCaIds) {
+        // Ensure the CAs version is incremented whenever it is updated when handling a command
+        for (Long caId : lockedForUpdateCaIds) {
             dbComponent.lockCertificateAuthorityForceIncrement(caId);
         }
     }

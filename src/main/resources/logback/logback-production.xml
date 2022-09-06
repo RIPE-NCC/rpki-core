@@ -14,22 +14,12 @@
         </encoder>
     </appender>
 
-    <appender name="certification-logstash" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="certification-jsonl" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
-        <file>../logs/certification-logstash.log</file>
+        <file>../logs/certification-jsonl.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>../logs/certification-logstash.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <fileNamePattern>../logs/certification.jsonl.%d{yyyy-MM-dd}</fileNamePattern>
         </rollingPolicy>
-    </appender>
-
-    <appender name="email-log" class="ch.qos.logback.classic.net.SMTPAppender">
-        <smtpHost>localhost</smtpHost>
-        <to>bad-errs@ripe.net</to>
-        <from>unread@ripe.net</from>
-        <subject>RPKI errors on ${instance.name}</subject>
-        <layout class="ch.qos.logback.classic.PatternLayout">
-            <pattern>%date %-5level %logger{35} - %message%n</pattern>
-        </layout>
     </appender>
 
     <appender name="audit-log" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
@@ -43,10 +33,18 @@
         </encoder>
     </appender>
 
-    <appender name="provisioning-log" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
-        <file>../logs/provisioning.log</file>
+    <appender name="audit-jsonl" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
+        <file>../logs/audit.jsonl</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>../logs/provisioning.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <fileNamePattern>../logs/audit.jsonl.%d{yyyy-MM-dd}</fileNamePattern>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="provisioning-jsonl" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
+        <file>../logs/provisioning.jsonl</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>../logs/provisioning.jsonl.%d{yyyy-MM-dd}</fileNamePattern>
         </rollingPolicy>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <timestampPattern>yyyy-MM-dd' 'HH:mm:ss.SSS</timestampPattern>
@@ -54,40 +52,51 @@
         </encoder>
     </appender>
 
+    <appender name="email-log" class="ch.qos.logback.classic.net.SMTPAppender">
+        <smtpHost>localhost</smtpHost>
+        <to>bad-errs@ripe.net</to>
+        <from>unread@ripe.net</from>
+        <subject>RPKI errors on ${instance.name}</subject>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%date %-5level %logger{35} - %message%n</pattern>
+        </layout>
+    </appender>
+
     <logger name="net.ripe.rpki.application.impl.CommandAuditServiceBean" level="info" additivity="false">
         <appender-ref ref="audit-log"/>
+        <appender-ref ref="audit-jsonl"/>
     </logger>
 
-    <logger name="root" level="info" additivity="false">
-        <appender-ref ref="certification-log"/>
-        <appender-ref ref="certification-logstash"/>
-    </logger>
     <logger name="root" level="info">
         <appender-ref ref="email-log"/>
     </logger>
+    <logger name="root" level="info" additivity="false">
+        <appender-ref ref="certification-log"/>
+        <appender-ref ref="certification-jsonl"/>
+    </logger>
     <logger name="net.ripe" level="info" additivity="false">
         <appender-ref ref="certification-log"/>
-        <appender-ref ref="certification-logstash"/>
+        <appender-ref ref="certification-jsonl"/>
     </logger>
     <logger name="org.quartz" level="warn" additivity="false">
         <appender-ref ref="certification-log"/>
-        <appender-ref ref="certification-logstash"/>
+        <appender-ref ref="certification-jsonl"/>
     </logger>
     <logger name="org.apache.wicket" level="warn" additivity="false">
         <appender-ref ref="certification-log"/>
-        <appender-ref ref="certification-logstash"/>
+        <appender-ref ref="certification-jsonl"/>
     </logger>
     <logger name="org.hibernate" level="error" additivity="false">
         <appender-ref ref="certification-log"/>
-        <appender-ref ref="certification-logstash"/>
+        <appender-ref ref="certification-jsonl"/>
     </logger>
     <logger name="org.springframework" level="warn" additivity="false">
         <appender-ref ref="certification-log"/>
-        <appender-ref ref="certification-logstash"/>
+        <appender-ref ref="certification-jsonl"/>
     </logger>
 
     <logger name="provisioning-logger" level="info" additivity="false">
-        <appender-ref ref="provisioning-log"/>
+        <appender-ref ref="provisioning-jsonl"/>
     </logger>
 
 </configuration>

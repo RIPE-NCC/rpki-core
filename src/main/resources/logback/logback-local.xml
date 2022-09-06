@@ -9,21 +9,10 @@
         </encoder>
     </appender>
 
-    <appender name="audit-log" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
-        <file>../log/audit.log</file>
+    <appender name="provisioning-jsonl" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
+        <file>../log/provisioning.jsonl</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>../log/audit.log.%d{yyyy-MM-dd}</fileNamePattern>
-        </rollingPolicy>
-
-        <encoder>
-            <pattern>${FILE_LOG_PATTERN}</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="provisioning-log" class="ch.qos.logback.core.rolling.RollingFileAppender" append="true">
-        <file>../log/provisioning.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>../log/provisioning.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <fileNamePattern>../log/provisioning.jsonl.%d{yyyy-MM-dd}</fileNamePattern>
         </rollingPolicy>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <timestampPattern>yyyy-MM-dd' 'HH:mm:ss.SSS</timestampPattern>
@@ -31,9 +20,6 @@
         </encoder>
     </appender>
 
-    <logger name="net.ripe.rpki.ui.admin.SystemStatusPage" level="info">
-        <appender-ref ref="audit-log"/>
-    </logger>
     <logger name="root" level="info">
         <appender-ref ref="stdout"/>
     </logger>
@@ -48,7 +34,7 @@
     </logger>
 
     <logger name="provisioning-logger" level="info" additivity="false">
-        <appender-ref ref="provisioning-log"/>
+        <appender-ref ref="provisioning-jsonl"/>
     </logger>
     <!-- Output provisioning log to stdout in local development -->
     <logger name="provisioning-logger" level="info" additivity="false">

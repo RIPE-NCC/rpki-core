@@ -1,6 +1,8 @@
 package net.ripe.rpki.server.api.dto;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
@@ -9,6 +11,8 @@ import javax.security.auth.x500.X500Principal;
 import java.util.List;
 import java.util.UUID;
 
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 @Getter
 public class ManagedCertificateAuthorityData extends CertificateAuthorityData {
 

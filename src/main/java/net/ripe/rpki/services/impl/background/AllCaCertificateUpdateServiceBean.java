@@ -1,7 +1,6 @@
 package net.ripe.rpki.services.impl.background;
 
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
@@ -12,26 +11,21 @@ import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.services.impl.handlers.ChildParentCertificateUpdateSaga;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE;
 
-@Slf4j
 @Service(ALL_CA_CERTIFICATE_UPDATE_SERVICE)
 public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode {
-
-    private static final int UPDATE_COUNT_LIMIT = 1000;
+    private final int updateBatchSize;
 
     private final CertificateAuthorityViewService caViewService;
     private final CommandService commandService;
@@ -42,15 +36,16 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
     private final ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga;
 
 
-    public AllCaCertificateUpdateServiceBean(ActiveNodeService activeNodeService,
+    public AllCaCertificateUpdateServiceBean(BackgroundTaskRunner backgroundTaskRunner,
                                              CertificateAuthorityViewService caViewService,
                                              CommandService commandService,
                                              ResourceCache resourceCache,
                                              RepositoryConfiguration repositoryConfiguration,
                                              TransactionTemplate transactionTemplate,
                                              CertificateAuthorityRepository certificateAuthorityRepository,
-                                             ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga) {
-        super(activeNodeService);
+                                             ChildParentCertificateUpdateSaga childParentCertificateUpdateSaga,
+                                             @Value("${certificate.authority.update.batch.size:1000}") int updateBatchSize) {
+        super(backgroundTaskRunner);
         this.caViewService = caViewService;
         this.commandService = commandService;
         this.resourceCache = resourceCache;
@@ -58,6 +53,7 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
         this.transactionTemplate = transactionTemplate;
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.childParentCertificateUpdateSaga = childParentCertificateUpdateSaga;
+        this.updateBatchSize = updateBatchSize;
     }
 
     @Override
@@ -102,19 +98,23 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
     private void updateProductionCa(CertificateAuthorityData productionCa) {
         // NOTE: There's no update of potentially over-claiming CAs happening here,
         // since we are updating all member CAs anyway.
-        commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(productionCa.getVersionedId(), Integer.MAX_VALUE));
+        runParallel(Stream.of(task(
+            () -> commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(productionCa.getVersionedId(), Integer.MAX_VALUE)),
+            ex -> log.error("Unable to update incoming resource certificate for CA '{}'", productionCa.getName(), ex)
+        )));
     }
 
     private int updateMemberCas(CertificateAuthorityData productionCa) {
         AtomicInteger updatedCounter = new AtomicInteger(0);
 
         Collection<CaIdentity> allChildrenIds = caViewService.findAllChildrenIdsForCa(productionCa.getName());
-        allChildrenIds
+        runParallel(allChildrenIds
             .stream()
-            .map(member ->
-                executorService.submit(() -> updateChildCertificate(commandService, member, updatedCounter)))
-            .collect(Collectors.toList())
-            .forEach(f -> justGetIt(f));
+            .map(member -> task(
+                () -> updateChildCertificate(commandService, member, updatedCounter),
+                ex -> log.error("Unable to update incoming resource certificate for CA '{}", member.getCaName(), ex)
+            ))
+        );
 
         log.info("updated {} incoming resource certificates of {} member CAs", updatedCounter.get(), allChildrenIds.size());
 
@@ -122,29 +122,14 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
     }
 
 
-    // Create a separate pool to avoid blocking the whole
-    // ForkJoinPool.default() with threads waiting for IO
-    private static final ExecutorService executorService =
-        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-
     private void updateChildCertificate(CommandService commandService, CaIdentity member, AtomicInteger updatedCounter) {
-        try {
-            if (updatedCounter.get() >= UPDATE_COUNT_LIMIT) {
-                return;
-            }
-            CommandStatus status = commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(member.getVersionedId(), Integer.MAX_VALUE));
-            if (status.isHasEffect()) {
-                updatedCounter.incrementAndGet();
-            }
-        } catch (RuntimeException e) {
-            log.error("Error for CA '{}': {}", member.getCaName().getPrincipal(), e.getMessage(), e);
+        if (updatedCounter.get() >= updateBatchSize) {
+            return;
         }
-    }
-
-    @SneakyThrows
-    private static <T> T justGetIt(Future<T> f) {
-        return f.get();
+        CommandStatus status = commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(member.getVersionedId(), Integer.MAX_VALUE));
+        if (status.isHasEffect()) {
+            updatedCounter.incrementAndGet();
+        }
     }
 
 }

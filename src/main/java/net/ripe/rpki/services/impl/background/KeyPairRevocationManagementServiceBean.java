@@ -1,12 +1,10 @@
 package net.ripe.rpki.services.impl.background;
 
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.server.api.commands.KeyManagementRevokeOldKeysCommand;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
@@ -16,16 +14,14 @@ import static net.ripe.rpki.server.api.dto.CertificateAuthorityType.ALL_RESOURCE
 @Service("keyPairRevocationManagementService")
 public class KeyPairRevocationManagementServiceBean extends SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode {
 
-    private static final Logger LOG = LoggerFactory.getLogger(KeyPairRevocationManagementServiceBean.class);
-
-    private CertificateAuthorityViewService caViewService;
-    private CommandService commandService;
+    private final CertificateAuthorityViewService caViewService;
+    private final CommandService commandService;
 
     @Inject
-    public KeyPairRevocationManagementServiceBean(ActiveNodeService propertyService,
+    public KeyPairRevocationManagementServiceBean(BackgroundTaskRunner backgroundTaskRunner,
                                                   CertificateAuthorityViewService caViewService,
                                                   CommandService commandService) {
-        super(propertyService);
+        super(backgroundTaskRunner);
         this.caViewService = caViewService;
         this.commandService = commandService;
     }
@@ -37,16 +33,13 @@ public class KeyPairRevocationManagementServiceBean extends SequentialBackground
 
     @Override
     protected void runService() {
-        caViewService.findAllHostedCertificateAuthorities().stream()
+        runParallel(caViewService.findAllHostedCertificateAuthorities().stream()
                 .filter(ca -> ca.getType() != ALL_RESOURCES)
-                .forEach(this::revokeOldKeysFor);
+                .map(ca -> task(
+                    () -> commandService.execute(new KeyManagementRevokeOldKeysCommand(ca.getVersionedId())),
+                    ex -> log.error("Failed to process CA '{}'", ca.getName(), ex)
+                ))
+        );
     }
 
-    private void revokeOldKeysFor(CertificateAuthorityData ca) {
-        try {
-            commandService.execute(new KeyManagementRevokeOldKeysCommand(ca.getVersionedId()));
-        } catch (RuntimeException e) {
-            LOG.error("Failed to process Certificate Authority '" + ca.getName() + "': " + e.getMessage(), e);
-        }
-    }
 }

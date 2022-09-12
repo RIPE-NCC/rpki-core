@@ -54,6 +54,8 @@ keypair:
         interval.hours: 240
     revocation.interval.hours: 240
     generator.provider: SunRsaSign
+    # All in one batch - we want to recover ASAP
+    keyroll.batch.size: 1000000
 
 online.repository:
     notification.uri: https://localhost:7788/notification.xml
@@ -85,8 +87,6 @@ ta.repository:
     uri: rsync://localhost:10873/ta/
 
 
-ca.cleanup.service.enabled: true
-
 non-hosted:
   publisher:
     repository:
@@ -97,4 +97,7 @@ non-hosted:
 
 aspa.feature.enabled: true
 
-certificate.authority.invariant.checking.enabled: true
+certificate.authority:
+    cleanup.service.enabled: true
+    invariant.checking.enabled: true
+    update.batch.size: 1000000

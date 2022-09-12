@@ -1,7 +1,9 @@
 package net.ripe.rpki.services.impl.background;
 
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.server.api.commands.KeyManagementRevokeOldKeysCommand;
 import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
@@ -26,18 +28,20 @@ public class KeyPairRevocationManagementServiceBeanTest {
 
     @Before
     public void setUp() {
-        ActiveNodeService propertyEntityService = mock(ActiveNodeService.class);
+        ActiveNodeService activeNodeService = mock(ActiveNodeService.class);
         certificationService = mock(CertificateAuthorityViewService.class);
         commandService = mock(CommandService.class);
 
-        subject = new KeyPairRevocationManagementServiceBean(propertyEntityService, certificationService, commandService);
+        subject = new KeyPairRevocationManagementServiceBean(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()), certificationService, commandService);
+
+        when(activeNodeService.isActiveNode()).thenReturn(true);
     }
 
     @Test
     public void shouldReturnIfNoCaFound() {
         given(certificationService.findAllHostedCertificateAuthorities()).willReturn(Collections.emptyList());
 
-        subject.runService();
+        subject.execute();
 
         verifyNoInteractions(commandService);
     }
@@ -51,7 +55,7 @@ public class KeyPairRevocationManagementServiceBeanTest {
         given(ca.getVersionedId()).willReturn(expectedVersionedId);
         given(certificationService.findAllHostedCertificateAuthorities()).willReturn(Collections.singletonList(ca));
 
-        subject.runService();
+        subject.execute();
 
         verify(commandService).execute(captor.capture());
         assertEquals(expectedVersionedId, captor.getValue().getCertificateAuthorityVersionedId());

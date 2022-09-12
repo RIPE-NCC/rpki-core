@@ -1,19 +1,25 @@
 package net.ripe.rpki.server.api.dto;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 import net.ripe.rpki.server.api.support.objects.ValueObjectSupport;
 import org.joda.time.DateTime;
 
+import java.io.Serializable;
 import java.net.URI;
 import java.util.Map;
 
+@EqualsAndHashCode
+@ToString(exclude = "keystoreName")
 @Getter
-public class KeyPairData extends ValueObjectSupport {
-
+public class KeyPairData implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final Long keyPairId;
     private final String name;
+
+    // seems to include the keystore content -> ignore in toString.
     private final String keystoreName;
     private final KeyPairStatus status;
     private final DateTime creationDate;

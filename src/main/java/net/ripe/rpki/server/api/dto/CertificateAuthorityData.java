@@ -1,20 +1,24 @@
 package net.ripe.rpki.server.api.dto;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.server.api.support.objects.ValueObjectSupport;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import org.apache.commons.lang.Validate;
 
 import javax.security.auth.x500.X500Principal;
+import java.io.Serializable;
 import java.util.UUID;
 
 /**
  * DTO for display purposes.
  */
+@ToString(doNotUseGetters = true)
+@EqualsAndHashCode(doNotUseGetters = true)
 @Getter
-public abstract class CertificateAuthorityData extends ValueObjectSupport {
+public abstract class CertificateAuthorityData implements Serializable {
 
     private static final long serialVersionUID = 2L;
 

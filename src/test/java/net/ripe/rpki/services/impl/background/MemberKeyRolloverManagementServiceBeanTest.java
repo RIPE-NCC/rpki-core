@@ -1,7 +1,9 @@
 package net.ripe.rpki.services.impl.background;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
@@ -18,7 +20,6 @@ import org.mockito.Mockito;
 import javax.security.auth.x500.X500Principal;
 import java.util.Collections;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 import static net.ripe.ipresource.IpResourceSet.*;
 import static net.ripe.rpki.server.api.dto.CertificateAuthorityType.*;
@@ -37,8 +38,6 @@ public class MemberKeyRolloverManagementServiceBeanTest {
 
     private MemberKeyRolloverManagementServiceBean subject;
 
-    // Mocks
-    private ActiveNodeService propertyEntityService;
     private CertificateAuthorityViewService certificationService;
     private CommandService commandService;
     private CertificationConfiguration certificationConfiguration;
@@ -46,16 +45,19 @@ public class MemberKeyRolloverManagementServiceBeanTest {
 
     @Before
     public void setUp() {
-        propertyEntityService = mock(ActiveNodeService.class);
+        // Mocks
+        ActiveNodeService activeNodeService = mock(ActiveNodeService.class);
         certificationService = mock(CertificateAuthorityViewService.class);
         commandService = mock(CommandService.class);
         certificationConfiguration = mock(CertificationConfiguration.class);
 
-        subject = new MemberKeyRolloverManagementServiceBean(propertyEntityService, certificationConfiguration, certificationService, commandService);
+        subject = new MemberKeyRolloverManagementServiceBean(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()), certificationConfiguration, certificationService, commandService, 1000);
+
+        when(activeNodeService.isActiveNode()).thenReturn(true);
     }
 
     @Test
-    public void shouldReturnIfNoCaFound() throws InterruptedException, ExecutionException {
+    public void shouldReturnIfNoCaFound() {
         when(certificationService.findAllHostedCertificateAuthorities()).thenReturn(Collections.emptyList());
 
         subject.runService();
@@ -67,7 +69,7 @@ public class MemberKeyRolloverManagementServiceBeanTest {
     public void shouldSkipTheProductionCA() {
         when(certificationService.findAllHostedCertificateAuthorities()).thenReturn(Collections.singletonList(PROD_CA));
 
-        subject.runService();
+        subject.execute();
 
         verifyNoInteractions(commandService);
     }
@@ -75,10 +77,10 @@ public class MemberKeyRolloverManagementServiceBeanTest {
     @Test
     public void shouldSendInitialiseKeyCommandToCAs() {
         int maxAge = 365;
-        when(certificationService.findAllHostedCasWithCurrentKeyOnlyAndOlderThan(eq(HostedCertificateAuthority.class), any(), any())).thenReturn(Collections.singletonList(MEMBER_CA));
+        when(certificationService.findHostedCasEligibleForKeyRoll(eq(HostedCertificateAuthority.class), any(), any())).thenReturn(Collections.singletonList(MEMBER_CA));
         when(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()).thenReturn(maxAge);
 
-        subject.runService();
+        subject.execute();
 
         ArgumentCaptor<KeyManagementInitiateRollCommand> commandCaptor = ArgumentCaptor.forClass(KeyManagementInitiateRollCommand.class);
         Mockito.verify(commandService).execute(commandCaptor.capture());
@@ -90,11 +92,11 @@ public class MemberKeyRolloverManagementServiceBeanTest {
 
 
     @Test
-    public void shouldKeepProcessingIfProcessingACAFails() throws InterruptedException, ExecutionException {
+    public void shouldKeepProcessingIfProcessingACAFails() {
         when(certificationService.findAllHostedCertificateAuthorities()).thenReturn(Collections.singletonList(MEMBER_CA));
 
         doThrow(new RuntimeException("test")).when(commandService).execute(isA(KeyManagementActivatePendingKeysCommand.class));
 
-        subject.runService();
+        subject.execute();
     }
 }

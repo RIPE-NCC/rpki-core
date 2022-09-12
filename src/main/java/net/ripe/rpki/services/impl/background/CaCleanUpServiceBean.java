@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl.background;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
@@ -11,7 +11,6 @@ import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +19,6 @@ import java.util.Collection;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.CA_CLEAN_UP_SERVICE;
 
-@Slf4j
 @Service(CA_CLEAN_UP_SERVICE)
 public class CaCleanUpServiceBean extends ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode {
 
@@ -32,13 +30,13 @@ public class CaCleanUpServiceBean extends ConcurrentBackgroundServiceWithAdminPr
     private final boolean enabled;
 
     @Inject
-    public CaCleanUpServiceBean(ActiveNodeService activeNodeService,
+    public CaCleanUpServiceBean(BackgroundTaskRunner backgroundTaskRunner,
                                 CertificateAuthorityRepository certificateAuthorityRepository,
                                 CommandService commandService,
                                 RoaViewService roaViewService,
                                 MeterRegistry meterRegistry,
-                                @Value("${ca.cleanup.service.enabled:false}") boolean enabled) {
-        super(activeNodeService);
+                                @Value("${certificate.authority.cleanup.service.enabled:false}") boolean enabled) {
+        super(backgroundTaskRunner);
         this.enabled = enabled;
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.commandService = commandService;

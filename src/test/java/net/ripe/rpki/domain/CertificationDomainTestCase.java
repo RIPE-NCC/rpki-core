@@ -128,16 +128,22 @@ public abstract class CertificationDomainTestCase {
         assertThat(acaKeyPair.isCurrent()).isTrue();
 
         ProductionCertificateAuthority production = new ProductionCertificateAuthority(CA_ID, repositoryConfiguration.getProductionCaPrincipal(), allResources);
-        KeyPairEntity productionKeyPair = keyPairService.createKeyPairEntity();
-        production.addKeyPair(productionKeyPair);
-        certificateAuthorityRepository.add(production);
-
-        CertificateIssuanceRequest issuanceRequest = (CertificateIssuanceRequest) production.processResourceClassListResponse(new ResourceClassListResponse(PRODUCTION_CA_RESOURCES), certificateRequestCreationService).get(0);
-        CertificateIssuanceResponse issuanceResponse = allResources.processCertificateIssuanceRequest(production, issuanceRequest, resourceCertificateRepository, Integer.MAX_VALUE);
-        production.processCertificateIssuanceResponse(issuanceResponse, resourceCertificateRepository);
-        assertThat(productionKeyPair.isCurrent()).isTrue();
+        issueCertificateForNewKey(allResources, production, PRODUCTION_CA_RESOURCES);
 
         return production;
+    }
+
+    protected KeyPairEntity issueCertificateForNewKey(ManagedCertificateAuthority parent, ManagedCertificateAuthority child, IpResourceSet requestedResources) {
+        KeyPairEntity kp = keyPairService.createKeyPairEntity();
+        child.addKeyPair(kp);
+        certificateAuthorityRepository.add(child);
+
+        CertificateIssuanceRequest issuanceRequest = (CertificateIssuanceRequest) child.processResourceClassListResponse(new ResourceClassListResponse(requestedResources), certificateRequestCreationService).get(0);
+        CertificateIssuanceResponse issuanceResponse = parent.processCertificateIssuanceRequest(child, issuanceRequest, resourceCertificateRepository, Integer.MAX_VALUE);
+        child.processCertificateIssuanceResponse(issuanceResponse, resourceCertificateRepository);
+
+        assertThat(kp.isCurrent()).isTrue();
+        return kp;
     }
 
     protected static ProductionCertificateAuthority createProductionCertificateAuthority(long id, X500Principal name) {

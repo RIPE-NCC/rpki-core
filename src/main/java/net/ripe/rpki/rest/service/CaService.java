@@ -6,10 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResourceSet;
-import net.ripe.rpki.commons.provisioning.identity.ChildIdentity;
-import net.ripe.rpki.commons.provisioning.identity.ChildIdentitySerializer;
-import net.ripe.rpki.commons.provisioning.identity.ParentIdentity;
-import net.ripe.rpki.commons.provisioning.identity.ParentIdentitySerializer;
+import net.ripe.rpki.commons.provisioning.identity.*;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.rest.pojo.RevokeHostedResult;
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
@@ -194,8 +191,13 @@ public class CaService extends AbstractCaRestService {
 
     private ProvisioningIdentityCertificate parseCertificate(InputStream uploadedInputStream) throws IOException {
         final String xml = IOUtils.toString(uploadedInputStream, CHARSET_NAME);
-        final ChildIdentity childIdentity = new ChildIdentitySerializer().deserialize(xml);
-        return childIdentity.getIdentityCertificate();
+        try {
+            final ChildIdentity childIdentity = new ChildIdentitySerializer().deserialize(xml);
+            return childIdentity.getIdentityCertificate();
+        } catch (IdentitySerializer.IdentitySerializerException e) {
+            log.info("identity certificate xml rejected by parser: '{}'", xml);
+            throw e;
+        }
     }
 
     @GetMapping(path = "issuer-identity")

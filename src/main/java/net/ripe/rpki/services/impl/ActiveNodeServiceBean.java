@@ -17,7 +17,7 @@ import javax.inject.Inject;
 public class ActiveNodeServiceBean implements ActiveNodeService {
     public static final String ACTIVE_NODE_KEY = "activeNode";
 
-    private PropertyEntityRepository propertyEntityRepository;
+    private final PropertyEntityRepository propertyEntityRepository;
 
     @Inject
     public ActiveNodeServiceBean(PropertyEntityRepository propertyEntityRepository, MeterRegistry meterRegistry) {
@@ -40,8 +40,7 @@ public class ActiveNodeServiceBean implements ActiveNodeService {
         return Environment.getInstanceName();
     }
 
-	@Override
-	public boolean isActiveNode(String nodeName) {
+	private boolean isActiveNode(String nodeName) {
 		return nodeName.equals(getActiveNodeName());
 	}
 

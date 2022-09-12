@@ -1,6 +1,7 @@
 package net.ripe.rpki.services.impl.background;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
@@ -32,7 +33,7 @@ public class CaCleanUpServiceBeanTest {
 
     @Before
     public void setUp() {
-        service = new CaCleanUpServiceBean(activeNodeService, certificateAuthorityRepository,
+        service = new CaCleanUpServiceBean(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()), certificateAuthorityRepository,
             commandService, roaViewService, new SimpleMeterRegistry(), true);
     }
 

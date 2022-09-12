@@ -1,7 +1,9 @@
 package net.ripe.rpki.services.impl.background;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.core.services.background.BackgroundServiceException;
+import net.ripe.rpki.core.services.background.BackgroundServiceExecutionResult;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
@@ -15,8 +17,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static net.ripe.rpki.core.services.background.BackgroundTaskRunner.MAX_ALLOWED_EXCEPTIONS;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
@@ -39,7 +41,10 @@ public class ManifestCrlUpdateServiceBeanTest {
         commandService = mock(CommandService.class);
         certificateAuthorityRepository = mock(CertificateAuthorityRepository.class);
 
-        subject = new ManifestCrlUpdateServiceBean(mock(ActiveNodeService.class), commandService, certificateAuthorityRepository, 10);
+        ActiveNodeService activeNodeService = mock(ActiveNodeService.class);
+        when(activeNodeService.isActiveNode()).thenReturn(true);
+
+        subject = new ManifestCrlUpdateServiceBean(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()), commandService, certificateAuthorityRepository, 10);
     }
 
     @Test
@@ -56,7 +61,7 @@ public class ManifestCrlUpdateServiceBeanTest {
             .thenReturn(Arrays.asList(prodCa, memberCa))
             .thenReturn(Collections.emptyList());
 
-        subject.runService();
+        subject.execute();
 
         verify(commandService, times(2)).execute(isA(IssueUpdatedManifestAndCrlCommand.class));
         verify(commandService).execute(new IssueUpdatedManifestAndCrlCommand(prodCaId));
@@ -65,13 +70,13 @@ public class ManifestCrlUpdateServiceBeanTest {
 
     @Test
     public void should_throw_exception_when_too_many_exceptions_are_encountered() {
-
         doThrow(new RuntimeException()).when(commandService).execute(isA(IssueUpdatedManifestAndCrlCommand.class));
-        List<ManagedCertificateAuthority> caData = createCertificateAuthorityDataMocks(15);
+        List<ManagedCertificateAuthority> caData = createCertificateAuthorityDataMocks(MAX_ALLOWED_EXCEPTIONS + 1);
         when(certificateAuthorityRepository.findAllWithOutdatedManifests(any(), anyInt())).thenReturn(caData);
 
-        BackgroundServiceException backgroundServiceException = assertThrows(BackgroundServiceException.class, () -> subject.runService());
-        assertEquals("Too many exceptions encountered running job: 'Manifest and CRL Update Service'. Suspecting problems that affect ALL CAs.", backgroundServiceException.getMessage());
+        BackgroundServiceExecutionResult result = subject.execute();
+
+        assertThat(result.getStatus()).isEqualTo(BackgroundServiceExecutionResult.Status.FAILURE);
     }
 
     private List<ManagedCertificateAuthority> createCertificateAuthorityDataMocks(int count) {

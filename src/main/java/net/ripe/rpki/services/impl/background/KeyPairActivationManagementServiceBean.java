@@ -2,6 +2,7 @@ package net.ripe.rpki.services.impl.background;
 
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.application.CertificationConfiguration;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
@@ -10,7 +11,6 @@ import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -32,13 +32,13 @@ public class KeyPairActivationManagementServiceBean extends SequentialBackground
     private final ForkJoinPool forkJoinPool = new ForkJoinPool();
 
     public KeyPairActivationManagementServiceBean(
-        ActiveNodeService propertyService,
+        BackgroundTaskRunner backgroundTaskRunner,
         CertificateAuthorityViewService caViewService,
         CommandService commandService,
         ResourceCache resourceCache,
         CertificationConfiguration configuration
     ) {
-        super(propertyService);
+        super(backgroundTaskRunner);
         this.caViewService = caViewService;
         this.commandService = commandService;
         this.resourceCache = resourceCache;

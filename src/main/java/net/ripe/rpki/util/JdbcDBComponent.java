@@ -17,6 +17,10 @@ import javax.persistence.NoResultException;
 @Slf4j
 public class JdbcDBComponent implements DBComponent {
 
+    private enum LockMode {
+        SHARE, UPDATE
+    }
+
     private final EntityManager entityManager;
 
     @Autowired
@@ -35,12 +39,12 @@ public class JdbcDBComponent implements DBComponent {
 
     @Override
     public Long lockCertificateAuthorityForUpdate(long caId) {
-        return lockCertificateAuthorityForMode(caId, "UPDATE");
+        return lockCertificateAuthorityForMode(caId, LockMode.UPDATE);
     }
 
     @Override
     public Long lockCertificateAuthorityForSharing(long caId) {
-        return lockCertificateAuthorityForMode(caId, "SHARE");
+        return lockCertificateAuthorityForMode(caId, LockMode.SHARE);
     }
 
     @Override
@@ -48,14 +52,27 @@ public class JdbcDBComponent implements DBComponent {
         entityManager.find(CertificateAuthority.class, caId, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
     }
 
-    private Long lockCertificateAuthorityForMode(long caId, String mode) {
+    private Long lockCertificateAuthorityForMode(long caId, LockMode mode) {
         log.debug("Attempting to lock CA (id = {}) for {}}", caId, mode);
         try {
+            // Row locks will keep processes that try to get an exclusive lock waiting indefinitely if other processes
+            // keep acquiring a shared lock. This happens when we run some of our background services. So use an
+            // additional advisory lock that to ensure fairness.
+            String function = "pg_advisory_xact_lock" + (mode == LockMode.SHARE ? "_shared" : "");
+            entityManager.createNativeQuery(
+                    // Wrap in a SELECT NULL FROM () to avoid Hibernate error since it cannot handle the VOID type
+                    // returned by pg_advisory_xact_lock and friends.
+                    "SELECT NULL FROM (SELECT " + function + "(:id)) AS temp"
+                )
+                // Prefix Lock id with `0xca` (for Certificate Authority) to avoid collisions with any other locks
+                .setParameter("id", 0xca000000_00000000L | caId)
+                .getSingleResult();
+
             // Only lock the row and do not retrieve the CA to avoid eagerly loading the parent CA (we might need to
             // lock the parent before loading it to avoid optimistic locking exceptions due to transactions committing
             // after loading the parent but before locking it).
             Number parentId = (Number) entityManager.createNativeQuery(
-                    "SELECT parent_id FROM certificateauthority ca WHERE ca.id = :id FOR " + mode
+                    "SELECT parent_id FROM certificateauthority ca WHERE ca.id = :id FOR " + mode.name()
                 )
                 .setParameter("id", caId)
                 .getSingleResult();

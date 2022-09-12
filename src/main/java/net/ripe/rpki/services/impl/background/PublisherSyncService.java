@@ -1,8 +1,8 @@
 package net.ripe.rpki.services.impl.background;
 
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
@@ -15,9 +15,9 @@ public class PublisherSyncService extends ConcurrentBackgroundServiceWithAdminPr
     private final PublisherSyncDelegate publisherSyncDelegate;
 
     @Inject
-    public PublisherSyncService(ActiveNodeService activeNodeService,
+    public PublisherSyncService(BackgroundTaskRunner backgroundTaskRunner,
                                 PublisherSyncDelegate publisherSyncDelegate) {
-        super(activeNodeService);
+        super(backgroundTaskRunner);
         this.publisherSyncDelegate = publisherSyncDelegate;
     }
     @Override

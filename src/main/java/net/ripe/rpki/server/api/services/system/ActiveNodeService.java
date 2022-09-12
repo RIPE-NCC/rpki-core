@@ -6,8 +6,6 @@ public interface ActiveNodeService {
 
     String getCurrentNodeName();
 
-	boolean isActiveNode(String nodeName);
-
 	boolean isActiveNode();
 
 	String getActiveNodeName();

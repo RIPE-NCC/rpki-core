@@ -2,6 +2,7 @@ package net.ripe.rpki.services.impl.background;
 
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.server.api.commands.CreateAllResourcesCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.CreateRootCertificateAuthorityCommand;
@@ -11,7 +12,6 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -30,12 +30,12 @@ public class ReinitServiceBean extends SequentialBackgroundServiceWithAdminPrivi
     private final ProvisioningIdentityViewService provisioningIdentityViewService;
 
     @Inject
-    public ReinitServiceBean(ActiveNodeService activeNodeService,
+    public ReinitServiceBean(BackgroundTaskRunner backgroundTaskRunner,
                              CommandService commandService,
                              CertificateAuthorityViewService caViewService,
                              ProvisioningIdentityViewService provisioningIdentityViewService,
                              RepositoryConfiguration repositoryConfiguration) {
-        super(activeNodeService);
+        super(backgroundTaskRunner);
         this.commandService = commandService;
         this.caViewService = caViewService;
         this.provisioningIdentityViewService = provisioningIdentityViewService;

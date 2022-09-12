@@ -1,18 +1,22 @@
 package net.ripe.rpki.services.impl.background;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthorityTest;
 import net.ripe.rpki.domain.TestServices;
+import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CaIdentity;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.services.command.CommandService;
+import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.server.api.support.objects.CaName;
@@ -29,8 +33,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import javax.security.auth.x500.X500Principal;
 import java.util.Arrays;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -84,7 +88,10 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
                 return action.doInTransaction(new SimpleTransactionStatus());
             }
         };
-        subject = new AllCaCertificateUpdateServiceBean(activeNodeService, caViewService, commandService, resourceCache, repositoryConfiguration, transactionTemplate, certificateAuthorityRepository, childParentCertificateUpdateSaga);
+        subject = new AllCaCertificateUpdateServiceBean(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()), caViewService, commandService, resourceCache, repositoryConfiguration, transactionTemplate, certificateAuthorityRepository, childParentCertificateUpdateSaga, 1000);
+
+        when(activeNodeService.isActiveNode()).thenReturn(true);
+        when(commandService.execute(isA(CertificateAuthorityCommand.class))).thenReturn(CommandStatus.create());
 
         CertificateAuthorityData allResourcesCaMock = mock(CertificateAuthorityData.class);
         when(caViewService.findCertificateAuthorityByName(repositoryConfiguration.getAllResourcesCaPrincipal())).thenReturn(allResourcesCaMock);
@@ -97,7 +104,7 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
 
     @Test
     public void shouldNotCallBackendServiceIfInactive() {
-        when(activeNodeService.isActiveNode(anyString())).thenReturn(false);
+        when(activeNodeService.isActiveNode()).thenReturn(false);
 
         subject.execute();
 
@@ -106,7 +113,7 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
 
     @Test
     public void shouldDoNothingIfProductionCaIsMissing() {
-        when(activeNodeService.isActiveNode(anyString())).thenReturn(true);
+        when(activeNodeService.isActiveNode()).thenReturn(true);
         when(caViewService.findCertificateAuthorityByName(repositoryConfiguration.getProductionCaPrincipal())).thenReturn(null);
 
         subject.execute();
@@ -116,7 +123,6 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
 
     @Test
     public void should_dispatch_update_command_to_every_member_ca_that_needs_an_update() {
-        when(activeNodeService.isActiveNode(anyString())).thenReturn(true);
         CertificateAuthority child1 = mock(CertificateAuthority.class);
         CertificateAuthority child2 = mock(CertificateAuthority.class);
         CaIdentity memberCa1 = new CaIdentity(new VersionedId(10L), CaName.of(new X500Principal("CN=nl.isp")));
@@ -133,8 +139,8 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
         subject.execute();
 
 
-        verify(commandService, times(3)).execute(isA(UpdateAllIncomingResourceCertificatesCommand.class));
-        verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(productionCaMock.getVersionedId(), Integer.MAX_VALUE));
+        verify(commandService, times(4)).execute(isA(UpdateAllIncomingResourceCertificatesCommand.class));
+        verify(commandService, times(2)).execute(new UpdateAllIncomingResourceCertificatesCommand(productionCaMock.getVersionedId(), Integer.MAX_VALUE));
         verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa1.getVersionedId(), Integer.MAX_VALUE));
         verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa2.getVersionedId(), Integer.MAX_VALUE));
     }
@@ -147,9 +153,11 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
 
     @Test
     public void shouldSkipCaIfResourceCacheIsEmpty() {
-        subject.runService();
+        doThrow(new IllegalStateException("TEST")).when(resourceCache).verifyResourcesArePresent();
+
+        assertThatThrownBy(() -> subject.runService()).isInstanceOf(IllegalStateException.class);
 
         verify(resourceCache, times(1)).verifyResourcesArePresent();
-        verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(productionCaMock.getVersionedId(), Integer.MAX_VALUE));
+        verifyNoInteractions(commandService);
     }
 }

@@ -1,6 +1,7 @@
 package net.ripe.rpki.services.impl.background;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.joda.time.DateTime;
@@ -23,7 +24,7 @@ public class CertificateExpirationServiceBeanTest {
     public void setUp() {
         resourceCertificateRepository = mock(ResourceCertificateRepository.class);
 
-        subject = new CertificateExpirationServiceBean(mock(ActiveNodeService.class), resourceCertificateRepository, new SimpleMeterRegistry());
+        subject = new CertificateExpirationServiceBean(new BackgroundTaskRunner(mock(ActiveNodeService.class), new SimpleMeterRegistry()), resourceCertificateRepository, new SimpleMeterRegistry());
     }
 
     @Test

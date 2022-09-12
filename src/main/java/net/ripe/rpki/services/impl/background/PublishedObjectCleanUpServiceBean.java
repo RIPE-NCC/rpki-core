@@ -3,11 +3,11 @@ package net.ripe.rpki.services.impl.background;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.springframework.stereotype.Service;
@@ -31,13 +31,13 @@ public class PublishedObjectCleanUpServiceBean extends ConcurrentBackgroundServi
     private int daysBeforeCleanUp = 2;
 
     @Inject
-    public PublishedObjectCleanUpServiceBean(ActiveNodeService activeNodeService,
+    public PublishedObjectCleanUpServiceBean(BackgroundTaskRunner backgroundTaskRunner,
                                              CertificateAuthorityRepository certificateAuthorityRepository,
                                              PublishedObjectRepository publishedObjectRepository,
                                              ResourceCertificateRepository resourceCertificateRepository,
                                              PlatformTransactionManager transactionManager,
                                              MeterRegistry meterRegistry) {
-        super(activeNodeService);
+        super(backgroundTaskRunner);
         this.publishedObjectRepository = publishedObjectRepository;
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.resourceCertificateRepository = resourceCertificateRepository;

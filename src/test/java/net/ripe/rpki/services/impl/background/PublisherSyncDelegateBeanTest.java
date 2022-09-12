@@ -5,7 +5,6 @@ import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.server.api.ports.NonHostedPublisherRepositoryService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,8 +26,6 @@ import static org.mockito.Mockito.when;
 public class PublisherSyncDelegateBeanTest {
     private PublisherSyncDelegate subject;
 
-    @Mock
-    private ActiveNodeService activeNodeService;
     @Mock
     private CertificateAuthorityViewService certificateAuthorityViewService;
     @Mock

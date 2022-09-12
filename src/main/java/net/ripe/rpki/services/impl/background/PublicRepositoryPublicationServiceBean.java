@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.util.UTC;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
@@ -13,7 +14,6 @@ import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
@@ -67,7 +67,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
     private final Counter publishedObjectCounter;
 
     public PublicRepositoryPublicationServiceBean(
-        ActiveNodeService propertyService,
+        BackgroundTaskRunner backgroundTaskRunner,
         CertificateAuthorityRepository certificateAuthorityRepository,
         CertificateManagementService certificateManagementService,
         RoaEntityService roaEntityService,
@@ -76,7 +76,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         EntityManager entityManager,
         PlatformTransactionManager transactionManager,
         MeterRegistry meterRegistry) {
-        super(propertyService);
+        super(backgroundTaskRunner);
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.certificateManagementService = certificateManagementService;
         this.roaEntityService = roaEntityService;
@@ -133,17 +133,18 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
 
         long updateCountTotal = 0;
         for (ManagedCertificateAuthority ca : pendingCertificateAuthorities) {
+            if (timeout.isBeforeNow()) {
+                // Process is taking too long, commit current results and wait for next run to process further CAs.
+                log.info("Updated {} manifests before running out of time, continuing during next run", updateCountTotal);
+                return;
+            }
+
             entityManager.lock(ca, LockModeType.PESSIMISTIC_WRITE);
             roaEntityService.updateRoasIfNeeded(ca);
             updateCountTotal += certificateManagementService.updateManifestAndCrlIfNeeded(ca);
             // The manifest and CRL are now up-to-date and the CA is locked, so we clear the check needed flag.
             ca.manifestAndCrlCheckCompleted();
 
-            if (timeout.isBeforeNow()) {
-                // Process is taking too long, commit current results and wait for next run to process further CAs.
-                log.info("Updated {} manifests before running out of time, continuing during next run", updateCountTotal);
-                return;
-            }
         }
 
         if (!certificateAuthorityRepository.findAllWithOutdatedManifests(manifestAndCrlValidityCutoff, 1).isEmpty()) {

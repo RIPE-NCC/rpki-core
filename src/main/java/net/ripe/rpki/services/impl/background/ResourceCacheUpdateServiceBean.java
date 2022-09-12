@@ -1,8 +1,8 @@
 package net.ripe.rpki.services.impl.background;
 
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,9 +13,9 @@ public class ResourceCacheUpdateServiceBean extends ConcurrentBackgroundServiceW
     private final ResourceCacheService resourceCacheService;
 
     @Autowired
-    public ResourceCacheUpdateServiceBean(ActiveNodeService activeNodeService,
+    public ResourceCacheUpdateServiceBean(BackgroundTaskRunner backgroundTaskRunner,
                                           ResourceCacheService resourceCacheService) {
-        super(activeNodeService);
+        super(backgroundTaskRunner);
         this.resourceCacheService = resourceCacheService;
     }
 

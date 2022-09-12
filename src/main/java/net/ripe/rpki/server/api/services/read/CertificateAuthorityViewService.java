@@ -49,11 +49,18 @@ public interface CertificateAuthorityViewService {
     Collection<CertificateAuthorityData> findAllHostedCertificateAuthorities();
 
     /**
-     * @return non-null collection of hosted CA's
+     * @return non-null collection of hosted CA's that match the conditions to be included for key-roll.
+     * The conditions mostly concern keypairs. CAs are selected when:
+     *   * They have a CURRENT key that is old enough and no key with another status.
+     *   * They do not have any keys
+     *
+     * @param batchSize |results|
+     * @param oldestKpCreationTime oldest creation time of keypair to be selected
+     * @param type type of ManagedCertificateAuthority to select
      */
-    Collection<CertificateAuthorityData> findAllHostedCasWithCurrentKeyOnlyAndOlderThan(
+    Collection<CertificateAuthorityData> findHostedCasEligibleForKeyRoll(
         Class<? extends ManagedCertificateAuthority> type,
-        Instant oldestCreationTime,
+        Instant oldestKpCreationTime,
         Optional<Integer> batchSize
     );
 

@@ -1,8 +1,10 @@
 package net.ripe.rpki.services.impl.background;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.bgpris.BgpRisEntryRepositoryBean;
 import net.ripe.rpki.bgpris.riswhois.RisWhoisFetcher;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,7 +26,7 @@ public class RisWhoisUpdateServiceBeanTest {
     private static final String IPV6_FILE_URL = BASE_URL + "/" + RisWhoisUpdateServiceBean.FILENAMES[1];
 
     @Mock
-    ActiveNodeService propertyService;
+    ActiveNodeService activeNodeService;
 
     @Mock
     BgpRisEntryRepositoryBean repository;
@@ -36,7 +38,8 @@ public class RisWhoisUpdateServiceBeanTest {
 
     @Before
     public void setUp() {
-        subject = new RisWhoisUpdateServiceBean(propertyService, repository, BASE_URL, fetcher, new SimpleMeterRegistry());
+        MeterRegistry registry = new SimpleMeterRegistry();
+        subject = new RisWhoisUpdateServiceBean(new BackgroundTaskRunner(activeNodeService, registry), repository, BASE_URL, fetcher, registry);
     }
 
 

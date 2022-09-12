@@ -5,10 +5,10 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.bgpris.riswhois.RisWhoisFetcher;
 import net.ripe.rpki.bgpris.riswhois.RisWhoisParser;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -40,12 +40,12 @@ public class RisWhoisUpdateServiceBean extends ConcurrentBackgroundServiceWithAd
 
     private final RisWhoisFetcher fetcher;
 
-    public RisWhoisUpdateServiceBean(ActiveNodeService propertyService,
+    public RisWhoisUpdateServiceBean(BackgroundTaskRunner backgroundTaskRunner,
                                      BgpRisEntryViewService repository,
                                      @Value("${riswhoisdump.base.url}") String risWhoisBaseUrl,
                                      RisWhoisFetcher fetcher,
                                      MeterRegistry meterRegistry) {
-        super(propertyService);
+        super(backgroundTaskRunner);
         this.repository = repository;
         this.risWhoisBaseUrl = risWhoisBaseUrl;
         this.fetcher = fetcher;

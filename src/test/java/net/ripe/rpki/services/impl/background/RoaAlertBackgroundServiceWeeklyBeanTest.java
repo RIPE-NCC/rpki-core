@@ -1,7 +1,9 @@
 package net.ripe.rpki.services.impl.background;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
@@ -44,7 +46,7 @@ public class RoaAlertBackgroundServiceWeeklyBeanTest {
                     RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY));
 
     @Mock
-    private ActiveNodeService propertyEntityService;
+    private ActiveNodeService activeNodeService;
     @Mock
     private RoaAlertConfigurationViewService roaAlertConfigurationViewService;
     @Mock
@@ -54,7 +56,7 @@ public class RoaAlertBackgroundServiceWeeklyBeanTest {
 
     @Before
     public void setup() {
-        subject = new RoaAlertBackgroundServiceWeeklyBean(propertyEntityService, roaAlertConfigurationViewService, roaAlertChecker);
+        subject = new RoaAlertBackgroundServiceWeeklyBean(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()), roaAlertConfigurationViewService, roaAlertChecker);
     }
 
     @Test

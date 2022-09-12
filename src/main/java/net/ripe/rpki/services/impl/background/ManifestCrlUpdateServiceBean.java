@@ -3,35 +3,25 @@ package net.ripe.rpki.services.impl.background;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.util.UTC;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
-import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.ncc.core.services.activation.CertificateManagementServiceImpl;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityNotFoundException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
-import static net.ripe.rpki.server.api.security.RunAsUserHolder.asAdmin;
 import static net.ripe.rpki.services.impl.background.BackgroundServices.MANIFEST_CRL_UPDATE_SERVICE;
 
 @Service(MANIFEST_CRL_UPDATE_SERVICE)
 @Slf4j
 public class ManifestCrlUpdateServiceBean extends SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode {
-
-    private static final int MAX_ALLOWED_EXCEPTIONS = 10;
 
     private final int manifestCrlUpdateIntervalMinutes;
 
@@ -39,15 +29,13 @@ public class ManifestCrlUpdateServiceBean extends SequentialBackgroundServiceWit
 
     private final CertificateAuthorityRepository certificateAuthorityRepository;
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
     public ManifestCrlUpdateServiceBean(
-        ActiveNodeService propertyService,
+        BackgroundTaskRunner backgroundTaskRunner,
         CommandService commandService,
         CertificateAuthorityRepository certificateAuthorityRepository,
         @Value("${manifest.crl.update.interval.minutes}") int manifestCrlUpdateIntervalMinutes
     ) {
-        super(propertyService);
+        super(backgroundTaskRunner);
         this.commandService = commandService;
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.manifestCrlUpdateIntervalMinutes = manifestCrlUpdateIntervalMinutes;
@@ -82,30 +70,16 @@ public class ManifestCrlUpdateServiceBean extends SequentialBackgroundServiceWit
         processCertificateAuthorities(additionalCheckForUpdateCAs);
     }
 
-    private void processCertificateAuthorities(Collection<ManagedCertificateAuthority> certificateAuthorities) throws InterruptedException, ExecutionException {
-        final MaxExceptionsTemplate template = new MaxExceptionsTemplate(MAX_ALLOWED_EXCEPTIONS);
-        List<Future<?>> tasks = new ArrayList<>();
-        for (final CertificateAuthority ca : certificateAuthorities) {
-            tasks.add(executor.submit(() -> template.wrap(new Command() {
-                @Override
-                public void execute() {
-                    asAdmin(() -> {
-                        commandService.execute(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId()));
-                    });
+    private void processCertificateAuthorities(Collection<ManagedCertificateAuthority> certificateAuthorities) {
+        runParallel(certificateAuthorities.stream().map(ca -> task(
+            () -> commandService.execute(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId())),
+            ex -> {
+                if (ex instanceof EntityNotFoundException) {
+                    log.info("CA '{}' not found, probably deleted since initial query", ca.getName(), ex);
+                } else {
+                    log.error("Could not publish material for CA " + ca.getName(), ex);
                 }
-                @Override
-                public void onException(Exception e) {
-                    if (e instanceof EntityNotFoundException) {
-                        log.info("CA '{}' not found, probably deleted since initial query", ca.getName(), e);
-                    } else {
-                        log.error("Could not publish material for CA " + ca.getName(), e);
-                    }
-                }
-            })));
-        }
-        for (Future<?> task : tasks) {
-            task.get();
-        }
-        template.checkIfMaxExceptionsOccurred();
+            }
+        )));
     }
 }

@@ -52,22 +52,30 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
      * = and this key is current
      * = and it is the same age or older than the maxage
      *
+     * OR: There is no current key
+     *
      * Returns empty list of signing requests if nothing happened
      */
     @Override
     public CertificateIssuanceRequest initiateKeyRoll(int maxAge,
                                                       KeyPairService keyPairService,
                                                       ManagedCertificateAuthority ca) {
-        if (ca.hasCurrentKeyPair() && !ca.hasRollInProgress() && ca.currentKeyPairIsOlder(maxAge)) {
-            KeyPairEntity kp = ca.createNewKeyPair(keyPairService);
+        if (ca.hasRollInProgress()) {
+            return null;
+        }
+        if (ca.hasCurrentKeyPair() && !ca.currentKeyPairIsOlder(maxAge)) {
+            return null;
+        }
 
-            // Request certificate for it with same resources as before
-            final IpResourceSet resources = ca.getCurrentIncomingCertificate().getResources();
+        KeyPairEntity kp = ca.createNewKeyPair(keyPairService);
+
+        // Request certificate for it with same resources as before, if there is a current certificate
+        return ca.findCurrentIncomingResourceCertificate().map(certificate -> {
+            final IpResourceSet resources = certificate.getResources();
             final X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
             final X500Principal dn = deriveSubjectDN(kp.getPublicKey(), null);
             return new CertificateIssuanceRequest(resources, dn, kp.getPublicKey(), sia);
-        }
-        return null;
+        }).orElse(null);
     }
 
     @Override

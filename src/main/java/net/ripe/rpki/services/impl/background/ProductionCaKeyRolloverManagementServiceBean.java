@@ -1,11 +1,13 @@
 package net.ripe.rpki.services.impl.background;
 
 import net.ripe.rpki.application.CertificationConfiguration;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE;
 
@@ -13,16 +15,16 @@ import static net.ripe.rpki.services.impl.background.BackgroundServices.PRODUCTI
 public class ProductionCaKeyRolloverManagementServiceBean extends AbstractKeyRolloverManagementServiceBean {
 
 
-    public ProductionCaKeyRolloverManagementServiceBean(ActiveNodeService activeNodeService,
+    public ProductionCaKeyRolloverManagementServiceBean(BackgroundTaskRunner backgroundTaskRunner,
                                                         CertificationConfiguration certificationConfiguration,
                                                         CertificateAuthorityViewService certificationService,
                                                         CommandService commandService) {
-        super(activeNodeService, certificationConfiguration, certificationService, commandService);
+        super(backgroundTaskRunner, certificationConfiguration, certificationService, commandService, Optional.empty());
     }
 
     @Override
     public String getName() {
-        return "ProductionCa Key Rollover Management Service";
+        return "Production CA Key Rollover Management Service";
     }
 
     @Override

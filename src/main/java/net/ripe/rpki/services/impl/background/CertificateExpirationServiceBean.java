@@ -3,9 +3,9 @@ package net.ripe.rpki.services.impl.background;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
@@ -22,8 +22,12 @@ public class CertificateExpirationServiceBean extends SequentialBackgroundServic
     private final Counter withdrawnObjectsCounter;
 
     @Inject
-    public CertificateExpirationServiceBean(ActiveNodeService propertyService, ResourceCertificateRepository resourceCertificateRepository, MeterRegistry meterRegistry) {
-        super(propertyService);
+    public CertificateExpirationServiceBean(
+        BackgroundTaskRunner backgroundTaskRunner,
+        ResourceCertificateRepository resourceCertificateRepository,
+        MeterRegistry meterRegistry
+    ) {
+        super(backgroundTaskRunner);
         this.resourceCertificateRepository = resourceCertificateRepository;
 
         this.expiredOutgoingResourceCertificatesCounter = Counter.builder("rpkicore.expired.outgoing.resource.certificates")

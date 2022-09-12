@@ -102,21 +102,26 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     }
 
     @Override
-    public Collection<CertificateAuthorityData> findAllHostedCasWithCurrentKeyOnlyAndOlderThan(
+    public Collection<CertificateAuthorityData> findHostedCasEligibleForKeyRoll(
         Class<? extends ManagedCertificateAuthority> type,
-        final Instant oldestCreationTime,
+        final Instant oldestKpCreationTime,
         final Optional<Integer> batchSize
     ) {
         final TypedQuery<ManagedCertificateAuthority> query = entityManager.createQuery(
             "SELECT ca " +
                 " FROM " + type.getSimpleName() + " ca " +
-                " WHERE EXISTS (SELECT kp FROM ca.keyPairs kp" +
+                " WHERE " +
+                "( " +
+                "EXISTS (SELECT kp FROM ca.keyPairs kp" +
                 "                WHERE kp.status = :current " +
-                "                  AND kp.createdAt < :maxAge)" +
-                " AND NOT EXISTS (SELECT kp FROM ca.keyPairs kp WHERE kp.status <> :current)",
+                "                  AND kp.createdAt < :maxKpAge)" +
+                "AND NOT EXISTS (SELECT kp FROM ca.keyPairs kp WHERE kp.status <> :current)" +
+                ") OR (" +
+                "NOT EXISTS (SELECT kp FROM ca.keyPairs kp)" +
+                ")",
             ManagedCertificateAuthority.class)
             .setParameter("current", KeyPairStatus.CURRENT)
-            .setParameter("maxAge", oldestCreationTime);
+            .setParameter("maxKpAge", oldestKpCreationTime);
         batchSize.ifPresent(query::setMaxResults);
         return query.getResultStream()
             .map(ManagedCertificateAuthority::toData)

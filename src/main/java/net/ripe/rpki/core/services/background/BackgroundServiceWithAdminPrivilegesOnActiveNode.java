@@ -1,35 +1,36 @@
 package net.ripe.rpki.core.services.background;
 
-import lombok.extern.slf4j.Slf4j;
-import net.ripe.rpki.server.api.configuration.Environment;
 import net.ripe.rpki.server.api.security.RunAsUserHolder;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.util.Time;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static net.ripe.rpki.server.api.security.RunAsUser.ADMIN;
 
-@Slf4j
 public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implements BackgroundService {
+
     private static final ReentrantLock GLOBAL_LOCK = new ReentrantLock();
 
-    private final ActiveNodeService activeNodeService;
-    private final AtomicBoolean running;
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+
+    private final AtomicBoolean running = new AtomicBoolean(false);
     private final boolean useGlobalLocking;
+    private final BackgroundTaskRunner backgroundTaskRunner;
     private volatile Instant waitingForLockSince;
 
-    BackgroundServiceWithAdminPrivilegesOnActiveNode(ActiveNodeService activeNodeService, boolean useGlobalLocking) {
-        this.activeNodeService = activeNodeService;
-        this.running = new AtomicBoolean(false);
+    BackgroundServiceWithAdminPrivilegesOnActiveNode(BackgroundTaskRunner backgroundTaskRunner, boolean useGlobalLocking) {
         this.useGlobalLocking = useGlobalLocking;
+        this.backgroundTaskRunner = backgroundTaskRunner;
     }
 
     @Override
@@ -47,7 +48,7 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
 
     @Override
     public boolean isActive() {
-        return activeNodeService.isActiveNode(Environment.getInstanceName());
+        return backgroundTaskRunner.isActiveNode();
     }
 
     @Override
@@ -108,50 +109,20 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
                 log.info("{} execution skipped because the previous execution is still ongoing.", getName());
             }
         } else {
-            log.info("Skipping execution: not an active node ({})", activeNodeService.getCurrentNodeName());
+            log.info("Skipping execution: not an active node ({})", backgroundTaskRunner.getCurrentNodeName());
             status = BackgroundServiceExecutionResult.Status.SKIPPED;
         }
         return Pair.of(status, duration);
     }
 
+    protected void runParallel(Stream<BackgroundTaskRunner.Task> tasks) {
+        backgroundTaskRunner.runParallel(tasks);
+    }
+
+    protected BackgroundTaskRunner.Task task(Runnable task, Consumer<Exception> onError) {
+        return backgroundTaskRunner.task(task, onError);
+    }
+
     protected abstract void runService();
 
-    protected interface Command {
-        void execute();
-
-        void onException(Exception e);
-    }
-
-    protected class MaxExceptionsTemplate {
-        private final int maxAllowed;
-        private final AtomicInteger numberOfExceptions = new AtomicInteger(0);
-
-        public MaxExceptionsTemplate(int maxAllowed) {
-            this.maxAllowed = maxAllowed;
-        }
-
-        public void wrap(final Command command) {
-            if (maxExceptionsOccurred()) {
-                return;
-            }
-            try {
-                command.execute();
-            } catch (Exception e) {
-                numberOfExceptions.incrementAndGet();
-                command.onException(e);
-            }
-        }
-
-        boolean maxExceptionsOccurred() {
-            return numberOfExceptions.get() > maxAllowed;
-        }
-
-        public void checkIfMaxExceptionsOccurred() {
-            if (maxExceptionsOccurred()) {
-                String msg = "Too many exceptions encountered running job: '" + getName() + "'. Suspecting problems that affect ALL CAs.";
-                log.error(msg);
-                throw new BackgroundServiceException(msg);
-            }
-        }
-    }
 }

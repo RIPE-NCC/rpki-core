@@ -14,7 +14,7 @@ mail:
 
 spring:
     datasource:
-        hikari.maximum-pool-size: 1
+        hikari.maximum-pool-size: 4
         password: certdb
         url: jdbc:postgresql://${pgHost:localhost}/certdb_test
 

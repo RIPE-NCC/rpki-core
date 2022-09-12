@@ -457,6 +457,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         keyPairs.add(keyPair);
     }
 
+    @VisibleForTesting
     public IncomingResourceCertificate getCurrentIncomingCertificate() {
         return findCurrentIncomingResourceCertificate().orElse(null);
     }

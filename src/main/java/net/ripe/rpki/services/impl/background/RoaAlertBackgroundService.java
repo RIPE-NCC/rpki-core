@@ -1,10 +1,10 @@
 package net.ripe.rpki.services.impl.background;
 
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.services.impl.RoaAlertChecker;
 
 @Slf4j
@@ -14,11 +14,11 @@ abstract class RoaAlertBackgroundService extends ConcurrentBackgroundServiceWith
     private final RoaAlertChecker roaAlertChecker;
     private final RoaAlertFrequency frequency;
 
-    public RoaAlertBackgroundService(ActiveNodeService propertyEntityService,
+    public RoaAlertBackgroundService(BackgroundTaskRunner backgroundTaskRunner,
                                      RoaAlertConfigurationViewService roaAlertConfigurationViewService,
                                      RoaAlertChecker roaAlertChecker,
                                      RoaAlertFrequency frequency) {
-        super(propertyEntityService);
+        super(backgroundTaskRunner);
         this.roaAlertConfigurationViewService = roaAlertConfigurationViewService;
         this.roaAlertChecker = roaAlertChecker;
         this.frequency = frequency;

@@ -1,11 +1,11 @@
 package net.ripe.rpki.services.impl.background;
 
 import lombok.SneakyThrows;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.PublishedObjectData;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.publication.api.PublicationWriteService;
-import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -26,11 +26,12 @@ public class PublicRepositoryRsyncServiceBean extends ConcurrentBackgroundServic
     private final TransactionTemplate transactionTemplate;
 
     public PublicRepositoryRsyncServiceBean(
-            ActiveNodeService propertyService,
+            BackgroundTaskRunner backgroundTaskRunner,
             PublishedObjectRepository publishedObjectRepository,
             PublicationWriteService publicationWriteService,
-            PlatformTransactionManager transactionManager) {
-        super(propertyService);
+            PlatformTransactionManager transactionManager
+    ) {
+        super(backgroundTaskRunner);
         this.publishedObjectRepository = publishedObjectRepository;
         this.publicationWriteService = publicationWriteService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);

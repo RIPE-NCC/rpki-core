@@ -1,7 +1,9 @@
 package net.ripe.rpki.services.impl.background;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.application.CertificationConfiguration;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityModificationCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
@@ -55,7 +57,7 @@ public class KeyPairActivationManagementServiceBeanTest {
         CA_NAME, UUID.randomUUID(), PROD_CA.getId(), null, ALL_PRIVATE_USE_RESOURCES, Collections.emptySet());
 
     @Mock
-    private ActiveNodeService propertyEntityService;
+    private ActiveNodeService activeNodeService;
     @Mock
     private CertificateAuthorityViewService certificationService;
     @Mock
@@ -69,7 +71,7 @@ public class KeyPairActivationManagementServiceBeanTest {
 
     @Before
     public void setUp() {
-        subject = new KeyPairActivationManagementServiceBean(propertyEntityService, certificationService, commandService, resourceCache, configuration);
+        subject = new KeyPairActivationManagementServiceBean(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()), certificationService, commandService, resourceCache, configuration);
     }
 
     @Test

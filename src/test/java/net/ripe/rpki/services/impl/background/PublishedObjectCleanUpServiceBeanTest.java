@@ -1,7 +1,9 @@
 package net.ripe.rpki.services.impl.background;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.FixedDateRule;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
@@ -43,8 +45,9 @@ public class PublishedObjectCleanUpServiceBeanTest {
 
     @Before
     public void setUp() {
-        service = new PublishedObjectCleanUpServiceBean(activeNodeService, certificateAuthorityRepository,
-            publishedObjectRepository, resourceCertificateRepository, transactionManager, new SimpleMeterRegistry());
+        MeterRegistry registry = new SimpleMeterRegistry();
+        service = new PublishedObjectCleanUpServiceBean(new BackgroundTaskRunner(activeNodeService, registry), certificateAuthorityRepository,
+            publishedObjectRepository, resourceCertificateRepository, transactionManager, registry);
         service.setDaysBeforeCleanUp(7);
     }
 

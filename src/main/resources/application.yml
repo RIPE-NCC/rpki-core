@@ -107,6 +107,7 @@ private.asns.ranges: 112, 23456, 64496-64511, 64512-65534, 65535, 65536-65551, 4
 autokeyrollover:
     enable: false
     update.interval.days: 365
+    # The maximum age of a key before it is considered for key rollover (0: immediately)
     maxage.days: 0
 
 # How often are repositories (rsync on disk, publication servers) contacted
@@ -120,11 +121,14 @@ keypair:
         interval.hours: 8760
         delay.hours: 0
     revocation.interval.hours: 8760
+    keyroll.batch.size: 1000
 
 manifest.crl.update.interval.minutes: 10
 
-# When enabled some invariants of the certificate authority aggregate are checked after every command is executed.
-# In case of child-parent commands the parent CA invariant is also checked. Since this is often the production CA
-# invariant checking can be slow (more than a second), causing some background jobs to run for much longer. Therefore,
-# the invariant checking is disabled by default and only enabled when running tests or locally.
-certificate.authority.invariant.checking.enabled: false
+certificate.authority:
+    update.batch.size: 1000
+    # When enabled some invariants of the certificate authority aggregate are checked after every command is executed.
+    # In case of child-parent commands the parent CA invariant is also checked. Since this is often the production CA
+    # invariant checking can be slow (more than a second), causing some background jobs to run for much longer. Therefore,
+    # the invariant checking is disabled by default and only enabled when running tests or locally.
+    invariant.checking.enabled: false

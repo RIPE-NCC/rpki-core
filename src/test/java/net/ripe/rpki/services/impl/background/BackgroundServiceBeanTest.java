@@ -1,5 +1,7 @@
 package net.ripe.rpki.services.impl.background;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.junit.Before;
@@ -23,7 +25,7 @@ public class BackgroundServiceBeanTest {
     @Before
     public void setUp() {
         activeNodeService = mock(ActiveNodeService.class);
-        when(activeNodeService.isActiveNode(anyString())).thenReturn(true);
+        when(activeNodeService.isActiveNode()).thenReturn(true);
 
         subject = new MyBackgroundServiceBean(activeNodeService);
     }
@@ -40,7 +42,7 @@ public class BackgroundServiceBeanTest {
 
     @Test
     public void shouldBeInactiveStateIfCurrentHostnameIsDifferentFromTheActive() {
-        when(activeNodeService.isActiveNode(anyString())).thenReturn(false);
+        when(activeNodeService.isActiveNode()).thenReturn(false);
 
         assertFalse(subject.isActive());
     }
@@ -57,7 +59,7 @@ public class BackgroundServiceBeanTest {
 
     @Test
     public void shouldNotExecuteServiceIfInactive() {
-        when(activeNodeService.isActiveNode(anyString())).thenReturn(false);
+        when(activeNodeService.isActiveNode()).thenReturn(false);
 
         subject.execute();
 
@@ -87,7 +89,7 @@ public class BackgroundServiceBeanTest {
         private final CountDownLatch stoppingLatch;
 
         private MyBackgroundServiceBean(ActiveNodeService activeNodeService) {
-            super(activeNodeService);
+            super(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()));
             this.runningLatch = new CountDownLatch(1);
             this.stoppingLatch = new CountDownLatch(1);
         }

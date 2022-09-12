@@ -93,10 +93,10 @@ public class CertificateRequestCreationServiceBeanTest {
         when(productionCa.currentKeyPairIsOlder(anyInt())).thenReturn(true);
 
         IncomingResourceCertificate currentCertificate = mock(IncomingResourceCertificate.class);
-        when(currentKp.getCurrentIncomingCertificate()).thenReturn(currentCertificate);
+        when(currentKp.findCurrentIncomingCertificate()).thenReturn(Optional.of(currentCertificate));
         IpResourceSet testResources = IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
         when(currentCertificate.getResources()).thenReturn(testResources);
-        when(productionCa.getCurrentIncomingCertificate()).thenReturn(currentCertificate);
+        when(productionCa.findCurrentIncomingResourceCertificate()).thenReturn(Optional.of(currentCertificate));
 
         KeyPairEntity newKp = mock(KeyPairEntity.class);
         when(keyPairService.createKeyPairEntity()).thenReturn(newKp);

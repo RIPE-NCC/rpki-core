@@ -18,6 +18,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.persistence.LockModeType;
 import javax.security.auth.x500.X500Principal;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -127,6 +130,90 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
             assertThat(entityManager.getLockMode(ca)).isEqualTo(LockModeType.PESSIMISTIC_FORCE_INCREMENT);
         });
+    }
+
+    @Test
+    public void should_be_fair_when_locking_for_update_while_locked_for_sharing() throws InterruptedException {
+        ForkJoinPool pool = new ForkJoinPool(4);
+        try {
+            long caId = transactionTemplate.execute((status) -> {
+                final ManagedCertificateAuthority ca = (ManagedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
+                return ca.getId();
+            });
+
+            // Default PostgreSQL row lock (SELECT ... FOR SHARE/UPDATE) is not fair w.r.t. shared vs exclusive.
+            // A thread trying to get an exclusive lock will wait indefinitely if it keeps getting locked for
+            // sharing by other threads.
+            CountDownLatch thread1_lockShared = new CountDownLatch(1);
+            CountDownLatch thread1_doUnlock = new CountDownLatch(1);
+            CountDownLatch thread2_tryLockExclusive = new CountDownLatch(1);
+            CountDownLatch thread2_lockExclusive = new CountDownLatch(1);
+            CountDownLatch thread2_doUnlock = new CountDownLatch(1);
+            CountDownLatch thread3_tryLockShared = new CountDownLatch(1);
+            CountDownLatch thread3_lockShared = new CountDownLatch(1);
+            CountDownLatch thread3_doUnlock = new CountDownLatch(1);
+
+            pool.execute(() -> transactionTemplate.executeWithoutResult((status) -> {
+                try {
+                    jdbcDbComponent.lockCertificateAuthorityForSharing(caId);
+                    thread1_lockShared.countDown();
+                    thread1_doUnlock.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }));
+
+            // Wait for thread 1 to hold the shared lock
+            assertThat(thread1_lockShared.await(1, TimeUnit.SECONDS)).isTrue();
+
+            pool.execute(() -> transactionTemplate.executeWithoutResult((status) -> {
+                try {
+                    thread2_tryLockExclusive.countDown();
+                    jdbcDbComponent.lockCertificateAuthorityForUpdate(caId);
+                    thread2_lockExclusive.countDown();
+                    thread2_doUnlock.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }));
+
+            // Wait for thread2 to try to get an exclusive lock
+            assertThat(thread2_tryLockExclusive.await(1, TimeUnit.SECONDS)).isTrue();
+
+            pool.execute(() -> transactionTemplate.executeWithoutResult((status) -> {
+                try {
+                    thread3_tryLockShared.countDown();
+                    jdbcDbComponent.lockCertificateAuthorityForSharing(caId);
+                    thread3_lockShared.countDown();
+                    thread3_doUnlock.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }));
+
+            // Wait for thread3 to try to get a shared lock
+            assertThat(thread3_tryLockShared.await(1, TimeUnit.SECONDS)).isTrue();
+
+            // Thread 3 should not get the shared lock, since thread 2 is waiting for an exclusive lock
+            assertThat(thread3_lockShared.await(100, TimeUnit.MILLISECONDS)).isFalse();
+
+            // Release the shared lock
+            thread1_doUnlock.countDown();
+
+            // Thread 2 should get an exclusive lock
+            assertThat(thread2_lockExclusive.await(1, TimeUnit.SECONDS)).isTrue();
+
+            // Release the exclusive lock
+            thread2_doUnlock.countDown();
+
+            // Thread 3 should get the shared lock, since thread 2 no longer holds an exclusive lock
+            assertThat(thread3_lockShared.await(1, TimeUnit.SECONDS)).isTrue();
+
+            // Release the shared lock
+            thread3_doUnlock.countDown();
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
 }

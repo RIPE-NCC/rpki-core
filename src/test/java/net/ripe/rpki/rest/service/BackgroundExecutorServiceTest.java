@@ -7,7 +7,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -101,7 +100,7 @@ public class BackgroundExecutorServiceTest {
 
     @Test
     public void postShouldFailWhenServiceRunning() throws Exception {
-        when(backgroundService.isRunning()).thenReturn(true);
+        when(backgroundService.isWaitingOrRunning()).thenReturn(true);
 
         mockMvc.perform(post("/api/background/service/allCertificateUpdateService")
                 .header(API_KEY_HEADER, TESTING_API_KEY)
@@ -109,7 +108,7 @@ public class BackgroundExecutorServiceTest {
                 .cookie(new Cookie(USER_ID_HEADER, UUID.randomUUID().toString()))
         )
                 .andExpect(status().is(412))
-                .andExpect(content().string(startsWith("allCertificateUpdateService is already running")));
+                .andExpect(content().string(startsWith("allCertificateUpdateService is already waiting or running")));
 
         verify(backgroundService, never()).execute();
     }

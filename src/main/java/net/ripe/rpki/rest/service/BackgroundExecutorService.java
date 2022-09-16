@@ -61,12 +61,12 @@ public class BackgroundExecutorService {
                 return logAndReturnResponse(BAD_REQUEST, "service missing or invalid - " + serviceName);
             }
             final BackgroundService backgroundService = backgroundServices.getByName(serviceName);
-            if (backgroundService.isRunning()) {
-                return logAndReturnResponse(PRECONDITION_FAILED, serviceName + " is already running");
+            if (backgroundService.isWaitingOrRunning()) {
+                return logAndReturnResponse(PRECONDITION_FAILED, serviceName + " is already waiting or running");
             }
             Stopwatch stopwatch = Stopwatch.createStarted();
             backgroundService.execute();
-            return logAndReturnResponse(OK, backgroundService.getName() + " has been executed through REST API (" + stopwatch.toString() + ")");
+            return logAndReturnResponse(OK, backgroundService.getName() + " has been executed through REST API (" + stopwatch + ")");
         } catch (Exception e) {
             return logAndReturnResponse(INTERNAL_SERVER_ERROR, e.getMessage());
         }

@@ -197,8 +197,8 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
         public RepositoryResponse toRepositoryResponse() {
             return new RepositoryResponse(Optional.of(tag == null ? "" : tag),
                     new URI(serviceUri), publisherHandle,
-                    new URI(repositoryInfo.baseUri),
-                    Optional.of(new URI(repositoryInfo.getRpkiNotify())),
+                    new URI(repositoryInfo.siaBase),
+                    Optional.of(new URI(repositoryInfo.rrdpNotificationUri)),
                     getProvisioningIdentityCertificate(idCert));
         }
 
@@ -211,10 +211,10 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
 
     @Getter
     static class RepositoryInfo {
-        @JsonProperty("base_uri")
-        public String baseUri;
-        @JsonProperty("rpki_notify")
-        public String rpkiNotify;
+        @JsonProperty("rrdp_notification_uri")
+        public String rrdpNotificationUri;
+        @JsonProperty("sia_base")
+        public String siaBase;
     }
 
     @Getter

@@ -4,7 +4,7 @@ plugins {
     id 'distribution'
     id 'jacoco'
     id "com.google.cloud.tools.jib" version "3.3.0"
-    id "com.google.osdetector" version "1.7.0"
+    id "com.google.osdetector" version "1.7.1"
 }
 
 apply plugin: 'java'

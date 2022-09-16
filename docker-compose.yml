@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   postgres:
-    image: postgres:11
+    image: postgres:14
     # Uncomment to expose postgres instance
     # ports:
     #   - 5432:5432

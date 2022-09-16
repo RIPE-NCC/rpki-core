@@ -38,7 +38,7 @@ variables:
 build:
   stage: build
   services:
-    - postgres:12
+    - postgres:14
   variables:
       POSTGRES_DB: certdb_test
       POSTGRES_USER: certdb

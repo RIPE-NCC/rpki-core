@@ -32,7 +32,7 @@ public class BackgroundServiceBeanTest {
 
     @Test
     public void shouldReportNotRunningStateBeforeTheServiceMethodIsInvoked() {
-        assertFalse(subject.isRunning());
+        assertFalse(subject.isWaitingOrRunning());
     }
 
     @Test

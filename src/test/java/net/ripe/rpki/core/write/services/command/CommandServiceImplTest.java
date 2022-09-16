@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.slf4j.MDC;
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -33,7 +34,9 @@ import static org.mockito.Mockito.*;
 public class CommandServiceImplTest {
 
     private MessageDispatcher messageDispatcher;
-    private TransactionStatus transactionStatus;
+    private List<TransactionStatus> transactionStatuses;
+
+
     private CertificateAuthorityCommand command;
 
     private CommandServiceImpl subject;
@@ -43,14 +46,15 @@ public class CommandServiceImplTest {
     public void setUp() {
         command = mock(CertificateAuthorityCommand.class);
         messageDispatcher = mock(MessageDispatcher.class);
-        transactionStatus = mock(TransactionStatus.class);
+        transactionStatuses = new ArrayList<>();
         CommandAuditService commandAuditService = mock(CommandAuditService.class);
         when(commandAuditService.startRecording(any())).thenAnswer((args) -> new CommandContext(args.getArgument(0)));
 
         final TransactionTemplate transactionTemplate = new TransactionTemplate() {
             @Override
             public <T> T execute(TransactionCallback<T> action) throws TransactionException {
-                return action.doInTransaction(transactionStatus);
+                transactionStatuses.add(new DefaultTransactionStatus(null,true,true,true,true,null));
+                return action.doInTransaction(transactionStatuses.get(transactionStatuses.size()-1));
             }
         };
 
@@ -82,7 +86,16 @@ public class CommandServiceImplTest {
         } catch (Exception expected) {
         }
 
-        verify(transactionStatus).setRollbackOnly();
+        assertTrue(transactionStatuses.get(0).isRollbackOnly());
+    }
+
+    @Test
+    public void should_rollback_transaction_when_command_has_no_effect_exception_is_thrown() {
+        doThrow(new CommandWithoutEffectException("test exception")).when(messageDispatcher).dispatch(eq(command), any(CommandStatus.class));
+
+        subject.execute(command);
+
+        assertTrue(transactionStatuses.get(0).isRollbackOnly());
     }
 
     @Test
@@ -126,7 +139,7 @@ public class CommandServiceImplTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void should_not_rollback_transaction_when_nested_command_doesnt_have_effect() {
+    public void should_rollback_nested_transaction_when_it_has_no_effect() {
         final CommandStatus[] nestedCommandStatus = {null};
         final MessageDispatcher messageDispatcher = new MessageDispatcher() {
             @Override
@@ -164,10 +177,14 @@ public class CommandServiceImplTest {
         subject.setCommandDispatcher(messageDispatcher);
 
         final CommandStatus commandStatus = subject.execute(new TopTestCommand());
+
+        //Top transaction has effect so it is not rolled back
         assertTrue(commandStatus.isHasEffect());
-        assertFalse(nestedCommandStatus[0].isHasEffect());
         assertFalse(commandStatus.getTransactionStatus().isRollbackOnly());
-        assertFalse(nestedCommandStatus[0].getTransactionStatus().isRollbackOnly());
+
+        //Nested has no effect so transaction is rolled back.
+        assertFalse(nestedCommandStatus[0].isHasEffect());
+        assertTrue(nestedCommandStatus[0].getTransactionStatus().isRollbackOnly());
     }
 
     @SuppressWarnings("unchecked")

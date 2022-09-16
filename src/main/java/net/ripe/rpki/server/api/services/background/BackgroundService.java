@@ -8,11 +8,9 @@ public interface BackgroundService {
 
     String getStatus();
 
-    boolean isRunning();
+    boolean isWaitingOrRunning();
 
     boolean isActive();
-
-    boolean isBlocked();
 
     BackgroundServiceExecutionResult execute();
 

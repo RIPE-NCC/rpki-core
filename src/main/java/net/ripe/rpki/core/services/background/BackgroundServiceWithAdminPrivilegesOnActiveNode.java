@@ -1,5 +1,6 @@
 package net.ripe.rpki.core.services.background;
 
+import lombok.NonNull;
 import net.ripe.rpki.server.api.security.RunAsUserHolder;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.util.Time;
@@ -9,8 +10,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Locale;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -19,14 +22,36 @@ import static net.ripe.rpki.server.api.security.RunAsUser.ADMIN;
 
 public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implements BackgroundService {
 
-    private static final ReentrantLock GLOBAL_LOCK = new ReentrantLock();
+    private static final ReentrantLock GLOBAL_LOCK = new ReentrantLock(true);
 
     protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private final AtomicBoolean running = new AtomicBoolean(false);
-    private final boolean useGlobalLocking;
+    private enum State {
+        IDLE, WAITING, RUNNING
+    }
+
+    /** Internal lock to protect <code>state</code> and <code>waitingForLockSince</code>. */
+    private final Lock lock = new ReentrantLock(true);
+
+    /**
+     * The current state of this service. The state always transitions from <code>IDLE -> WAITING -> RUNNING</code> and
+     * then back to <code>IDLE</code>.
+     * <p>
+     * Protected by <code>lock</code>`
+     */
+    @NonNull
+    private State state = State.IDLE;
+
+    /**
+     * Time the state last changed.
+     * <p>
+     * Protected by <code>lock</code>`
+     */
+    @NonNull
+    private Instant stateChangedAt = Instant.now();
+
     private final BackgroundTaskRunner backgroundTaskRunner;
-    private volatile Instant waitingForLockSince;
+    private final boolean useGlobalLocking;
 
     BackgroundServiceWithAdminPrivilegesOnActiveNode(BackgroundTaskRunner backgroundTaskRunner, boolean useGlobalLocking) {
         this.useGlobalLocking = useGlobalLocking;
@@ -35,14 +60,12 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
 
     @Override
     public String getStatus() {
-        // This implementation is not entirely thread-safe, that would require some more refactoring.
-        Instant waiting = waitingForLockSince;
-        if (waiting != null) {
-            return "blocked since " + waiting;
-        } else if (isRunning()) {
-            return "running";
-        } else {
-            return "not running";
+        lock.lock();
+        try {
+            Duration duration = Duration.between(stateChangedAt, Instant.now());
+            return state.name().toLowerCase(Locale.ROOT) + " for " + Time.formatDuration(duration);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -52,13 +75,20 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
     }
 
     @Override
-    public boolean isRunning() {
-        return running.get();
-    }
-
-    @Override
-    public boolean isBlocked() {
-        return useGlobalLocking && GLOBAL_LOCK.isLocked();
+    public boolean isWaitingOrRunning() {
+        lock.lock();
+        try {
+            switch (state) {
+            case IDLE:
+                return false;
+            case WAITING:
+            case RUNNING:
+                return true;
+            }
+            throw new IllegalStateException("unknown state " + state);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -74,45 +104,75 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
      * @return Pair<status of execution, real duration of execution>
      */
     private Pair<BackgroundServiceExecutionResult.Status, Long> doExecute() {
-        long duration = 0;
-        BackgroundServiceExecutionResult.Status status = BackgroundServiceExecutionResult.Status.FAILURE;
-        if (isActive()) {
-            if (running.compareAndSet(false, true)) {
-                // Only allow a single service to execute at a time.
-                if (useGlobalLocking && !GLOBAL_LOCK.tryLock()) {
-                    log.info("Waiting for lock on background services…");
-                    waitingForLockSince = Instant.now();
-                    try {
-                        GLOBAL_LOCK.lock();
-                    } finally {
-                        waitingForLockSince = null;
-                    }
-                }
+        if (!isActive()) {
+            log.info("Skipping execution: not an active node ({})", backgroundTaskRunner.getCurrentNodeName());
+            return Pair.of(BackgroundServiceExecutionResult.Status.SKIPPED, 0L);
+        }
+
+        State oldState = tryStartWaiting();
+        if (oldState != State.IDLE) {
+            log.info("{} execution skipped because the previous execution is still {}.", getName(), oldState);
+            return Pair.of(BackgroundServiceExecutionResult.Status.SKIPPED, 0L);
+        }
+
+        // Only allow a single service to execute at a time.
+        if (useGlobalLocking && !GLOBAL_LOCK.tryLock()) {
+            log.info("Waiting for lock on background services…");
+            GLOBAL_LOCK.lock();
+        }
+        try {
+            // Now we have the global lock, if needed. Update our state and run the service.
+            updateState(State.RUNNING);
+            try {
                 RunAsUserHolder.set(ADMIN);
                 try {
                     log.info("Started execution of background service: {}", getName());
-                    duration = Time.timed(this::runService);
-                    status = BackgroundServiceExecutionResult.Status.SUCCESS;
+                    long duration = Time.timed(this::runService);
                     log.info("Finished execution of background service: {}, duration: {}ms.", getName(), duration);
+                    return Pair.of(BackgroundServiceExecutionResult.Status.SUCCESS, duration);
                 } catch (Exception e) {
                     log.error("Execution of {} has been interrupted", getName(), e);
-                    status = BackgroundServiceExecutionResult.Status.FAILURE;
+                    return Pair.of(BackgroundServiceExecutionResult.Status.FAILURE, 0L);
                 } finally {
                     RunAsUserHolder.clear();
-                    if (useGlobalLocking) {
-                        GLOBAL_LOCK.unlock();
-                    }
-                    running.set(false);
                 }
-            } else {
-                status = BackgroundServiceExecutionResult.Status.SKIPPED;
-                log.info("{} execution skipped because the previous execution is still ongoing.", getName());
+            } finally {
+                updateState(State.IDLE);
             }
-        } else {
-            log.info("Skipping execution: not an active node ({})", backgroundTaskRunner.getCurrentNodeName());
-            status = BackgroundServiceExecutionResult.Status.SKIPPED;
+        } finally {
+            if (useGlobalLocking) {
+                GLOBAL_LOCK.unlock();
+            }
         }
-        return Pair.of(status, duration);
+    }
+
+    private State tryStartWaiting() {
+        lock.lock();
+        try {
+            State oldState = state;
+            switch (oldState) {
+            case RUNNING:
+            case WAITING:
+                break;
+            case IDLE:
+                state = State.WAITING;
+                stateChangedAt = Instant.now();
+                break;
+            }
+            return oldState;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void updateState(State state) {
+        lock.lock();
+        try {
+            this.state = state;
+            this.stateChangedAt = Instant.now();
+        } finally {
+            lock.unlock();
+        }
     }
 
     protected void runParallel(Stream<BackgroundTaskRunner.Task> tasks) {

@@ -214,7 +214,7 @@ public class SystemStatusPage extends AdminCertificationBasePage {
                 logAndDisplayMessage(backgroundService.getName() + " has been executed manually (" + stopwatch + ")");
             }
         };
-        link.setVisibilityAllowed(!backgroundService.isRunning() && backgroundService.isActive());
+        link.setVisibilityAllowed(!backgroundService.isWaitingOrRunning() && backgroundService.isActive());
         add(link);
     }
 

@@ -152,6 +152,7 @@ public class CommandServiceImpl implements CommandService {
             } catch (CommandWithoutEffectException e) {
                 log.debug("Command without effect: {}", command);
                 commandStatus.setHasEffect(false);
+                status.setRollbackOnly();
             } catch (Exception e) {
                 log.warn("Error processing command: {}", command, e);
                 status.setRollbackOnly();

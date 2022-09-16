@@ -6,6 +6,7 @@ import lombok.SneakyThrows;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequestSerializer;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
+import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -17,9 +18,11 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -59,7 +62,7 @@ public class KrillNonHostedPublisherRepositoryBeanTest {
         stubFor(get(urlEqualTo(MONITORING_TARGET))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", APPLICATION_JSON)
-                        .withBody("{\"version\":\"0.9.4\",\"started\":1645619021}")
+                        .withBody("{\"version\":\"0.10.3\",\"started\":1645619021}")
                         .withStatus(200)));
     }
 
@@ -94,10 +97,20 @@ public class KrillNonHostedPublisherRepositoryBeanTest {
         UUID publisherHandle = UUID.randomUUID();
 
         RepositoryResponse repositoryResponse = subject.provisionPublisher(publisherHandle, publisherRequest);
+        // publishers and repositories have a different BPKI - unless objects are from the same krill instance.
+        assertThat(repositoryResponse.getRepositoryBpkiTa().getPublicKey()).isNotEqualTo(publisherRequest.getPublisherBpkiTa().getPublicKey());
 
-        assertThat(repositoryResponse.getRepositoryBpkiTa()).isEqualTo(publisherRequest.getPublisherBpkiTa());
+        // Handle copied
         assertThat(repositoryResponse.getPublisherHandle()).isEqualTo(publisherRequest.getPublisherHandle());
         assertThat(repositoryResponse.getTag()).isPresent();
+
+        // And ensure the critical attributes have sensible values
+        assertThat(repositoryResponse.getServiceUri()).hasScheme("https");
+        assertThat(repositoryResponse.getRrdpNotificationUri()).hasValueSatisfying(uri -> assertThat(uri).hasScheme("https"));
+        assertThat(repositoryResponse.getSiaBase()).hasScheme("rsync");
+
+        // krill specific - likely not required by RFC
+        assertThat(repositoryResponse.getServiceUri()).hasScheme("https");
     }
 
 

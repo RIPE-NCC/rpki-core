@@ -20,7 +20,6 @@
         <file>../logs/certification.jsonl</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>../logs/certification.jsonl.%d{yyyy-MM-dd}</fileNamePattern>
-            <maxHistory>6</maxHistory>
         </rollingPolicy>
     </appender>
 
@@ -28,6 +27,7 @@
         <file>../logs/audit.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>../logs/audit.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <maxHistory>6</maxHistory>
         </rollingPolicy>
 
         <encoder>

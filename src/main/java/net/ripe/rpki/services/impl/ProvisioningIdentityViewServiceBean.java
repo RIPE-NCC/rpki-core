@@ -12,21 +12,26 @@ import net.ripe.rpki.server.api.security.RunAsUserHolder;
 import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
 import org.apache.commons.lang.NotImplementedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionOperations;
 
+import javax.inject.Inject;
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
 
 @Service
 public class ProvisioningIdentityViewServiceBean implements ProvisioningIdentityViewService {
 
-    private CertificateAuthorityRepository certificateAuthorityRepository;
+    private final TransactionOperations transactionTemplate;
+    private final CertificateAuthorityRepository certificateAuthorityRepository;
+    private final RepositoryConfiguration repositoryConfiguration;
+    private final CertificationConfiguration certificationConfiguration;
 
-    private RepositoryConfiguration repositoryConfiguration;
-    private CertificationConfiguration certificationConfiguration;
-
-    public ProvisioningIdentityViewServiceBean(CertificateAuthorityRepository certificateAuthorityRepository,
+    @Inject
+    public ProvisioningIdentityViewServiceBean(TransactionOperations transactionTemplate,
+                                               CertificateAuthorityRepository certificateAuthorityRepository,
                                                RepositoryConfiguration repositoryConfiguration,
                                                CertificationConfiguration certificationConfiguration) {
+        this.transactionTemplate = transactionTemplate;
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.repositoryConfiguration = repositoryConfiguration;
         this.certificationConfiguration = certificationConfiguration;
@@ -34,7 +39,7 @@ public class ProvisioningIdentityViewServiceBean implements ProvisioningIdentity
 
     @Override
     public ParentIdentity getParentIdentityForNonHostedCa(final X500Principal childName) {
-        return RunAsUserHolder.asAdmin((RunAsUserHolder.Get<ParentIdentity>) () -> {
+        return transactionTemplate.execute(status -> RunAsUserHolder.asAdmin((RunAsUserHolder.Get<ParentIdentity>) () -> {
             ProductionCertificateAuthority productionCa = findProductionCa();
             String parentHandle = productionCa.getUuid().toString();
             ProvisioningIdentityCertificate parentIdCertificate = productionCa.getProvisioningIdentityCertificate();
@@ -49,7 +54,7 @@ public class ProvisioningIdentityViewServiceBean implements ProvisioningIdentity
             URI upDownUrl = URI.create(certificationConfiguration.getProvisioningBaseUrl());
 
             return new ParentIdentity(upDownUrl, parentHandle, childHandle, parentIdCertificate);
-        });
+        }));
     }
 
     private ProductionCertificateAuthority findProductionCa() {

@@ -14,6 +14,7 @@ import org.joda.time.DateTime;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -44,7 +45,7 @@ public class CrlEntity extends EntitySupport {
     @JoinColumn(name = "keypair_id", nullable = false)
     private KeyPairEntity keyPair;
 
-    @OneToOne(optional = false, cascade = {CascadeType.PERSIST})
+    @OneToOne(optional = false, cascade = {CascadeType.PERSIST}, fetch = FetchType.LAZY)
     @JoinColumn(name = "published_object_id", nullable = false)
     private PublishedObject publishedObject;
 

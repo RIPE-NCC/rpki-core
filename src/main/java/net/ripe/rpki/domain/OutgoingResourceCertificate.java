@@ -14,6 +14,7 @@ import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
@@ -47,12 +48,12 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
     private DateTime revocationTime;
 
     @Getter
-    @OneToOne(optional=true, cascade={CascadeType.PERSIST})
+    @OneToOne(optional=true, cascade={CascadeType.PERSIST}, fetch = FetchType.LAZY)
     @JoinColumn(name="published_object_id", nullable=true)
     private PublishedObject publishedObject;
 
     @Getter
-    @ManyToOne(targetEntity = CertificateAuthority.class, optional = true)
+    @ManyToOne(targetEntity = CertificateAuthority.class, optional = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "requesting_ca_id", nullable = true)
     private ChildCertificateAuthority requestingCertificateAuthority;
 

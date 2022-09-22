@@ -48,7 +48,8 @@ public abstract class CertificateAuthority extends AggregateRoot implements Chil
     @Column(nullable = false, unique = true)
     private X500Principal name;
 
-    @ManyToOne(targetEntity = ManagedCertificateAuthority.class, fetch = FetchType.EAGER)
+    @Getter
+    @ManyToOne(targetEntity = ManagedCertificateAuthority.class, fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private ParentCertificateAuthority parent;
 
@@ -69,11 +70,6 @@ public abstract class CertificateAuthority extends AggregateRoot implements Chil
     public abstract CertificateAuthorityType getType();
 
     public abstract CertificateAuthorityData toData();
-
-    @Override
-    public ParentCertificateAuthority getParent() {
-        return parent;
-    }
 
     public static DateTime calculateValidityNotAfter(DateTime dateTime) {
         return getEndOfYearDateTime(dateTime).plus(GRACEPERIOD);

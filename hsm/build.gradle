@@ -36,7 +36,7 @@ dependencies {
     // thalesImplementation 'com.ncipher.nfast:nCipherKM:12.40.2'
     // thalesImplementation 'com.ncipher.nfast:nCipherKM:12.60'
     // thalesImplementation 'com.ncipher.nfast:nCipherKM:12.80.4'
-    thalesImplementation 'org.springframework:spring-context:5.3.22'
+    thalesImplementation 'org.springframework:spring-context:5.3.23'
     // used in spring-context, but not exported.
     thalesImplementation 'javax.annotation:javax.annotation-api:1.3.2'
     thalesImplementation "org.springframework.boot:spring-boot-autoconfigure:$spring_boot_version"

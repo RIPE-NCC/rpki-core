@@ -19,6 +19,7 @@ import org.joda.time.Period;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -81,7 +82,7 @@ public class ManifestEntity extends EntitySupport {
     @JoinColumn(name = "certificate_id", nullable = false)
     private OutgoingResourceCertificate certificate;
 
-    @OneToOne(optional = false, cascade = {CascadeType.PERSIST})
+    @OneToOne(optional = false, cascade = {CascadeType.PERSIST}, fetch = FetchType.LAZY)
     @JoinColumn(name = "published_object_id", nullable = false)
     private PublishedObject publishedObject;
 

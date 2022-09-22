@@ -45,7 +45,7 @@ dependencies {
 
     implementation "net.ripe.rpki:rpki-commons:$rpki_commons_version"
 
-    implementation 'org.springdoc:springdoc-openapi-ui:1.6.8'
+    implementation 'org.springdoc:springdoc-openapi-ui:1.6.11'
 
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     runtimeOnly 'org.postgresql:postgresql:42.5.0'
@@ -71,7 +71,7 @@ dependencies {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
 
-    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.33.2'
+    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.34.0'
     testImplementation 'com.pholser:junit-quickcheck-generators:1.0'
     testImplementation "net.ripe.rpki:rpki-commons:$rpki_commons_version:tests"
     testImplementation 'org.easymock:easymock:4.3'

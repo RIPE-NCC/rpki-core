@@ -10,6 +10,7 @@ import org.apache.commons.lang.Validate;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -34,7 +35,7 @@ public class AspaEntity extends EntitySupport {
     @Getter
     private OutgoingResourceCertificate certificate;
 
-    @OneToOne(optional = false, cascade = {CascadeType.PERSIST})
+    @OneToOne(optional = false, cascade = {CascadeType.PERSIST}, fetch = FetchType.LAZY)
     @JoinColumn(name = "published_object_id", nullable = false)
     @Getter
     private PublishedObject publishedObject;

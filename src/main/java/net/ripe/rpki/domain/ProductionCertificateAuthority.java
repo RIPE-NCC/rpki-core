@@ -1,5 +1,7 @@
 package net.ripe.rpki.domain;
 
+import lombok.Getter;
+import lombok.Setter;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
@@ -9,6 +11,7 @@ import org.hibernate.annotations.CascadeType;
 
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.security.auth.x500.X500Principal;
@@ -19,7 +22,9 @@ import java.util.Optional;
 @DiscriminatorValue(value = "ROOT")
 public class ProductionCertificateAuthority extends ManagedCertificateAuthority {
 
-    @OneToOne
+    @Setter
+    @Getter
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "down_stream_provisioning_communicator_id", nullable = true)
     @Cascade(value = {CascadeType.ALL})
     private DownStreamProvisioningCommunicator myDownStreamProvisioningCommunicator;
@@ -39,14 +44,6 @@ public class ProductionCertificateAuthority extends ManagedCertificateAuthority 
     @Override
     public Optional<IpResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
         return resourceLookupService.lookupProductionCaResourcesSet();
-    }
-
-    public void setMyDownStreamProvisioningCommunicator(DownStreamProvisioningCommunicator myIdentityMaterial) {
-        this.myDownStreamProvisioningCommunicator = myIdentityMaterial;
-    }
-
-    public DownStreamProvisioningCommunicator getMyDownStreamProvisioningCommunicator() {
-        return myDownStreamProvisioningCommunicator;
     }
 
     public ProvisioningIdentityCertificate getProvisioningIdentityCertificate() {

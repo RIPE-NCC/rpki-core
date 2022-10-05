@@ -118,6 +118,9 @@ public class CommandServiceImpl implements CommandService {
                     log.info("Command failed with possibly transient locking exception {}, retry {}: {}", e.getClass().getName(), retryCount, command);
                     sleepUninterruptibly((100 + (long) (Math.random() * 100) << retryCount), TimeUnit.MILLISECONDS);
                 }
+            } catch (Exception e) {
+                log.warn("Error processing command: {}", command, e);
+                throw e;
             }
         }
     }
@@ -148,20 +151,17 @@ public class CommandServiceImpl implements CommandService {
             ) {
                 commandStatus.setTransactionStatus(status);
                 commandDispatcher.dispatch(command, commandStatus);
+                commandAuditService.finishRecording(commandContext);
                 log.debug("Command completed.");
             } catch (CommandWithoutEffectException e) {
                 log.debug("Command without effect: {}", command);
                 commandStatus.setHasEffect(false);
                 status.setRollbackOnly();
             } catch (Exception e) {
-                log.warn("Error processing command: {}", command, e);
                 status.setRollbackOnly();
                 throw e;
             } finally {
                 EventDelegateTracker.get().reset();
-                if (commandStatus.isHasEffect()) {
-                    commandAuditService.finishRecording(commandContext);
-                }
             }
         });
         return commandStatus;

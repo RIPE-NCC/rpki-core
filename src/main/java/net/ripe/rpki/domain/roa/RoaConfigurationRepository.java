@@ -30,6 +30,8 @@ public interface RoaConfigurationRepository {
 
     Optional<Instant> lastModified();
 
+    void remove(RoaConfiguration roaConfiguration);
+
     class RoaConfigurationPerCa {
         public final Long caId;
         public final CaName caName;

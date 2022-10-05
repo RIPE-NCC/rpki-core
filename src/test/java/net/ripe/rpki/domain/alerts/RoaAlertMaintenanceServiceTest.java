@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.var;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
+import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.domain.*;
@@ -16,6 +17,9 @@ import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCo
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.support.objects.CaName;
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.assertj.core.api.InstanceOfAssertFactory;
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +40,7 @@ public class RoaAlertMaintenanceServiceTest extends CertificationDomainTestCase 
     private static final long HOSTED_CA_ID = 7L;
 
     private static final X500Principal CHILD_CA_NAME = new X500Principal("CN=child");
+    public static final IpResourceSet INITIAL_CHILD_RESOURCES = parse("fc00::/8");
 
     private static List<AnnouncedRoute> ALL_ROUTES = Lists.newArrayList(
             // The /7 private use resource - less specific than allocation
@@ -81,7 +86,7 @@ public class RoaAlertMaintenanceServiceTest extends CertificationDomainTestCase 
         weekly.update(ALL_ROUTES, Collections.emptyList());
         roaAlertConfigurationRepository.add(weekly);
 
-        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse("fc00::/8"));
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), INITIAL_CHILD_RESOURCES);
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
     }
 
@@ -90,14 +95,14 @@ public class RoaAlertMaintenanceServiceTest extends CertificationDomainTestCase 
      */
     @Test
     public void should_issue_certificate_for_hosted_child_certified_resources_and_keep_subscriptions() {
-        assertThat(child.getCertifiedResources()).isEqualTo(parse("fc00::/8"));
+        assertThat(child.getCertifiedResources()).isEqualTo(INITIAL_CHILD_RESOURCES);
 
         Collection<KeyPairEntity> keyPairs = child.getKeyPairs();
         assertThat(keyPairs).hasSize(1);
 
         Optional<IncomingResourceCertificate> certificate = child.findCurrentIncomingResourceCertificate();
         assertThat(certificate).isPresent();
-        assertThat(certificate.get().getResources()).isEqualTo(parse("fc00::/8"));
+        assertThat(certificate.get().getResources()).isEqualTo(INITIAL_CHILD_RESOURCES);
 
         var alertConfiguration = roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(HOSTED_CA_ID);
         assertThat(alertConfiguration.getIgnored())
@@ -137,6 +142,18 @@ public class RoaAlertMaintenanceServiceTest extends CertificationDomainTestCase 
 
         assertThat(caLog.stream().filter(msg -> msg.getCommandEvents().contains("Updated suppressed routes")))
                 .hasSize(1);
+    }
+
+    @Test
+    public void should_remove_alerts_out_of_resources_when_resources_are_removed() {
+        // Certificate loses its resources and is revoked
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse(""));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
+
+        assertThat(roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(HOSTED_CA_ID))
+                .isNotNull()
+                .extracting(RoaAlertConfiguration::getIgnored, InstanceOfAssertFactories.ITERABLE)
+                .isEmpty();
     }
 
     private CommandStatus execute(CertificateAuthorityCommand command) {

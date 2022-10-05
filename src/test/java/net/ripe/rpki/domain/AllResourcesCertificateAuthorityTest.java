@@ -40,7 +40,7 @@ public class AllResourcesCertificateAuthorityTest  {
         repositoryConfiguration = mock(RepositoryConfiguration.class);
         when(repositoryConfiguration.getPublicRepositoryUri()).thenReturn(BASE_URI);
         when(repositoryConfiguration.getTrustAnchorRepositoryUri()).thenReturn(BASE_URI);
-        certificateRequestCreationService = new CertificateRequestCreationServiceBean(repositoryConfiguration);
+        certificateRequestCreationService = new CertificateRequestCreationServiceBean(repositoryConfiguration, keyPairService);
 
         when(keyPairService.createKeyPairEntity()).thenReturn(kp);
     }

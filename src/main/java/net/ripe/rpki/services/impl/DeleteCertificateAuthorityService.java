@@ -14,6 +14,7 @@ import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
+import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
@@ -25,11 +26,12 @@ import java.util.HashSet;
 public class DeleteCertificateAuthorityService {
 
     private final CertificateAuthorityRepository caRepository;
+    private final KeyPairDeletionService keyPairDeletionService;
     private final CommandAuditService commandAuditService;
     private final ResourceCertificateRepository resourceCertificateRepository;
     private final PublishedObjectRepository publishedObjectRepository;
     private final RoaAlertConfigurationRepository roaAlertConfigurationRepository;
-    private final KeyPairDeletionService keyPairDeletionService;
+    private final RoaConfigurationRepository roaConfigurationRepository;
 
     @Inject
     public DeleteCertificateAuthorityService(CertificateAuthorityRepository caRepository,
@@ -37,7 +39,8 @@ public class DeleteCertificateAuthorityService {
                                              CommandAuditService commandAuditService,
                                              ResourceCertificateRepository resourceCertificateRepository,
                                              PublishedObjectRepository publishedObjectRepository,
-                                             RoaAlertConfigurationRepository roaAlertConfigurationRepository
+                                             RoaAlertConfigurationRepository roaAlertConfigurationRepository,
+                                             RoaConfigurationRepository roaConfigurationRepository
     ) {
         this.caRepository = caRepository;
         this.keyPairDeletionService = keyPairDeletionService;
@@ -45,6 +48,7 @@ public class DeleteCertificateAuthorityService {
         this.resourceCertificateRepository = resourceCertificateRepository;
         this.publishedObjectRepository = publishedObjectRepository;
         this.roaAlertConfigurationRepository = roaAlertConfigurationRepository;
+        this.roaConfigurationRepository = roaConfigurationRepository;
     }
 
     public void revokeNonHosted(long id) {
@@ -65,16 +69,20 @@ public class DeleteCertificateAuthorityService {
         if (hostedCa != null) {
             log.warn("Deleting hosted CA with id " + id);
 
+            final RoaAlertConfiguration roaAlertConfiguration = roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(hostedCa.getId());
+            if (roaAlertConfiguration != null) {
+                roaAlertConfigurationRepository.remove(roaAlertConfiguration);
+            }
+
+            roaConfigurationRepository.findByCertificateAuthority(hostedCa)
+                .ifPresent(roaConfigurationRepository::remove);
+
             // List of keypairs is duplicated to prevent concurrent modification of underlying collection during iteration, e.g during key rollover when a CA has multiple keypairs
             final Collection<KeyPairEntity> keyPairs = new HashSet<>(hostedCa.getKeyPairs());
             keyPairs.forEach(keyPair -> deleteArtifactsOfKeyPairEntity(hostedCa, keyPair));
 
             commandAuditService.deleteCommandsForCa(hostedCa.getId());
 
-            final RoaAlertConfiguration roaAlertConfiguration = roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(hostedCa.getId());
-            if (roaAlertConfiguration != null) {
-                roaAlertConfigurationRepository.remove(roaAlertConfiguration);
-            }
             caRepository.remove(hostedCa);
 
 

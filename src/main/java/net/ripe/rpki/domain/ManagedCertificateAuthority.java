@@ -10,10 +10,7 @@ import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDes
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.core.events.CertificateAuthorityEvent;
-import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
-import net.ripe.rpki.core.events.IncomingCertificateUpdatedEvent;
-import net.ripe.rpki.core.events.KeyPairActivatedEvent;
+import net.ripe.rpki.core.events.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
@@ -339,10 +336,9 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
      * Will result in a UpstreamCARequest if any new keys were created, and certificates requested for them.
      */
     public List<CertificateIssuanceRequest> initiateKeyRolls(int maxAge,
-                                                             KeyPairService keyPairService,
                                                              CertificateRequestCreationService certificateRequestCreationService) {
-        final CertificateIssuanceRequest request = certificateRequestCreationService.initiateKeyRoll(maxAge, keyPairService, this);
-        return request == null ? Collections.emptyList() : Collections.singletonList(request);
+        final Optional<CertificateIssuanceRequest> request = certificateRequestCreationService.initiateKeyRoll(this, maxAge);
+        return request.map(Collections::singletonList).orElse(Collections.emptyList());
     }
 
     /**
@@ -379,11 +375,19 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
                                                      PublishedObjectRepository publishedObjectRepository,
                                                      KeyPairDeletionService keyPairDeletionService) {
         findKeyPairByPublicKey(response.getSubjectPublicKey()).ifPresent(keyPair -> {
+            final Optional<IncomingResourceCertificate> maybeIncomingCert = keyPair.findCurrentIncomingCertificate();
+            final Optional<URI> publicationUri = maybeIncomingCert.map(ResourceCertificate::getPublicationUri);
+
             keyPair.deleteIncomingResourceCertificate();
             keyPair.requestRevoke();
             keyPair.revoke(publishedObjectRepository);
 
             keyPairDeletionService.deleteRevokedKeysFromResponses(this, Collections.singletonList(response));
+
+            this.manifestAndCrlCheckNeeded = true;
+
+            log.info("[ca={}] certificate revoked serial={} uri={} resources after revocation={}", getId(), maybeIncomingCert.map(ResourceCertificate::getSerial), publicationUri, getCertifiedResources());
+            ManagedCertificateAuthority.EVENTS.publish(this, new IncomingCertificateRevokedEvent(getVersionedId(), response, publicationUri, maybeIncomingCert.map(IncomingResourceCertificate::getCertificate)));
         });
     }
 
@@ -400,8 +404,16 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
             return certificateRequestCreationService.createCertificateRevocationRequestForAllKeys(this);
         }
 
-        return certificateRequestCreationService
-            .createCertificateIssuanceRequestForAllKeys(this, certifiableResources);
+        if (keyPairs.isEmpty()) {
+            // No key pairs (probable removed by previously not having any resources, see above), so create a new
+            // key and request a certificate.
+            return Collections.singletonList(
+                certificateRequestCreationService.createCertificateIssuanceRequestForNewKeyPair(this, certifiableResources)
+            );
+        } else {
+            return certificateRequestCreationService
+                .createCertificateIssuanceRequestForAllKeys(this, certifiableResources);
+        }
     }
 
     @Override

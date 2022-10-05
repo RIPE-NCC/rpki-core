@@ -41,41 +41,31 @@ import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 public class CertificateRequestCreationServiceBean implements CertificateRequestCreationService {
 
     private final RepositoryConfiguration configuration;
+    private final KeyPairService keyPairService;
 
-    public CertificateRequestCreationServiceBean(RepositoryConfiguration configuration) {
+    public CertificateRequestCreationServiceBean(
+        RepositoryConfiguration configuration,
+        KeyPairService keyPairService
+    ) {
         this.configuration = configuration;
+        this.keyPairService = keyPairService;
     }
 
-    /**
-     * Initiate Key Roll, IF:
-     * = there is only key
-     * = and this key is current
-     * = and it is the same age or older than the maxage
-     *
-     * OR: There is no current key
-     *
-     * Returns empty list of signing requests if nothing happened
-     */
     @Override
-    public CertificateIssuanceRequest initiateKeyRoll(int maxAge,
-                                                      KeyPairService keyPairService,
-                                                      ManagedCertificateAuthority ca) {
-        if (ca.hasRollInProgress()) {
-            return null;
-        }
-        if (ca.hasCurrentKeyPair() && !ca.currentKeyPairIsOlder(maxAge)) {
-            return null;
+    public Optional<CertificateIssuanceRequest> initiateKeyRoll(ManagedCertificateAuthority ca, int maxAge) {
+        if (ca.hasRollInProgress() || !ca.currentKeyPairIsOlder(maxAge)) {
+            return Optional.empty();
         }
 
+        return ca.findCurrentIncomingResourceCertificate()
+            .map(certificate -> createCertificateIssuanceRequestForNewKeyPair(ca, certificate.getResources()));
+    }
+
+    public CertificateIssuanceRequest createCertificateIssuanceRequestForNewKeyPair(ManagedCertificateAuthority ca, IpResourceSet certifiableResources) {
         KeyPairEntity kp = ca.createNewKeyPair(keyPairService);
-
-        // Request certificate for it with same resources as before, if there is a current certificate
-        return ca.findCurrentIncomingResourceCertificate().map(certificate -> {
-            final IpResourceSet resources = certificate.getResources();
-            final X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
-            final X500Principal dn = deriveSubjectDN(kp.getPublicKey(), null);
-            return new CertificateIssuanceRequest(resources, dn, kp.getPublicKey(), sia);
-        }).orElse(null);
+        final X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
+        final X500Principal dn = deriveSubjectDN(kp.getPublicKey(), null);
+        return new CertificateIssuanceRequest(certifiableResources, dn, kp.getPublicKey(), sia);
     }
 
     @Override

@@ -1,7 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.ta.domain.request.ResourceCertificateRequestData;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
@@ -11,7 +10,6 @@ import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
-import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 
@@ -25,25 +23,17 @@ import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 @Handler
 public class KeyManagementInitiateRollCommandHandler extends AbstractCertificateAuthorityCommandHandler<KeyManagementInitiateRollCommand> {
 
-    private final KeyPairService keyPairService;
-
     private final CertificateRequestCreationService certificationRequestCreationService;
 
     private final ResourceCertificateRepository resourceCertificateRepository;
 
-    private final ResourceLookupService resourceLookupService;
-
     @Inject
     public KeyManagementInitiateRollCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
-                                                   KeyPairService keyPairService,
                                                    CertificateRequestCreationService certificateRequestCreationService,
-                                                   ResourceCertificateRepository resourceCertificateRepository,
-                                                   ResourceLookupService resourceLookupService) {
+                                                   ResourceCertificateRepository resourceCertificateRepository) {
         super(certificateAuthorityRepository);
-        this.keyPairService = keyPairService;
         this.certificationRequestCreationService = certificateRequestCreationService;
         this.resourceCertificateRepository = resourceCertificateRepository;
-        this.resourceLookupService = resourceLookupService;
     }
 
     @Override
@@ -66,13 +56,7 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
     public void handle(KeyManagementInitiateRollCommand command, CommandStatus commandStatus) {
         ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityId());
 
-        if(ca.getCertifiedResources().isEmpty() && ca.lookupCertifiableIpResources(resourceLookupService).map(IpResourceSet::isEmpty).orElse(true)) {
-            log.info("Not initiating keyroll. No resources for {}", ca.getName());
-            throw new CommandWithoutEffectException(command);
-        }
-
-        List<CertificateIssuanceRequest> requests = ca.initiateKeyRolls(command.getMaxAgeDays(), keyPairService, certificationRequestCreationService);
-
+        List<CertificateIssuanceRequest> requests = ca.initiateKeyRolls(command.getMaxAgeDays(), certificationRequestCreationService);
         if (requests.isEmpty()) {
             throw new CommandWithoutEffectException(command);
         }

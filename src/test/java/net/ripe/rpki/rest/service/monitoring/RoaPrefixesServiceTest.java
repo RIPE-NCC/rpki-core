@@ -20,10 +20,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -46,9 +45,11 @@ public class RoaPrefixesServiceTest {
     @Autowired
     private MockMvc mockMvc;
 
-    private static HttpHeaders ifModifiedSinceHeader(Instant at) {
+    private static HttpHeaders ifNoneMatchHeader(MvcResult result) {
+        String eTag = result.getResponse().getHeader(HttpHeaders.ETAG);
+
         final HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.IF_MODIFIED_SINCE, DateTimeFormatter.RFC_1123_DATE_TIME.withZone(ZoneOffset.UTC).format(at));
+        headers.add(HttpHeaders.IF_NONE_MATCH, eTag);
         return headers;
     }
 
@@ -56,20 +57,42 @@ public class RoaPrefixesServiceTest {
     public void shouldAcceptLastModifiedAndReturnArrayOtherwise() throws Exception {
         final Instant t0 = Instant.now();
         when(roaConfigurationRepository.lastModified()).thenReturn(Optional.of(t0));
+        when(roaConfigurationRepository.countRoaPrefixes()).thenReturn(42);
 
+        // Get initial eTag
+        MvcResult res = mockMvc.perform(
+                        Rest.get("/api/monitoring/roa-prefixes")
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                .andExpect(jsonPath("$.roas").isArray())
+                .andReturn();
+
+        // Can be re-used for identical state
         mockMvc.perform(
                 Rest.get("/api/monitoring/roa-prefixes")
-                    .headers(ifModifiedSinceHeader(t0.plusSeconds(30)))
+                    .headers(ifNoneMatchHeader(res))
         )
                 .andExpect(status().isNotModified());
 
+        // Number of objects changes -> new request.
+        when(roaConfigurationRepository.countRoaPrefixes()).thenReturn(43);
+
+        MvcResult res2 = mockMvc.perform(
+                        Rest.get("/api/monitoring/roa-prefixes")
+                                .headers(ifNoneMatchHeader(res))
+                )
+                .andExpect(status().isOk())
+                .andReturn();
+
+        // Time of last change is updated -> new request
+        when(roaConfigurationRepository.lastModified()).thenReturn(Optional.of(t0.plusSeconds(60)));
+
         mockMvc.perform(
-                Rest.get("/api/monitoring/roa-prefixes")
-                    .headers(ifModifiedSinceHeader(t0.minusSeconds(30)))
-        )
-            .andExpect(status().isOk())
-            .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-            .andExpect(jsonPath("$.roas").isArray());
+                        Rest.get("/api/monitoring/roa-prefixes")
+                                .headers(ifNoneMatchHeader(res2))
+                )
+                .andExpect(status().isOk());
     }
 
     @Test

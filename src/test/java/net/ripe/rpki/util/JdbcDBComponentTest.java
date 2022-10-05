@@ -18,17 +18,24 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.persistence.LockModeType;
 import javax.security.auth.x500.X500Principal;
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.transaction.annotation.Isolation.REPEATABLE_READ;
 
 
 @ActiveProfiles("test")
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestRpkiBootApplication.class)
 public class JdbcDBComponentTest extends CertificationDomainTestCase {
+
+    @Autowired
+    private DataSource dataSource;
 
     @Autowired
     private JdbcDBComponent jdbcDbComponent;
@@ -45,6 +52,13 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
     @After
     public void tearDown() {
         transactionTemplate.executeWithoutResult((status) -> clearDatabase());
+    }
+
+    @Test
+    public void should_have_repeatable_read_as_transaction_isolation_level() throws SQLException {
+        try (Connection connection = dataSource.getConnection()) {
+            assertThat(connection.getTransactionIsolation()).as("transaction isolation level").isEqualTo(REPEATABLE_READ.value());
+        }
     }
 
     @Test

@@ -107,6 +107,25 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
     }
 
     @Test
+    public void should_create_current_key_when_no_keys_present() {
+        child.getKeyPairs().clear();
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse("10.10.0.0/16"));
+
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
+
+        Collection<KeyPairEntity> keyPairs = child.getKeyPairs();
+        assertThat(keyPairs).hasSize(1).allSatisfy(keyPair -> {
+            assertThat(keyPair.getStatus()).isEqualTo(KeyPairStatus.CURRENT);
+        });
+
+        Optional<IncomingResourceCertificate> certificate = child.findCurrentIncomingResourceCertificate();
+        assertThat(certificate).isPresent();
+        assertThat(certificate.get().getResources()).isEqualTo(parse("10.10.0.0/16"));
+
+        assertChildParentInvariants(child, parent);
+    }
+
+    @Test
     public void should_issue_certificate_for_every_hosted_child_keys() {
         should_issue_certificate_for_hosted_child_certified_resources();
         KeyPairEntity newKeyPair = child.createNewKeyPair(keyPairService);

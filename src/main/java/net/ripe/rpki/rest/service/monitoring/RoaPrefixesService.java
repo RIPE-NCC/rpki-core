@@ -33,10 +33,15 @@ public class RoaPrefixesService {
     @Operation(summary = "Get all the ROA prefixes")
     @GetMapping("/api/monitoring/roa-prefixes")
     public ResponseEntity<ValidatedObjectsResponse<RoaConfigurationPrefixData>> listRoaPrefixes(WebRequest request) {
+        // Track content changes by tracking the count of ROA prefixes + last modified of the roa configurations.
         final boolean returnNotModified = roaConfigurationRepository.lastModified().map(lastModified -> {
-            final long lastModifiedMs = 1000 * lastModified.getEpochSecond();
-            // ETags: Often, a hash of the content, a hash of the last modification timestamp, or just a revision number is used.
-            return request.checkNotModified(Hashing.sha256().hashLong(lastModifiedMs).toString(), lastModifiedMs);
+            final String hash = Hashing.sha256()
+                    .newHasher()
+                    .putLong(roaConfigurationRepository.countRoaPrefixes())
+                    .putLong(lastModified.toEpochMilli())
+                    .hash()
+                    .toString();
+            return request.checkNotModified(hash);
         }).orElse(false);
 
         if (returnNotModified) {

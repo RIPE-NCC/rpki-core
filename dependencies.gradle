@@ -1,5 +1,5 @@
 ext {
     rpki_commons_version = '1.30'
-    spring_boot_version = '2.7.3'
+    spring_boot_version = '2.7.4'
 }
 

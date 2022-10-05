@@ -1,6 +1,6 @@
 plugins {
     id 'rpki-ripe-ncc.build-conventions'
-    id 'org.springframework.boot' version '2.7.3'
+    id 'org.springframework.boot' version '2.7.4'
     id 'distribution'
     id 'jacoco'
     id "com.google.cloud.tools.jib" version "3.3.0"

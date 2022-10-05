@@ -6,17 +6,18 @@ import net.ripe.rpki.commons.ta.domain.request.ResourceCertificateRequestData;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
+import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.KeyPairService;
+import net.ripe.rpki.domain.ResourceClassListQuery;
+import net.ripe.rpki.domain.ResourceClassListResponse;
 import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
-import org.joda.time.DateTimeConstants;
-import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,10 +28,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static net.ripe.rpki.domain.TestObjects.createTestKeyPair;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -50,6 +50,7 @@ public class CertificateRequestCreationServiceBeanTest {
 
     private RepositoryConfiguration repositoryConfiguration;
 
+    private AllResourcesCertificateAuthority allResourcesCa;
     private ManagedCertificateAuthority productionCa;
 
     private URI publicRepositoryUri = URI.create("rsync://localhost/foo/ca-repository-uri/");
@@ -57,24 +58,28 @@ public class CertificateRequestCreationServiceBeanTest {
 
     @Before
     public void setUp() {
+        allResourcesCa = mock(AllResourcesCertificateAuthority.class);
+        when(allResourcesCa.processResourceClassListQuery(any())).thenAnswer((invocation) ->
+            new ResourceClassListResponse(invocation.getArgument(0, ResourceClassListQuery.class).getResources())
+        );
+
         productionCa = mock(ManagedCertificateAuthority.class);
         keyPairService = mock(KeyPairService.class);
         repositoryConfiguration = mock(RepositoryConfiguration.class);
         when(repositoryConfiguration.getPublicRepositoryUri()).thenReturn(publicRepositoryUri);
-        subject = new CertificateRequestCreationServiceBean(repositoryConfiguration);
+        subject = new CertificateRequestCreationServiceBean(repositoryConfiguration, keyPairService);
 
+        when(productionCa.getParent()).thenReturn(allResourcesCa);
         when(productionCa.isProductionCa()).thenReturn(true);
         when(productionCa.getUuid()).thenReturn(caId);
     }
 
     @Test
     public void shouldNotInitiateRollIfKeyIsRecent() {
-        KeyPairEntity currentKp = mock(KeyPairEntity.class);
-        when(currentKp.getStatus()).thenReturn(KeyPairStatus.CURRENT);
-        when(currentKp.getCreatedAt()).thenReturn(new Instant());
+        when(productionCa.currentKeyPairIsOlder(1)).thenReturn(false);
 
-        CertificateIssuanceRequest req = subject.initiateKeyRoll(1, keyPairService, productionCa);
-        assertNull(req);
+        Optional<CertificateIssuanceRequest> req = subject.initiateKeyRoll(productionCa, 1);
+        assertThat(req).isEmpty();
 
         verifyNoInteractions(keyPairService);
     }
@@ -83,52 +88,28 @@ public class CertificateRequestCreationServiceBeanTest {
     public void shouldInitiateRoll() {
         // Expect that a new key is created and certificate is requested for it with the same resources
         // as we have on the current certificate
-
-        KeyPairEntity currentKp = mock(KeyPairEntity.class);
-        when(currentKp.getStatus()).thenReturn(KeyPairStatus.CURRENT);
-        when(currentKp.getCreatedAt()).thenReturn(new Instant().minus(DateTimeConstants.MILLIS_PER_DAY));
-        when(productionCa.getUuid()).thenReturn(UUID.randomUUID());
-        when(productionCa.hasCurrentKeyPair()).thenReturn(true);
-        when(productionCa.hasRollInProgress()).thenReturn(false);
         when(productionCa.currentKeyPairIsOlder(anyInt())).thenReturn(true);
+        KeyPairEntity currentKp = createTestKeyPair("CURRENT");
+        IncomingResourceCertificate currentResourceCertificate = TestObjects.createResourceCertificate(1L, currentKp);
+        when(productionCa.findCurrentIncomingResourceCertificate()).thenReturn(Optional.of(currentResourceCertificate));
 
-        IncomingResourceCertificate currentCertificate = mock(IncomingResourceCertificate.class);
-        when(currentKp.findCurrentIncomingCertificate()).thenReturn(Optional.of(currentCertificate));
-        IpResourceSet testResources = IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
-        when(currentCertificate.getResources()).thenReturn(testResources);
-        when(productionCa.findCurrentIncomingResourceCertificate()).thenReturn(Optional.of(currentCertificate));
-
-        KeyPairEntity newKp = mock(KeyPairEntity.class);
-        when(keyPairService.createKeyPairEntity()).thenReturn(newKp);
-        when(newKp.getStatus()).thenReturn(KeyPairStatus.NEW);
-        when(newKp.getPublicKey()).thenReturn(TestObjects.createTestKeyPair().getPublicKey());
-        when(newKp.getManifestFilename()).thenReturn("test.mft");
-
+        KeyPairEntity newKp = createTestKeyPair("NEW");
         when(productionCa.createNewKeyPair(any(KeyPairService.class))).thenReturn(newKp);
 
-        CertificateIssuanceRequest req = subject.initiateKeyRoll(0, keyPairService, productionCa);
+        Optional<CertificateIssuanceRequest> maybeRequest = subject.initiateKeyRoll(productionCa, 0);
 
-        assertNotNull(req);
-        assertEquals(testResources, req.getResources());
+        assertThat(maybeRequest).hasValueSatisfying(request -> {
+            assertThat(request.getResources()).isEqualTo(currentResourceCertificate.getResources());
+        });
     }
 
     @Test
     public void shouldNotInitiateRollWhenRollInProgress() {
-        KeyPairEntity currentKp = mock(KeyPairEntity.class);
-        when(currentKp.getStatus()).thenReturn(KeyPairStatus.CURRENT);
-        when(currentKp.getCreatedAt()).thenReturn(new Instant());
+        when(productionCa.hasRollInProgress()).thenReturn(true);
 
-        IncomingResourceCertificate currentCertificate = mock(IncomingResourceCertificate.class);
-        when(currentKp.getCurrentIncomingCertificate()).thenReturn(currentCertificate);
-        IpResourceSet testResources = IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
-        when(currentCertificate.getResources()).thenReturn(testResources);
+        Optional<CertificateIssuanceRequest> req = subject.initiateKeyRoll(productionCa, 0);
 
-        KeyPairEntity pending = mock(KeyPairEntity.class);
-        when(pending.getStatus()).thenReturn(KeyPairStatus.PENDING);
-
-        CertificateIssuanceRequest req = subject.initiateKeyRoll(0, keyPairService, productionCa);
-
-        assertNull(req);
+        assertThat(req).isEmpty();
     }
 
     @Test
@@ -181,8 +162,15 @@ public class CertificateRequestCreationServiceBeanTest {
         assertEquals(repositoryUri, trustAnchorRequest.getSiaDescriptors()[0].getLocation());
     }
 
+    @Test
+    public void shouldNotInitiateMemberKeyRollWithoutCurrentCertificate() {
+        when(productionCa.findCurrentIncomingResourceCertificate()).thenReturn(Optional.empty());
+
+        assertThat(subject.initiateKeyRoll(productionCa, 1)).isEmpty();
+    }
+
     private void givenKeyPairWithoutCurrentCertificate(ManagedCertificateAuthority ca) {
-        KeyPairEntity keyPair = TestObjects.createTestKeyPair();
+        KeyPairEntity keyPair = createTestKeyPair();
         ca.addKeyPair(keyPair);
         when(ca.getKeyPairs()).thenReturn(Collections.singletonList(keyPair));
         KeyPairEntity spy = spy(keyPair);

@@ -7,4 +7,6 @@ public interface CertificateAuthorityEventVisitor {
     default void visitKeyPairActivatedEvent(KeyPairActivatedEvent event, CommandContext context) {}
 
     default void visitIncomingCertificateUpdatedEvent(IncomingCertificateUpdatedEvent event, CommandContext context) {}
+
+    default void visitIncomingCertificateRevokedEvent(IncomingCertificateRevokedEvent event, CommandContext context) {}
 }

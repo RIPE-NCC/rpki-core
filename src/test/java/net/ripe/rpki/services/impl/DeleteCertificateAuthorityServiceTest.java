@@ -15,7 +15,10 @@ import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
+import net.ripe.rpki.domain.roa.RoaConfiguration;
+import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.dto.KeyPairStatus;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,6 +30,7 @@ import javax.security.auth.x500.X500Principal;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Optional;
 
 import static net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest.TEST_KEY_PAIR;
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
@@ -48,6 +52,8 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
     private PublishedObjectRepository publishedObjectRepository;
     @Mock
     private RoaAlertConfigurationRepository roaAlertConfigurationRepository;
+    @Mock
+    private RoaConfigurationRepository roaConfigurationRepository;
 
     @InjectMocks
     private DeleteCertificateAuthorityService subject;
@@ -66,6 +72,7 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
     public void testHandleDeleteCA() {
 
         VersionedId caId = new VersionedId(HOSTED_CA_ID);
+        RoaConfiguration roaConfiguration = new RoaConfiguration();
         DeleteCertificateAuthorityCommand command = new DeleteCertificateAuthorityCommand(caId, new X500Principal("CN=Test"), new RoaConfigurationData(new ArrayList<>()));
         ManagedCertificateAuthority hostedCA = new HostedCertificateAuthority(HOSTED_CA_ID, name, parentCA);
         hostedCA.addKeyPair(keyPair);
@@ -81,9 +88,13 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
         when(roaAlertConfigurationRepository
                 .findByCertificateAuthorityIdOrNull(anyLong()))
                 .thenReturn(null);
+        when(roaConfigurationRepository.findByCertificateAuthority(hostedCA))
+            .thenReturn(Optional.of(roaConfiguration));
 
         when(keyPair.getPublicKey())
                 .thenReturn(publicKey);
+        when(keyPair.getStatus())
+                .thenReturn(KeyPairStatus.CURRENT);
 
         subject.revokeCa(HOSTED_CA_ID);
 
@@ -97,6 +108,7 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
 
         verify(commandAuditService).deleteCommandsForCa(HOSTED_CA_ID);
         verify(roaAlertConfigurationRepository).findByCertificateAuthorityIdOrNull(HOSTED_CA_ID);
+        verify(roaConfigurationRepository).remove(roaConfiguration);
         verify(certificateAuthorityRepository).remove(hostedCA);
     }
 }

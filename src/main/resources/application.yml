@@ -19,7 +19,9 @@ spring:
     datasource:
         driver-class-name: org.postgresql.Driver
         username: certdb
-        hikari.maximum-pool-size: 90
+        hikari:
+            maximum-pool-size: 90
+            transaction-isolation: TRANSACTION_REPEATABLE_READ
     jpa:
         database-platform: org.hibernate.dialect.PostgreSQL10Dialect
         generate-ddl: false

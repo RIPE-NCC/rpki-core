@@ -34,7 +34,7 @@ public class ProductionCertificateAuthorityTest extends CertificationDomainTestC
         RepositoryConfiguration certificateConfiguration = mock(RepositoryConfiguration.class);
         when(certificateConfiguration.getPublicRepositoryUri()).thenReturn(BASE_URI);
         when(certificateConfiguration.getTrustAnchorRepositoryUri()).thenReturn(BASE_URI);
-        certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificateConfiguration);
+        certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificateConfiguration, keyPairService);
         certificateManagementService = mock(CertificateManagementService.class);
     }
 

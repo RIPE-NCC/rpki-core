@@ -5,10 +5,10 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.core.events.IncomingCertificateRevokedEvent;
 import net.ripe.rpki.core.events.IncomingCertificateUpdatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 
 @Slf4j
 @AllArgsConstructor
@@ -29,8 +30,16 @@ public class RoaConfigurationMaintenanceServiceBean implements RoaConfigurationM
     @Autowired
     private final CertificateAuthorityRepository certificateAuthorityRepository;
 
-    @Autowired
-    private final CommandAuditService commandAuditService;
+    @Override
+    public void visitIncomingCertificateRevokedEvent(IncomingCertificateRevokedEvent event, CommandContext context) {
+        final ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(event.getCertificateAuthorityVersionedId().getId());
+
+        if (ca == null) {
+            return;
+        }
+
+        updateRoaConfigurationsForResources(ca, ca.getCertifiedResources(), context);
+    }
 
     @Override
     public void visitIncomingCertificateUpdatedEvent(IncomingCertificateUpdatedEvent event, CommandContext context) {
@@ -39,6 +48,11 @@ public class RoaConfigurationMaintenanceServiceBean implements RoaConfigurationM
 
         final ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(caId.getId());
 
+        updateRoaConfigurationsForResources(ca, nowCurrentResources, context);
+    }
+
+
+    private void updateRoaConfigurationsForResources(ManagedCertificateAuthority ca, IpResourceSet nowCurrentResources, CommandContext context) {
         final Optional<RoaConfiguration> maybeConfig = roaConfigurationRepository.findByCertificateAuthority(ca);
         if (!maybeConfig.isPresent()) {
             return;
@@ -59,7 +73,7 @@ public class RoaConfigurationMaintenanceServiceBean implements RoaConfigurationM
 
             context.recordEvent(
                     new RoaConfigurationUpdatedDueToChangedResourcesEvent(
-                            caId,
+                            ca.getVersionedId(),
                             toBeRemoved.stream()
                                     .map(RoaConfigurationPrefix::toData)
                                     .collect(Collectors.toSet()))

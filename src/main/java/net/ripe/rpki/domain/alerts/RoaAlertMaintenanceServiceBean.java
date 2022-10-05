@@ -6,8 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
+import net.ripe.rpki.core.events.IncomingCertificateRevokedEvent;
 import net.ripe.rpki.core.events.IncomingCertificateUpdatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand;
@@ -41,19 +43,37 @@ public class RoaAlertMaintenanceServiceBean implements RoaAlertMaintenanceServic
         final VersionedId caId = event.getCertificateAuthorityVersionedId();
         final IpResourceSet nowCurrentResources = event.getIncomingCertificate().getResources();
 
+        updateRoaAlertsForResources(caId, nowCurrentResources, context);
+    }
+
+    @Override
+    public void visitIncomingCertificateRevokedEvent(IncomingCertificateRevokedEvent event, CommandContext context) {
+        final ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(event.getCertificateAuthorityVersionedId().getId());
+
+        if (ca == null) {
+            return;
+        }
+
+        log.info("incoming certificate revoked: {}", ca.getCertifiedResources());
+
+        updateRoaAlertsForResources(event.getCertificateAuthorityVersionedId(), ca.getCertifiedResources(), context);
+    }
+
+    private void updateRoaAlertsForResources(VersionedId caId, IpResourceSet nowCurrentResources, CommandContext context) {
         final RoaAlertConfiguration roaAlertConfiguration = roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(caId.getId());
         if (roaAlertConfiguration == null) {
-            return; // no configuration
+            return;
         }
         // Update subscriptions, removing subscriptions for resources that do not overlap with the current resources.
         final List<AnnouncedRoute> alertsToRemove = roaAlertConfiguration.getIgnored().stream()
-            .map(RoaAlertIgnoredAnnouncement::toData)
-            .filter(ignoredAnnouncement -> {
-                IpResourceSet prefix = new IpResourceSet(ignoredAnnouncement.getPrefix());
+                .map(RoaAlertIgnoredAnnouncement::toData)
+                .filter(ignoredAnnouncement -> {
+                    IpResourceSet overlap = new IpResourceSet(nowCurrentResources);
+                    overlap.retainAll(new IpResourceSet(ignoredAnnouncement.getPrefix()));
 
-                return !(nowCurrentResources.contains(prefix) || prefix.contains(nowCurrentResources));
-            })
-            .collect(Collectors.toList());
+                    return overlap.isEmpty();
+                })
+                .collect(Collectors.toList());
 
         if (!alertsToRemove.isEmpty()) {
             roaAlertConfiguration.update(Collections.emptyList(), alertsToRemove);

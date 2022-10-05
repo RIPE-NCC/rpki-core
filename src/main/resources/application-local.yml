@@ -15,6 +15,7 @@ mail:
 spring.datasource:
     password: certdb
     url: jdbc:postgresql://localhost:5432/certdb
+spring.devtools.livereload.enabled: false
 
 #
 # Integrations

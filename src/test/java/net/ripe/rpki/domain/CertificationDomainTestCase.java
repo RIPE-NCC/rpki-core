@@ -157,7 +157,7 @@ public abstract class CertificationDomainTestCase {
     public static ProductionCertificateAuthority createInitialisedProdCaWithRipeResources(CertificateManagementService certificateManagementService) {
         RepositoryConfiguration certificationConfiguration = mock(RepositoryConfiguration.class);
         when(certificationConfiguration.getPublicRepositoryUri()).thenReturn(BASE_URI);
-        CertificateRequestCreationService certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificationConfiguration);
+        CertificateRequestCreationService certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificationConfiguration, null);
         ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, null);
         KeyPairEntity kp = TestObjects.createActiveKeyPair("TEST-KEY");
 
@@ -173,7 +173,7 @@ public abstract class CertificationDomainTestCase {
     public ProductionCertificateAuthority createInitialisedProdCaWithRipeResources() {
         RepositoryConfiguration certificationConfiguration = mock(RepositoryConfiguration.class);
         when(certificationConfiguration.getPublicRepositoryUri()).thenReturn(BASE_URI);
-        CertificateRequestCreationService certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificationConfiguration);
+        CertificateRequestCreationService certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificationConfiguration, null);
         ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, null);
 
         KeyPairEntity kp = createInitialisedProductionCaKeyPair(certificateRequestCreationService, ca, "TEST-KEY");
@@ -198,7 +198,7 @@ public abstract class CertificationDomainTestCase {
         final AllResourcesCertificateAuthority allResourcesCertificateAuthority = createAllResourcesCertificateAuthority(ACA_ID, ALL_RESOURCES_CA_NAME);
         RepositoryConfiguration certificationConfiguration = mock(RepositoryConfiguration.class);
         when(certificationConfiguration.getPublicRepositoryUri()).thenReturn(BASE_URI);
-        CertificateRequestCreationService certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificationConfiguration);
+        CertificateRequestCreationService certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificationConfiguration, null);
         ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, allResourcesCertificateAuthority);
         KeyPairEntity kp = TestObjects.createActiveKeyPair("TEST-KEY");
 

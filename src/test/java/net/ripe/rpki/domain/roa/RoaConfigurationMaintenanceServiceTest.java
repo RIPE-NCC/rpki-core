@@ -15,6 +15,7 @@ import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCo
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.support.objects.CaName;
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,8 +102,7 @@ public class RoaConfigurationMaintenanceServiceTest extends CertificationDomainT
 
         var caLog = commandAuditService.findCommandsSinceCaVersion(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION));
 
-        assertThat(caLog.stream().filter(msg -> msg.getSummary().contains("Updated ROA")))
-                .hasSize(0);
+        assertThat(caLog.stream().filter(msg -> msg.getSummary().contains("Updated ROA"))).isEmpty();
     }
 
     @Test
@@ -131,6 +131,16 @@ public class RoaConfigurationMaintenanceServiceTest extends CertificationDomainT
 
         assertThat(caLog.stream().filter(msg -> msg.getCommandEvents().contains("Updated ROA")))
                 .hasSize(1);
+    }
+
+    @Test
+    public void should_remove_roa_prefixes_when_resources_are_removed() {
+        // Certificate loses it's resources
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse(""));
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
+
+        assertThat(roaConfigurationRepository.findByCertificateAuthority(child))
+                .hasValueSatisfying(config -> config.getPrefixes().isEmpty());
     }
 
     private CommandStatus execute(CertificateAuthorityCommand command) {

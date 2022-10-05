@@ -74,11 +74,11 @@ public class ChildParentCertificateUpdateSaga {
         return !checkIfUpdatedIsNeeded(childCa).isEmpty();
     }
 
-    private List<? extends CertificateProvisioningMessage> checkIfUpdatedIsNeeded(ChildCertificateAuthority childCa) {
+    private List<CertificateProvisioningMessage> checkIfUpdatedIsNeeded(ChildCertificateAuthority childCa) {
         Optional<IpResourceSet> maybeChildResources = childCa.lookupCertifiableIpResources(resourceLookupService);
 
         if (!maybeChildResources.isPresent()) {
-            log.warn("Resource cache for CA is empty, exiting.");
+            log.warn("Resource cache for CA is null (not: empty), exiting.");
             return Collections.emptyList();
         }
 
@@ -117,7 +117,7 @@ public class ChildParentCertificateUpdateSaga {
         ValidityPeriod validityPeriod = new ValidityPeriod(now, CertificateAuthority.calculateValidityNotAfter(now));
 
         return requests.stream()
-            .filter((request) -> {
+            .filter(request -> {
                 if (request instanceof CertificateIssuanceRequest) {
                     return parentCa.isCertificateIssuanceNeeded((CertificateIssuanceRequest) request, validityPeriod, resourceCertificateRepository);
                 } else if (request instanceof CertificateRevocationRequest) {

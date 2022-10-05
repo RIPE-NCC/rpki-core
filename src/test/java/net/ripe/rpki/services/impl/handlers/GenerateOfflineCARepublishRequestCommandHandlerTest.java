@@ -34,7 +34,7 @@ public class GenerateOfflineCARepublishRequestCommandHandlerTest {
         certificationConfiguration = mock(RepositoryConfiguration.class);
 
         CertificateRequestCreationServiceBean requestCreationService =
-                new CertificateRequestCreationServiceBean(certificationConfiguration);
+                new CertificateRequestCreationServiceBean(certificationConfiguration, null);
         subject = new GenerateOfflineCARepublishRequestCommandHandler(certificateAuthorityRepository, requestCreationService);
     }
 

@@ -1,6 +1,5 @@
 package net.ripe.rpki.services.impl.handlers;
 
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.util.VersionedId;
@@ -9,9 +8,7 @@ import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
-import net.ripe.rpki.ripencc.services.impl.RipeNccResourceLookupService;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
-import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,13 +19,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
 import java.util.Collections;
-import java.util.Optional;
 
 import static net.ripe.ipresource.IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
 import static net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest.TEST_KEY_PAIR;
 import static net.ripe.rpki.domain.CertificationDomainTestCase.ALL_RESOURCES_CA_NAME;
 import static net.ripe.rpki.domain.CertificationDomainTestCase.PRODUCTION_CA_NAME;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -37,7 +32,6 @@ public class KeyManagementInitiateRollCommandHandlerTest {
     private static final long CA_ID = 0;
     private static final int THRESHOLD = 24;
     public static final X500Principal MEMBER_CA_NAME = new X500Principal("cn=nl.bluelight");
-    public static final IpResourceSet EMPTY_RESOURCES = new IpResourceSet();
 
     private KeyManagementInitiateRollCommandHandler subject;
     private KeyManagementInitiateRollCommand command;
@@ -45,8 +39,6 @@ public class KeyManagementInitiateRollCommandHandlerTest {
 
     @Mock
     private CertificateAuthorityRepository certificateAuthorityRepository;
-    @Mock
-    private KeyPairService keyPairService;
     @Mock
     private HostedCertificateAuthority memberCA;
     @Mock
@@ -58,14 +50,11 @@ public class KeyManagementInitiateRollCommandHandlerTest {
     @Mock
     private ResourceCertificateRepository resourceCertificateRepository;
 
-    @Mock
-    private ResourceLookupService resourceLookupService;
-
     @Before
     public void setUp() {
         command = new KeyManagementInitiateRollCommand(new VersionedId(CA_ID, 0), THRESHOLD);
         request = new CertificateIssuanceRequest(ALL_PRIVATE_USE_RESOURCES, MEMBER_CA_NAME, TEST_KEY_PAIR.getPublic(), new X509CertificateInformationAccessDescriptor[]{});
-        subject = new KeyManagementInitiateRollCommandHandler(certificateAuthorityRepository, keyPairService, certificateRequestCreationService, resourceCertificateRepository, resourceLookupService);
+        subject = new KeyManagementInitiateRollCommandHandler(certificateAuthorityRepository, certificateRequestCreationService, resourceCertificateRepository);
 
         lenient().when(allResourcesCA.isAllResourcesCa()).thenReturn(true);
         lenient().when(allResourcesCA.isProductionCa()).thenReturn(false);
@@ -85,17 +74,14 @@ public class KeyManagementInitiateRollCommandHandlerTest {
     @Test(expected = CommandWithoutEffectException.class)
     public void shouldThrowExceptionIfCommandHadNoEffect() {
         when(certificateAuthorityRepository.findManagedCa(CA_ID)).thenReturn(memberCA);
-        when(memberCA.getCertifiedResources()).thenReturn(EMPTY_RESOURCES);
-        when(memberCA.initiateKeyRolls(THRESHOLD, keyPairService, certificateRequestCreationService)).thenReturn(Collections.emptyList());
-        when(memberCA.lookupCertifiableIpResources(resourceLookupService)).thenReturn(Optional.of(ALL_PRIVATE_USE_RESOURCES));
+        when(memberCA.initiateKeyRolls(THRESHOLD, certificateRequestCreationService)).thenReturn(Collections.emptyList());
         subject.handle(command);
     }
 
     @Test
     public void shouldDelegateRequestsToAllResourcesCa() {
         when(certificateAuthorityRepository.findManagedCa(CA_ID)).thenReturn(allResourcesCA);
-        when(allResourcesCA.initiateKeyRolls(THRESHOLD, keyPairService, certificateRequestCreationService)).thenReturn(Collections.singletonList(request));
-        when(allResourcesCA.getCertifiedResources()).thenReturn(ALL_PRIVATE_USE_RESOURCES);
+        when(allResourcesCA.initiateKeyRolls(THRESHOLD, certificateRequestCreationService)).thenReturn(Collections.singletonList(request));
 
         subject.handle(command);
 
@@ -105,8 +91,7 @@ public class KeyManagementInitiateRollCommandHandlerTest {
     @Test
     public void shouldDelegateRequestsToProductionCa() {
         when(certificateAuthorityRepository.findManagedCa(CA_ID)).thenReturn(productionCA);
-        when(productionCA.initiateKeyRolls(THRESHOLD, keyPairService, certificateRequestCreationService)).thenReturn(Collections.singletonList(request));
-        when(productionCA.getCertifiedResources()).thenReturn(ALL_PRIVATE_USE_RESOURCES);
+        when(productionCA.initiateKeyRolls(THRESHOLD, certificateRequestCreationService)).thenReturn(Collections.singletonList(request));
 
         CertificateIssuanceResponse response = new CertificateIssuanceResponse(mock(X509ResourceCertificate.class), URI.create("rsync://example.com/rpki/cert.cer"));
         when(allResourcesCA.processCertificateIssuanceRequest(productionCA, request, resourceCertificateRepository, Integer.MAX_VALUE)).thenReturn(response);
@@ -120,9 +105,7 @@ public class KeyManagementInitiateRollCommandHandlerTest {
     @Test
     public void shouldDelegateRequestsToMemberCa() {
         when(certificateAuthorityRepository.findManagedCa(CA_ID)).thenReturn(memberCA);
-        when(memberCA.getCertifiedResources()).thenReturn(EMPTY_RESOURCES);
-        when(memberCA.initiateKeyRolls(THRESHOLD, keyPairService, certificateRequestCreationService)).thenReturn(Collections.singletonList(request));
-        when(memberCA.lookupCertifiableIpResources(resourceLookupService)).thenReturn(Optional.of(ALL_PRIVATE_USE_RESOURCES));
+        when(memberCA.initiateKeyRolls(THRESHOLD, certificateRequestCreationService)).thenReturn(Collections.singletonList(request));
 
         CertificateIssuanceResponse response = new CertificateIssuanceResponse(mock(X509ResourceCertificate.class), URI.create("rsync://example.com/rpki/cert.cer"));
         when(productionCA.processCertificateIssuanceRequest(memberCA, request, resourceCertificateRepository, Integer.MAX_VALUE)).thenReturn(response);
@@ -133,12 +116,4 @@ public class KeyManagementInitiateRollCommandHandlerTest {
         verify(memberCA).processCertificateIssuanceResponse(response, resourceCertificateRepository);
     }
 
-    @Test
-    public void shouldNotInitiateMemberKeyRollWithoutResources() {
-        when(certificateAuthorityRepository.findManagedCa(CA_ID)).thenReturn(memberCA);
-        when(memberCA.lookupCertifiableIpResources(resourceLookupService)).thenReturn(Optional.of(EMPTY_RESOURCES));
-        when(memberCA.getCertifiedResources()).thenReturn(EMPTY_RESOURCES);
-
-        assertThatThrownBy(() -> subject.handle(command)).isInstanceOf(CommandWithoutEffectException.class);
-    }
 }

@@ -1,6 +1,5 @@
 package net.ripe.rpki.rest.service;
 
-import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -64,9 +63,8 @@ public class BackgroundExecutorService {
             if (backgroundService.isWaitingOrRunning()) {
                 return logAndReturnResponse(PRECONDITION_FAILED, serviceName + " is already waiting or running");
             }
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            backgroundService.execute();
-            return logAndReturnResponse(OK, backgroundService.getName() + " has been executed through REST API (" + stopwatch + ")");
+            backgroundServices.trigger(serviceName);
+            return logAndReturnResponse(OK, backgroundService.getName() + " has been triggered through REST API");
         } catch (Exception e) {
             return logAndReturnResponse(INTERNAL_SERVER_ERROR, e.getMessage());
         }

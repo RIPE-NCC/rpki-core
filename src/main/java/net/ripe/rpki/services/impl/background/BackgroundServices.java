@@ -4,18 +4,20 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.server.api.configuration.Environment;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
+import org.quartz.JobKey;
 import org.quartz.ScheduleBuilder;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SimpleScheduleBuilder;
 import org.quartz.Trigger;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
@@ -51,7 +53,8 @@ public class BackgroundServices {
 
     public static final String PUBLISHER_SYNC_SERVICE = "publisherSyncService";
 
-    private final ApplicationContext applicationContext;
+    @Inject
+    private ApplicationContext applicationContext;
 
     @Value("${manifest.crl.update.interval.minutes}")
     private int manifestCrlUpdateIntervalMinutes;
@@ -88,18 +91,11 @@ public class BackgroundServices {
     @Value("${riswhoisdump.update.interval.hours}")
     private int riswhoisdumpUpdateIntervalHours;
 
-    private final Scheduler scheduler;
+    @Inject
+    private Scheduler scheduler;
 
-    private final Map<String, BackgroundService> allServices;
-
-    @Autowired
-    public BackgroundServices(ApplicationContext applicationContext,
-                              Scheduler scheduler,
-                              Map<String, BackgroundService> allServices) {
-        this.applicationContext = applicationContext;
-        this.scheduler = scheduler;
-        this.allServices = allServices;
-    }
+    @Inject
+    private Map<String, BackgroundService> allServices;
 
     @PostConstruct
     private void scheduleAll() throws SchedulerException {
@@ -179,20 +175,24 @@ public class BackgroundServices {
         } catch (BeansException e) {
             throw new RuntimeException("Service '" + serviceName + "' can not be found in the application context", e);
         }
+
+        JobDetail job = createJobDetail(serviceName);
+        Trigger trigger = newTrigger()
+            .withIdentity(serviceName + "Trigger")
+            .startAt(startAt)
+            .withSchedule(schedule)
+            .build();
+        scheduler.scheduleJob(job, trigger);
+        log.info("Scheduled '{}', starting from '{}'", job.getKey(), startAt);
+    }
+
+    private static JobDetail createJobDetail(String serviceName) {
         final JobDataMap map = new JobDataMap();
         map.put(BackgroundJob.BACKGROUND_SERVICE_KEY, serviceName);
-        scheduler.scheduleJob(
-                newJob(BackgroundJob.class)
-                        .withIdentity(serviceName)
-                        .usingJobData(map)
-                        .build(),
-                newTrigger()
-                        .withIdentity(serviceName + "Trigger")
-                        .startAt(startAt)
-                        .withSchedule(schedule)
-                        .build()
-        );
-        log.info(String.format("Scheduled '%s', starting from '%s'", serviceName, startAt));
+        return newJob(BackgroundJob.class)
+            .withIdentity(serviceName)
+            .usingJobData(map)
+            .build();
     }
 
     public void validate(String serviceName) {
@@ -213,5 +213,18 @@ public class BackgroundServices {
 
     public Map<String, BackgroundService> getAllServices() {
         return Collections.unmodifiableMap(allServices);
+    }
+
+    public void trigger(String serviceName) {
+        try {
+            JobKey jobKey = JobKey.jobKey(serviceName);
+            if (scheduler.checkExists(jobKey)) {
+                scheduler.triggerJob(jobKey);
+            } else {
+                scheduler.scheduleJob(createJobDetail(serviceName), newTrigger().build());
+            }
+        } catch (SchedulerException e) {
+            throw new IllegalStateException("error triggering job: " + e, e);
+        }
     }
 }

@@ -1,11 +1,11 @@
 package net.ripe.rpki.ui.admin;
 
-import com.google.common.base.Stopwatch;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
+import net.ripe.rpki.services.impl.background.BackgroundServices;
 import net.ripe.rpki.ui.commons.AdminCertificationBasePage;
-import net.ripe.rpki.ui.configuration.UiConfiguration;
 import net.ripe.rpki.ui.util.WicketUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.wicket.PageParameters;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.Form;
@@ -14,9 +14,11 @@ import org.apache.wicket.markup.html.link.Link;
 import org.apache.wicket.markup.html.panel.FeedbackPanel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
+import org.apache.wicket.proxy.ILazyInitProxy;
 import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -28,8 +30,8 @@ public class SystemStatusPage extends AdminCertificationBasePage {
 
     private static final Logger LOG = LoggerFactory.getLogger(SystemStatusPage.class);
 
-    @SpringBean
-    private UiConfiguration certificationConfiguration;
+    @SpringBean(name = "backgroundServices")
+    private BackgroundServices backgroundServices;
 
     @SpringBean(name = "manifestCrlUpdateService")
     private BackgroundService manifestCrlUpdateService;
@@ -209,13 +211,35 @@ public class SystemStatusPage extends AdminCertificationBasePage {
 
             @Override
             public void onClick() {
-                Stopwatch stopwatch = Stopwatch.createStarted();
-                backgroundService.execute();
-                logAndDisplayMessage(backgroundService.getName() + " has been executed manually (" + stopwatch + ")");
+                try {
+                    // Find the service name from the annotation so that we can trigger the correct job
+                    Object actualBackgroundService = ((ILazyInitProxy) backgroundService).getObjectLocator().locateProxyTarget();
+                    String serviceName = findServiceName(actualBackgroundService.getClass());
+                    backgroundServices.trigger(serviceName);
+                    logAndDisplayMessage(backgroundService.getName() + " has been triggered manually");
+                } catch (Exception e) {
+                    String message = backgroundService.getName() + " failed to start: " + e;
+                    error(message);
+                    LOG.error("{} failed to start", backgroundService.getName(), e);
+                }
             }
         };
         link.setVisibilityAllowed(!backgroundService.isWaitingOrRunning() && backgroundService.isActive());
         add(link);
+    }
+
+    private static String findServiceName(Class<?> type) {
+        for (Class<?> clazz = type; clazz != null; clazz = clazz.getSuperclass()) {
+            Service annotation = clazz.getAnnotation(Service.class);
+            if (annotation != null) {
+                if (!annotation.value().isEmpty()) {
+                    return annotation.value();
+                } else {
+                    return StringUtils.uncapitalize(clazz.getSimpleName());
+                }
+            }
+        }
+        throw new IllegalStateException("service " + type + " does not have an @Service annotation");
     }
 
     private void logAndDisplayMessage(String message) {

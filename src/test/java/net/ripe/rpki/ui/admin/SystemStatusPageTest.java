@@ -1,7 +1,22 @@
 package net.ripe.rpki.ui.admin;
 
-import net.ripe.rpki.core.services.background.BackgroundServiceExecutionResult;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
+import net.ripe.rpki.services.impl.background.BackgroundServices;
+import net.ripe.rpki.services.impl.background.CaCleanUpServiceBean;
+import net.ripe.rpki.services.impl.background.CertificateExpirationServiceBean;
+import net.ripe.rpki.services.impl.background.KeyPairActivationManagementServiceBean;
+import net.ripe.rpki.services.impl.background.KeyPairRevocationManagementServiceBean;
+import net.ripe.rpki.services.impl.background.ManifestCrlUpdateServiceBean;
+import net.ripe.rpki.services.impl.background.MemberKeyRolloverManagementServiceBean;
+import net.ripe.rpki.services.impl.background.ProductionCaKeyRolloverManagementServiceBean;
+import net.ripe.rpki.services.impl.background.PublicRepositoryPublicationServiceBean;
+import net.ripe.rpki.services.impl.background.PublicRepositoryRrdpServiceBean;
+import net.ripe.rpki.services.impl.background.PublicRepositoryRsyncServiceBean;
+import net.ripe.rpki.services.impl.background.PublishedObjectCleanUpServiceBean;
+import net.ripe.rpki.services.impl.background.PublisherSyncService;
+import net.ripe.rpki.services.impl.background.ResourceCacheUpdateServiceBean;
+import net.ripe.rpki.services.impl.background.RisWhoisUpdateServiceBean;
+import net.ripe.rpki.services.impl.background.RoaAlertBackgroundServiceDailyBean;
 import net.ripe.rpki.ui.application.CertificationWicketTestCase;
 import org.apache.wicket.util.tester.FormTester;
 import org.junit.Before;
@@ -12,13 +27,12 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 
-import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_REPOSITORY_PUBLICATION_SERVICE;
-import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_REPOSITORY_RRDP_SERVICE;
-import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_REPOSITORY_RSYNC_SERVICE;
+import static net.ripe.rpki.services.impl.background.BackgroundServices.*;
 import static org.easymock.EasyMock.*;
 
 public class SystemStatusPageTest extends CertificationWicketTestCase {
 
+    private BackgroundServices backgroundServices;
     private BackgroundService manifestCrlUpdateService;
     private BackgroundService publicRepositoryPublicationService;
     private BackgroundService publicRepositoryRsyncService;
@@ -40,50 +54,53 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Before
     public void setUp() {
-        manifestCrlUpdateService = createMock(BackgroundService.class);
-        addBeanToContext("manifestCrlUpdateService", manifestCrlUpdateService);
+        backgroundServices = createMock(BackgroundServices.class);
+        addBeanToContext("backgroundServices", backgroundServices);
 
-        publicRepositoryPublicationService = createMock(BackgroundService.class);
+        manifestCrlUpdateService = createMock(ManifestCrlUpdateServiceBean.class);
+        addBeanToContext(MANIFEST_CRL_UPDATE_SERVICE, manifestCrlUpdateService);
+
+        publicRepositoryPublicationService = createMock(PublicRepositoryPublicationServiceBean.class);
         addBeanToContext(PUBLIC_REPOSITORY_PUBLICATION_SERVICE, publicRepositoryPublicationService);
 
-        publicRepositoryRsyncService = createMock(BackgroundService.class);
+        publicRepositoryRsyncService = createMock(PublicRepositoryRsyncServiceBean.class);
         addBeanToContext(PUBLIC_REPOSITORY_RSYNC_SERVICE, publicRepositoryRsyncService);
 
-        publicRepositoryRrdpService = createMock(BackgroundService.class);
+        publicRepositoryRrdpService = createMock(PublicRepositoryRrdpServiceBean.class);
         addBeanToContext(PUBLIC_REPOSITORY_RRDP_SERVICE, publicRepositoryRrdpService);
 
-        productionCaKeyRolloverManagementService = createMock(BackgroundService.class);
-        addBeanToContext("productionCaKeyRolloverManagementService", productionCaKeyRolloverManagementService);
+        productionCaKeyRolloverManagementService = createMock(ProductionCaKeyRolloverManagementServiceBean.class);
+        addBeanToContext(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE, productionCaKeyRolloverManagementService);
 
-        memberKeyRolloverManagementService = createMock(BackgroundService.class);
-        addBeanToContext("memberKeyRolloverManagementService", memberKeyRolloverManagementService);
+        memberKeyRolloverManagementService = createMock(MemberKeyRolloverManagementServiceBean.class);
+        addBeanToContext(MEMBER_KEY_ROLLOVER_MANAGEMENT_SERVICE, memberKeyRolloverManagementService);
 
-        keyPairActivationManagementService = createMock(BackgroundService.class);
-        addBeanToContext("keyPairActivationManagementService", keyPairActivationManagementService);
+        keyPairActivationManagementService = createMock(KeyPairActivationManagementServiceBean.class);
+        addBeanToContext(KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE, keyPairActivationManagementService);
 
-        keyPairRevocationManagementService = createMock(BackgroundService.class);
-        addBeanToContext("keyPairRevocationManagementService", keyPairRevocationManagementService);
+        keyPairRevocationManagementService = createMock(KeyPairRevocationManagementServiceBean.class);
+        addBeanToContext(KEY_PAIR_REVOCATION_MANAGEMENT_SERVICE, keyPairRevocationManagementService);
 
-        certificateExpirationService = createMock(BackgroundService.class);
-        addBeanToContext("certificateExpirationService", certificateExpirationService);
+        certificateExpirationService = createMock(CertificateExpirationServiceBean.class);
+        addBeanToContext(CERTIFICATE_EXPIRATION_SERVICE, certificateExpirationService);
 
-        risWhoisUpdateService = createMock(BackgroundService.class);
-        addBeanToContext("risWhoisUpdateService", risWhoisUpdateService);
+        risWhoisUpdateService = createMock(RisWhoisUpdateServiceBean.class);
+        addBeanToContext(RIS_WHOIS_UPDATE_SERVICE, risWhoisUpdateService);
 
-        roaAlertBackgroundServiceDaily = createMock(BackgroundService.class);
-        addBeanToContext("roaAlertBackgroundServiceDaily", roaAlertBackgroundServiceDaily);
+        roaAlertBackgroundServiceDaily = createMock(RoaAlertBackgroundServiceDailyBean.class);
+        addBeanToContext(ROA_ALERT_BACKGROUND_SERVICE, roaAlertBackgroundServiceDaily);
 
-        resourceCacheUpdateService = createMock(BackgroundService.class);
-        addBeanToContext("resourceCacheUpdateService", resourceCacheUpdateService);
+        resourceCacheUpdateService = createMock(ResourceCacheUpdateServiceBean.class);
+        addBeanToContext(RESOURCE_CACHE_UPDATE_SERVICE, resourceCacheUpdateService);
 
-        publishedObjectCleanUpService = createMock(BackgroundService.class);
-        addBeanToContext("publishedObjectCleanUpService", publishedObjectCleanUpService);
+        publishedObjectCleanUpService = createMock(PublishedObjectCleanUpServiceBean.class);
+        addBeanToContext(PUBLISHED_OBJECT_CLEAN_UP_SERVICE, publishedObjectCleanUpService);
 
-        caCleanUpService = createMock(BackgroundService.class);
-        addBeanToContext("caCleanUpService", caCleanUpService);
+        caCleanUpService = createMock(CaCleanUpServiceBean.class);
+        addBeanToContext(CA_CLEAN_UP_SERVICE, caCleanUpService);
 
-        publisherSyncService = createMock(BackgroundService.class);
-        addBeanToContext("publisherSyncService", publisherSyncService);
+        publisherSyncService = createMock(PublisherSyncService.class);
+        addBeanToContext(PUBLISHER_SYNC_SERVICE, publisherSyncService);
 
         expect(repositoryConfiguration.getLocalRepositoryDirectory()).andReturn(new File("/tmp")).anyTimes();
         expect(repositoryConfiguration.getPublicRepositoryUri()).andReturn(URI.create("rsync://localhost:873/repo")).anyTimes();
@@ -169,7 +186,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldUpdateCrlsAndManifests() {
-        expect(manifestCrlUpdateService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
+        backgroundServices.trigger(MANIFEST_CRL_UPDATE_SERVICE); expectLastCall();
         expect(manifestCrlUpdateService.getName()).andReturn("name");
         replayMocks();
 
@@ -182,7 +199,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldUpdatePublishedObjects() {
-        expect(publicRepositoryPublicationService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
+        backgroundServices.trigger(PUBLIC_REPOSITORY_PUBLICATION_SERVICE); expectLastCall();
         expect(publicRepositoryPublicationService.getName()).andReturn("name");
         replayMocks();
 
@@ -195,7 +212,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldUpdateRsyncRepository() {
-        expect(publicRepositoryRsyncService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
+        backgroundServices.trigger(PUBLIC_REPOSITORY_RSYNC_SERVICE); expectLastCall();
         expect(publicRepositoryRsyncService.getName()).andReturn("name");
         replayMocks();
 
@@ -208,7 +225,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldUpdateRrdpRepository() {
-        expect(publicRepositoryRrdpService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
+        backgroundServices.trigger(PUBLIC_REPOSITORY_RRDP_SERVICE); expectLastCall();
         expect(publicRepositoryRrdpService.getName()).andReturn("name");
         replayMocks();
 
@@ -221,7 +238,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldActivatePendingKeyPairs() {
-        expect(keyPairActivationManagementService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
+        backgroundServices.trigger(KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE); expectLastCall();
         expect(keyPairActivationManagementService.getName()).andReturn("name");
         replayMocks();
 
@@ -234,7 +251,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldRollOverMemberKeyPairs() {
-        expect(memberKeyRolloverManagementService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
+        backgroundServices.trigger(MEMBER_KEY_ROLLOVER_MANAGEMENT_SERVICE); expectLastCall();
         expect(memberKeyRolloverManagementService.getName()).andReturn("name");
         replayMocks();
 
@@ -247,7 +264,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldRollOverProductionCaKeyPairs() {
-        expect(productionCaKeyRolloverManagementService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
+        backgroundServices.trigger(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE); expectLastCall();
         expect(productionCaKeyRolloverManagementService.getName()).andReturn("name");
         replayMocks();
 
@@ -259,8 +276,8 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
     }
 
     @Test
-    public void shouldUpdateResources() {
-        expect(allCertificateUpdateService.execute()).andReturn(new BackgroundServiceExecutionResult(1, 1, BackgroundServiceExecutionResult.Status.SUCCESS));
+    public void shouldUpdateAllIncomingCertificates() {
+        backgroundServices.trigger(ALL_CA_CERTIFICATE_UPDATE_SERVICE); expectLastCall();
         expect(allCertificateUpdateService.getName()).andReturn("name");
         replayMocks();
 
@@ -274,6 +291,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
     @Override
     protected void replayMocks() {
         super.replayMocks();
+        replay(backgroundServices);
         replay(manifestCrlUpdateService);
         replay(publicRepositoryPublicationService);
         replay(publicRepositoryRsyncService);
@@ -294,6 +312,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
     @Override
     protected void verifyMocks() {
         super.verifyMocks();
+        verify(backgroundServices);
         verify(manifestCrlUpdateService);
         verify(publicRepositoryPublicationService);
         verify(publicRepositoryRsyncService);

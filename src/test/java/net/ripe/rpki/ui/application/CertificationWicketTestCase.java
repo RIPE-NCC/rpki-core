@@ -11,6 +11,7 @@ import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.*;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
+import net.ripe.rpki.services.impl.background.AllCaCertificateUpdateServiceBean;
 import net.ripe.rpki.ui.configuration.UiConfiguration;
 import org.apache.wicket.authentication.AuthenticatedWebSession;
 import org.apache.wicket.protocol.http.WebApplication;
@@ -25,6 +26,7 @@ import java.util.UUID;
 
 import static net.ripe.rpki.server.api.dto.CertificateAuthorityType.ALL_RESOURCES;
 import static net.ripe.rpki.server.api.dto.CertificateAuthorityType.ROOT;
+import static net.ripe.rpki.services.impl.background.BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE;
 import static org.easymock.EasyMock.*;
 
 public abstract class CertificationWicketTestCase {
@@ -76,7 +78,7 @@ public abstract class CertificationWicketTestCase {
         bgpRisEntryRepository = createMock(BgpRisEntryViewService.class);
         commandService = createMock(CommandService.class);
         statsCollectorNames = createMock(RipeNccInternalNamePresenter.class);
-        allCertificateUpdateService = createMock(BackgroundService.class);
+        allCertificateUpdateService = createMock(AllCaCertificateUpdateServiceBean.class);
         activeNodeService = createMock(ActiveNodeService.class);
 
         expect(activeNodeService.getCurrentNodeName()).andReturn("current-node").anyTimes();
@@ -98,7 +100,7 @@ public abstract class CertificationWicketTestCase {
         applicationContextMock.putBean("bgpRisEntryRepository", bgpRisEntryRepository);
         applicationContextMock.putBean("commandService", commandService);
         applicationContextMock.putBean("userPrincipalResolver", statsCollectorNames);
-        applicationContextMock.putBean("allCertificateUpdateService", allCertificateUpdateService);
+        applicationContextMock.putBean(ALL_CA_CERTIFICATE_UPDATE_SERVICE, allCertificateUpdateService);
         applicationContextMock.putBean("activeNodeService", activeNodeService);
 
         tester = new WicketTester(getApplicationStub());

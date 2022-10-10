@@ -1,8 +1,8 @@
 package net.ripe.rpki.rest.service;
 
 import net.ripe.rpki.TestRpkiBootApplication;
-import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.services.impl.background.AllCaCertificateUpdateServiceBean;
+import net.ripe.rpki.services.impl.background.BackgroundServices;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,7 +25,6 @@ import static net.ripe.rpki.rest.security.ApiKeySecurity.USER_ID_HEADER;
 import static net.ripe.rpki.rest.service.Rest.TESTING_API_KEY;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -39,14 +38,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(classes = TestRpkiBootApplication.class)
 public class BackgroundExecutorServiceTest {
 
-    @MockBean(classes = AllCaCertificateUpdateServiceBean.class)
-    private BackgroundService backgroundService;
+    @MockBean
+    private BackgroundServices backgroundServices;
+
+    @MockBean
+    private AllCaCertificateUpdateServiceBean backgroundService;
 
     @Autowired
     private MockMvc mockMvc;
 
     @Before
     public void before() {
+        when(backgroundServices.getByName(BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE)).thenReturn(backgroundService);
         when(backgroundService.getName()).thenReturn("dummyService");
         when(backgroundService.getStatus()).thenReturn("not running");
     }
@@ -93,9 +96,9 @@ public class BackgroundExecutorServiceTest {
                 .cookie(new Cookie(USER_ID_HEADER, UUID.randomUUID().toString()))
         )
                 .andExpect(status().isOk())
-                .andExpect(content().string(startsWith("dummyService has been executed through REST API")));
+                .andExpect(content().string(startsWith("dummyService has been triggered through REST API")));
 
-        verify(backgroundService, times(1)).execute();
+        verify(backgroundServices).trigger(BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE);
     }
 
     @Test
@@ -110,6 +113,6 @@ public class BackgroundExecutorServiceTest {
                 .andExpect(status().is(412))
                 .andExpect(content().string(startsWith("allCertificateUpdateService is already waiting or running")));
 
-        verify(backgroundService, never()).execute();
+        verify(backgroundServices, never()).trigger(BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE);
     }
 }

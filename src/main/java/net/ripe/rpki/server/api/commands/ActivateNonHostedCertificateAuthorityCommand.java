@@ -21,8 +21,6 @@ import javax.security.auth.x500.X500Principal;
 @Getter
 public class ActivateNonHostedCertificateAuthorityCommand extends CertificateAuthorityActivationCommand {
 
-    private static final long serialVersionUID = 1L;
-
     private final ProvisioningIdentityCertificate identityCertificate;
 
     public ActivateNonHostedCertificateAuthorityCommand(VersionedId certificateAuthorityId, X500Principal name, IpResourceSet resources, ProvisioningIdentityCertificate identityCertificate, long parentId) {

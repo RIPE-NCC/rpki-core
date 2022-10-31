@@ -8,6 +8,7 @@ import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.PublicationStatus;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
+import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
@@ -46,7 +47,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     @Transactional
     public void expireOutgoingResourceCertificates() {
         assertThat(subject.expireOutgoingResourceCertificates(DateTime.now())).isEqualTo(
-            new ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult(0, 0, 0)
+            new ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult(0, 0, 0, 0)
         );
     }
 
@@ -134,8 +135,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     @Test
     @Transactional
     public void countNonExpiredOutgoingCertificates() {
-        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources(certificateManagementService);
-        entityManager.persist(ca);
+        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
 
         assertThat(subject.countNonExpiredOutgoingCertificates(TEST_KEY_PAIR.getPublic(), ca.getCurrentKeyPair())).isZero();
     }
@@ -143,8 +143,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     @Test
     @Transactional
     public void findCurrentOutgoingChildCertificateResources() {
-        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources(certificateManagementService);
-        entityManager.persist(ca);
+        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
 
         assertThat(subject.findCurrentOutgoingChildCertificateResources(ca.getName())).isEqualTo(new IpResourceSet());
     }
@@ -152,17 +151,15 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     @Test
     @Transactional
     public void findCurrentOutgoingNonChildCertificateResources() {
-        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources(certificateManagementService);
-        entityManager.persist(ca);
+        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
 
-        assertThat(subject.findCurrentOutgoingRpkiObjectCertificateResources(ca.getName())).isEqualTo(PRODUCTION_CA_RESOURCES);
+        assertThat(subject.findCurrentOutgoingRpkiObjectCertificateResources(ca.getName())).isEqualTo(TestObjects.PRODUCTION_CA_RESOURCES);
     }
 
     @Test
     @Transactional
     public void existsCurrentOutgoingChildCertificates() {
-        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources(certificateManagementService);
-        entityManager.persist(ca);
+        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
 
         assertThat(subject.existsCurrentOutgoingCertificatesExceptForManifest(ca.getCurrentKeyPair())).isFalse();
     }

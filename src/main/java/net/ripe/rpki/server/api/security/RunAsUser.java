@@ -9,7 +9,6 @@ import java.util.UUID;
 
 public final class RunAsUser extends ValueObjectSupport {
 
-    private static final long serialVersionUID = 1L;
     private final CertificationUserId userId;
     private final String friendlyName;
     private final List<String> roles;

@@ -1,4 +1,4 @@
-package net.ripe.rpki.ncc.core.services.activation;
+package net.ripe.rpki.domain.manifest;
 
 import io.micrometer.core.instrument.DistributionSummary;
 import net.ripe.ipresource.Asn;
@@ -9,18 +9,18 @@ import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCms;
 import net.ripe.rpki.commons.crypto.crl.X509Crl;
 import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
-import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
+import net.ripe.rpki.domain.*;
+import net.ripe.rpki.domain.aspa.AspaConfiguration;
+import net.ripe.rpki.domain.aspa.AspaConfigurationRepository;
+import net.ripe.rpki.domain.aspa.AspaEntity;
+import net.ripe.rpki.domain.aspa.AspaEntityRepository;
 import net.ripe.rpki.domain.crl.CrlEntity;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
-import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.domain.roa.RoaEntity;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
-import net.ripe.rpki.domain.roa.RoaEntityService;
+import net.ripe.rpki.server.api.dto.AspaAfiLimit;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Before;
@@ -34,8 +34,8 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 
-import static net.ripe.rpki.ncc.core.services.activation.CertificateManagementServiceImpl.RPKI_CA_GENERATED_CRL_SIZE_METRIC_NAME;
-import static net.ripe.rpki.ncc.core.services.activation.CertificateManagementServiceImpl.RPKI_CA_GENERATED_MANIFEST_SIZE_METRIC_NAME;
+import static net.ripe.rpki.domain.manifest.ManifestPublicationService.RPKI_CA_GENERATED_CRL_SIZE_METRIC_NAME;
+import static net.ripe.rpki.domain.manifest.ManifestPublicationService.RPKI_CA_GENERATED_MANIFEST_SIZE_METRIC_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -44,20 +44,21 @@ import static org.junit.Assert.assertTrue;
 
 @Transactional
 @Rollback
-public class CertificateManagementServiceImplTest extends CertificationDomainTestCase {
+public class ManifestPublicationServiceTest extends CertificationDomainTestCase {
 
     private DateTime now;
     private ManagedCertificateAuthority ca;
 
     private KeyPairEntity currentKeyPair;
-    private CertificateManagementService subject;
+    private ManifestPublicationService subject;
+
+    @Autowired
+    private AspaConfigurationRepository aspaConfigurationRepository;
+    @Autowired
+    private AspaEntityRepository aspaEntityRepository;
 
     @Autowired
     private RoaConfigurationRepository roaConfigurationRepository;
-
-    @Autowired
-    private RoaEntityService roaEntityService;
-
     @Autowired
     private RoaEntityRepository roaEntityRepository;
 
@@ -70,12 +71,14 @@ public class CertificateManagementServiceImplTest extends CertificationDomainTes
         ca = createInitialisedProdCaWithRipeResources();
         currentKeyPair = ca.getCurrentKeyPair();
 
-        subject = certificateManagementService;
+        subject = manifestPublicationService;
     }
 
     @Test
     public void should_create_initial_manifest_and_crl_on_first_publish() {
-        subject.updateManifestAndCrlIfNeeded(ca);
+        long count = subject.updateManifestAndCrlIfNeeded(ca);
+
+        assertThat(count).describedAs("updated key pairs").isEqualTo(1);
 
         CrlEntity crlEntity = crlEntityRepository.findByKeyPair(currentKeyPair);
         assertNotNull(crlEntity);
@@ -101,6 +104,8 @@ public class CertificateManagementServiceImplTest extends CertificationDomainTes
             assertThat(summary.count()).isEqualTo(1);
             assertThat(summary.max()).isEqualTo(crl.getEncoded().length);
         });
+
+        assertThat(subject.updateManifestAndCrlIfNeeded(ca)).describedAs("no update needed").isEqualTo(0);
     }
 
     @Test
@@ -119,7 +124,7 @@ public class CertificateManagementServiceImplTest extends CertificationDomainTes
 
         URI uri = URI.create("rsync://localhost");
         CertificateIssuanceRequest request = new CertificateIssuanceRequest(new IpResourceSet(), new X500Principal("CN=test"), PregeneratedKeyPairFactory.getInstance().generate().getPublic(),  new X509CertificateInformationAccessDescriptor[]{new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_SIGNED_OBJECT, uri)});
-        OutgoingResourceCertificate outgoingResourceCertificate = subject.issueSingleUseEeResourceCertificate(ca, request, new ValidityPeriod(now, now.plusHours(10)), currentKeyPair);
+        OutgoingResourceCertificate outgoingResourceCertificate = singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, new ValidityPeriod(now, now.plusHours(10)), currentKeyPair);
         outgoingResourceCertificate.revoke();
 
         subject.updateManifestAndCrlIfNeeded(ca);
@@ -155,12 +160,11 @@ public class CertificateManagementServiceImplTest extends CertificationDomainTes
         entityManager.flush();
 
         roaConfigurationRepository.getOrCreateByCertificateAuthority(ca).addPrefix(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"))));
-        roaEntityService.updateRoasIfNeeded(ca);
+        subject.updateManifestAndCrlIfNeeded(ca);
+
         List<RoaEntity> roas = roaEntityRepository.findByCertificateSigningKeyPair(currentKeyPair);
         assertEquals("single roa issued", 1, roas.size());
         RoaEntity roaEntity = roas.get(0);
-
-        subject.updateManifestAndCrlIfNeeded(ca);
 
         X509Crl updatedCrl = crlEntityRepository.findByKeyPair(currentKeyPair).getCrl();
         ManifestCms updatedManifest = manifestEntityRepository.findByKeyPairEntity(currentKeyPair).getManifestCms();
@@ -176,5 +180,37 @@ public class CertificateManagementServiceImplTest extends CertificationDomainTes
 
         assertEquals("updated crl next update time matches updated manifest", updatedCrl.getNextUpdateTime(), updatedManifest.getNextUpdateTime());
         assertEquals("updated manifest next update time matches certificate not valid after", updatedManifest.getNextUpdateTime(), updatedManifest.getCertificate().getValidityPeriod().getNotValidAfter());
+    }
+
+    @Test
+    public void should_update_roa_entities() {
+        roaConfigurationRepository.getOrCreateByCertificateAuthority(ca).addPrefix(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"))));
+
+        assertThat(roaEntityRepository.findByCertificateSigningKeyPair(currentKeyPair)).describedAs("current ROA entities").isEmpty();
+
+        subject.updateManifestAndCrlIfNeeded(ca);
+
+        List<RoaEntity> roas = roaEntityRepository.findByCertificateSigningKeyPair(currentKeyPair);
+        assertThat(roas).describedAs("updated ROA entities").hasSize(1);
+
+        ManifestCms updatedManifest = manifestEntityRepository.findByKeyPairEntity(currentKeyPair).getManifestCms();
+        PublishedObject roa = roas.get(0).getPublishedObject();
+        assertThat(updatedManifest.verifyFileContents(roa.getFilename(), roa.getContent())).isTrue();
+    }
+
+    @Test
+    public void should_update_aspa_entities() {
+        aspaConfigurationRepository.add(new AspaConfiguration(ca, Asn.parse("AS64512"), Collections.singletonMap(Asn.parse("AS1"), AspaAfiLimit.ANY)));
+
+        assertThat(aspaEntityRepository.findByCertificateSigningKeyPair(currentKeyPair)).describedAs("current ASPA entities").isEmpty();
+
+        subject.updateManifestAndCrlIfNeeded(ca);
+
+        List<AspaEntity> aspas = aspaEntityRepository.findByCertificateSigningKeyPair(currentKeyPair);
+        assertThat(aspas).describedAs("updated ASPA entities").hasSize(1);
+
+        ManifestCms updatedManifest = manifestEntityRepository.findByKeyPairEntity(currentKeyPair).getManifestCms();
+        PublishedObject aspa = aspas.get(0).getPublishedObject();
+        assertThat(updatedManifest.verifyFileContents(aspa.getFilename(), aspa.getContent())).isTrue();
     }
 }

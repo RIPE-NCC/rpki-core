@@ -30,7 +30,7 @@ public class CertificateExpirationServiceBeanTest {
     @Test
     public void should_expire_outgoing_resource_certificates() {
         when(resourceCertificateRepository.expireOutgoingResourceCertificates(isA(DateTime.class)))
-            .thenReturn(new ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult(0, 0, 0));
+            .thenReturn(new ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult(0, 0, 0, 0));
 
         subject.runService();
 

@@ -1,14 +1,22 @@
 package net.ripe.rpki.services.impl.jpa;
 
+import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.commons.util.UTC;
+import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
+import net.ripe.rpki.domain.HostedCertificateAuthority;
+import net.ripe.rpki.domain.NameNotUniqueException;
+import net.ripe.rpki.domain.NonHostedCertificateAuthority;
+import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Transactional
 public class JpaCertificateAuthorityRepositoryTest extends CertificationDomainTestCase {
@@ -42,5 +50,17 @@ public class JpaCertificateAuthorityRepositoryTest extends CertificationDomainTe
     @Test
     public void getCasWithoutKeyPairsOlderThenOneYear() {
         assertThat(certificateAuthorityRepository.getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear()).isEmpty();
+    }
+
+    @Test
+    public void should_throw_NameNotUniqueException_for_duplicate_ca_name() {
+        ProductionCertificateAuthority prodCa = createInitialisedProdCaWithRipeResources();
+        CertificateAuthority ca1 = new HostedCertificateAuthority(1000L, new X500Principal("CN=ca"), prodCa);
+        certificateAuthorityRepository.add(ca1);
+        CertificateAuthority ca2 = new NonHostedCertificateAuthority(1001L, new X500Principal("CN=ca"), ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, prodCa);
+        assertThatThrownBy(() -> certificateAuthorityRepository.add(ca2)).isInstanceOfSatisfying(
+            NameNotUniqueException.class,
+            (exception) -> assertThat(exception.getMessage()).isEqualTo("Name 'CN=ca' not unique.")
+        );
     }
 }

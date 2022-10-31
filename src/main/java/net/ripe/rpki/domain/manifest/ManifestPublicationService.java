@@ -1,27 +1,14 @@
-package net.ripe.rpki.ncc.core.services.activation;
+package net.ripe.rpki.domain.manifest;
 
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
-import net.ripe.ipresource.IpResourceType;
-import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.IncomingResourceCertificate;
-import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
-import net.ripe.rpki.domain.PublishedObject;
-import net.ripe.rpki.domain.PublishedObjectRepository;
-import net.ripe.rpki.domain.ResourceCertificateBuilder;
-import net.ripe.rpki.domain.ResourceCertificateInformationAccessStrategy;
-import net.ripe.rpki.domain.ResourceCertificateRepository;
-import net.ripe.rpki.domain.SingleUseKeyPairFactory;
+import net.ripe.rpki.domain.*;
+import net.ripe.rpki.domain.aspa.AspaEntityService;
 import net.ripe.rpki.domain.crl.CrlEntity;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
-import net.ripe.rpki.domain.manifest.ManifestEntity;
-import net.ripe.rpki.domain.manifest.ManifestEntityRepository;
-import net.ripe.rpki.util.SerialNumberSupplier;
-import org.apache.commons.lang.Validate;
+import net.ripe.rpki.domain.roa.RoaEntityService;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
@@ -29,12 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.security.KeyPair;
-import java.util.EnumSet;
 import java.util.List;
 
 @Service
-public class CertificateManagementServiceImpl implements CertificateManagementService {
-
+public class ManifestPublicationService {
     /**
      * Time to next update for CRL and manifest. Both objects must have the same next update time to be valid.
      */
@@ -48,22 +33,33 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
     private final CrlEntityRepository crlEntityRepository;
     private final ManifestEntityRepository manifestEntityRepository;
     private final SingleUseKeyPairFactory singleUseKeyPairFactory;
+    private final SingleUseEeCertificateFactory singleUseEeCertificateFactory;
 
     private final DistributionSummary manifestSizeDistribution;
     private final DistributionSummary crlSizeDistribution;
+    private final AspaEntityService aspaEntityService;
+    private final RoaEntityService roaEntityService;
 
     @Autowired
-    public CertificateManagementServiceImpl(ResourceCertificateRepository resourceCertificateRepository,
-                                            PublishedObjectRepository publishedObjectRepository,
-                                            CrlEntityRepository crlEntityRepository,
-                                            ManifestEntityRepository manifestEntityRepository,
-                                            SingleUseKeyPairFactory singleUseKeyPairFactory,
-                                            MeterRegistry meterRegistry) {
+    public ManifestPublicationService(
+        ResourceCertificateRepository resourceCertificateRepository,
+        PublishedObjectRepository publishedObjectRepository,
+        AspaEntityService aspaEntityService,
+        RoaEntityService roaEntityService,
+        CrlEntityRepository crlEntityRepository,
+        ManifestEntityRepository manifestEntityRepository,
+        SingleUseKeyPairFactory singleUseKeyPairFactory,
+        SingleUseEeCertificateFactory singleUseEeCertificateFactory,
+        MeterRegistry meterRegistry
+    ) {
         this.resourceCertificateRepository = resourceCertificateRepository;
         this.publishedObjectRepository = publishedObjectRepository;
+        this.aspaEntityService = aspaEntityService;
+        this.roaEntityService = roaEntityService;
         this.crlEntityRepository = crlEntityRepository;
         this.manifestEntityRepository = manifestEntityRepository;
         this.singleUseKeyPairFactory = singleUseKeyPairFactory;
+        this.singleUseEeCertificateFactory = singleUseEeCertificateFactory;
         this.manifestSizeDistribution = DistributionSummary.builder(RPKI_CA_GENERATED_MANIFEST_SIZE_METRIC_NAME)
             .description("size in bytes of generated manifests")
             .baseUnit("byte")
@@ -80,63 +76,17 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
             .register(meterRegistry);
     }
 
-    @Override
-    public OutgoingResourceCertificate issueSingleUseEeResourceCertificate(ManagedCertificateAuthority hostedCa, CertificateIssuanceRequest request,
-                                                                           ValidityPeriod validityPeriod, KeyPairEntity signingKeyPair) {
-        IncomingResourceCertificate active = signingKeyPair.getCurrentIncomingCertificate();
-        ResourceCertificateBuilder builder = new ResourceCertificateBuilder();
-        if (request.getResources().isEmpty()) {
-            builder.withInheritedResourceTypes(EnumSet.allOf(IpResourceType.class));
-        } else {
-            Validate.isTrue(active.getResources().contains(request.getResources()), "EE certificate resources MUST BE contained in the parent certificate");
-            builder.withResources(request.getResources());
-        }
-        builder.withSerial(SerialNumberSupplier.getInstance().get());
-        builder.withSubjectDN(request.getSubjectDN());
-        builder.withSubjectPublicKey(request.getSubjectPublicKey());
-        builder.withSubjectInformationAccess(request.getSubjectInformationAccess());
-        builder.withIssuerDN(active.getSubject());
-        builder.withValidityPeriod(validityPeriod);
-        builder.withSigningKeyPair(signingKeyPair);
-        builder.withCa(false).withEmbedded(true);
-        ResourceCertificateInformationAccessStrategy ias = new ResourceCertificateInformationAccessStrategyBean();
-        builder.withAuthorityInformationAccess(ias.aiaForCertificate(active));
-        builder.withCrlDistributionPoints(signingKeyPair.crlLocationUri());
-        builder.withSubjectInformationAccess(request.getSubjectInformationAccess());
-        OutgoingResourceCertificate result = builder.build();
-        addOutgoingResourceCertificate(result);
-        return result;
-    }
-
-    @Override
-    public void addOutgoingResourceCertificate(OutgoingResourceCertificate resourceCertificate) {
-        resourceCertificateRepository.add(resourceCertificate);
-    }
-
-    @Override
-    public boolean isManifestAndCrlUpdatedNeeded(ManagedCertificateAuthority certificateAuthority) {
-        return certificateAuthority.getKeyPairs()
-            .stream()
-            .filter(KeyPairEntity::isPublishable)
-            .anyMatch(keyPair -> {
-                DateTime now = DateTime.now(DateTimeZone.UTC);
-
-                CrlEntity crlEntity = crlEntityRepository.findOrCreateByKeyPair(keyPair);
-                ManifestEntity manifestEntity = manifestEntityRepository.findOrCreateByKeyPairEntity(keyPair);
-
-                return crlEntity.isUpdateNeeded(now, resourceCertificateRepository) || isManifestUpdateNeeded(now, manifestEntity);
-            });
-    }
-
     /**
      * Update MFTs and CRLs. The generated manifest's and CRL's next update time must be the same, so if either
      * object needs to be updated both are newly issued.
-     *
+     * <p>
      * Mark all new and updated objects to be published/withdrawn.
      * Emit corresponding event, so that an update is sent to the publication server.
      */
-    @Override
     public long updateManifestAndCrlIfNeeded(ManagedCertificateAuthority certificateAuthority) {
+        aspaEntityService.updateAspaIfNeeded(certificateAuthority);
+        roaEntityService.updateRoasIfNeeded(certificateAuthority);
+
         return certificateAuthority.getKeyPairs()
             .stream()
             .filter(KeyPairEntity::isPublishable)
@@ -169,7 +119,7 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
                 // This is implemented by first creating the EE certificate with the timings in
                 // 'validityPeriod'. Then the manifest is updated with the certificate, copying the timings
                 // into the manifest (see ManifestEntity#update).
-                issueManifest(certificateAuthority, manifestEntity, validityPeriod);
+                issueManifest(manifestEntity, validityPeriod);
                 manifestEntityRepository.add(manifestEntity);
 
                 crlSizeDistribution.record(crlEntity.getEncoded().length);
@@ -182,18 +132,17 @@ public class CertificateManagementServiceImpl implements CertificateManagementSe
     private boolean isManifestUpdateNeeded(DateTime now, ManifestEntity manifestEntity) {
         KeyPairEntity keyPair = manifestEntity.getKeyPair();
         return manifestEntity.isUpdateNeeded(
-                now,
-                determineManifestEntries(publishedObjectRepository, keyPair),
-                keyPair.getCurrentIncomingCertificate()
+            now,
+            determineManifestEntries(publishedObjectRepository, keyPair)
         );
     }
 
-    private void issueManifest(ManagedCertificateAuthority certificateAuthority, ManifestEntity manifestEntity, ValidityPeriod validityPeriod) {
+    private void issueManifest(ManifestEntity manifestEntity, ValidityPeriod validityPeriod) {
         KeyPairEntity keyPair = manifestEntity.getKeyPair();
 
         KeyPair eeKeyPair = singleUseKeyPairFactory.get();
         CertificateIssuanceRequest request = manifestEntity.requestForManifestEeCertificate(eeKeyPair);
-        OutgoingResourceCertificate manifestCertificate = issueSingleUseEeResourceCertificate(certificateAuthority, request, validityPeriod, keyPair);
+        OutgoingResourceCertificate manifestCertificate = singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, validityPeriod, keyPair);
 
         List<PublishedObject> manifestEntries = determineManifestEntries(publishedObjectRepository, keyPair);
         manifestEntity.update(manifestCertificate, eeKeyPair, singleUseKeyPairFactory.signatureProvider(), manifestEntries);

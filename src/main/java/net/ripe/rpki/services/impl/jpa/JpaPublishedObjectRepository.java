@@ -161,7 +161,8 @@ public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject>
                 "  AND NOT EXISTS (FROM OutgoingResourceCertificate rc WHERE rc.publishedObject = po)" +
                 "  AND NOT EXISTS (FROM CrlEntity crl WHERE crl.publishedObject = po) " +
                 "  AND NOT EXISTS (FROM ManifestEntity mft WHERE mft.publishedObject = po) " +
-                "  AND NOT EXISTS (FROM RoaEntity roa WHERE roa.publishedObject = po)")
+                "  AND NOT EXISTS (FROM RoaEntity roa WHERE roa.publishedObject = po)" +
+                "  AND NOT EXISTS (FROM AspaEntity aspa WHERE aspa.publishedObject = po)")
             .setParameter("withdrawn", PublicationStatus.WITHDRAWN)
             .setParameter("expirationTime", expirationTime)
             .executeUpdate();

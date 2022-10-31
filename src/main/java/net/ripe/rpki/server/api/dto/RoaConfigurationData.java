@@ -12,8 +12,6 @@ import static com.google.common.base.Preconditions.*;
 
 public class RoaConfigurationData extends ValueObjectSupport {
 
-    private static final long serialVersionUID = 1L;
-
     private final List<RoaConfigurationPrefixData> prefixes;
 
     public RoaConfigurationData(List<RoaConfigurationPrefixData> prefixes) {

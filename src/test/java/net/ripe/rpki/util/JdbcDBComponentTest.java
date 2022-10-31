@@ -5,8 +5,7 @@ import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.HostedCertificateAuthority;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.ProductionCertificateAuthorityTest;
-import net.ripe.rpki.domain.TestServices;
+import net.ripe.rpki.domain.TestObjects;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,7 +43,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
     public void setUp() {
         transactionTemplate.executeWithoutResult((status) -> {
             clearDatabase();
-            ProductionCertificateAuthority ca = ProductionCertificateAuthorityTest.createInitialisedProdCaWithRipeResources(TestServices.createCertificateManagementService());
+            ProductionCertificateAuthority ca = TestObjects.createInitialisedProdCaWithRipeResources();
             certificateAuthorityRepository.add(ca);
         });
     }
@@ -120,7 +119,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             assertThat(entityManager.getLockMode(ca)).isEqualTo(LockModeType.OPTIMISTIC);
 
             jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
-            ca.roaConfigurationUpdated(); // Force state change in CA so Hibernate will flush entity
+            ca.configurationUpdated(); // Force state change in CA so Hibernate will flush entity
             entityManager.flush();
 
             // After flush the lock type changes to OPTIMISTIC_FORCE_INCREMENT
@@ -134,7 +133,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
             final ManagedCertificateAuthority ca = (ManagedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
             assertThat(entityManager.getLockMode(ca)).isEqualTo(LockModeType.OPTIMISTIC);
 
-            ca.roaConfigurationUpdated(); // Force state change in CA so Hibernate will flush entity
+            ca.configurationUpdated(); // Force state change in CA so Hibernate will flush entity
             entityManager.flush();
 
             // After flush the lock type changes to OPTIMISTIC_FORCE_INCREMENT

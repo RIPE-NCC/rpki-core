@@ -247,34 +247,16 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
 
         final Optional<String> removedRoasErrorMessage = Utils.errorsInUserInputRoas(publishSet.getDeleted());
         if (removedRoasErrorMessage.isPresent()) {
-            return ResponseEntity.status(BAD_REQUEST).body(of(ERROR, "Added ROAs are incorrect: " + removedRoasErrorMessage.get()));
+            return ResponseEntity.status(BAD_REQUEST).body(of(ERROR, "Deleted ROAs are incorrect: " + removedRoasErrorMessage.get()));
         }
 
         final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         final IpResourceSet certifiedResources = ca.getResources();
 
-        final List<ROA> addedAndDeletedRoas = new ArrayList<>();
-        addedAndDeletedRoas.addAll(publishSet.getAdded());
-        addedAndDeletedRoas.addAll(publishSet.getDeleted());
-
-        for (ROA roa : addedAndDeletedRoas) {
-            PrefixValidationResult validationResult = validatePrefix(roa.getPrefix(), certifiedResources);
-            if (PrefixValidationResult.SYNTAX_ERROR == validationResult) {
-                return ResponseEntity.status(BAD_REQUEST).body(of(ERROR, validationResult.getMessage(roa.getPrefix())));
-            }
-        }
-
         for (ROA roa : publishSet.getAdded()) {
             PrefixValidationResult validationResult = validatePrefix(roa.getPrefix(), certifiedResources);
             if (PrefixValidationResult.OWNERSHIP_ERROR == validationResult) {
                 return ResponseEntity.status(BAD_REQUEST).body(of(ERROR, validationResult.getMessage(roa.getPrefix())));
-            }
-        }
-
-        for (ROA roa : addedAndDeletedRoas) {
-            if (!Utils.lengthIsValid(roa)) {
-                return ResponseEntity.status(BAD_REQUEST).body(of(ERROR,
-                        "Max length must be at most /32 (IPv4) or /128 (IPv6) but was " + roa.getMaxLength()));
             }
         }
 

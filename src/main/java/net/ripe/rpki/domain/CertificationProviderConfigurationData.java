@@ -4,8 +4,6 @@ import net.ripe.rpki.server.api.support.objects.ValueObjectSupport;
 
 public class CertificationProviderConfigurationData extends ValueObjectSupport {
 
-	private static final long serialVersionUID = 1L;
-
 	private final String keyStoreProvider;
 	private final String keyPairGeneratorProvider;
 	private final String signatureProvider;

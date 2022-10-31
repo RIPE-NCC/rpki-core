@@ -1,12 +1,11 @@
 package net.ripe.rpki.domain.roa;
 
-import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 
 import java.util.Collection;
 
 
-public interface RoaEntityService extends CertificateAuthorityEventVisitor {
+public interface RoaEntityService {
 
     void updateRoasIfNeeded(ManagedCertificateAuthority ca);
 

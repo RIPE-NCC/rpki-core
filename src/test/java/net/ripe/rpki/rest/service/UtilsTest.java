@@ -1,43 +1,53 @@
 package net.ripe.rpki.rest.service;
 
+import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.rest.pojo.ROA;
 import org.junit.Test;
 
-import static net.ripe.rpki.rest.service.Utils.lengthIsValid;
+import static net.ripe.rpki.rest.service.Utils.errorsInUserInputRoas;
+import static net.ripe.rpki.rest.service.Utils.maxLengthIsValid;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class UtilsTest {
     @Test
+    public void shouldCheckMaxLength() {
+        assertThat(errorsInUserInputRoas(new ROA("AS65536", "192.0.2.0/24", 23)))
+            .hasValue("Max length '23' must be between 24 and 32 for prefix '192.0.2.0/24'");
+    }
+
+    @Test
     public void shouldAcceptFittingMaxLength() {
-        assertTrue(lengthIsValid(new ROA("AS65536", "192.0.2.0/24", 24)));
-        assertTrue(lengthIsValid(new ROA("AS65536", "192.0.2.0/24", 32)));
-        assertTrue(lengthIsValid(new ROA("AS65536", "2001:DB8::/48", 48)));
-        assertTrue(lengthIsValid(new ROA("AS65536", "2001:DB8::/48", 128)));
+        assertTrue(maxLengthIsValid(IpRange.parse("192.0.2.0/24"), 24));
+        assertTrue(maxLengthIsValid(IpRange.parse("192.0.2.0/24"), 32));
+        assertTrue(maxLengthIsValid(IpRange.parse("2001:DB8::/48"), 48));
+        assertTrue(maxLengthIsValid(IpRange.parse("2001:DB8::/48"), 128));
     }
 
     @Test
     public void shouldRejectMissingMaxLength() {
-        assertFalse(lengthIsValid(new ROA("AS65536", "192.0.2.0/24", null)));
+        assertThat(errorsInUserInputRoas(new ROA("AS65536", "192.0.2.0/24", null)))
+            .hasValue("Max length must be specified and must be between 24 and 32 for prefix '192.0.2.0/24'");
     }
 
     @Test
     public void shouldRejectUndershootMaxLengthV4() {
-        assertFalse(lengthIsValid(new ROA("AS65536", "192.0.2.0/24", 23)));
+        assertFalse(maxLengthIsValid(IpRange.parse("192.0.2.0/24"), 23));
     }
 
     @Test
     public void shouldRejectTooLongMaxLengthV4() {
-        assertFalse(lengthIsValid(new ROA("AS65536", "192.0.2.0/24", 33)));
+        assertFalse(maxLengthIsValid(IpRange.parse("192.0.2.0/24"), 33));
     }
 
     @Test
     public void shouldRejectUndershootMaxLengthV6() {
-        assertFalse(lengthIsValid(new ROA("AS65536", "2001:DB8::/48", 47)));
+        assertFalse(maxLengthIsValid(IpRange.parse("2001:DB8::/48"), 47));
     }
 
     @Test
     public void shouldRejectTooLongMaxLengthV6() {
-        assertFalse(lengthIsValid(new ROA("AS65536", "2001:DB8::/48", 133)));
+        assertFalse(maxLengthIsValid(IpRange.parse("2001:DB8::/48"), 133));
     }
 }

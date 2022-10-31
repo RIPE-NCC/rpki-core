@@ -1,7 +1,9 @@
 package net.ripe.rpki.rest.service;
 
+import com.google.common.annotations.VisibleForTesting;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResource;
@@ -78,44 +80,51 @@ class Utils {
             if (r == null) {
                 errors.add("ROA is null");
             } else {
-                if (r.getAsn() == null) {
-                    errors.add("ASN is empty in (" + r + ")");
-                } else {
-                    try {
-                        Asn.parse(r.getAsn());
-                    } catch (Exception e) {
-                        errors.add("ASN '" + r.getAsn() + "' is invalid in (" + r + ")");
-                    }
-                }
-                if (r.getPrefix() == null) {
-                    errors.add("Prefix is empty in (" + r + ")");
-                } else {
-                    try {
-                        IpRange.parse(r.getPrefix());
-
-                        if (!lengthIsValid(r)) {
-                            errors.add(String.format("Max length must be at most /32 (IPv4) or /128 (IPv6) but was %d", r.getMaxLength()));
-                        }
-                    } catch (Exception e) {
-                        errors.add("Prefix '" + r.getPrefix() + "' is invalid in (" + r + ")");
-                    }
-                }
+                validateAsn(errors, r);
+                validatePrefixAndMaxLength(errors, r);
             }
         });
         return errors.isEmpty() ? Optional.empty() : Optional.of(String.join(", ", errors));
     }
 
+    private static void validateAsn(List<String> errors, @NonNull ROA r) {
+        if (r.getAsn() == null) {
+            errors.add("ASN is empty in (" + r + ")");
+        } else {
+            try {
+                Asn.parse(r.getAsn());
+            } catch (Exception e) {
+                errors.add("ASN '" + r.getAsn() + "' is invalid in (" + r + ")");
+            }
+        }
+    }
+
+    private static void validatePrefixAndMaxLength(List<String> errors, @NonNull ROA r) {
+        if (r.getPrefix() == null) {
+            errors.add("Prefix is empty in (" + r + ")");
+        } else {
+            try {
+                IpRange range = IpRange.parse(r.getPrefix());
+
+                if (!range.isLegalPrefix()) {
+                    errors.add(String.format("Range '%s' is not a valid prefix", range));
+                } else if (r.getMaxLength() == null) {
+                    errors.add(String.format("Max length must be specified and must be between %d and %d for prefix '%s'", range.getPrefixLength(), range.getType().getBitSize(), range));
+                } else if (!maxLengthIsValid(range, r.getMaxLength())) {
+                    errors.add(String.format("Max length '%d' must be between %d and %d for prefix '%s'", r.getMaxLength(), range.getPrefixLength(), range.getType().getBitSize(), range));
+                }
+            } catch (Exception e) {
+                errors.add("Prefix '" + r.getPrefix() + "' is invalid in (" + r + ")");
+            }
+        }
+    }
+
     /**
      * Check for valid (non-missing, valid with regard to prefix and address family) maxLength.
      */
-    static boolean lengthIsValid(ROA roa) {
-        IpRange range = IpRange.parse(roa.getPrefix());
-
-        if (roa.getMaxLength() == null || !range.isLegalPrefix()) {
-            return false;
-        }
-
-        return roa.getMaxLength() >= range.getPrefixLength() && roa.getMaxLength() <= range.getType().getBitSize();
+    @VisibleForTesting
+    static boolean maxLengthIsValid(IpRange prefix, int maxLength) {
+        return maxLength >= prefix.getPrefixLength() && maxLength <= prefix.getType().getBitSize();
     }
 
     public static List<String> toStringList(IpResourceSet resources) {

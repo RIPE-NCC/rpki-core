@@ -14,8 +14,6 @@ public class DeleteCertificateAuthorityCommand extends ChildParentCertificateAut
     private final X500Principal name;
     private final RoaConfigurationData roaConfiguration;
 
-    private static final long serialVersionUID = 2L;
-
     public DeleteCertificateAuthorityCommand(VersionedId certificateAuthorityId, X500Principal name, RoaConfigurationData roaConfiguration) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
         this.name = name;

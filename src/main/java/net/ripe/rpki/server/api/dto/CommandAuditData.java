@@ -8,8 +8,6 @@ import org.joda.time.DateTime;
 
 public class CommandAuditData extends CertificateAuthorityHistoryItem {
 
-    private static final long serialVersionUID = 1L;
-
     @Getter
     private final VersionedId certificateAuthorityVersionedId;
     @Getter

@@ -2,6 +2,10 @@ package net.ripe.rpki.util;
 
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.domain.CertificateAuthority;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.ServerErrorMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -11,6 +15,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
+import java.util.Objects;
 
 @Primary
 @Component
@@ -84,4 +89,17 @@ public class JdbcDBComponent implements DBComponent {
         }
     }
 
+    public static boolean isUniqueConstraintViolation(Throwable exception, String constraintName) {
+        // Support PostgreSQL only for now
+        Throwable rootCause = ExceptionUtils.getRootCause(exception);
+        if (rootCause instanceof PSQLException) {
+            PSQLException psqlException = (PSQLException) rootCause;
+            ServerErrorMessage message = psqlException.getServerErrorMessage();
+            return message != null
+                && Objects.equals(PSQLState.UNIQUE_VIOLATION.getState(), message.getSQLState())
+                && Objects.equals(constraintName, message.getConstraint());
+        }
+
+        return false;
+    }
 }

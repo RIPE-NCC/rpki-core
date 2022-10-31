@@ -10,8 +10,6 @@ import javax.validation.constraints.NotNull;
  */
 public class RoaEntityData extends ValueObjectSupport {
 
-    private static final long serialVersionUID = 1L;
-
     @NotNull
     private RoaCms roaCms;
 

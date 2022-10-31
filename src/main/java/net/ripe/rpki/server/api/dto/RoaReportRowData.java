@@ -10,8 +10,6 @@ import java.util.List;
 
 public class RoaReportRowData extends ValueObjectSupport {
 
-    private static final long serialVersionUID = 1L;
-
     private final X500Principal caName;
 
     private final boolean caWithRoaSpecification;

@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static net.ripe.rpki.domain.CertificationDomainTestCase.BASE_URI;
+import static net.ripe.rpki.domain.TestObjects.BASE_URI;
 import static net.ripe.rpki.services.impl.handlers.PublicationSupport.CORE_CLIENT_ID;
 import static net.ripe.rpki.services.impl.handlers.PublicationSupport.objectHash;
 import static org.assertj.core.api.Assertions.assertThat;

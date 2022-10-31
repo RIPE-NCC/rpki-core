@@ -120,12 +120,13 @@ public class ResourceCacheService {
             interpretUpdate(membersUpdate, acceptOneRejectedResourceCacheUpdate);
 
             if (!rejected.isEmpty()) {
-                acceptOneRejectedResourceCacheUpdate = false;
-            }
-
-            // status is not mutated in this scope, how can this path be triggered?
-            if (!status.isRollbackOnly()) {
-                acceptOneRejectedResourceCacheUpdate = false;
+                if (acceptOneRejectedResourceCacheUpdate) {
+                    acceptOneRejectedResourceCacheUpdate = false;
+                } else {
+                    // Rollback transactions after interpreting updates so that metrics get adjusted correctly,
+                    // otherwise we could just return early before interpreting the updates.
+                    status.setRollbackOnly();
+                }
             }
         });
     }

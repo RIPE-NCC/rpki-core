@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
 @Slf4j
@@ -15,14 +16,18 @@ public class ApiKeySecurity {
     public static final String API_KEY_HEADER = "ncc-internal-api-key";
     public static final String USER_ID_HEADER = "user-id";
 
-    private Properties apiKeys = new Properties();
+    private final Properties apiKeys = new Properties();
 
     @Autowired
     public ApiKeySecurity(CertificationConfiguration certificationConfiguration) {
-        try {
-            apiKeys.load(certificationConfiguration.getApiKeys().getInputStream());
+        try (InputStream in = certificationConfiguration.getApiKeys().getInputStream()) {
+            apiKeys.load(in);
         } catch (IOException ioe) {
-            log.error("Unable to load api-keys.properties from {} bailing out", certificationConfiguration.getApiKeys().toString());
+            log.error(
+                "Unable to load api-keys.properties from {}: {}. Bailing out.",
+                certificationConfiguration.getApiKeys().toString(),
+                ioe.getMessage()
+            );
             System.exit(1);
         }
     }

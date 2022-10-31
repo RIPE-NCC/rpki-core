@@ -128,6 +128,10 @@ public class AbstractCaRestService {
                 .build();
     }
 
+    protected <T> ResponseEntity<T> noContent() {
+        return ResponseEntity.noContent().build();
+    }
+
     enum PrefixValidationResult {
         SYNTAX_ERROR("syntax", "%s is not a legal prefix"),
         OWNERSHIP_ERROR("ownership", "You are not a holder of the prefix %s"),

@@ -7,7 +7,6 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.roa.Roa;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaPrefix;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import org.joda.time.DateTime;
 import org.junit.Before;
@@ -17,7 +16,9 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.util.Arrays.asList;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,14 +40,13 @@ public class RoaSpecificationTest {
     private RoaStub roa;
     private ValidityPeriod caCertValidityPeriod;
 
-    private ManagedCertificateAuthority certificateAuthority;
     private IncomingResourceCertificate incomingCertificate;
 
     private IpResourceSet resources;
 
 
-    public static RoaSpecification createRoaSpecification(ManagedCertificateAuthority ca) {
-        RoaSpecification result = new RoaSpecification(ca, ASN, VALIDITY_PERIOD);
+    public static RoaSpecification createRoaSpecification() {
+        RoaSpecification result = new RoaSpecification(ASN, VALIDITY_PERIOD);
         result.addAllowedRoute(ROA_PREFIX_1);
         result.addAllowedRoute(ROA_PREFIX_2);
         return result;
@@ -55,16 +55,14 @@ public class RoaSpecificationTest {
     @Before
     public void setUp() {
         caCertValidityPeriod = new ValidityPeriod(NOW, NOW.plusYears(2));
-        certificateAuthority = mock(ManagedCertificateAuthority.class);
         incomingCertificate = mock(IncomingResourceCertificate.class);
 
         resources = new IpResourceSet(RESOURCE_1, RESOURCE_2);
-        when(certificateAuthority.getCertifiedResources()).thenReturn(resources);
 
         when(incomingCertificate.getValidityPeriod()).thenReturn(caCertValidityPeriod);
         when(incomingCertificate.getResources()).thenReturn(resources);
 
-        subject = createRoaSpecification(certificateAuthority);
+        subject = createRoaSpecification();
         roa = new RoaStub(subject.calculateValidityPeriod(), subject.getAsn(), asList(ROA_PREFIX_1.getRoaPrefix(), ROA_PREFIX_2.getRoaPrefix()));
     }
 
@@ -89,7 +87,7 @@ public class RoaSpecificationTest {
 
     @Test
     public void should_not_be_satisfied_by_roa_with_less_prefixes() {
-        RoaSpecification subject = new RoaSpecification(certificateAuthority, ASN, VALIDITY_PERIOD);
+        RoaSpecification subject = new RoaSpecification(ASN, VALIDITY_PERIOD);
         subject.addAllowedRoute(ROA_PREFIX_1);
         subject.addAllowedRoute(ROA_PREFIX_2);
 
@@ -100,7 +98,7 @@ public class RoaSpecificationTest {
 
     @Test
     public void should_not_be_satisfied_by_roa_with_more_prefixes() {
-        RoaSpecification subject = new RoaSpecification(certificateAuthority, ASN, VALIDITY_PERIOD);
+        RoaSpecification subject = new RoaSpecification(ASN, VALIDITY_PERIOD);
         subject.addAllowedRoute(ROA_PREFIX_1);
 
         RoaStub roa = new RoaStub(subject.calculateValidityPeriod(), subject.getAsn(), asList(ROA_PREFIX_1.getRoaPrefix(), ROA_PREFIX_2.getRoaPrefix()));

@@ -16,20 +16,16 @@ import net.ripe.rpki.commons.ta.domain.response.TrustAnchorResponse;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityException;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.KeyPairService;
 import net.ripe.rpki.domain.PublicationStatus;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.TestObjects;
-import net.ripe.rpki.domain.TestServices;
 import net.ripe.rpki.domain.TrustAnchorPublishedObject;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
 import net.ripe.rpki.server.api.ports.ResourceCache;
-import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.OfflineResponseProcessorException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -49,6 +45,8 @@ import java.util.UUID;
 
 import static net.ripe.ipresource.IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
 import static net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateTest.createSelfSignedCaResourceCertificate;
+import static net.ripe.rpki.domain.TestObjects.ACA_ID;
+import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -85,10 +83,6 @@ public class TrustAnchorResponseProcessorTest {
     private TrustAnchorResponseProcessor subject;
 
     @Mock
-    private ResourceLookupService resourceLookupService;
-    @Mock
-    private KeyPairService keyPairService;
-    @Mock
     private PublishedObjectRepository publishedObjectRepository;
     @Mock
     private TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository;
@@ -109,7 +103,7 @@ public class TrustAnchorResponseProcessorTest {
         subject = new TrustAnchorResponseProcessor(CA_NAME, PROD_CA_NAME, certificateAuthorityRepository, publishedObjectRepository,
                 trustAnchorPublishedObjectRepository, keyPairDeletionService, resourceCache);
         subject.setEntityManager(entityManager);
-        allResourcesCA = CertificationDomainTestCase.createInitialisedAllResourcesCaWithRipeResources(TestServices.createCertificateManagementService(publishedObjectRepository));
+        allResourcesCA = new AllResourcesCertificateAuthority(ACA_ID, ALL_RESOURCES_CA_NAME);
     }
 
     @Test

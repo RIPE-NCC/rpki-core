@@ -17,7 +17,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import javax.security.auth.x500.X500Principal;
 import java.security.PublicKey;
 
-import static net.ripe.rpki.domain.CertificationDomainTestCase.ALL_RESOURCES_CA_NAME;
+import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;

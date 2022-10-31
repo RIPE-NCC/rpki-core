@@ -49,8 +49,8 @@ public class ResourceCertificateInformationAccessStrategyBean implements Resourc
     }
 
     @Override
-    public X500Principal eeCertificateSubject(String signedObjectName, PublicKey subjectPublicKey, KeyPairEntity signingKeyPair) {
-        return strategy.eeCertificateSubject(signedObjectName, subjectPublicKey, signingKeyPair);
+    public X500Principal eeCertificateSubject(PublicKey subjectPublicKey) {
+        return strategy.eeCertificateSubject(subjectPublicKey);
     }
 
     @Override
@@ -61,6 +61,11 @@ public class ResourceCertificateInformationAccessStrategyBean implements Resourc
     @Override
     public String roaFilename(OutgoingResourceCertificate endEntityCertificate) {
         return strategy.roaFileName(endEntityCertificate);
+    }
+
+    @Override
+    public String aspaFilename(OutgoingResourceCertificate endEntityCertificate) {
+        return strategy.aspaFileName(endEntityCertificate);
     }
 
     @Override

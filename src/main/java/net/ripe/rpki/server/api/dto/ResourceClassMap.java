@@ -19,8 +19,6 @@ import java.util.TreeMap;
  */
 public class ResourceClassMap extends ValueObjectSupport implements Iterable<Map.Entry<String, IpResourceSet>> {
 
-    private static final long serialVersionUID = 1L;
-
     private final SortedMap<String, IpResourceSet> resourceClasses;
 
     public static ResourceClassMap empty() {

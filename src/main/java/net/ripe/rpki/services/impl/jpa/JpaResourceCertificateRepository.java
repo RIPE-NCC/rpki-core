@@ -98,7 +98,12 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
             "),\n" +
             "deleted_roas AS (\n" +
             "    DELETE FROM roaentity\n" +
-            "    WHERE EXISTS (SELECT id FROM expired_certificates WHERE expired_certificates.id = roaentity.certificate_id)\n" +
+            "    WHERE certificate_id IN (SELECT id FROM expired_certificates)\n" +
+            "    RETURNING id\n" +
+            "),\n" +
+            "deleted_aspas AS (\n" +
+            "    DELETE FROM aspaentity\n" +
+            "    WHERE certificate_id IN (SELECT id FROM expired_certificates)\n" +
             "    RETURNING id\n" +
             "),\n" +
             "withdrawn_objects AS (\n" +
@@ -115,6 +120,7 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
             ")\n" +
             "SELECT (SELECT COUNT(*) FROM expired_certificates) AS expired_certificate_count,\n" +
             "       (SELECT COUNT(*) FROM deleted_roas) AS deleted_roa_count,\n" +
+            "       (SELECT COUNT(*) FROM deleted_aspas) AS deleted_aspa_count,\n" +
             "       (SELECT COUNT(*) FROM withdrawn_objects) AS withdrawn_object_count\n")
             .setParameter("now", new DateTimePersistenceConverter().convertToDatabaseColumn(now))
             .setParameter("expired", OutgoingResourceCertificateStatus.EXPIRED.name())
@@ -126,7 +132,8 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
         return new ExpireOutgoingResourceCertificatesResult(
             ((BigInteger) counts[0]).intValueExact(),
             ((BigInteger) counts[1]).intValueExact(),
-            ((BigInteger) counts[2]).intValueExact()
+            ((BigInteger) counts[2]).intValueExact(),
+            ((BigInteger) counts[3]).intValueExact()
         );
     }
 
@@ -139,8 +146,8 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
             // if we fail to publish and update the manifest entity before the nextUpdateTime or
             // if we don't remove manifests left behind by key pairs that have been revoked
             "AND NOT EXISTS (SELECT manifest.id FROM ManifestEntity manifest WHERE manifest.certificate = rc) " +
-            // FIXME: there are expired embedded outgoing certificates referenced from ROAs in the database...
-            "AND NOT EXISTS (SELECT roa.id FROM RoaEntity roa WHERE roa.certificate = rc)")
+            "AND NOT EXISTS (SELECT roa.id FROM RoaEntity roa WHERE roa.certificate = rc)" +
+            "AND NOT EXISTS (SELECT aspa.id FROM AspaEntity aspa WHERE aspa.certificate = rc)")
                 .setParameter("expired", OutgoingResourceCertificateStatus.EXPIRED)
                 .setParameter("expirationTime", expirationTime)
                 .executeUpdate();

@@ -4,21 +4,21 @@ import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.TestServices;
+import net.ripe.rpki.domain.TestObjects;
+import net.ripe.rpki.domain.inmemory.InMemoryResourceCertificateRepository;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
-import net.ripe.rpki.server.api.services.command.RoaConfigurationForPrivateASNException;
+import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import net.ripe.rpki.services.impl.background.RoaMetricsService;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
 
-import static net.ripe.rpki.domain.ProductionCertificateAuthorityTest.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,7 +50,7 @@ public class UpdateRoaConfigurationCommandHandlerTest {
 
     @Before
     public void setUp() {
-        certificateAuthority = createInitialisedProdCaWithRipeResources(TestServices.createCertificateManagementService());
+        certificateAuthority = TestObjects.createInitialisedProdCaWithRipeResources();
         certificateAuthorityRepository = mock(CertificateAuthorityRepository.class);
         roaConfigurationRepository = mock(RoaConfigurationRepository.class);
         roaEntityService = mock(RoaEntityService.class);
@@ -76,7 +76,7 @@ public class UpdateRoaConfigurationCommandHandlerTest {
         verify(roaMetricsService).countAdded(1);
     }
 
-    @Test(expected = RoaConfigurationForPrivateASNException.class)
+    @Test(expected = PrivateAsnsUsedException.class)
     public void should_reject_new_additions_of_private_ASN() {
         subject.handle(new UpdateRoaConfigurationCommand(
                 certificateAuthority.getVersionedId(),

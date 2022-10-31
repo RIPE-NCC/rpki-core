@@ -17,8 +17,6 @@ import java.util.List;
 @Getter
 public class ProvisioningCertificateIssuanceCommand extends ChildSharedParentCertificateAuthorityCommand {
 
-    private static final long serialVersionUID = 1L;
-
     @NonNull private final PublicKey publicKey;
     @NonNull private final RequestedResourceSets requestedResourceSets;
     @NonNull private final List<X509CertificateInformationAccessDescriptor> sia;

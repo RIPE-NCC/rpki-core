@@ -6,8 +6,6 @@ import java.util.UUID;
 
 public class CertificationUserId extends ValueObjectSupport {
 
-	private static final long serialVersionUID = 1L;
-
 	private static final UUID SYSTEM_ID = UUID.fromString("3b22801d-c151-4bcc-9298-a93df3f365d9");
 	public static final CertificationUserId SYSTEM = new CertificationUserId(SYSTEM_ID);
 	

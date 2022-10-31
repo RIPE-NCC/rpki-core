@@ -7,11 +7,9 @@ import io.micrometer.core.instrument.Timer;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.alerts.RoaAlertMaintenanceService;
 import net.ripe.rpki.domain.audit.CommandAuditService;
-import net.ripe.rpki.domain.roa.RoaConfigurationMaintenanceService;
-import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.ripencc.support.event.EventDelegateTracker;
 import net.ripe.rpki.ripencc.support.event.EventSubscription;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
@@ -33,9 +31,11 @@ import javax.persistence.PessimisticLockException;
 import javax.persistence.Query;
 import java.math.BigInteger;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
@@ -44,11 +44,11 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 @Slf4j
 public class CommandServiceImpl implements CommandService {
 
+    public static final int MAX_RETRIES = 5;
+
     private MessageDispatcher commandDispatcher;
     private final TransactionTemplate transactionTemplate;
-    private final RoaAlertMaintenanceService roaAlertMaintenanceService;
-    private final RoaConfigurationMaintenanceService roaConfigurationMaintenanceService;
-    private final RoaEntityService roaEntityService;
+    private final List<CertificateAuthorityEventVisitor> eventVisitors;
     private final CommandAuditService commandAuditService;
     private final EntityManager entityManager;
 
@@ -60,18 +60,14 @@ public class CommandServiceImpl implements CommandService {
     public CommandServiceImpl(
         MessageDispatcher commandDispatcher,
         TransactionTemplate transactionTemplate,
-        RoaAlertMaintenanceService roaAlertMaintenanceService,
-        RoaConfigurationMaintenanceService roaConfigurationMaintenanceService,
-        RoaEntityService roaEntityService,
+        List<CertificateAuthorityEventVisitor> eventVisitors,
         CommandAuditService commandAuditService,
         EntityManager entityManager,
         MeterRegistry meterRegistry
     ) {
         this.commandDispatcher = commandDispatcher;
         this.transactionTemplate = transactionTemplate;
-        this.roaAlertMaintenanceService = roaAlertMaintenanceService;
-        this.roaConfigurationMaintenanceService = roaConfigurationMaintenanceService;
-        this.roaEntityService = roaEntityService;
+        this.eventVisitors = eventVisitors;
         this.commandAuditService = commandAuditService;
         this.entityManager = entityManager;
 
@@ -109,14 +105,15 @@ public class CommandServiceImpl implements CommandService {
                 return executeTimedCommand(command);
             } catch (OptimisticLockException | PessimisticLockException | TransientDataAccessException e) {
                 // Locking exceptions are most often transient, so retry a few times
-                retryCount++;
-                if (retryCount > 2) {
+                if (retryCount >= MAX_RETRIES) {
                     log.warn("Error processing command after {} tries: {}", retryCount, command, e);
                     throw e;
                 } else {
+                    retryCount++;
                     commandRetryCounter.increment();
-                    log.info("Command failed with possibly transient locking exception {}, retry {}: {}", e.getClass().getName(), retryCount, command);
-                    sleepUninterruptibly((100 + (long) (Math.random() * 100) << retryCount), TimeUnit.MILLISECONDS);
+                    long sleepForMs = (20 + (long) (Math.random() * 30)) << retryCount;
+                    log.info("Command failed with possibly transient locking exception {}, retry {} in {} ms: {}", e.getClass().getName(), retryCount, sleepForMs, command);
+                    sleepUninterruptibly(sleepForMs, TimeUnit.MILLISECONDS);
                 }
             } catch (Exception e) {
                 log.warn("Error processing command: {}", command, e);
@@ -143,11 +140,9 @@ public class CommandServiceImpl implements CommandService {
         transactionTemplate.executeWithoutResult(status -> {
             EventDelegateTracker.get().reset();
             CommandContext commandContext = commandAuditService.startRecording(command);
+            List<EventSubscription> subscriptions = eventVisitors.stream().map(visitor -> ManagedCertificateAuthority.subscribe(visitor, commandContext)).collect(Collectors.toList());
             try (
-                EventSubscription commandAuditSubscription = ManagedCertificateAuthority.EVENTS.subscribe(commandContext::recordEvent);
-                EventSubscription roaEntityServiceSubscription = ManagedCertificateAuthority.subscribe(roaEntityService, commandContext);
-                EventSubscription roaAlertMaintenanceSubscription = ManagedCertificateAuthority.subscribe(roaAlertMaintenanceService, commandContext);
-                EventSubscription roaConfigurationMaintenanceSubscription = ManagedCertificateAuthority.subscribe(roaConfigurationMaintenanceService, commandContext)
+                EventSubscription commandAuditSubscription = ManagedCertificateAuthority.EVENTS.subscribe(commandContext::recordEvent)
             ) {
                 commandStatus.setTransactionStatus(status);
                 commandDispatcher.dispatch(command, commandStatus);
@@ -161,6 +156,7 @@ public class CommandServiceImpl implements CommandService {
                 status.setRollbackOnly();
                 throw e;
             } finally {
+                subscriptions.forEach(EventSubscription::close);
                 EventDelegateTracker.get().reset();
             }
         });

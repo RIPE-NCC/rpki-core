@@ -3,15 +3,9 @@ package net.ripe.rpki.domain.manifest;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCms;
 import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
-import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.IncomingResourceCertificate;
-import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
-import net.ripe.rpki.domain.PublishedObject;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
-import net.ripe.rpki.ncc.core.services.activation.CertificateManagementServiceImpl;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeConstants;
 import org.joda.time.DateTimeUtils;
@@ -28,11 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @Transactional
 public class ManifestEntityTest extends CertificationDomainTestCase {
@@ -42,7 +32,6 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
     private ManagedCertificateAuthority ca;
     private ManifestEntity subject;
     private DateTime now;
-    private IncomingResourceCertificate incomingCertificate;
     private KeyPairEntity currentKeyPair;
     private Collection<PublishedObject> initialEntries;
     private KeyPair eeKeyPair;
@@ -60,15 +49,14 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
         ca = createInitialisedProdCaWithRipeResources();
         currentKeyPair = ca.getCurrentKeyPair();
         subject = new ManifestEntity(currentKeyPair);
-        incomingCertificate = currentKeyPair.getCurrentIncomingCertificate();
         publishedObject1 = new PublishedObject(currentKeyPair, "foo.crl", new byte[]{1, 2, 3, 4}, true, PUBLICATION_DIRECTORY, new ValidityPeriod());
         publishedObject2 = new PublishedObject(currentKeyPair, "foo.roa", new byte[]{5, 6, 7, 8}, true, PUBLICATION_DIRECTORY, new ValidityPeriod());
         initialEntries = Collections.singleton(publishedObject1);
 
         eeKeyPair = PregeneratedKeyPairFactory.getInstance().generate();
         CertificateIssuanceRequest request = subject.requestForManifestEeCertificate(eeKeyPair);
-        ValidityPeriod validityPeriod = new ValidityPeriod(now, now.plus(CertificateManagementServiceImpl.TIME_TO_NEXT_UPDATE));
-        eeCertificate = certificateManagementService.issueSingleUseEeResourceCertificate(ca, request, validityPeriod, currentKeyPair);
+        ValidityPeriod validityPeriod = new ValidityPeriod(now, now.plus(ManifestPublicationService.TIME_TO_NEXT_UPDATE));
+        eeCertificate = singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, validityPeriod, currentKeyPair);
 
         subject.update(eeCertificate, eeKeyPair, "SunRsaSign", initialEntries);
     }
@@ -96,21 +84,21 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
         subject = new ManifestEntity(currentKeyPair);
 
         assertNull(subject.getManifestCms());
-        assertTrue(subject.isUpdateNeeded(now, initialEntries, incomingCertificate));
+        assertTrue(subject.isUpdateNeeded(now, initialEntries));
     }
 
     @Test
     public void shouldRequireUpdateWhenCloseToNextUpdateTime() {
         DateTime now = this.now.plusHours(8).plusMinutes(1);
 
-        assertTrue(subject.isUpdateNeeded(now, initialEntries, incomingCertificate));
+        assertTrue(subject.isUpdateNeeded(now, initialEntries));
     }
 
     @Test
     public void shouldNotUpdateTooSoon() {
         DateTime now = this.now.plusHours(8);
 
-        assertFalse(subject.isUpdateNeeded(now, initialEntries, incomingCertificate));
+        assertFalse(subject.isUpdateNeeded(now, initialEntries));
     }
 
     @Test
@@ -137,14 +125,14 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
             resourceCertificateRepository
         );
 
-        assertTrue(subject.isUpdateNeeded(now, initialEntries, ca.getCurrentKeyPair().getCurrentIncomingCertificate()));
+        assertTrue(subject.isUpdateNeeded(now, initialEntries));
     }
 
     @Test
     public void shouldRequireUpdateWhenManifestEntriesChange() {
-        assertFalse("no update when entries are the same", subject.isUpdateNeeded(now, initialEntries, incomingCertificate));
+        assertFalse("no update when entries are the same", subject.isUpdateNeeded(now, initialEntries));
         assertTrue("update required when entries change",
-                subject.isUpdateNeeded(now, Collections.singleton(publishedObject2), incomingCertificate));
+                subject.isUpdateNeeded(now, Collections.singleton(publishedObject2)));
     }
 
     @Test

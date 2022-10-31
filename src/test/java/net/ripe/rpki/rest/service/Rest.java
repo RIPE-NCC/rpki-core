@@ -35,6 +35,14 @@ public class Rest {
         ));
     }
 
+    static MockHttpServletRequestBuilder put(String url) {
+        return authenticated(withUserId(
+            MockMvcRequestBuilders.put(url)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+        ));
+    }
+
     public static MockHttpServletRequestBuilder get(String url, Object... vars) {
 
         return authenticated(withUserId(
@@ -62,7 +70,7 @@ public class Rest {
                 .file(name, content)
                 .accept(APPLICATION_JSON)
         ));
-    };
+    }
 
     static MockHttpServletRequestBuilder authenticated(MockHttpServletRequestBuilder req) {
         return req.header(API_KEY_HEADER, TESTING_API_KEY);

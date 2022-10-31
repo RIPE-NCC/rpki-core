@@ -173,6 +173,30 @@ Notes:
 
 - Use the system shell, not Postgres'. The syntax is different from one to another and the user might not be created as supposed.
 
+### Integrations with RIPE services
+
+Some configuration properties default to integrating with internal RIPE services. When running outside of a RIPE
+environment you cannot access these services.
+
+__Resource cache__
+
+Configure the resource cache to use a static source file.
+
+```
+> export RESOURCE_SERVICES_SOURCE=static
+```
+
+This defaults to use a builtin resource cache. Optionally, provide a custom file.
+
+```
+> export RESOURCE_SERVICES_STATIC_FILE=file:///path/to/file
+```
+
+__CA names__
+
+To humanize CA names RPKI core tries to lookup the name in RIPEs member database. When this service is unavailable,
+the membership ID is used for CA name.
+
 ### Start the certification application
 
 * Via command line:

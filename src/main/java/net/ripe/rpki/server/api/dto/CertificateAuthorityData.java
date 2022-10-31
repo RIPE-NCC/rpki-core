@@ -4,8 +4,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import net.ripe.ipresource.IpResourceSet;
-import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
+import net.ripe.rpki.commons.util.VersionedId;
 import org.apache.commons.lang.Validate;
 
 import javax.security.auth.x500.X500Principal;
@@ -19,8 +19,6 @@ import java.util.UUID;
 @EqualsAndHashCode(doNotUseGetters = true)
 @Getter
 public abstract class CertificateAuthorityData implements Serializable {
-
-    private static final long serialVersionUID = 2L;
 
     private final VersionedId versionedId;
     private final UUID uuid;

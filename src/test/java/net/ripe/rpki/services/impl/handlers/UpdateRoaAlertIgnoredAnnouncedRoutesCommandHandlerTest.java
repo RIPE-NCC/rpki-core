@@ -6,10 +6,11 @@ import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.TestServices;
+import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.domain.alerts.RoaAlertConfiguration;
 import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
 import net.ripe.rpki.domain.alerts.RoaAlertIgnoredAnnouncement;
+import net.ripe.rpki.domain.inmemory.InMemoryResourceCertificateRepository;
 import net.ripe.rpki.server.api.commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,7 +18,6 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.Collections;
 
-import static net.ripe.rpki.domain.ProductionCertificateAuthorityTest.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -36,7 +36,7 @@ public class UpdateRoaAlertIgnoredAnnouncedRoutesCommandHandlerTest {
 
     @Before
     public void setUp() {
-        certificateAuthority = createInitialisedProdCaWithRipeResources(TestServices.createCertificateManagementService());
+        certificateAuthority = TestObjects.createInitialisedProdCaWithRipeResources();
         certificateAuthorityRepository = mock(CertificateAuthorityRepository.class);
         roaAlertConfigurationRepository = mock(RoaAlertConfigurationRepository.class);
 

@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import java.net.URI;
 
-import static net.ripe.rpki.domain.CertificationDomainTestCase.BASE_URI;
+import static net.ripe.rpki.domain.TestObjects.BASE_URI;
 import static org.assertj.core.api.Assertions.assertThat;
 
 

@@ -14,7 +14,6 @@ import java.util.EnumSet;
  */
 public class SubscribeToRoaAlertCommand extends CertificateAuthorityCommand {
 
-    private static final long serialVersionUID = 1L;
     private final String email;
     private final Collection<RouteValidityState> routeValidityStates;
     private final RoaAlertFrequency frequency;

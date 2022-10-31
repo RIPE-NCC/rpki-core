@@ -5,14 +5,10 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
-import java.io.Serializable;
-
 /**
  * Abstract superclass for data transfer objects ensuring EqualsSupport and Serializable are used.
  */
-public abstract class ValueObjectSupport implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public abstract class ValueObjectSupport {
 
     @Override
     public boolean equals(Object obj) {

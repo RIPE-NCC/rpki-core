@@ -19,6 +19,8 @@ Options:
     -h, --help         Print this message.
     --[no-]push        Enable/disable pushing the new branch to the origin.
     --[no-]verify      Enable/disable verifying that the published ref is equivalent to <newbase>.
+    --allow-older <n>  Allow starting at a parent of <oldbase> when <oldbase> is not what we last
+                       published. <n> is the maximum number of parents allowed. Defaults to $ALLOW_OLDER.
     --repository       Remote URL for publication. Defaults to $REPOSITORY
     --upstream         Upstream branch to publish changes onto. Defaults to $UPSTREAM.
     --local-branch     Local branch name used to track upstream. Defaults to $LOCAL_BRANCH.
@@ -55,7 +57,8 @@ check_no_diff() {
 
 REPOSITORY="git@github.com:RIPE-NCC/rpki-core.git"
 PUSH=0
-VERIFY=0
+VERIFY=1
+ALLOW_OLDER=0
 UPSTREAM=main
 LOCAL_BRANCH=proscribo
 LOCAL_REMOTE=publicus
@@ -70,6 +73,7 @@ main() {
             --no-push) PUSH=0; shift ;;
             --verify) VERIFY=1; shift ;;
             --no-verify) VERIFY=0; shift ;;
+            --allow-older) shift; ALLOW_OLDER=$1; shift ;;
             --repository) shift; REPOSITORY=$1; shift ;;
             --upstream) shift; UPSTREAM=$1; shift ;;
             --local-branch) shift; LOCAL_BRANCH=$1; shift ;;
@@ -102,6 +106,26 @@ main() {
     check_commit "$oldbase"
     check_commit "$newbase"
 
+    echo "Adding remote repository"
+    $GIT remote add "$remote" "$REPOSITORY"
+    $GIT fetch --quiet "$remote"
+    echo
+
+    echo "Checking oldbase with $REPOSITORY/$UPSTREAM"
+    readarray -t base_revs < <($GIT rev-list --first-parent --max-count="$(("$ALLOW_OLDER"+1))" "$oldbase")
+    for rev in "${base_revs[@]}"; do
+        printf -- "  checking %s.. " "$rev"
+        if check_no_diff "$rev" "$remote/$UPSTREAM"; then
+            echo "yes"
+            oldbase="$rev"
+            break
+        else
+            echo "no"
+        fi
+    done
+    check_no_diff "$oldbase" "$remote/$UPSTREAM" || oops "no oldbase found that matches $REPOSITORY/$UPSTREAM"
+    echo
+
     changelog=$($GIT log --no-merges --format='* %s [%h]' "$oldbase..$newbase")
     if [ -z "$changelog" ]; then
         echo "No changes found between $1 and ${2:-HEAD}; nothing to publish."
@@ -113,11 +137,6 @@ Changelog:
 $changelog
 
 EOF
-
-    echo "Adding remote repository"
-    $GIT remote add "$remote" "$REPOSITORY"
-    $GIT fetch --quiet "$remote"
-    echo
 
     echo "Squashing changes between $oldbase and $newbase"
     $GIT switch --quiet --no-track -c "$branch" "$oldbase"

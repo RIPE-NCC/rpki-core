@@ -15,8 +15,6 @@ import java.util.List;
  */
 public class ProcessTrustAnchorResponseCommand extends CertificateAuthorityModificationCommand {
 
-    private static final long serialVersionUID = 1L;
-
     private TrustAnchorResponse response;
 
     public ProcessTrustAnchorResponseCommand(VersionedId certificateAuthorityId, TrustAnchorResponse response) {

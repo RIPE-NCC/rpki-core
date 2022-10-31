@@ -1,6 +1,10 @@
 package net.ripe.rpki.rest.exception;
 
 import com.google.common.collect.ImmutableMap;
+import net.ripe.rpki.server.api.services.command.DuplicateResourceException;
+import net.ripe.rpki.server.api.services.command.EntityTagDoesNotMatchException;
+import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
+import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -42,7 +46,10 @@ public class RestExceptionControllerAdvice {
 
     @ExceptionHandler({
             BadRequestException.class,
-            CaNameInvalidException.class
+            CaNameInvalidException.class,
+            NotHolderOfResourcesException.class,
+            PrivateAsnsUsedException.class,
+            DuplicateResourceException.class
     })
     public ResponseEntity<Map<String, ?>> exceptionsResultingInBadRequestHandler(HttpServletRequest req, Exception e) {
         // For some reason Spring passes in the main exception instead of the cause exception that matches the @ExceptionHandler annotation :(
@@ -63,5 +70,15 @@ public class RestExceptionControllerAdvice {
     @ExceptionHandler(value = RequestEntityTooLargeException.class)
     public ResponseEntity<Map<String, ?>> exceptionsResultingInRequestEntityTooLargeHandler(HttpServletRequest req, RequestEntityTooLargeException e) {
         return exceptionBody(e, HttpStatus.PAYLOAD_TOO_LARGE, req.getServletPath());
+    }
+
+    @ExceptionHandler(value = PreconditionRequiredException.class)
+    public ResponseEntity<Map<String, ?>> preconditionRequired(HttpServletRequest req, Exception e) {
+        return exceptionBody(e, HttpStatus.PRECONDITION_REQUIRED, req.getServletPath());
+    }
+
+    @ExceptionHandler(value = EntityTagDoesNotMatchException.class)
+    public ResponseEntity<Map<String, ?>> entityTagDoesNotMatch(HttpServletRequest req, Exception e) {
+        return exceptionBody(e, HttpStatus.PRECONDITION_FAILED, req.getServletPath());
     }
 }

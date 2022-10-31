@@ -10,8 +10,6 @@ import java.util.*;
 @ToString
 public class RoaAlertConfigurationData extends ValueObjectSupport {
 
-    private static final long serialVersionUID = 1L;
-
     private final CertificateAuthorityData certificateAuthority;
     private final RoaAlertSubscriptionData subscription;
     private final Set<AnnouncedRoute> ignoredAnnouncements;

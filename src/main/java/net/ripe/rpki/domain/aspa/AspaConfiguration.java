@@ -1,31 +1,40 @@
 package net.ripe.rpki.domain.aspa;
 
-import com.google.common.base.Preconditions;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
+import net.ripe.rpki.server.api.dto.AspaAfiLimit;
 import net.ripe.rpki.server.api.dto.AspaConfigurationData;
+import net.ripe.rpki.server.api.dto.AspaProviderData;
 
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.MapKeyColumn;
 import javax.persistence.OneToOne;
+import javax.persistence.OrderBy;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import java.math.BigInteger;
+import javax.validation.constraints.NotEmpty;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
+
+import static net.ripe.rpki.util.Streams.streamToSortedMap;
 
 @Entity
 @Table(name = "aspaconfiguration")
@@ -45,34 +54,50 @@ public class AspaConfiguration extends EntitySupport {
     private ManagedCertificateAuthority certificateAuthority;
 
     @Column(name = "customer_asn", nullable = false)
-    private BigInteger customerAsn;
+    @Getter
+    private Asn customerAsn;
 
+    /**
+     * Set of provider ASNs with the AFI limit (null allows both IPv4 and IPv6, otherwise only the specified address
+     * family is allowed).
+     */
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "aspaconfiguration_provider_asns", joinColumns = @JoinColumn(name = "aspaconfiguration_id"))
-    private Set<AspaProviderAsn> providerASSet = new HashSet<>();
+    @MapKeyColumn(name = "provider_asn")
+    @Enumerated(value = EnumType.STRING)
+    @Column(name = "afi_limit")
+    @CollectionTable(name = "aspaconfiguration_providers", joinColumns = @JoinColumn(name = "aspaconfiguration_id"))
+    @OrderBy("provider_asn")
+    @NotEmpty
+    private SortedMap<@NonNull Asn, @NonNull AspaAfiLimit> providers = new TreeMap<>();
 
-    public AspaConfiguration(ManagedCertificateAuthority ca) {
-        this(ca, null, Collections.emptySet());
-    }
-
-    public AspaConfiguration(ManagedCertificateAuthority ca, BigInteger customerAsn, Set<AspaProviderAsn> providerASSet) {
-        this.certificateAuthority = Preconditions.checkNotNull(ca, "certificateAuthority is required");
+    public AspaConfiguration(@NonNull ManagedCertificateAuthority certificateAuthority, @NonNull Asn customerAsn, @NonNull Map<Asn, AspaAfiLimit> providers) {
+        this.certificateAuthority = certificateAuthority;
         this.customerAsn = customerAsn;
-        this.providerASSet.addAll(providerASSet);
+        this.providers.putAll(providers);
     }
 
-    public Asn getCustomerAsn() {
-        return new Asn(customerAsn.longValue());
+    public static SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> entitiesToMaps(SortedMap<Asn, AspaConfiguration> entities) {
+        return streamToSortedMap(
+            entities.values().stream(),
+            AspaConfiguration::getCustomerAsn,
+            AspaConfiguration::getProviders
+        );
     }
 
-    public Set<AspaProviderAsn> getProviderASSet() {
-        return Collections.unmodifiableSet(providerASSet);
+    public SortedMap<Asn, AspaAfiLimit> getProviders() {
+        return Collections.unmodifiableSortedMap(providers);
+    }
+
+    public void setProviders(Map<Asn, AspaAfiLimit> providers) {
+        this.providers = new TreeMap<>(providers);
     }
 
     public AspaConfigurationData toData() {
         return new AspaConfigurationData(
-            new Asn(customerAsn), providerASSet.stream()
-            .map(AspaProviderAsn::toData)
-            .collect(Collectors.toSet()));
+            getCustomerAsn(),
+            providers.entrySet().stream()
+                .map(entry -> new AspaProviderData(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList())
+        );
     }
 }

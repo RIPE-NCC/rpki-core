@@ -1,7 +1,6 @@
 package net.ripe.rpki.domain.naming;
 
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
-import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import org.apache.commons.lang.Validate;
 
@@ -10,11 +9,6 @@ import java.security.KeyPair;
 import java.security.PublicKey;
 
 public class UuidRepositoryObjectNamingStrategy implements RepositoryObjectNamingStrategy {
-
-
-    private static final long serialVersionUID = 1L;
-
-
 
     @Override
     public String certificateFileName(PublicKey subjectPublicKey) {
@@ -29,6 +23,11 @@ public class UuidRepositoryObjectNamingStrategy implements RepositoryObjectNamin
     @Override
     public String roaFileName(OutgoingResourceCertificate eeCertificate) {
         return getDashSafeEncodedPublicKeyHash(eeCertificate.getSubjectPublicKey()) + "." + ROA_FILE_EXTENSION;
+    }
+
+    @Override
+    public String aspaFileName(OutgoingResourceCertificate eeCertificate) {
+        return getDashSafeEncodedPublicKeyHash(eeCertificate.getSubjectPublicKey()) + "." + ASPA_FILE_EXTENSION;
     }
 
     @Override
@@ -48,7 +47,7 @@ public class UuidRepositoryObjectNamingStrategy implements RepositoryObjectNamin
     }
 
     @Override
-    public X500Principal eeCertificateSubject(String signedObjectName, PublicKey subjectPublicKey, KeyPairEntity signingKeyPair) {
+    public X500Principal eeCertificateSubject(PublicKey subjectPublicKey) {
         return getCertificateSubject(subjectPublicKey);
     }
 

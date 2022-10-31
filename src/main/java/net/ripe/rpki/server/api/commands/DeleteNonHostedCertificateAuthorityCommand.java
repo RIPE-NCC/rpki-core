@@ -9,8 +9,6 @@ import net.ripe.rpki.commons.util.VersionedId;
  */
 public class DeleteNonHostedCertificateAuthorityCommand extends ChildParentCertificateAuthorityCommand {
 
-    private static final long serialVersionUID = 1L;
-
     public DeleteNonHostedCertificateAuthorityCommand(VersionedId certificateAuthorityId) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
     }

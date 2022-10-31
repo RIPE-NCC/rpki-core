@@ -14,11 +14,13 @@ public interface ResourceCertificateInformationAccessStrategy {
 
     X500Principal caCertificateSubject(PublicKey subjectKey);
 
-    X500Principal eeCertificateSubject(String signedObjectName, PublicKey subjectPublicKey, KeyPairEntity signingKeyPair);
+    X500Principal eeCertificateSubject(PublicKey subjectPublicKey);
 
     String caCertificateFilename(PublicKey subjectPublicKey);
 
     URI defaultCertificateRepositoryLocation(ManagedCertificateAuthority ca, String resourceClassName);
 
     String roaFilename(OutgoingResourceCertificate endEntityCertificate);
+
+    String aspaFilename(OutgoingResourceCertificate endEntityCertificate);
 }

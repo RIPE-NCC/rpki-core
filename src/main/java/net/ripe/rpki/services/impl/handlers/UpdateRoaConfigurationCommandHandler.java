@@ -14,7 +14,7 @@ import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
-import net.ripe.rpki.server.api.services.command.RoaConfigurationForPrivateASNException;
+import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import net.ripe.rpki.services.impl.background.RoaMetricsService;
 import org.apache.commons.lang.Validate;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,7 +62,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
 
         List<Asn> privateAsns = findAddedPrivateAsns(command);
         if (!privateAsns.isEmpty()) {
-            throw new RoaConfigurationForPrivateASNException(privateAsns);
+            throw new PrivateAsnsUsedException("ROA configuration", privateAsns);
         }
 
         ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
@@ -79,7 +79,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
         roaMetricsService.countAdded(command.getAdditions().size());
         roaMetricsService.countDeleted(command.getDeletions().size());
 
-        ca.roaConfigurationUpdated();
+        ca.configurationUpdated();
     }
 
     private List<Asn> findAddedPrivateAsns(UpdateRoaConfigurationCommand command) {

@@ -10,8 +10,6 @@ import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
  */
 public class GenerateOfflineCARepublishRequestCommand extends CertificateAuthorityModificationCommand {
 
-    private static final long serialVersionUID = 1L;
-
     public GenerateOfflineCARepublishRequestCommand(VersionedId certificateAuthorityId) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
     }

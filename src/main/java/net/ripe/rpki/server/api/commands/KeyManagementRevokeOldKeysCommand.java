@@ -8,8 +8,6 @@ import net.ripe.rpki.commons.util.VersionedId;
  */
 public class KeyManagementRevokeOldKeysCommand extends ChildSharedParentCertificateAuthorityCommand {
 
-    private static final long serialVersionUID = 1L;
-
     public KeyManagementRevokeOldKeysCommand(VersionedId certificateAuthorityId) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.SYSTEM);
     }

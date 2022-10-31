@@ -9,7 +9,6 @@ import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import javax.ws.rs.client.Client;
@@ -20,8 +19,7 @@ import javax.ws.rs.core.Response;
 
 @Slf4j
 @Component
-@ConditionalOnProperty(name="resource.services.url")
-@Primary
+@ConditionalOnProperty(name="resource.services.source", havingValue = "rsng", matchIfMissing = true)
 class RestResourceServicesClient implements ResourceServicesClient {
 
     private static final String PAGE_SIZE = "5000";

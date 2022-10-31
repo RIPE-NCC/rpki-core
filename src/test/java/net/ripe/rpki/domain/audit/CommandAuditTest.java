@@ -23,8 +23,6 @@ public class CommandAuditTest {
     private static final String PRINCIPAL = "erik";
 
     private static class TestCommand extends CertificateAuthorityCommand {
-        private static final long serialVersionUID = 1L;
-
         public TestCommand(VersionedId certificateAuthorityId, CertificateAuthorityCommandGroup commandGroup) {
             super(certificateAuthorityId, commandGroup);
         }

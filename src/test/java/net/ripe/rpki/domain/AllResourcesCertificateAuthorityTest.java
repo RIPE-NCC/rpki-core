@@ -15,9 +15,8 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static net.ripe.rpki.domain.CertificationDomainTestCase.ALL_RESOURCES_CA_NAME;
-import static net.ripe.rpki.domain.CertificationDomainTestCase.BASE_URI;
-import static net.ripe.rpki.domain.CertificationDomainTestCase.createAllResourcesCertificateAuthority;
+import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
+import static net.ripe.rpki.domain.TestObjects.BASE_URI;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -34,7 +33,7 @@ public class AllResourcesCertificateAuthorityTest  {
 
     @Before
     public void setUp() {
-        allResourcesCa = createAllResourcesCertificateAuthority(13, ALL_RESOURCES_CA_NAME);
+        allResourcesCa = new AllResourcesCertificateAuthority(13, ALL_RESOURCES_CA_NAME);
         keyPairService = mock(KeyPairService.class);
         kp = TestObjects.createActiveKeyPair("TEST-KEY");
         repositoryConfiguration = mock(RepositoryConfiguration.class);

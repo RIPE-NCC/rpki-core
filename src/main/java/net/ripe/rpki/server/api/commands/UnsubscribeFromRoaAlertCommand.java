@@ -8,7 +8,6 @@ import net.ripe.rpki.commons.util.VersionedId;
  */
 public class UnsubscribeFromRoaAlertCommand extends CertificateAuthorityCommand {
 
-    private static final long serialVersionUID = 1L;
     private final String email;
 
     public UnsubscribeFromRoaAlertCommand(VersionedId certificateAuthorityId, String email) {

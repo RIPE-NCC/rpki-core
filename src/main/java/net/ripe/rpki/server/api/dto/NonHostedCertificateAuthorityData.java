@@ -16,8 +16,6 @@ import java.util.UUID;
 @Getter
 public class NonHostedCertificateAuthorityData extends CertificateAuthorityData {
 
-    private static final long serialVersionUID = 1L;
-
     private final ProvisioningIdentityCertificate provisioningIdentityCertificate;
     private final Set<NonHostedPublicKeyData> publicKeys;
 

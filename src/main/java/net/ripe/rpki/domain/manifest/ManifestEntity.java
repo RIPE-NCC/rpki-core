@@ -123,11 +123,11 @@ public class ManifestEntity extends EntitySupport {
         return parser.getManifestCms();
     }
 
-    public boolean isUpdateNeeded(DateTime now, Collection<PublishedObject> manifestEntries, IncomingResourceCertificate currentCertificate) {
+    public boolean isUpdateNeeded(DateTime now, Collection<PublishedObject> manifestEntries) {
         ManifestCms cms = getManifestCms();
         return cms == null
                 || isCloseToNextUpdateTime(now, cms)
-                || parentCertificatePublicationLocationChanged(cms, currentCertificate)
+                || parentCertificatePublicationLocationChanged(cms, keyPair.getCurrentIncomingCertificate())
                 || !cms.matchesFiles(manifestEntries.stream().collect(Collectors.toMap(PublishedObject::getFilename, PublishedObject::getContent, (a, b) -> b)));
     }
 
@@ -175,7 +175,7 @@ public class ManifestEntity extends EntitySupport {
     public CertificateIssuanceRequest requestForManifestEeCertificate(KeyPair eeKeyPair) {
         IncomingResourceCertificate caCert = keyPair.getCurrentIncomingCertificate();
         ResourceCertificateInformationAccessStrategy ias = new ResourceCertificateInformationAccessStrategyBean();
-        X500Principal subject = ias.eeCertificateSubject("manifest", eeKeyPair.getPublic(), keyPair);
+        X500Principal subject = ias.eeCertificateSubject(eeKeyPair.getPublic());
         X509CertificateInformationAccessDescriptor[] sia = ias.siaForSignedObjectCertificate(keyPair, "mft", subject, caCert.getSubjectPublicKey());
         return new CertificateIssuanceRequest(new IpResourceSet(), subject, eeKeyPair.getPublic(), sia);
     }

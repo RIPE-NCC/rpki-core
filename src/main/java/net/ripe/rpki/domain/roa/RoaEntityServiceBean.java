@@ -20,10 +20,10 @@ import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.ResourceCertificateInformationAccessStrategy;
+import net.ripe.rpki.domain.SingleUseEeCertificateFactory;
 import net.ripe.rpki.domain.SingleUseKeyPairFactory;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.naming.RepositoryObjectNamingStrategy;
-import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.server.api.commands.CommandContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -51,19 +51,19 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
 
     private final SingleUseKeyPairFactory singleUseKeyPairFactory;
 
-    private final CertificateManagementService certificateManagementService;
+    private final SingleUseEeCertificateFactory singleUseEeCertificateFactory;
 
     @Autowired
     public RoaEntityServiceBean(CertificateAuthorityRepository certificateAuthorityRepository,
                                 RoaConfigurationRepository roaConfigurationRepository,
                                 RoaEntityRepository repository,
                                 SingleUseKeyPairFactory singleUseKeyPairFactory,
-                                CertificateManagementService certificateManagementService) {
+                                SingleUseEeCertificateFactory singleUseEeCertificateFactory) {
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.roaConfigurationRepository = roaConfigurationRepository;
         this.repository = repository;
         this.singleUseKeyPairFactory = singleUseKeyPairFactory;
-        this.certificateManagementService = certificateManagementService;
+        this.singleUseEeCertificateFactory = singleUseEeCertificateFactory;
     }
 
     @Override
@@ -81,10 +81,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
                 .filter(KeyPairEntity::isOld)
                 .flatMap(keyPair -> repository.findByCertificateSigningKeyPair(keyPair).stream())
                 .filter(roa -> !roa.isRevoked())
-                .forEachOrdered(roa -> {
-                    roa.revoke();
-                    repository.remove(roa);
-                });
+                .forEachOrdered(roa -> roa.revokeAndRemove(repository));
     }
 
     @Override
@@ -116,7 +113,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
                 RoaCmsParser parser = new RoaCmsParser();
                 parser.parse("roa", roa.getPublishedObject().getContent());
                 if (!parser.isSuccess()) {
-                    roa.revoke();
+                    roa.revokeAndRemove(repository);
                     it.remove();
                 }
             }
@@ -127,8 +124,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
         for (Iterator<RoaEntity> it = roas.iterator(); it.hasNext();) {
             RoaEntity roa = it.next();
             if (!incomingResourceCertificate.getPublicationUri().equals(roa.getRoaCms().getParentCertificateUri())) {
-                roa.revoke();
-                repository.remove(roa);
+                roa.revokeAndRemove(repository);
                 it.remove();
             }
         }
@@ -173,10 +169,9 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
 
     private OutgoingResourceCertificate createEndEntityCertificateForRoa(RoaSpecification specification,
                                                                          ValidityPeriod roaValidityPeriod, KeyPair eeKeyPair, KeyPairEntity signingKeyPair) {
-        ManagedCertificateAuthority certificateAuthority = specification.getCertificateAuthority();
-        CertificateIssuanceRequest request = requestForRoaEeCertificate(specification.getNormalisedResources(), signingKeyPair, eeKeyPair, specification);
-        return certificateManagementService.issueSingleUseEeResourceCertificate(
-                certificateAuthority, request, roaValidityPeriod, signingKeyPair);
+        CertificateIssuanceRequest request = requestForRoaEeCertificate(specification.getNormalisedResources(), signingKeyPair, eeKeyPair);
+        return singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(
+            request, roaValidityPeriod, signingKeyPair);
     }
 
     private RoaCms generateRoaCms(RoaSpecification specification, KeyPair eeKeyPair, X509ResourceCertificate endEntityX509ResourceCertificate) {
@@ -188,9 +183,8 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
         return roaCmsBuilder.build(eeKeyPair.getPrivate());
     }
 
-    private CertificateIssuanceRequest requestForRoaEeCertificate(IpResourceSet resources, KeyPairEntity signingKeyPair, KeyPair eeKeyPair, RoaSpecification specification) {
-        X500Principal subject = informationAccessStrategy.eeCertificateSubject("ROA-" + specification.getAsn().toString(), eeKeyPair.getPublic(),
-                signingKeyPair);
+    private CertificateIssuanceRequest requestForRoaEeCertificate(IpResourceSet resources, KeyPairEntity signingKeyPair, KeyPair eeKeyPair) {
+        X500Principal subject = informationAccessStrategy.eeCertificateSubject(eeKeyPair.getPublic());
         X509CertificateInformationAccessDescriptor[] sia = informationAccessStrategy.siaForSignedObjectCertificate(signingKeyPair,
                 RepositoryObjectNamingStrategy.ROA_FILE_EXTENSION, subject, eeKeyPair.getPublic());
         return new CertificateIssuanceRequest(resources, subject, eeKeyPair.getPublic(), sia);
@@ -199,8 +193,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
     private void updateRoasForAsn(RoaSpecification specification, List<RoaEntity> roasForAsn, KeyPairEntity currentKeyPair) {
         if (!existsRoaThatSatisfiedSpecification(specification, roasForAsn)) {
             for (RoaEntity roa : roasForAsn) {
-                roa.revoke();
-                repository.remove(roa);
+                roa.revokeAndRemove(repository);
             }
             createRoaEntity(specification, currentKeyPair);
         }
@@ -213,8 +206,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
                     final RoaCms roaCms = roa.getRoaCms();
                     final RoaSpecification specification = roaSpecifications.get(roaCms.getAsn());
                     if (specification == null || !specification.allows(roaCms)) {
-                        roa.revoke();
-                        repository.remove(roa);
+                        roa.revokeAndRemove(repository);
                     }
                 });
     }

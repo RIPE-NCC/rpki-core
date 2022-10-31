@@ -1,11 +1,15 @@
 package net.ripe.rpki.domain.aspa;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import net.ripe.ipresource.Asn;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCms;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCmsParser;
+import net.ripe.rpki.commons.crypto.cms.aspa.ProviderAS;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.PublishedObject;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
+import net.ripe.rpki.server.api.dto.AspaAfiLimit;
 import org.apache.commons.lang.Validate;
 
 import javax.persistence.CascadeType;
@@ -20,10 +24,14 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import java.net.URI;
+import java.util.SortedMap;
+
+import static net.ripe.rpki.util.Streams.streamToSortedMap;
 
 @Entity
 @Table(name = "aspaentity")
 @SequenceGenerator(name = "seq_aspaentity", sequenceName = "seq_all", allocationSize=1)
+@NoArgsConstructor
 public class AspaEntity extends EntitySupport {
 
     @Id
@@ -40,8 +48,8 @@ public class AspaEntity extends EntitySupport {
     @Getter
     private PublishedObject publishedObject;
 
-    public AspaEntity() {
-    }
+    @Transient
+    private AspaCms cms;
 
     public AspaEntity(OutgoingResourceCertificate eeCertificate, AspaCms aspaCms, String filename, URI directory) {
         super();
@@ -52,8 +60,13 @@ public class AspaEntity extends EntitySupport {
                 eeCertificate.getSigningKeyPair(), filename, aspaCms.getEncoded(), true, directory, aspaCms.getValidityPeriod());
     }
 
-    @Transient
-    private AspaCms cms;
+    public static SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> entitiesToMaps(SortedMap<Asn, AspaEntity> entities) {
+        return streamToSortedMap(
+            entities.values().stream(),
+            AspaEntity::getCustomerAsn,
+            AspaEntity::getProviders
+        );
+    }
 
     public synchronized AspaCms getAspaCms() {
         if (cms == null) {
@@ -68,9 +81,10 @@ public class AspaEntity extends EntitySupport {
         return getCertificate().isRevoked();
     }
 
-    public void revoke() {
+    public void revokeAndRemove(AspaEntityRepository repository) {
         getCertificate().revoke();
         publishedObject.withdraw();
+        repository.remove(this);
     }
 
     public boolean isPublished() {
@@ -79,5 +93,17 @@ public class AspaEntity extends EntitySupport {
 
     public void withdraw() {
         publishedObject.withdraw();
+    }
+
+    public Asn getCustomerAsn() {
+        return getAspaCms().getCustomerAsn();
+    }
+
+    public SortedMap<Asn, AspaAfiLimit> getProviders() {
+        return streamToSortedMap(
+            getAspaCms().getProviderASSet().stream(),
+            ProviderAS::getProviderAsn,
+            providerAS -> AspaAfiLimit.fromOptionalAddressFamily(providerAS.getAfiLimit())
+        );
     }
 }

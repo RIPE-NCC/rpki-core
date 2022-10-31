@@ -16,7 +16,6 @@ import java.util.UUID;
 @Getter
 public class ManagedCertificateAuthorityData extends CertificateAuthorityData {
 
-    private static final long serialVersionUID = 1L;
     private final List<KeyPairData> keys;
 
     public ManagedCertificateAuthorityData(VersionedId versionedId, X500Principal name, UUID uuid, Long parentId,

@@ -1,7 +1,6 @@
 package net.ripe.rpki.domain.naming;
 
 import com.google.common.collect.ImmutableSet;
-import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 
 import javax.security.auth.x500.X500Principal;
@@ -14,6 +13,7 @@ public interface RepositoryObjectNamingStrategy extends Serializable {
 
     String MANIFEST_FILE_EXTENSION = "mft";
     String ROA_FILE_EXTENSION = "roa";
+    String ASPA_FILE_EXTENSION = "asa";
     String CRL_FILE_EXTENSION = "crl";
     String CERTIFICATE_FILE_EXTENSION = "cer";
 
@@ -21,12 +21,15 @@ public interface RepositoryObjectNamingStrategy extends Serializable {
             CERTIFICATE_FILE_EXTENSION,
             CRL_FILE_EXTENSION,
             MANIFEST_FILE_EXTENSION,
-            ROA_FILE_EXTENSION
+            ROA_FILE_EXTENSION,
+            ASPA_FILE_EXTENSION
     );
 
     String certificateFileName(PublicKey subjectPublicKey);
 
     String roaFileName(OutgoingResourceCertificate eeCertificate);
+
+    String aspaFileName(OutgoingResourceCertificate eeCertificate);
 
     String crlFileName(KeyPair keyPair);
 
@@ -36,6 +39,5 @@ public interface RepositoryObjectNamingStrategy extends Serializable {
 
     X500Principal caCertificateSubject(PublicKey subjectKey);
 
-    X500Principal eeCertificateSubject(String signedObjectName, PublicKey subjectPublicKey, KeyPairEntity signingKeyPair);
-
+    X500Principal eeCertificateSubject(PublicKey subjectPublicKey);
 }

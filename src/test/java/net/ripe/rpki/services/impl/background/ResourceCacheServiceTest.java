@@ -1,6 +1,7 @@
 package net.ripe.rpki.services.impl.background;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import lombok.Getter;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.server.api.ports.DelegationsCache;
 import net.ripe.rpki.server.api.ports.ResourceCache;
@@ -57,7 +58,6 @@ public class ResourceCacheServiceTest {
 
     @Before
     public void setUp() {
-        transactionTemplate.reset();
         subject = new ResourceCacheService(transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
             new X500Principal("CN=666"), new X500Principal("CN=123"), false, new SimpleMeterRegistry());
     }
@@ -95,26 +95,23 @@ public class ResourceCacheServiceTest {
 
     @Test
     public void shouldRollbackOnDelegationsCacheRejection() {
+        when(resourceServicesClient.fetchAllResources()).thenReturn(DataSamples.totalResources());
         resourceCache.populateCache(Collections.emptyMap()); // empty cache allows for any update
-        delegationsCache.cacheDelegations(DataSamples.productionCaDelegations(DataSamples.memberResources()));
-        DateTime lastUpdate = resourceCache.lastUpdateTime();
+        delegationsCache.cacheDelegations(DataSamples.productionCaDelegations(DataSamples.rejectedMemberResources()));
+
         subject.updateFullResourceCache();
-        assertThat(delegationsCache.getDelegationsCache()).hasValue(DataSamples.productionCaDelegations(DataSamples.memberResources()));
-        assertThat(resourceCache.allMemberResources()).isEmpty();
-        assertThat(resourceCache.lastUpdateTime()).isEqualTo(lastUpdate);
+
         assertThat(transactionTemplate.getCommits()).isZero();
         assertThat(transactionTemplate.getRollbacks()).isOne();
     }
 
     @Test
     public void shouldRollbackOnMemberResourceCacheRejection() {
+        when(resourceServicesClient.fetchAllResources()).thenReturn(DataSamples.emptyTotalResources());
         resourceCache.populateCache(DataSamples.memberResources().getCertifiableResources());
-        delegationsCache.cacheDelegations(null); // empty cache allows for any update
-        DateTime lastUpdate = resourceCache.lastUpdateTime();
+
         subject.updateFullResourceCache();
-        assertThat(delegationsCache.getDelegationsCache()).isEmpty();
-        assertThat(resourceCache.allMemberResources()).isEqualTo(DataSamples.memberResources().getCertifiableResources());
-        assertThat(resourceCache.lastUpdateTime()).isEqualTo(lastUpdate);
+
         assertThat(transactionTemplate.getCommits()).isZero();
         assertThat(transactionTemplate.getRollbacks()).isOne();
     }
@@ -150,10 +147,10 @@ public class ResourceCacheServiceTest {
 
     @Test
     public void shouldFailIfInternetResourceServicesIsNotAvailable() throws Exception {
+        when(resourceServicesClient.fetchAllResources()).thenThrow(new RuntimeException("test"));
         subject.updateFullResourceCache();
         assertThat(resourceCache.lastUpdateTime().getMillis()).isZero();
-        assertThat(transactionTemplate.getCommits()).isZero();
-        assertThat(transactionTemplate.getRollbacks()).isOne();
+        assertThat(transactionTemplate.getExecutes()).isZero();
     }
 
     @Test
@@ -292,6 +289,13 @@ public class ResourceCacheServiceTest {
             return new TotalResources(allMembersResources, ripeNccDelegations(allMembersResources));
         }
 
+        static TotalResources emptyTotalResources() {
+            return new TotalResources(
+                new MemberResources(emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList()),
+                new RipeNccDelegations(emptyList(), emptyList(), emptyList())
+            );
+        }
+
         static IpResourceSet productionCaDelegations(MemberResources memberResources) {
             return memberResources.getCertifiableResources().values().stream()
                     .collect(IpResourceSet::new, IpResourceSet::addAll, IpResourceSet::addAll);
@@ -332,38 +336,28 @@ public class ResourceCacheServiceTest {
         }
     }
 
+    @Getter
     private static class TransactionOperationsSpy implements TransactionOperations {
-        private final AtomicInteger commits = new AtomicInteger(0);
-        private final AtomicInteger rollbacks = new AtomicInteger(0);
+        private int executes = 0;
+        private int commits = 0;
+        private int rollbacks = 0;
 
         @Override
         public <T> T execute(TransactionCallback<T> action) throws TransactionException {
             SimpleTransactionStatus status = new SimpleTransactionStatus(false);
-            T ret = null;
             try {
-                ret = action.doInTransaction(status);
+                executes++;
+                return action.doInTransaction(status);
             } catch (RuntimeException e) {
                 status.setRollbackOnly();
+                throw e;
+            } finally {
+                if (status.isRollbackOnly()) {
+                    ++rollbacks;
+                } else {
+                    ++commits;
+                }
             }
-            if (status.isRollbackOnly()) {
-                rollbacks.incrementAndGet();
-            } else {
-                commits.incrementAndGet();
-            }
-            return ret;
-        }
-
-        public int getCommits() {
-            return commits.get();
-        }
-
-        public int getRollbacks() {
-            return rollbacks.get();
-        }
-
-        public void reset() {
-            commits.set(0);
-            rollbacks.set(0);
         }
     }
 

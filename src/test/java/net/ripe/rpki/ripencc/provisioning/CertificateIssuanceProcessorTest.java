@@ -39,8 +39,8 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
-import static net.ripe.rpki.domain.CertificationDomainTestCase.PRODUCTION_CA_NAME;
-import static net.ripe.rpki.domain.CertificationDomainTestCase.PRODUCTION_CA_RESOURCES;
+import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_NAME;
+import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_RESOURCES;
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.Assert.*;

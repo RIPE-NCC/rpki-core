@@ -13,8 +13,6 @@ import net.ripe.rpki.commons.util.VersionedId;
  */
 public class CreateAllResourcesCertificateAuthorityCommand extends CertificateAuthorityCreationCommand {
 
-    private static final long serialVersionUID = 1L;
-
     public CreateAllResourcesCertificateAuthorityCommand(VersionedId certificateAuthorityId) {
         super(certificateAuthorityId, new IpResourceSet());
     }

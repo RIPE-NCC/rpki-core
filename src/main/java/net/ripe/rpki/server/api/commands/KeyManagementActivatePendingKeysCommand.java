@@ -9,10 +9,7 @@ import org.joda.time.Duration;
  */
 public class KeyManagementActivatePendingKeysCommand extends CertificateAuthorityModificationCommand {
 
-    private static final long serialVersionUID = 1L;
-
     private final long minStagingTimeMs;
-
 
     public static KeyManagementActivatePendingKeysCommand plannedActivationCommand(VersionedId certificateAuthorityId, Duration stagingPeriod) {
         return new KeyManagementActivatePendingKeysCommand(certificateAuthorityId, stagingPeriod);

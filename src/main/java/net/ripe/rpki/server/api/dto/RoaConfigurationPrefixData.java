@@ -30,8 +30,6 @@ import static com.google.common.base.Preconditions.*;
  */
 public class RoaConfigurationPrefixData extends ValueObjectSupport {
 
-    private static final long serialVersionUID = 1L;
-
     public static final Comparator<RoaConfigurationPrefixData> COMPARATOR = (a, b) -> {
         int rc = a.getAsn().compareTo(b.getAsn());
         if (rc != 0) {

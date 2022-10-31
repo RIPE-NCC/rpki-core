@@ -104,7 +104,7 @@ public class RoaConfiguration extends EntitySupport {
             if (caResources.contains(prefix.getPrefix())) {
                 RoaSpecification specification = result.get(prefix.getAsn());
                 if (specification == null) {
-                    specification = new RoaSpecification(certificateAuthority, prefix.getAsn(), validityPeriod);
+                    specification = new RoaSpecification(prefix.getAsn(), validityPeriod);
                     result.put(prefix.getAsn(), specification);
                 }
                 specification.putPrefix(prefix.getPrefix(), prefix.getMaximumLength());

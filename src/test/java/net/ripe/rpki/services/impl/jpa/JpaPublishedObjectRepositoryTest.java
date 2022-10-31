@@ -9,9 +9,9 @@ import net.ripe.rpki.domain.PublicationStatus;
 import net.ripe.rpki.domain.PublishedObject;
 import net.ripe.rpki.domain.PublishedObjectData;
 import net.ripe.rpki.domain.PublishedObjectEntry;
-import net.ripe.rpki.domain.TestServices;
 import net.ripe.rpki.domain.TrustAnchorPublishedObject;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
+import org.assertj.core.api.Condition;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Before;
@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -30,6 +31,7 @@ import static net.ripe.rpki.domain.PublicationStatus.PUBLISHED;
 import static net.ripe.rpki.domain.PublicationStatus.TO_BE_PUBLISHED;
 import static net.ripe.rpki.domain.PublicationStatus.TO_BE_WITHDRAWN;
 import static net.ripe.rpki.domain.PublicationStatus.WITHDRAWN;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -59,7 +61,7 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
     public void setUp() {
         clearDatabase();
 
-        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources(TestServices.createCertificateManagementService());
+        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
         entityManager.persist(ca);
 
         issuingKeyPair = ca.getCurrentKeyPair();
@@ -99,7 +101,7 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
     @Test
     public void findActiveManifestEntries() {
         List<PublishedObject> entries = publishedObjectRepository.findActiveManifestEntries(issuingKeyPair);
-        assertEquals(2, entries.size());
+        assertEquals(3, entries.size());
         assertTrue(entries.contains(toBePublishedObject));
         assertTrue(entries.contains(publishedObject));
         assertFalse(entries.contains(toBePublishedTaObject));
@@ -114,10 +116,13 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
         assertArrayEquals(hashContents(publishedObject.getContent()), HashCode.fromString(publishedEntry.getSha256()).asBytes());
 
         List<PublishedObjectEntry> pendingEntries = publishedObjectRepository.findEntriesByPublicationStatus(PublicationStatus.PENDING_STATUSES);
-        assertEquals(2, pendingEntries.size());
-        PublishedObjectEntry pendingEntry = pendingEntries.get(0);
-        assertEquals(TO_BE_PUBLISHED, pendingEntry.getStatus());
-        assertArrayEquals(hashContents(toBePublishedObject.getContent()), HashCode.fromString(pendingEntry.getSha256()).asBytes());
+        assertThat(pendingEntries)
+            .hasSize(3)
+            .allSatisfy(entry -> assertThat(entry.getStatus()).isEqualTo(TO_BE_PUBLISHED))
+            .areExactly(1, new Condition<>(
+            entry -> Arrays.equals(hashContents(toBePublishedObject.getContent()),HashCode.fromString(entry.getSha256()).asBytes()),
+            "content hash matches"
+        ));
     }
 
     @Test
@@ -132,15 +137,15 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
 
     @Test
     public void updatePublicationStatus() {
-        assertEquals(2, publishedObjectRepository.findEntriesByPublicationStatus(PENDING_STATUSES).size());
-        assertEquals(1, publishedObjectRepository.updatePublicationStatus());
+        assertEquals(3, publishedObjectRepository.findEntriesByPublicationStatus(PENDING_STATUSES).size());
+        assertEquals(2, publishedObjectRepository.updatePublicationStatus());
         assertEquals(1, trustAnchorPublishedObjectRepository.updatePublicationStatus());
 
         entityManager.refresh(toBePublishedObject);
         assertEquals(PUBLISHED, toBePublishedObject.getStatus());
         entityManager.refresh(toBePublishedTaObject);
         assertEquals(PUBLISHED, toBePublishedTaObject.getStatus());
-        assertEquals(3, publishedObjectRepository.findCurrentlyPublishedObjects().size());
+        assertEquals(4, publishedObjectRepository.findCurrentlyPublishedObjects().size());
 
         // No pending objects so no updates required.
         assertEquals(0, publishedObjectRepository.findEntriesByPublicationStatus(PENDING_STATUSES).size());
@@ -151,7 +156,7 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
         assertEquals(1, publishedObjectRepository.findEntriesByPublicationStatus(PENDING_STATUSES).size());
         assertEquals(1, publishedObjectRepository.updatePublicationStatus());
         assertEquals(0, trustAnchorPublishedObjectRepository.updatePublicationStatus());
-        assertEquals(2, publishedObjectRepository.findCurrentlyPublishedObjects().size());
+        assertEquals(3, publishedObjectRepository.findCurrentlyPublishedObjects().size());
     }
 
     @Test

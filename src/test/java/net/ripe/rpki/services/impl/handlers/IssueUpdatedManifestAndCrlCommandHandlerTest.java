@@ -3,8 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.roa.RoaEntityService;
-import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
+import net.ripe.rpki.domain.manifest.ManifestPublicationService;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 import org.junit.Before;
@@ -28,9 +27,7 @@ public class IssueUpdatedManifestAndCrlCommandHandlerTest {
     @Mock
     private CertificateAuthorityRepository certificateAuthorityRepository;
     @Mock
-    private RoaEntityService roaEntityService;
-    @Mock
-    private CertificateManagementService certificateManagementService;
+    private ManifestPublicationService manifestPublicationService;
 
     @Before
     public void setUp() {
@@ -39,7 +36,7 @@ public class IssueUpdatedManifestAndCrlCommandHandlerTest {
         when(rootCa.getVersionedId()).thenReturn(versionedId);
         when(certificateAuthorityRepository.findManagedCa(rootCa.getId())).thenReturn(rootCa);
 
-        this.subject = new IssueUpdatedManifestAndCrlCommandHandler(certificateAuthorityRepository, roaEntityService, certificateManagementService);
+        this.subject = new IssueUpdatedManifestAndCrlCommandHandler(certificateAuthorityRepository, manifestPublicationService);
     }
 
     @Test
@@ -49,17 +46,16 @@ public class IssueUpdatedManifestAndCrlCommandHandlerTest {
 
     @Test
     public void should_delegate_to_certificateManagementService() {
-        when(certificateManagementService.updateManifestAndCrlIfNeeded(rootCa)).thenReturn(1L);
+        when(manifestPublicationService.updateManifestAndCrlIfNeeded(rootCa)).thenReturn(1L);
 
         subject.handle(new IssueUpdatedManifestAndCrlCommand(rootCa.getVersionedId()));
 
-        verify(roaEntityService).updateRoasIfNeeded(rootCa);
-        verify(certificateManagementService).updateManifestAndCrlIfNeeded(rootCa);
+        verify(manifestPublicationService).updateManifestAndCrlIfNeeded(rootCa);
     }
 
     @Test
     public void should_have_no_affect_when_update_is_not_needed() {
-        when(certificateManagementService.updateManifestAndCrlIfNeeded(rootCa)).thenReturn(0L);
+        when(manifestPublicationService.updateManifestAndCrlIfNeeded(rootCa)).thenReturn(0L);
 
         assertThrows(CommandWithoutEffectException.class, () -> subject.handle(new IssueUpdatedManifestAndCrlCommand(rootCa.getVersionedId())));
     }

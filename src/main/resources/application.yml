@@ -44,11 +44,17 @@ mail:
 management:
     endpoints:
         enabled-by-default: false
-        web.exposure.include: info,prometheus,active-node
+        web.exposure.include: info,prometheus,active-node,health
     endpoint:
         info.enabled: true
         prometheus.enabled: true
         active-node.enabled: true
+        # default enabled when k8s is detected, enable locally for parity
+        health.probes.enabled: true
+        health.enabled: true
+    health:
+        readinessstate.enabled: true
+        livenessstate.enabled: true
 
 #
 # Third party spring managed components
@@ -91,7 +97,12 @@ customer.service:
 
 resource:
     update.interval.hours: 1
-    services.enable.asn: true
+    services:
+        enable.asn: true
+        # Source of resource data:
+        # - rsng: live data from RSNG
+        # - static: static resources from a JSON file (resource.services.static.file)
+        source: rsng
 
 #
 # Application specific settings
@@ -124,6 +135,9 @@ keypair:
         delay.hours: 0
     revocation.interval.hours: 8760
     keyroll.batch.size: 1000
+
+aspa:
+    enabled: true
 
 manifest.crl.update.interval.minutes: 10
 

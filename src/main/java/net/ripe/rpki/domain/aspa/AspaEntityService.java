@@ -4,6 +4,6 @@ import net.ripe.rpki.domain.ManagedCertificateAuthority;
 
 public interface AspaEntityService {
 
-    void aspaConfigurationUpdated(ManagedCertificateAuthority ca);
+    void updateAspaIfNeeded(ManagedCertificateAuthority ca);
 
 }

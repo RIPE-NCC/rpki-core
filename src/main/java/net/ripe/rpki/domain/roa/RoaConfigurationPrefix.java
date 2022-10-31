@@ -1,5 +1,6 @@
 package net.ripe.rpki.domain.roa;
 
+import lombok.Getter;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResourceType;
@@ -19,7 +20,8 @@ import static com.google.common.base.Objects.*;
 @Embeddable
 public class RoaConfigurationPrefix {
     @Column(name = "asn", nullable = false)
-    private BigInteger asn;
+    @Getter
+    private Asn asn;
 
     @Column(name = "prefix_start", nullable = false)
     private BigInteger prefixStart;
@@ -47,7 +49,7 @@ public class RoaConfigurationPrefix {
     }
 
     public RoaConfigurationPrefix(RoaConfigurationPrefixData data) {
-        this.asn = data.getAsn().getValue();
+        this.asn = data.getAsn();
         this.prefixType = data.getPrefix().getType();
         this.prefixStart = data.getPrefix().getStart().getValue();
         this.prefixEnd = data.getPrefix().getEnd().getValue();
@@ -56,10 +58,6 @@ public class RoaConfigurationPrefix {
 
     public RoaConfigurationPrefix(AnnouncedRoute route, Integer maximumLength) {
         this(route.getOriginAsn(), route.getPrefix(), maximumLength);
-    }
-
-    public Asn getAsn() {
-        return new Asn(asn);
     }
 
     public IpRange getPrefix() {

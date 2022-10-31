@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
+import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
 import net.ripe.rpki.core.events.IncomingCertificateRevokedEvent;
 import net.ripe.rpki.core.events.IncomingCertificateUpdatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
@@ -23,7 +24,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @AllArgsConstructor
 @Service("roaAlertMaintenanceServiceBean")
-public class RoaAlertMaintenanceServiceBean implements RoaAlertMaintenanceService {
+public class RoaAlertMaintenanceServiceBean implements CertificateAuthorityEventVisitor {
     @Autowired
     private final RoaAlertConfigurationRepository roaAlertConfigurationRepository;
 

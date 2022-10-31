@@ -9,7 +9,6 @@ import net.ripe.rpki.commons.crypto.cms.roa.Roa;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaPrefix;
 import net.ripe.rpki.commons.util.Specification;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import org.joda.time.Instant;
 
 import java.util.ArrayList;
@@ -18,13 +17,11 @@ import java.util.List;
 import java.util.Map;
 
 public class RoaSpecification implements Specification<Roa> {
-    private final ManagedCertificateAuthority certificateAuthority;
     private final Asn asn;
     private final ValidityPeriod validityPeriod;
     private final Map<IpRange, Integer> prefixes = new HashMap<>();
 
-    public RoaSpecification(ManagedCertificateAuthority certificateAuthority, Asn asn, ValidityPeriod validityPeriod) {
-        this.certificateAuthority = certificateAuthority;
+    public RoaSpecification(Asn asn, ValidityPeriod validityPeriod) {
         this.asn = asn;
         this.validityPeriod = validityPeriod;
     }
@@ -106,10 +103,6 @@ public class RoaSpecification implements Specification<Roa> {
             }
         }
         return false;
-    }
-
-    public ManagedCertificateAuthority getCertificateAuthority() {
-        return certificateAuthority;
     }
 
     public Asn getAsn() {

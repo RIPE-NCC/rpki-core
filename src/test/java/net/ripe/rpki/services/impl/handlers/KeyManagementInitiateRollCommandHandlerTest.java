@@ -22,8 +22,8 @@ import java.util.Collections;
 
 import static net.ripe.ipresource.IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
 import static net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest.TEST_KEY_PAIR;
-import static net.ripe.rpki.domain.CertificationDomainTestCase.ALL_RESOURCES_CA_NAME;
-import static net.ripe.rpki.domain.CertificationDomainTestCase.PRODUCTION_CA_NAME;
+import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
+import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_NAME;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)

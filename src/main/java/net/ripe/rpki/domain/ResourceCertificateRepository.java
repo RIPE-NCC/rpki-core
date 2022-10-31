@@ -67,6 +67,7 @@ public interface ResourceCertificateRepository extends Repository<ResourceCertif
     class ExpireOutgoingResourceCertificatesResult {
         int expiredCertificateCount;
         int deletedRoaCount;
+        int deletedAspaCount;
         int withdrawnObjectCount;
     }
 

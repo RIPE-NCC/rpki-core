@@ -20,8 +20,6 @@ import java.util.UUID;
 @Getter
 public class ProvisionNonHostedPublisherCommand extends CertificateAuthorityModificationCommand {
 
-    private static final long serialVersionUID = 1L;
-
     private final UUID publisherHandle;
     private final PublisherRequest publisherRequest;
 

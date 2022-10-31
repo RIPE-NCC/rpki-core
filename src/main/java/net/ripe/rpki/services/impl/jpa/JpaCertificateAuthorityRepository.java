@@ -15,6 +15,7 @@ import net.ripe.rpki.server.api.dto.CaStatCaEvent;
 import net.ripe.rpki.server.api.dto.CaStatEvent;
 import net.ripe.rpki.server.api.dto.CaStatRoaEvent;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
+import net.ripe.rpki.util.JdbcDBComponent;
 import org.apache.commons.lang.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Repository;
 import javax.persistence.EntityNotFoundException;
 import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
+import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.security.auth.x500.X500Principal;
 import java.util.ArrayList;
@@ -64,11 +66,16 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
 
     @Override
     public void add(CertificateAuthority entity) {
-        CertificateAuthority existing = findByName(entity.getName());
-        if (existing != null && existing != entity) {
-            throw new NameNotUniqueException(entity.getName());
-        }
         super.add(entity);
+
+        try {
+            // Flush session to see if the new CA violates the unique name constraint
+            manager.flush();
+        } catch (PersistenceException e) {
+            if (JdbcDBComponent.isUniqueConstraintViolation(e, "certificateauthority_name_key")) {
+                throw new NameNotUniqueException(entity.getName());
+            }
+        }
     }
 
     @Override

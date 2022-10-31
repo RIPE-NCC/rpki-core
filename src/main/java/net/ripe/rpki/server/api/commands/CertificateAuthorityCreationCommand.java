@@ -9,8 +9,6 @@ import org.apache.commons.lang.Validate;
  */
 public abstract class CertificateAuthorityCreationCommand extends CertificateAuthorityCommand {
 
-    private static final long serialVersionUID = 1L;
-
     private final IpResourceSet resources;
 
     public CertificateAuthorityCreationCommand(VersionedId certificateAuthorityId, IpResourceSet resources) {

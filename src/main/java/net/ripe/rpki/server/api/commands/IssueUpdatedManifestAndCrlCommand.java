@@ -9,8 +9,6 @@ import net.ripe.rpki.commons.util.VersionedId;
  */
 public class IssueUpdatedManifestAndCrlCommand extends CertificateAuthorityModificationCommand {
 
-    private static final long serialVersionUID = 1L;
-
     public IssueUpdatedManifestAndCrlCommand(VersionedId certificateAuthorityId) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.SYSTEM);
     }

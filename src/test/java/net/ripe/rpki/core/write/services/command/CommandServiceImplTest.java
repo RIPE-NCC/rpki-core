@@ -21,10 +21,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.persistence.OptimisticLockException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static net.ripe.rpki.core.write.services.command.CommandServiceImpl.MAX_RETRIES;
 import static net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup.USER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -59,7 +61,7 @@ public class CommandServiceImplTest {
         };
 
         meterRegistry = new SimpleMeterRegistry();
-        subject = new CommandServiceImpl(messageDispatcher, transactionTemplate, null, null, null, commandAuditService, null, meterRegistry);
+        subject = new CommandServiceImpl(messageDispatcher, transactionTemplate, Collections.emptyList(), commandAuditService, null, meterRegistry);
     }
 
     @Test
@@ -244,9 +246,9 @@ public class CommandServiceImplTest {
 
         assertThatThrownBy(() -> subject.execute(command)).isInstanceOf(OptimisticLockException.class);
 
-        assertThat(count.get()).isEqualTo(3);
+        assertThat(count.get()).isEqualTo(1 + MAX_RETRIES);
         // one regular execution, two retries.
-        assertThat(meterRegistry.get("rpkicore.command.transaction.retries").counter().count()).isEqualTo(2);
+        assertThat(meterRegistry.get("rpkicore.command.transaction.retries").counter().count()).isEqualTo(MAX_RETRIES);
     }
 
     @Test

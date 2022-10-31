@@ -12,8 +12,6 @@ import java.util.List;
 
 public class UpdateRoaConfigurationCommand extends CertificateAuthorityModificationCommand {
 
-    private static final long serialVersionUID = 1L;
-
     private final List<RoaConfigurationPrefixData> additions;
 
     private final List<RoaConfigurationPrefixData> deletions;

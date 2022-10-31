@@ -12,6 +12,7 @@ import net.ripe.rpki.server.api.security.RunAsUserHolder;
 import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
 import org.apache.commons.lang.NotImplementedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionOperations;
 
 import javax.inject.Inject;
@@ -19,6 +20,7 @@ import javax.security.auth.x500.X500Principal;
 import java.net.URI;
 
 @Service
+@Transactional(readOnly = true)
 public class ProvisioningIdentityViewServiceBean implements ProvisioningIdentityViewService {
 
     private final TransactionOperations transactionTemplate;

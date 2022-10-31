@@ -7,14 +7,10 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
-import java.io.Serializable;
-
 /**
  * Base class for <b>all</b> commands related to Certificate Authorities.
  */
-public abstract class CertificateAuthorityCommand implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public abstract class CertificateAuthorityCommand {
 
     private final VersionedId certificateAuthorityId; // Maybe change name to certificationAuthorityVersionedId? If so, need to migrate existing serialised history
 

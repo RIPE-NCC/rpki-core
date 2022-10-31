@@ -2,8 +2,6 @@ package net.ripe.rpki.server.api.dto;
 
 public class CaStatRoaEvent extends CaStatEvent {
 
-    private static final long serialVersionUID = 2L;
-
     public final Integer roasAdded;
 
     public final Integer roasDeleted;

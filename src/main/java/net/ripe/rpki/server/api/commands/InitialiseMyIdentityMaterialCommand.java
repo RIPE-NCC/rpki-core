@@ -10,8 +10,6 @@ import net.ripe.rpki.commons.util.VersionedId;
  */
 public class InitialiseMyIdentityMaterialCommand extends CertificateAuthorityModificationCommand {
 
-    private static final long serialVersionUID = 1L;
-
     public InitialiseMyIdentityMaterialCommand(VersionedId certificateAuthorityId) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
     }

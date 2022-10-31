@@ -14,8 +14,6 @@ import java.security.PublicKey;
 @Getter
 public class ProvisioningCertificateRevocationCommand extends ChildSharedParentCertificateAuthorityCommand {
 
-    private static final long serialVersionUID = 1L;
-
     @NonNull
     private final PublicKey publicKey;
 

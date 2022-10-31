@@ -3,8 +3,8 @@ package net.ripe.rpki.services.impl.handlers;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.KeyPairService;
+import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
@@ -46,12 +46,12 @@ public class UpdateAllIncomingResourceCertificatesCommandHandlerTest {
     @Test
     public void should_skip_ca_without_parent() {
         when(certificateAuthorityRepository.get(any())).thenReturn(new AllResourcesCertificateAuthority(
-            CertificationDomainTestCase.ACA_ID,
-            CertificationDomainTestCase.ALL_RESOURCES_CA_NAME
+            TestObjects.ACA_ID,
+            TestObjects.ALL_RESOURCES_CA_NAME
         ));
 
         assertThrows(CommandWithoutEffectException.class, () ->
-            subject.handle(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CertificationDomainTestCase.ACA_ID, 1), Integer.MAX_VALUE))
+            subject.handle(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(TestObjects.ACA_ID, 1), Integer.MAX_VALUE))
         );
     }
 

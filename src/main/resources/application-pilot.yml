@@ -48,6 +48,3 @@ non-hosted:
   publisher:
     repository:
       enabled: false
-
-
-aspa.feature.enabled: true

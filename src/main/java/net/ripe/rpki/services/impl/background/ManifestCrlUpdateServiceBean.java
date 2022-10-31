@@ -8,7 +8,7 @@ import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdm
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
-import net.ripe.rpki.ncc.core.services.activation.CertificateManagementServiceImpl;
+import net.ripe.rpki.domain.manifest.ManifestPublicationService;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,7 +60,7 @@ public class ManifestCrlUpdateServiceBean extends SequentialBackgroundServiceWit
         // Process a limited number of CAs that are within the soft "time to next update" limit to spread out the
         // issuing of new manifests and CRLs between the soft and hard limits and avoid an 8-hourly "spike" of new
         // manifests/CRLs.
-        int minutesBetweenSoftAndHardLimit = CertificateManagementServiceImpl.TIME_TO_NEXT_UPDATE.minus(ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT).toStandardMinutes().getMinutes();
+        int minutesBetweenSoftAndHardLimit = ManifestPublicationService.TIME_TO_NEXT_UPDATE.minus(ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT).toStandardMinutes().getMinutes();
         int estimatedCasToProcess = certificateAuthorityRepository.size() / Math.max(1, minutesBetweenSoftAndHardLimit / manifestCrlUpdateIntervalMinutes);
         Collection<ManagedCertificateAuthority> additionalCheckForUpdateCAs = certificateAuthorityRepository.findAllWithManifestsExpiringBefore(
             UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT),

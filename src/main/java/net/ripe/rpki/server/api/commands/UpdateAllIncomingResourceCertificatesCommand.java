@@ -13,8 +13,6 @@ import org.apache.commons.lang3.Validate;
  */
 public class UpdateAllIncomingResourceCertificatesCommand extends ChildSharedParentCertificateAuthorityCommand {
 
-    private static final long serialVersionUID = 1L;
-
     @Getter
     private final int issuedCertificatesPerSignedKeyLimit;
 

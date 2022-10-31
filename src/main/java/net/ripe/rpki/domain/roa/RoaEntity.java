@@ -80,9 +80,10 @@ public class RoaEntity extends EntitySupport {
         return getCertificate().isRevoked();
     }
 
-    public void revoke() {
+    public void revokeAndRemove(RoaEntityRepository repository) {
         getCertificate().revoke();
         publishedObject.withdraw();
+        repository.remove(this);
     }
 
     public boolean isPublished() {

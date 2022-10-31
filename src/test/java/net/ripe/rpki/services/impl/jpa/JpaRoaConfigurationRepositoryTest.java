@@ -2,10 +2,8 @@ package net.ripe.rpki.services.impl.jpa;
 
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
-import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.TestServices;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
@@ -13,7 +11,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.time.Instant;
@@ -30,21 +27,13 @@ public class JpaRoaConfigurationRepositoryTest extends CertificationDomainTestCa
     @Autowired
     private RoaConfigurationRepository subject;
 
-    @Autowired
-    private EntityManager entityManager;
-
     private ProductionCertificateAuthority ca;
-
-    @Autowired
-    private CertificateAuthorityRepository caRepository;
-
 
     @Before
     public void setUp() {
         clearDatabase();
-        ca = createInitialisedProdCaWithRipeResources(TestServices.createCertificateManagementService());
-        caRepository.add(ca);
-        entityManager.flush();
+        ca = createInitialisedProdCaWithRipeResources();
+        entityManager.persist(ca);
     }
 
     @Test

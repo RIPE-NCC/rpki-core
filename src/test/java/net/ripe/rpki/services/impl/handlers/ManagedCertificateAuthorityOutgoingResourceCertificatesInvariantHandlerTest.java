@@ -18,7 +18,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import javax.persistence.EntityManager;
 import java.util.Arrays;
 
-import static net.ripe.rpki.domain.CertificationDomainTestCase.CA_ID;
+import static net.ripe.rpki.domain.TestObjects.CA_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;

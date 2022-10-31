@@ -4,8 +4,6 @@ import net.ripe.rpki.server.api.support.objects.ValueObjectSupport;
 
 public class CaStat extends ValueObjectSupport {
 
-    private static final long serialVersionUID = 2L;
-
     public final String caName;
 
     public final int roas;

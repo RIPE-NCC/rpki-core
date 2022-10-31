@@ -12,8 +12,7 @@ import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
-import net.ripe.rpki.domain.roa.RoaEntityService;
-import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
+import net.ripe.rpki.domain.manifest.ManifestPublicationService;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
@@ -23,6 +22,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
 import java.util.Comparator;
@@ -56,8 +56,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
     public static final Duration MAX_UPDATE_DURATION = Duration.standardSeconds(5);
 
     private final CertificateAuthorityRepository certificateAuthorityRepository;
-    private final CertificateManagementService certificateManagementService;
-    private final RoaEntityService roaEntityService;
+    private final ManifestPublicationService manifestPublicationService;
     private final PublishedObjectRepository publishedObjectRepository;
     private final TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository;
     private final EntityManager entityManager;
@@ -66,11 +65,11 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
     private final Counter certificateAuthorityCounter;
     private final Counter publishedObjectCounter;
 
+    @Inject
     public PublicRepositoryPublicationServiceBean(
         BackgroundTaskRunner backgroundTaskRunner,
         CertificateAuthorityRepository certificateAuthorityRepository,
-        CertificateManagementService certificateManagementService,
-        RoaEntityService roaEntityService,
+        ManifestPublicationService manifestPublicationService,
         PublishedObjectRepository publishedObjectRepository,
         TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository,
         EntityManager entityManager,
@@ -78,8 +77,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         MeterRegistry meterRegistry) {
         super(backgroundTaskRunner);
         this.certificateAuthorityRepository = certificateAuthorityRepository;
-        this.certificateManagementService = certificateManagementService;
-        this.roaEntityService = roaEntityService;
+        this.manifestPublicationService = manifestPublicationService;
         this.publishedObjectRepository = publishedObjectRepository;
         this.trustAnchorPublishedObjectRepository = trustAnchorPublishedObjectRepository;
         this.entityManager = entityManager;
@@ -140,8 +138,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
             }
 
             entityManager.lock(ca, LockModeType.PESSIMISTIC_WRITE);
-            roaEntityService.updateRoasIfNeeded(ca);
-            updateCountTotal += certificateManagementService.updateManifestAndCrlIfNeeded(ca);
+            updateCountTotal += manifestPublicationService.updateManifestAndCrlIfNeeded(ca);
             // The manifest and CRL are now up-to-date and the CA is locked, so we clear the check needed flag.
             ca.manifestAndCrlCheckCompleted();
 

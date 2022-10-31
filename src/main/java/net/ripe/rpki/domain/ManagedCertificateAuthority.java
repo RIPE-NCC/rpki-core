@@ -12,23 +12,20 @@ import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.core.events.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
-import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.interca.CertificateProvisioningMessage;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
-import net.ripe.rpki.domain.manifest.ManifestEntityRepository;
-import net.ripe.rpki.domain.roa.RoaEntityRepository;
 import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.ripencc.support.event.DefaultEventDelegate;
 import net.ripe.rpki.ripencc.support.event.EventDelegate;
 import net.ripe.rpki.ripencc.support.event.EventSubscription;
 import net.ripe.rpki.server.api.commands.CommandContext;
-import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.KeyPairData;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.util.SerialNumberSupplier;
 import org.apache.commons.lang.Validate;
@@ -55,6 +52,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.v;
@@ -167,7 +165,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     }
 
 
-    public void roaConfigurationUpdated() {
+    public void configurationUpdated() {
         this.manifestAndCrlCheckNeeded = true;
     }
 
@@ -184,30 +182,12 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
             .toString();
     }
 
-    /**
-     * This removed the revoked key, and ALL of its products.
-     * Idea is to refactor domain so that we do not need repositories anymore,
-     * in which case we could just have cascading delete.
-     */
-    public Optional<KeyPairData> deleteRevokedKey(String encodedSKI,
-                                                  CrlEntityRepository crlEntityRepository,
-                                                  ManifestEntityRepository manifestEntityRepository,
-                                                  RoaEntityRepository roaRepository,
-                                                  ResourceCertificateRepository resourceCertificateRepository,
-                                                  PublishedObjectRepository publishedObjectRepository) {
+    public Optional<KeyPairData> deleteRevokedKey(String encodedSKI, Consumer<KeyPairEntity> onDelete) {
         final Optional<KeyPairEntity> keyPair = findKeyPairByEncodedPublicKey(encodedSKI);
         keyPair.ifPresent(kp -> {
             Validate.isTrue(kp.isRevoked(), "Can only archive revoked key");
-
-            publishedObjectRepository.withdrawAllForDeletedKeyPair(kp);
-
-            crlEntityRepository.deleteByKeyPair(kp);
-            manifestEntityRepository.deleteByKeyPairEntity(kp);
-            roaRepository.deleteByCertificateSigningKeyPair(kp);
-            resourceCertificateRepository.deleteOutgoingCertificatesForRevokedKeyPair(kp);
-
+            onDelete.accept(kp);
             kp.deleteIncomingResourceCertificate();
-
             keyPairs.remove(kp);
         });
         return keyPair.map(KeyPairEntity::toData);

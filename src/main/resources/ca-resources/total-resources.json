@@ -185,40 +185,40 @@
             "caName": "ORG-ZSHJ34-RIPE"
           }
         ]
+      },
+      "ripeNccDelegations": {
+        "ripeNccIpv4Delegations": [
+          {
+            "range": "1.178.112.0/20",
+            "majorityRir": "APNIC",
+            "date": "2021-12-06",
+            "comment": "comment v4"
+          },
+          {
+            "range": "1.178.128.0/20",
+            "majorityRir": "",
+            "date": "2021-12-06"
+          }
+        ],
+        "ripeNccIpv6Delegations": [
+          {
+            "range": "2001:600::-2001:7f9:ffff:ffff:ffff:ffff:ffff:ffff",
+            "date": "1999-07-01"
+          },
+          {
+            "range": "2001:7fb::-2001:7ff:ffff:ffff:ffff:ffff:ffff:ffff",
+            "date": "1999-07-01",
+            "comment": "comment 1"
+          }
+        ],
+        "ripeNccAsnDelegations": [
+          {
+            "range": "AS7-AS7",
+            "date": "2001-11-23",
+            "comment": "ERX"
+          }
+        ]
       }
-    },
-    "ripeNccDelegations": {
-      "ripeNccIpv4Delegations": [
-        {
-          "range": "1.178.112.0/20",
-          "majorityRir": "APNIC",
-          "date": "2021-12-06",
-          "comment": "comment v4"
-        },
-        {
-          "range": "1.178.128.0/20",
-          "majorityRir": "",
-          "date": "2021-12-06"
-        }
-      ],
-      "ripeNccIpv6Delegations": [
-        {
-          "range": "2001:600::-2001:7f9:ffff:ffff:ffff:ffff:ffff:ffff",
-          "date": "1999-07-01"
-        },
-        {
-          "range": "2001:7fb::-2001:7ff:ffff:ffff:ffff:ffff:ffff:ffff",
-          "date": "1999-07-01",
-          "comment": "comment 1"
-        }
-      ],
-      "ripeNccAsnDelegations": [
-        {
-          "range": "AS7-AS7",
-          "date": "2001-11-23",
-          "comment": "ERX"
-        }
-      ]
     }
   }
 }

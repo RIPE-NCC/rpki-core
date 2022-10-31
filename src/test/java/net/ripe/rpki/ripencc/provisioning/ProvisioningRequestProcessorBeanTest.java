@@ -41,8 +41,8 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.UUID;
 
-import static net.ripe.rpki.domain.CertificationDomainTestCase.PRODUCTION_CA_NAME;
-import static net.ripe.rpki.domain.CertificationDomainTestCase.PRODUCTION_CA_RESOURCES;
+import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_NAME;
+import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_RESOURCES;
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 import static net.ripe.rpki.domain.TestObjects.TEST_KEY_PAIR_2;
 import static net.ripe.rpki.ripencc.provisioning.CertificateIssuanceProcessorTest.NON_HOSTED_CA_NAME;

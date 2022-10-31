@@ -16,7 +16,7 @@ import org.mockito.ArgumentCaptor;
 
 import javax.security.auth.x500.X500Principal;
 
-import static net.ripe.rpki.domain.CertificationDomainTestCase.ALL_RESOURCES_CA_NAME;
+import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 

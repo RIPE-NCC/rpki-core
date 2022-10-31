@@ -96,8 +96,6 @@ non-hosted:
       token: "krill-dev-token"
 
 
-aspa.feature.enabled: true
-
 certificate.authority:
     cleanup.service.enabled: true
     invariant.checking.enabled: true

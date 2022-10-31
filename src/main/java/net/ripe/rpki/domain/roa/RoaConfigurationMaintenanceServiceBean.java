@@ -5,6 +5,7 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
 import net.ripe.rpki.core.events.IncomingCertificateRevokedEvent;
 import net.ripe.rpki.core.events.IncomingCertificateUpdatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
@@ -23,7 +24,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @AllArgsConstructor
 @Service("roaConfigurationMaintenanceServiceBean")
-public class RoaConfigurationMaintenanceServiceBean implements RoaConfigurationMaintenanceService {
+public class RoaConfigurationMaintenanceServiceBean implements CertificateAuthorityEventVisitor {
     @Autowired
     private final RoaConfigurationRepository roaConfigurationRepository;
 
@@ -67,7 +68,7 @@ public class RoaConfigurationMaintenanceServiceBean implements RoaConfigurationM
         if (!toBeRemoved.isEmpty()) {
             // Update the config, log the removed prefixes [...]
             config.removePrefix(toBeRemoved);
-            ca.roaConfigurationUpdated();
+            ca.configurationUpdated();
 
             roaConfigurationRepository.logRoaPrefixDeletion(config, toBeRemoved);
 

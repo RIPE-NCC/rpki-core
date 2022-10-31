@@ -130,77 +130,6 @@ sonarqube:
     - if: $CI_COMMIT_BRANCH == "next"
 
 ######## Deploy stage ########
-.docker_deploy_template: &docker_deploy_env
-  stage: deploy
-  needs: ["build-image"]
-  image: docker-registry.ripe.net/swe/gitlab-ci/debian-deployenv
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  script:
-    - if [ -z "${SALT_DEPLOY_TARGET}" ]; then echo "set SALT_DEPLOY_TARGET"; exit 2; fi;
-    - if [ -z "${SALT_DEPLOY_USER}" ]; then echo "set SALT_DEPLOY_USER"; exit 2; fi;
-    - if [ -z "${SALT_DEPLOY_PASSWORD}" ]; then echo "set SALT_DEPLOY_PASSWORD"; exit 2; fi;
-    - echo "Tagging docker image ${CI_REGISTRY_IMAGE}:${BUILD_NUMBER} as :${IMAGE_TAG:-latest}"
-    - docker pull $CI_REGISTRY_IMAGE:$BUILD_NUMBER
-    - docker tag $CI_REGISTRY_IMAGE:$BUILD_NUMBER "${CI_REGISTRY_IMAGE}:${IMAGE_TAG:-latest}"
-    - docker push "${CI_REGISTRY_IMAGE}:${IMAGE_TAG:-latest}"
-    - echo "SALT_DEPLOY_TARGET=${SALT_DEPLOY_TARGET}"
-    - echo "Logging into salt-api as ${SALT_DEPLOY_USER}"
-    - >
-      curl -f -ik https://salt.ripe.net:8000/login \
-        -c ~/cookies.txt \
-        -H 'Accept: application/x-yaml' \
-        -d username="${SALT_DEPLOY_USER}" \
-        -d password="${SALT_DEPLOY_PASSWORD}" \
-        -d eauth='pam'
-
-    # Run `docker.container_up` state because container is not
-    # behind f5: No reason to use that logic
-    - echo "Updating containers via salt on $SALT_DEPLOY_TARGET"
-    - >
-      curl -f -D "/dev/stderr" -k https://salt.ripe.net:8000 \
-        -b ~/cookies.txt \
-        -H 'Content-type: application/json' -d"
-            [{
-              \"timeout\": 120,
-              \"failhard\": \"True\",
-              \"client\": \"local_batch\",
-              \"batch-size\": \"25%\",
-              \"saltenv\": \"base\",
-              \"fun\": \"state.apply\",
-              \"tgt_type\": \"glob\",
-              \"tgt\": \"${SALT_DEPLOY_TARGET}\",
-              \"arg\": [\"docker.container_up\"],
-              \"kwarg\": {
-                \"pillar\": {
-                  \"vars\": {
-                    \"container\": \"rpki-core\",
-                    \"health_endpoint\": \"${BASE_URL}/actuator\",
-                    \"drain_time\": \"30\"
-                  }
-                }
-              }
-            }]
-            " | jq -R '. as $raw | try fromjson catch $raw'
-
-######## Docker instances ########
-docker_deploy_uncore_prepdev:
-  <<: *docker_deploy_env
-  stage: deploy
-  variables:
-    BASE_URL: "http://uncore-1.rpki.prepdev.ripe.net:8880/certification"
-    IMAGE_TAG: "prepdev"
-    SALT_DEPLOY_TARGET: "uncore-*.rpki.prepdev.ripe.net"
-    SALT_DEPLOY_USER: "rpkideploy"
-  environment:
-    name: uncore_prepdev
-    url: $BASE_URL
-  rules:
-    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
-      when: never
-    - when: manual
-
-
 .delivr-deploy: &delivr-deploy
   stage: deploy
   needs: ["build"]
@@ -252,7 +181,7 @@ publish-to-github:
     cat >> ~/.ssh/known_hosts <(echo "$GITHUB_KNOWN_HOSTS")
     eval $(ssh-agent -s)
     ssh-add <(echo "$GITHUB_DEPLOY_KEY")
-    ./scripts/publish-source-code --push --verify --committer-name 'RPKI Team at RIPE NCC' --committer-email 'rpki@ripe.net' -- $CI_COMMIT_BEFORE_SHA $CI_COMMIT_SHA
+    ./scripts/publish-source-code --push --verify --allow-older 10 --committer-name 'RPKI Team at RIPE NCC' --committer-email 'rpki@ripe.net' -- $CI_COMMIT_BEFORE_SHA $CI_COMMIT_SHA
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: on_success

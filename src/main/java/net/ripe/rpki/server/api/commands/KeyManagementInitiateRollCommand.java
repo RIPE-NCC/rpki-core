@@ -15,8 +15,6 @@ import net.ripe.rpki.commons.util.VersionedId;
  */
 public class KeyManagementInitiateRollCommand extends ChildSharedParentCertificateAuthorityCommand {
 
-    private static final long serialVersionUID = 1L;
-
     private final int keyAgeThreshold;
 
     public KeyManagementInitiateRollCommand(VersionedId certificateAuthorityId, int keyAgeThreshold) {

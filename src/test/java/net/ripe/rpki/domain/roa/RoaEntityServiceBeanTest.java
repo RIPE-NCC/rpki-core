@@ -1,6 +1,5 @@
 package net.ripe.rpki.domain.roa;
 
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
@@ -9,8 +8,6 @@ import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDes
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
-import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
-import net.ripe.rpki.ncc.core.services.activation.CertificateManagementServiceImpl;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.After;
@@ -42,13 +39,11 @@ public class RoaEntityServiceBeanTest  {
 
     private ManagedCertificateAuthority ca;
 
-    private CertificateManagementService certificateManagementService;
+    private SingleUseEeCertificateFactory singleUseEeCertificateFactory
+        ;
 
     @Mock
     private ResourceCertificateRepository resourceCertificateRepository;
-
-    @Mock
-    private PublishedObjectRepository publishedObjectRepository;
 
     @Mock
     private CertificateAuthorityRepository certificateAuthorityRepository;
@@ -65,9 +60,8 @@ public class RoaEntityServiceBeanTest  {
 
     @Before
     public void setUp() {
-        certificateManagementService = new CertificateManagementServiceImpl(resourceCertificateRepository, publishedObjectRepository, null, null,
-            new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), new SimpleMeterRegistry());
-        ca = CertificationDomainTestCase.createInitialisedProdCaWithRipeResources(certificateManagementService);
+        singleUseEeCertificateFactory = TestServices.createSingleUseEeCertificateFactory();
+        ca = TestObjects.createInitialisedProdCaWithRipeResources();
         configuration = new RoaConfiguration(ca, Arrays.asList(ROA_PREFIX_1, ROA_PREFIX_2));
 
         createAndInitSubject();
@@ -76,7 +70,7 @@ public class RoaEntityServiceBeanTest  {
     private void createAndInitSubject() {
         initMocks();
         subject = new RoaEntityServiceBean(certificateAuthorityRepository, roaConfigurationRepository, roaEntityRepository,
-                new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), certificateManagementService);
+                new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), singleUseEeCertificateFactory);
     }
 
     @After
@@ -203,7 +197,7 @@ public class RoaEntityServiceBeanTest  {
     @Test
     public void should_not_republish_the_old_roa_but_publish_a_new_one_after_previous_one_was_revoked() {
         RoaEntity roaEntity = handleRoaSpecificationCreatedEvent().getAddedRoa();
-        roaEntity.revoke();
+        roaEntity.revokeAndRemove(roaEntityRepository);
 
         subject.updateRoasIfNeeded(ca);
 
@@ -227,7 +221,7 @@ public class RoaEntityServiceBeanTest  {
     }
 
     @Test
-    public void should_revoke_unparsable_roa() throws Exception {
+    public void should_revoke_and_remove_unparsable_roa() throws Exception {
         RoaEntity roaEntity = handleRoaSpecificationCreatedEvent().getAddedRoa();
         PublishedObject publishedObject = roaEntity.getPublishedObject();
 
@@ -242,6 +236,7 @@ public class RoaEntityServiceBeanTest  {
 
         assertEquals(PublicationStatus.WITHDRAWN, publishedObject.getStatus());
         assertTrue(roaEntity.getCertificate().isRevoked());
+        verify(roaEntityRepository).remove(roaEntity);
     }
 
     private RoaSpecificationChangeResult handleRoaSpecificationCreatedEvent() {

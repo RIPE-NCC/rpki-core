@@ -19,8 +19,6 @@ import javax.security.auth.x500.X500Principal;
  */
 public class ActivateHostedCertificateAuthorityCommand extends CertificateAuthorityActivationCommand {
 
-    private static final long serialVersionUID = 1L;
-
     public ActivateHostedCertificateAuthorityCommand(VersionedId certificateAuthorityId, X500Principal name, IpResourceSet resources, long parentId) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER, name, resources, parentId);
     }

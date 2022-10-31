@@ -4,16 +4,15 @@ import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
+import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.domain.roa.RoaEntity;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
 import net.ripe.rpki.domain.roa.RoaEntityTest;
-import net.ripe.rpki.ncc.core.services.activation.CertificateManagementService;
 import net.ripe.rpki.server.api.dto.RoaEntityData;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -35,7 +34,6 @@ import static org.mockito.Mockito.when;
 public class RoaServiceBeanTest {
 
     private static final Long TEST_CA_ID = 2L;
-    private static final String ROA_SPECIFICATION_NAME = "ROA1";
 
     private ManagedCertificateAuthority certificateAuthority;
     private CertificateAuthorityRepository caRepository;
@@ -46,8 +44,7 @@ public class RoaServiceBeanTest {
 
     @Before
     public void setUp() {
-        CertificateManagementService certificateManagementService = mock(CertificateManagementService.class);
-        certificateAuthority = CertificationDomainTestCase.createInitialisedProdCaWithRipeResources(certificateManagementService);
+        certificateAuthority = TestObjects.createInitialisedProdCaWithRipeResources();
         caRepository = mock(CertificateAuthorityRepository.class);
         roaConfigurationRepository = mock(RoaConfigurationRepository.class);
         roaEntityRepository = mock(RoaEntityRepository.class);
@@ -57,10 +54,10 @@ public class RoaServiceBeanTest {
     @Test
     public void shouldFindAllRoasForCa() {
         DateTime now = new DateTime(DateTimeZone.UTC);
-        RoaEntity roa1 = RoaEntityTest.createEeSignedRoaEntity(certificateAuthority, ROA_SPECIFICATION_NAME,
-            certificateAuthority.getCurrentKeyPair(), new ValidityPeriod(now, now.plusYears(1)));
-        RoaEntity roa2 = RoaEntityTest.createEeSignedRoaEntity(certificateAuthority, "ROA2",
-            certificateAuthority.getCurrentKeyPair(), new ValidityPeriod(now, now.plusYears(1)));
+        RoaEntity roa1 = RoaEntityTest.createEeSignedRoaEntity(certificateAuthority,
+            certificateAuthority.getCurrentKeyPair().getPublicKey(), new ValidityPeriod(now, now.plusYears(1)));
+        RoaEntity roa2 = RoaEntityTest.createEeSignedRoaEntity(certificateAuthority,
+            certificateAuthority.getCurrentKeyPair().getPublicKey(), new ValidityPeriod(now, now.plusYears(1)));
         when(caRepository.findManagedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
         when(roaEntityRepository.findByCertificateSigningKeyPair(isA(KeyPairEntity.class))).thenReturn(Arrays.asList(roa1, roa2));
 

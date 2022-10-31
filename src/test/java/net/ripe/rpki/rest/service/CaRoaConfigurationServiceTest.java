@@ -15,7 +15,7 @@ import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.server.api.services.command.RoaConfigurationForPrivateASNException;
+import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
@@ -266,7 +266,7 @@ public class CaRoaConfigurationServiceTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.length()").value("1"))
                 .andExpect(jsonPath("$.error").value("New ROAs are not correct: " +
-                        "Max length must be at most /32 (IPv4) or /128 (IPv6) but was null"));
+                        "Max length must be specified and must be between 16 and 32 for prefix '192.168.0.0/16'"));
     }
 
     // We do not really case about how it is rejected, just that it is rejected.
@@ -436,7 +436,7 @@ public class CaRoaConfigurationServiceTest {
 
         when(certificateAuthorityData.getVersionedId()).thenReturn(VersionedId.parse("1"));
         when(commandService.execute(isA(UpdateRoaConfigurationCommand.class)))
-                .thenThrow(new RoaConfigurationForPrivateASNException(Collections.singletonList(new Asn(64512L))));
+                .thenThrow(new PrivateAsnsUsedException("ROA configuration", Collections.singletonList(new Asn(64512L))));
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/publish")
                 .content("{ \"added\" : [{\"asn\" : \"AS64512\", \"prefix\" : \"193.0.24.0/21\", \"maximalLength\" : " + "\"21\"}] }"))
@@ -460,7 +460,7 @@ public class CaRoaConfigurationServiceTest {
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/publish")
                 .content("{ \"added\" : [{\"asn\" : \"AS11\", \"prefix\" : \"193.0.24.0/21\", \"maximalLength\" : \"48\"}]}"))
                 .andExpect(status().is(400))
-                .andExpect(jsonPath("$.error").value("Added ROAs are incorrect: Max length must be at most /32 (IPv4) or /128 (IPv6) but was 48"));
+                .andExpect(jsonPath("$.error").value("Added ROAs are incorrect: Max length '48' must be between 21 and 32 for prefix '193.0.24.0/21'"));
     }
 
     @Test

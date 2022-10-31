@@ -7,8 +7,7 @@ import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.ProductionCertificateAuthorityTest;
-import net.ripe.rpki.domain.TestServices;
+import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -79,7 +78,7 @@ public class AllCaCertificateUpdateServiceBeanTest extends CertificationDomainTe
 
     @Before
     public void setUp() {
-        productionCa = ProductionCertificateAuthorityTest.createInitialisedProdCaWithRipeResources(TestServices.createCertificateManagementService());
+        productionCa = TestObjects.createInitialisedProdCaWithRipeResources();
         inTx(() -> createCaIfDoesntExist(productionCa));
 
         transactionTemplate = new TransactionTemplate() {

@@ -1,43 +1,42 @@
 package net.ripe.rpki.domain.archive.test;
 
-import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
+import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
+import net.ripe.rpki.domain.aspa.AspaEntityRepository;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.domain.manifest.ManifestEntityRepository;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
-import net.ripe.rpki.server.api.dto.KeyPairData;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.security.PublicKey;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.function.Consumer;
 
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.matches;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KeyPairDeletionServiceTest {
-    private static final String KEY_STORE_NAME = "keyStore";
-    private static final PublicKey PUBLIC_KEY = TestObjects.createTestKeyPair().getPublicKey();
-    private KeyPairDeletionService subject;
+    public static final KeyPairEntity KEY_PAIR = TestObjects.createTestKeyPair();
 
     @Mock
     private CrlEntityRepository crlEntityRepository;
     @Mock
     private ManifestEntityRepository manifestEntityRepository;
     @Mock
-    private RoaEntityRepository roaRepository;
+    private RoaEntityRepository roaEntityRepository;
+    @Mock
+    private AspaEntityRepository aspaEntityRepository;
     @Mock
     private ResourceCertificateRepository resourceCertificateRepository;
     @Mock
@@ -45,35 +44,27 @@ public class KeyPairDeletionServiceTest {
     @Mock
     private ManagedCertificateAuthority ca;
 
-    @Before
-    public void initKeyPairArchivingService() {
-        subject = new KeyPairDeletionService(crlEntityRepository,
-                manifestEntityRepository,
-                roaRepository,
-                resourceCertificateRepository,
-                publishedObjectRepository);
-    }
-
-    private Optional<KeyPairData> keyPairData(String keyStoreName) {
-        KeyPairData keyPairData = new KeyPairData(null, keyStoreName, null, null, null, null, null, null, false);
-        return Optional.of(keyPairData);
-    }
+    @InjectMocks
+    private KeyPairDeletionService subject;
 
     @Test
-    public void should_ask_the_ca_to_archive_revoked_keys() {
-        CertificateRevocationResponse revocationResponse = revocationResponse(PUBLIC_KEY);
-        when(ca.deleteRevokedKey(keyFrom(revocationResponse), crlEntityRepository, manifestEntityRepository, roaRepository, resourceCertificateRepository, publishedObjectRepository)).thenReturn(keyPairData(KEY_STORE_NAME));
+    @SuppressWarnings("unchecked")
+    public void should_ask_the_ca_to_delete_revoked_keys() {
+        CertificateRevocationResponse revocationResponse = new CertificateRevocationResponse("RIPE", KEY_PAIR.getPublicKey());
+
+        when(ca.deleteRevokedKey(any(), any())).then(invocation -> {
+            invocation.getArgument(1, Consumer.class).accept(KEY_PAIR);
+            return Optional.of(KEY_PAIR);
+        });
 
         subject.deleteRevokedKeysFromResponses(ca, Collections.singletonList(revocationResponse));
 
-        verify(ca).deleteRevokedKey(matches(keyFrom(revocationResponse)), any(CrlEntityRepository.class), any(ManifestEntityRepository.class), any(RoaEntityRepository.class), any(ResourceCertificateRepository.class), any(PublishedObjectRepository.class));
+        verify(publishedObjectRepository).withdrawAllForDeletedKeyPair(KEY_PAIR);
+        verify(crlEntityRepository).deleteByKeyPair(KEY_PAIR);
+        verify(manifestEntityRepository).deleteByKeyPairEntity(KEY_PAIR);
+        verify(roaEntityRepository).deleteByCertificateSigningKeyPair(KEY_PAIR);
+        verify(aspaEntityRepository).deleteByCertificateSigningKeyPair(KEY_PAIR);
+        verify(resourceCertificateRepository).deleteOutgoingCertificatesForRevokedKeyPair(KEY_PAIR);
     }
 
-    private String keyFrom(CertificateRevocationResponse revocationResponse) {
-        return KeyPairUtil.getEncodedKeyIdentifier(revocationResponse.getSubjectPublicKey());
-    }
-
-    private CertificateRevocationResponse revocationResponse(PublicKey publicKey) {
-        return new CertificateRevocationResponse("RIPE", publicKey);
-    }
 }

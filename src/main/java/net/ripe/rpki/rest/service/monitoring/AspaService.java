@@ -29,7 +29,7 @@ public class AspaService {
     private final AspaConfigurationRepository aspaConfigurationRepository;
 
     @Operation(summary = "Get all the ASPA configurations")
-    @GetMapping("/api/monitoring/aspa-configs")
+    @GetMapping("/api/monitoring/aspa-configurations")
     public ResponseEntity<ValidatedObjectsResponse<AspaConfigurationData>> listAspaConfigs() {
         final Collection<AspaConfiguration> aspaConfigurations = aspaConfigurationRepository.findAll();
         final List<AspaConfigurationData> aspas = aspaConfigurations.stream()
@@ -40,7 +40,7 @@ public class AspaService {
 
     @Value(staticConstructor = "of")
     private static class ValidatedObjectsResponse<T> {
-        private List<T> aspas;
+        private List<T> aspaConfigurations;
         private Map<String, String> metadata;
     }
 }

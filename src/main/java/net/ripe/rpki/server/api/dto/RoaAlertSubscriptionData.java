@@ -9,8 +9,6 @@ import java.util.*;
 
 public class RoaAlertSubscriptionData extends ValueObjectSupport {
 
-    private static final long serialVersionUID = 1L;
-
     private final List<String> emails;
     private final EnumSet<RouteValidityState> routeValidityStates;
     private final RoaAlertFrequency frequency;

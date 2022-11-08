@@ -1,6 +1,6 @@
 plugins {
     id 'rpki-ripe-ncc.build-conventions'
-    id 'org.springframework.boot' version '2.7.4'
+    id 'org.springframework.boot' version '2.7.5'
     id 'distribution'
     id 'jacoco'
     id "com.google.cloud.tools.jib" version "3.3.1"
@@ -71,7 +71,7 @@ dependencies {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
 
-    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.34.0'
+    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.35.0'
     testImplementation 'com.pholser:junit-quickcheck-generators:1.0'
     testImplementation "net.ripe.rpki:rpki-commons:$rpki_commons_version:tests"
     testImplementation 'org.easymock:easymock:5.0.1'

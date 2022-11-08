@@ -56,6 +56,9 @@ public class BackgroundServices {
     @Inject
     private ApplicationContext applicationContext;
 
+    @Value("${background-services.schedule.enable}")
+    private boolean scheduleEnable;
+
     @Value("${manifest.crl.update.interval.minutes}")
     private int manifestCrlUpdateIntervalMinutes;
 
@@ -99,11 +102,10 @@ public class BackgroundServices {
 
     @PostConstruct
     private void scheduleAll() throws SchedulerException {
-
-        if (Environment.isLocal() || Environment.isTest()) {
+        if (!scheduleEnable) {
+            log.info("Automatic scheduling of background-services is disabled.");
             return;
         }
-
         schedule(MANIFEST_CRL_UPDATE_SERVICE,
                 futureDate(3, MINUTE),
                 repeat().withIntervalInMinutes(manifestCrlUpdateIntervalMinutes));

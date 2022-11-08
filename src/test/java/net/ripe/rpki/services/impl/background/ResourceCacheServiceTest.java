@@ -3,37 +3,33 @@ package net.ripe.rpki.services.impl.background;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.Getter;
 import net.ripe.ipresource.IpResourceSet;
+import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.core.services.background.SequentialBackgroundQueuedTaskRunner;
+import net.ripe.rpki.server.api.dto.CaIdentity;
 import net.ripe.rpki.server.api.ports.DelegationsCache;
 import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient;
-import net.ripe.rpki.server.api.ports.ResourceServicesClient.AsnResource;
-import net.ripe.rpki.server.api.ports.ResourceServicesClient.Ipv4Allocation;
-import net.ripe.rpki.server.api.ports.ResourceServicesClient.MemberResources;
-import net.ripe.rpki.server.api.ports.ResourceServicesClient.RipeNccDelegation;
-import net.ripe.rpki.server.api.ports.ResourceServicesClient.RipeNccDelegations;
-import net.ripe.rpki.server.api.ports.ResourceServicesClient.TotalResources;
+import net.ripe.rpki.server.api.ports.ResourceServicesClient.*;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.joda.time.DateTime;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionOperations;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.security.auth.x500.X500Principal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
@@ -42,6 +38,8 @@ import static java.util.Collections.emptyMap;
 import static net.ripe.rpki.services.impl.background.ResourceCacheService.resourcesDiff;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -53,13 +51,23 @@ public class ResourceCacheServiceTest {
 
     @Mock
     private ResourceServicesClient resourceServicesClient;
+    @Mock
+    private SequentialBackgroundQueuedTaskRunner sequentialBackgroundQueuedTaskRunner;
+    @Mock
+    private AllCaCertificateUpdateServiceBean allCaCertificateUpdateServiceBean;
 
     private ResourceCacheService subject;
 
     @Before
     public void setUp() {
+        TransactionSynchronizationManager.initSynchronization();
         subject = new ResourceCacheService(transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
-            new X500Principal("CN=666"), new X500Principal("CN=123"), false, new SimpleMeterRegistry());
+            sequentialBackgroundQueuedTaskRunner, allCaCertificateUpdateServiceBean, new X500Principal("CN=666"), new X500Principal("CN=123"), false, new SimpleMeterRegistry());
+    }
+
+    @After
+    public void tearDown() {
+        TransactionSynchronizationManager.clearSynchronization();
     }
 
     @Test
@@ -80,6 +88,26 @@ public class ResourceCacheServiceTest {
         assertThat(transactionTemplate.getRollbacks()).isZero();
     }
 
+    @Test
+    public void shouldUpdateIncomingCertificatesForUpdatedCas() {
+        when(resourceServicesClient.fetchAllResources()).thenReturn(DataSamples.totalResources());
+        subject.updateFullResourceCache();
+        assertThat(TransactionSynchronizationManager.getSynchronizations()).hasSize(1);
+        TransactionSynchronizationManager.getSynchronizations().get(0).afterCommit();
+
+
+        ArgumentCaptor<Runnable> runnableArgumentCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(sequentialBackgroundQueuedTaskRunner).submit(any(), runnableArgumentCaptor.capture(), any());
+
+        runnableArgumentCaptor.getValue().run();
+
+        ArgumentCaptor<Predicate<CaIdentity>> predicateArgumentCaptor = ArgumentCaptor.forClass(Predicate.class);
+        verify(allCaCertificateUpdateServiceBean).runService(predicateArgumentCaptor.capture());
+
+        Predicate<CaIdentity> caIdentityPredicate = predicateArgumentCaptor.getValue();
+        assertThat(caIdentityPredicate).accepts(new CaIdentity(VersionedId.parse("1"), CaName.fromOrganisationId("ORG-123")));
+        assertThat(caIdentityPredicate).rejects(new CaIdentity(VersionedId.parse("1"), CaName.fromOrganisationId("ORG-124")));
+    }
 
     @Test
     public void shouldAcceptEmptyUpdate() {
@@ -130,7 +158,7 @@ public class ResourceCacheServiceTest {
             new TotalResources(resourcesToReject, DataSamples.ripeNccDelegations(resourcesToReject)));
 
         subject = new ResourceCacheService(transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
-                new X500Principal("CN=666"), new X500Principal("CN=123"), true, new SimpleMeterRegistry());
+            sequentialBackgroundQueuedTaskRunner, allCaCertificateUpdateServiceBean, new X500Principal("CN=666"), new X500Principal("CN=123"), true, new SimpleMeterRegistry());
         // override is set
         assertThat(subject.isAcceptOneRejectedResourceCacheUpdate()).isTrue();
         subject.updateFullResourceCache();

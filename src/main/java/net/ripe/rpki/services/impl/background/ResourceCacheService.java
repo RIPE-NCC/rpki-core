@@ -15,11 +15,13 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResource;
 import net.ripe.ipresource.IpResourceSet;
+import net.ripe.rpki.core.services.background.SequentialBackgroundQueuedTaskRunner;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.ports.DelegationsCache;
 import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient;
 import net.ripe.rpki.server.api.support.objects.CaName;
+import net.ripe.rpki.util.JdbcDBComponent;
 import org.joda.time.Instant;
 import org.joda.time.base.AbstractInstant;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +52,9 @@ public class ResourceCacheService {
     private final ResourceCache resourceCache;
     private final DelegationsCache delegationsCache;
 
+    private final SequentialBackgroundQueuedTaskRunner sequentialBackgroundQueuedTaskRunner;
+    private final AllCaCertificateUpdateServiceBean allCaCertificateUpdateServiceBean;
+
     @Getter
     private final CaName productionCaName;
     @Getter
@@ -63,18 +68,24 @@ public class ResourceCacheService {
     private final ResourceCacheServiceMetrics resourceCacheServiceMetrics;
 
     @Autowired
-    public ResourceCacheService(TransactionOperations transactionTemplate,
-                                ResourceServicesClient resourceServicesClient,
-                                ResourceCache resourceCache,
-                                DelegationsCache delegationsCache,
-                                @Value("${" + RepositoryConfiguration.PRODUCTION_CA_NAME + "}") X500Principal productionCaName,
-                                @Value("${" + RepositoryConfiguration.ALL_RESOURCES_CA_NAME + "}") X500Principal allResourcesCaName,
-                                @Value("${accept.one.rejected.resource.cache.update:false}") boolean acceptOneRejectedResourceCacheUpdate,
-                                MeterRegistry meterRegistry) {
+    public ResourceCacheService(
+        TransactionOperations transactionTemplate,
+        ResourceServicesClient resourceServicesClient,
+        ResourceCache resourceCache,
+        DelegationsCache delegationsCache,
+        SequentialBackgroundQueuedTaskRunner sequentialBackgroundQueuedTaskRunner,
+        AllCaCertificateUpdateServiceBean allCaCertificateUpdateServiceBean,
+        @Value("${" + RepositoryConfiguration.PRODUCTION_CA_NAME + "}") X500Principal productionCaName,
+        @Value("${" + RepositoryConfiguration.ALL_RESOURCES_CA_NAME + "}") X500Principal allResourcesCaName,
+        @Value("${accept.one.rejected.resource.cache.update:false}") boolean acceptOneRejectedResourceCacheUpdate,
+        MeterRegistry meterRegistry
+    ) {
         this.resourceServicesClient = resourceServicesClient;
         this.resourceCache = resourceCache;
         this.transactionTemplate = transactionTemplate;
         this.delegationsCache = delegationsCache;
+        this.sequentialBackgroundQueuedTaskRunner = sequentialBackgroundQueuedTaskRunner;
+        this.allCaCertificateUpdateServiceBean = allCaCertificateUpdateServiceBean;
 
         this.productionCaName = CaName.of(productionCaName);
         this.allResourcesCaName = CaName.of(allResourcesCaName);
@@ -128,6 +139,31 @@ public class ResourceCacheService {
                     status.setRollbackOnly();
                 }
             }
+
+            scheduleResourceCertificateUpdateForChangedCas(updates);
+        });
+    }
+
+    private void scheduleResourceCertificateUpdateForChangedCas(List<Update> updates) {
+        Set<CaName> changedCas = updates.stream()
+            .flatMap(update -> update.changes.entrySet().stream())
+            .filter(entry -> entry.getValue().added > 0 || entry.getValue().deleted > 0)
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toSet());
+        if (changedCas.isEmpty()) {
+            return;
+        }
+
+        JdbcDBComponent.afterCommit(() -> {
+            Runnable action = () -> allCaCertificateUpdateServiceBean.runService(
+                caIdentity -> changedCas.contains(caIdentity.getCaName())
+            );
+            sequentialBackgroundQueuedTaskRunner.submit(
+                "update CA certificates after resource cache update",
+                action,
+                exception -> {
+                }
+            );
         });
     }
 
@@ -171,7 +207,15 @@ public class ResourceCacheService {
             log.error("Production CA delegations cache update with diff {} has been rejected, reason: {}", resourcesDiff, x.message);
         };
 
-        return new Update(isAcceptableDiff(resourcesDiff), accepted, rejected);
+        return new Update(
+            Collections.singletonMap(productionCaName, new Changes(
+                Iterators.size(added.iterator()),
+                Iterators.size(removed.iterator())
+            )),
+            isAcceptableDiff(resourcesDiff),
+            accepted,
+            rejected
+        );
     }
 
 
@@ -213,7 +257,7 @@ public class ResourceCacheService {
             log.error(String.format("Resource cache update has been rejected, reason: %s%n%s", x.message, x.summary));
         };
 
-        return new Update(isAcceptableDiff(resourcesDiff), accepted, rejected);
+        return new Update(resourcesDiff.getChangesMap(), isAcceptableDiff(resourcesDiff), accepted, rejected);
     }
 
     private static IpResourceSet subtract(IpResourceSet s1, IpResourceSet s2) {
@@ -424,9 +468,10 @@ public class ResourceCacheService {
 
     @lombok.Value
     static class Update {
-        private Optional<Rejection> rejection;
-        private Runnable accepted;
-        private Consumer<Rejection> rejected;
+        Map<CaName, Changes> changes;
+        Optional<Rejection> rejection;
+        Runnable accepted;
+        Consumer<Rejection> rejected;
 
         public boolean isRejected() {
             return rejection.isPresent();

@@ -75,6 +75,9 @@ sentry:
     traces-sample-rate: 0.01
     ignored-exceptions-for-type: net.ripe.rpki.rest.exception.CaNotFoundException
 
+background-services:
+    schedule.enable: true
+
 #
 # Integrations
 #

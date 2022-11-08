@@ -17,6 +17,9 @@ spring.datasource:
     url: jdbc:postgresql://localhost:5432/certdb
 spring.devtools.livereload.enabled: false
 
+background-services:
+    schedule.enable: false
+
 #
 # Integrations
 #

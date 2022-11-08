@@ -94,7 +94,7 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
     @Override
     @Transactional(propagation = Propagation.NEVER)
     public BackgroundServiceExecutionResult execute() {
-        final Time.Timed<Pair<BackgroundServiceExecutionResult.Status, Long>> timed = Time.timed(this::doExecute);
+        final Time.Timed<Pair<BackgroundServiceExecutionResult.Status, Long>> timed = Time.timed(() -> doExecute(this::runService));
         final long pureDuration = timed.getResult().getRight();
         final long fullDuration = timed.getTime();
         return new BackgroundServiceExecutionResult(pureDuration, fullDuration, timed.getResult().getLeft());
@@ -102,8 +102,9 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
 
     /**
      * @return Pair<status of execution, real duration of execution>
+     * @param runService the code to run after acquiring the necessary locks
      */
-    private Pair<BackgroundServiceExecutionResult.Status, Long> doExecute() {
+    protected Pair<BackgroundServiceExecutionResult.Status, Long> doExecute(Runnable runService) {
         if (!isActive()) {
             log.info("Skipping execution: not an active node ({})", backgroundTaskRunner.getCurrentNodeName());
             return Pair.of(BackgroundServiceExecutionResult.Status.SKIPPED, 0L);
@@ -127,7 +128,7 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
                 RunAsUserHolder.set(ADMIN);
                 try {
                     log.info("Started execution of background service: {}", getName());
-                    long duration = Time.timed(this::runService);
+                    long duration = Time.timed(runService);
                     log.info("Finished execution of background service: {}, duration: {}ms.", getName(), duration);
                     return Pair.of(BackgroundServiceExecutionResult.Status.SUCCESS, duration);
                 } catch (Exception e) {

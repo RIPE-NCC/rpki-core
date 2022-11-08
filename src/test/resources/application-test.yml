@@ -18,6 +18,9 @@ spring:
         password: certdb
         url: jdbc:postgresql://${pgHost:localhost}/certdb_test
 
+background-services:
+  schedule.enable: false
+
 #
 # Integrations
 #

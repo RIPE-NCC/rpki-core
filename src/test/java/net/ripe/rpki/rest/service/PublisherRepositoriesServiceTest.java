@@ -9,9 +9,7 @@ import net.ripe.rpki.rest.exception.CaNameInvalidException;
 import net.ripe.rpki.server.api.commands.DeleteNonHostedPublisherCommand;
 import net.ripe.rpki.server.api.commands.ProvisionNonHostedPublisherCommand;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.RoaConfigurationData;
-import net.ripe.rpki.server.api.ports.ResourceLookupService;
-import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateService;
+import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
@@ -52,8 +50,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureWebMvc
 @SpringBootTest(classes = TestRpkiBootApplication.class)
 public class PublisherRepositoriesServiceTest {
-    private static final RoaConfigurationData EMPTY_ROA_CONFIGURATION = new RoaConfigurationData(Collections.emptyList());
-
     private static final NonHostedCertificateAuthorityData NON_HOSTED_CA_DATA = new NonHostedCertificateAuthorityData(
         new VersionedId(12, 1),
         new X500Principal("O=ORG-1"),
@@ -65,13 +61,7 @@ public class PublisherRepositoriesServiceTest {
     );
 
     @MockBean
-    private CertificateAuthorityCreateService certificateAuthorityCreateService;
-
-    @MockBean
     private CertificateAuthorityViewService certificateAuthorityViewService;
-
-    @MockBean
-    private ResourceLookupService resourceCache;
 
     @MockBean
     private CommandService commandService;
@@ -144,6 +134,21 @@ public class PublisherRepositoriesServiceTest {
 
         assertThat(response.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         assertThat(response.getContentAsString()).contains("error");
+    }
+
+    @Test
+    public void should_reject_creating_too_many_nonhosted_publisher_repositories() throws Exception {
+        when(certificateAuthorityViewService.findCertificateAuthorityByName(NON_HOSTED_CA_DATA.getName()))
+            .thenReturn(NON_HOSTED_CA_DATA);
+        when(commandService.execute(isA(ProvisionNonHostedPublisherCommand.class))).thenThrow(new CertificationResourceLimitExceededException("limit exceeded"));
+
+        MvcResult result = mockMvc.perform(Rest.multipart(
+            API_URL_PREFIX + "/ORG-1/non-hosted/publisher-repositories",
+            "file", PUBLISHER_REQUEST_XML.getBytes(StandardCharsets.UTF_8))).andReturn();
+
+        final MockHttpServletResponse response = result.getResponse();
+        assertThat(response.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        assertThat(response.getContentAsString()).contains("error", "limit exceeded");
     }
 
     @Test

@@ -6,27 +6,23 @@ import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBu
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
-import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.NonHostedCertificateAuthority;
-import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.commands.ProvisionNonHostedPublisherCommand;
 import net.ripe.rpki.server.api.ports.NonHostedPublisherRepositoryService;
+import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.security.auth.x500.X500Principal;
 
-import javax.inject.Inject;
-import javax.security.auth.x500.X500Principal;
-import javax.transaction.Transactional;
 import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
 
+import static net.ripe.rpki.domain.NonHostedCertificateAuthority.PUBLISHER_REPOSITORIES_LIMIT;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 public class ProvisionNonHostedPublisherCommandHandlerTest {
 
@@ -63,10 +59,37 @@ public class ProvisionNonHostedPublisherCommandHandlerTest {
         subject.handle(new ProvisionNonHostedPublisherCommand(new VersionedId(123L, 1), PUBLISHER_HANDLE, publisherRequest));
 
         verify(nonHostedPublisherRepositoryService).provisionPublisher(PUBLISHER_HANDLE, publisherRequest);
-        assertThat(nonHostedCertificateAuthority.getPublisherRepositories()).hasSize(1).allSatisfy(repository -> {
+        assertThat(nonHostedCertificateAuthority.getPublisherRepositories()).hasSize(1).allSatisfy((handle, repository) -> {
+            assertThat(handle).isEqualTo(PUBLISHER_HANDLE);
             assertThat(repository.getPublisherHandle()).isEqualTo(PUBLISHER_HANDLE);
             assertThat(repository.getPublisherRequest()).isEqualTo(publisherRequest);
             assertThat(repository.getRepositoryResponse()).isEqualTo(repositoryResponse);
         });
+    }
+
+    @Test
+    public void should_limit_number_of_repositories_per_ca() {
+        when(certificateAuthorityRepository.findNonHostedCa(123L)).thenReturn(nonHostedCertificateAuthority);
+        PublisherRequest publisherRequest = new PublisherRequest(ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT);
+        RepositoryResponse repositoryResponse = new RepositoryResponse(
+            Optional.empty(),
+            URI.create("https://rpki.example.com/"),
+            PUBLISHER_HANDLE.toString(),
+            URI.create("rsync://rpki.example.com/repo/handle/"),
+            Optional.empty(),
+            ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT_2
+        );
+        when(nonHostedPublisherRepositoryService.provisionPublisher(PUBLISHER_HANDLE, publisherRequest))
+            .thenReturn(repositoryResponse);
+        for (int i = 0; i < PUBLISHER_REPOSITORIES_LIMIT; i++) {
+            nonHostedCertificateAuthority.addNonHostedPublisherRepository(UUID.randomUUID(), publisherRequest, repositoryResponse);
+        }
+
+        assertThatThrownBy(() -> {
+            subject.handle(new ProvisionNonHostedPublisherCommand(new VersionedId(123L, 1), PUBLISHER_HANDLE, publisherRequest));
+        }).isInstanceOfSatisfying(CertificationResourceLimitExceededException.class, (e) -> {
+            assertThat(e.getMessage()).isEqualTo("maximum number of publisher repositories limit exceeded");
+        });
+        verify(nonHostedPublisherRepositoryService, never()).provisionPublisher(any(), any());
     }
 }

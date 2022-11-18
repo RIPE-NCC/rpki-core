@@ -14,6 +14,7 @@ import net.ripe.rpki.rest.exception.ObjectNotFoundException;
 import net.ripe.rpki.server.api.commands.DeleteNonHostedPublisherCommand;
 import net.ripe.rpki.server.api.commands.ProvisionNonHostedPublisherCommand;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
@@ -46,6 +47,7 @@ import static com.google.common.collect.ImmutableMap.of;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.MediaType.TEXT_XML;
 
 @Slf4j
@@ -103,6 +105,8 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         } catch (EntityNotFoundException e) {
             log.warn("Non-hosted CA was not found for '{}': {}", caName, e.getMessage(), e);
             throw new CaNotFoundException(e.getMessage());
+        } catch (CertificationResourceLimitExceededException e) {
+            return ResponseEntity.status(FORBIDDEN).body(of("error", e.getMessage()));
         } catch (IOException | IdentitySerializer.IdentitySerializerException | IllegalArgumentException e) {
             log.warn("Could not parse uploaded certificate: {}", e.getMessage(), e);
             return ResponseEntity.status(BAD_REQUEST).body(of("error", e.getMessage()));

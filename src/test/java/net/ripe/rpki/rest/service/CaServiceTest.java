@@ -21,6 +21,7 @@ import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateService;
+import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
@@ -50,13 +51,11 @@ import java.util.Collections;
 import java.util.UUID;
 
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -272,7 +271,7 @@ public class CaServiceTest {
                 "file", IDENTITY_CERTIFICATE_XML.getBytes(StandardCharsets.UTF_8)
         );
         mockMvc.perform(req)
-            .andExpect(status().isOk())
+            .andExpect(status().isCreated())
             .andExpect(content().contentType(APPLICATION_JSON));
 
         verify(certificateAuthorityCreateService).createNonHostedCertificateAuthority(principalArgument.capture(), certificateArgument.capture());
@@ -281,6 +280,34 @@ public class CaServiceTest {
 
         assertEquals("O=ORG-1", x500Principal.getName());
         assertEquals(new ChildIdentitySerializer().deserialize(IDENTITY_CERTIFICATE_XML).getIdentityCertificate(), certificate);
+    }
+
+    @Test
+    public void shouldProperlyRespondWhenCreateExisting_non_hosted_ca() throws Exception {
+        doThrow(new CertificateAuthorityNameNotUniqueException(new X500Principal("CN=ORG-1")))
+                .when(certificateAuthorityCreateService)
+                .createNonHostedCertificateAuthority(any(), any());
+
+        RequestBuilder req = Rest.multipart(
+                API_URL_PREFIX + "/ORG-1/non-hosted",
+                "file", IDENTITY_CERTIFICATE_XML.getBytes(StandardCharsets.UTF_8)
+        );
+        mockMvc.perform(req)
+                .andExpect(status().isConflict())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(jsonPath("$.error").value(containsString("ORG-1")));
+    }
+
+    @Test
+    public void shouldProperlyRespondWhenCreateExisting_hosted_ca() throws Exception {
+        doThrow(new CertificateAuthorityNameNotUniqueException(new X500Principal("CN=ORG-1")))
+                .when(certificateAuthorityCreateService)
+                .createHostedCertificateAuthority(any());
+
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/ORG-1/hosted"))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(jsonPath("$.error").value(containsString("ORG-1")));
     }
 
     @Test

@@ -24,23 +24,11 @@ import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExcee
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.Validate;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToMany;
+import javax.persistence.*;
 import javax.security.auth.x500.X500Principal;
 import javax.validation.constraints.NotNull;
 import java.security.PublicKey;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -67,6 +55,11 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
      */
     public static final int INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT = 1000;
 
+    /**
+     * Maximum number of publisher repositories for a single non-hosted CA.
+     */
+    public static final int PUBLISHER_REPOSITORIES_LIMIT = 10;
+
     @NotNull
     @Column(name = "identity_certificate")
     private String identityCertificate;
@@ -78,7 +71,8 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     @Getter
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL)
     @JoinColumn(name = "ca_id", nullable = false)
-    private Collection<NonHostedPublisherRepository> publisherRepositories = new ArrayList<>();
+    @MapKey(name = "publisherHandle")
+    private Map<UUID, NonHostedPublisherRepository> publisherRepositories = new HashMap<>();
 
     protected NonHostedCertificateAuthority() {
     }
@@ -189,14 +183,11 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     }
 
     public void addNonHostedPublisherRepository(UUID publisherHandle, PublisherRequest publisherRequest, RepositoryResponse repositoryResponse) {
-        Validate.isTrue(
-            publisherRepositories.stream().noneMatch(repository -> publisherHandle.equals(repository.getPublisherHandle())),
-            "publisher_handle must be unique"
-        );
-        publisherRepositories.add(new NonHostedPublisherRepository(publisherHandle, publisherRequest, repositoryResponse));
+        Validate.isTrue(!publisherRepositories.containsKey(publisherHandle), "publisher_handle must be unique");
+        publisherRepositories.put(publisherHandle, new NonHostedPublisherRepository(publisherHandle, publisherRequest, repositoryResponse));
     }
 
     public boolean removeNonHostedPublisherRepository(UUID publisherHandle) {
-        return publisherRepositories.removeIf(repository -> publisherHandle.equals(repository.getPublisherHandle()));
+        return publisherRepositories.remove(publisherHandle) != null;
     }
 }

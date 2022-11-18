@@ -163,7 +163,7 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
             throw new EntityNotFoundException("non-hosted CA '" + caName + "' not found");
         }
 
-        return ca.getPublisherRepositories().stream().collect(Collectors.toMap(
+        return ca.getPublisherRepositories().values().stream().collect(Collectors.toMap(
             NonHostedPublisherRepository::getPublisherHandle,
             NonHostedPublisherRepository::getRepositoryResponse
         ));

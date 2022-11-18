@@ -13,6 +13,6 @@ public class CertificateAuthorityNameNotUniqueException extends CertificationExc
     private static final long serialVersionUID = 1L;
 
     public CertificateAuthorityNameNotUniqueException(X500Principal memberCa) {
-        super(memberCa.getName());
+        super(String.format("CA for %s already exists.", memberCa.getName()));
     }
 }

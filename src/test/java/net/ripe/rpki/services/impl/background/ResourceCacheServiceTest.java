@@ -89,6 +89,7 @@ public class ResourceCacheServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void shouldUpdateIncomingCertificatesForUpdatedCas() {
         when(resourceServicesClient.fetchAllResources()).thenReturn(DataSamples.totalResources());
         subject.updateFullResourceCache();
@@ -105,8 +106,9 @@ public class ResourceCacheServiceTest {
         verify(allCaCertificateUpdateServiceBean).runService(predicateArgumentCaptor.capture());
 
         Predicate<CaIdentity> caIdentityPredicate = predicateArgumentCaptor.getValue();
-        assertThat(caIdentityPredicate).accepts(new CaIdentity(VersionedId.parse("1"), CaName.fromOrganisationId("ORG-123")));
-        assertThat(caIdentityPredicate).rejects(new CaIdentity(VersionedId.parse("1"), CaName.fromOrganisationId("ORG-124")));
+        assertThat(caIdentityPredicate)
+                .accepts(new CaIdentity(VersionedId.parse("1"), CaName.fromOrganisationId("ORG-123")))
+                .rejects(new CaIdentity(VersionedId.parse("1"), CaName.fromOrganisationId("ORG-124")));
     }
 
     @Test

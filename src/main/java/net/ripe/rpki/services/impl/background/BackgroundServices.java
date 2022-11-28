@@ -1,7 +1,6 @@
 package net.ripe.rpki.services.impl.background;
 
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.rpki.server.api.configuration.Environment;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
@@ -36,7 +35,7 @@ public class BackgroundServices {
 
     public static final String RIS_WHOIS_UPDATE_SERVICE = "risWhoisUpdateService";
     public static final String KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE = "keyPairActivationManagementService";
-    public static final String MEMBER_KEY_ROLLOVER_MANAGEMENT_SERVICE = "memberKeyRolloverManagementService";
+    public static final String HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE = "hostedCaKeyRolloverManagementService";
     public static final String RESOURCE_CACHE_UPDATE_SERVICE = "resourceCacheUpdateService";
     public static final String MANIFEST_CRL_UPDATE_SERVICE = "manifestCrlUpdateService";
     public static final String PUBLIC_REPOSITORY_PUBLICATION_SERVICE = "publicRepositoryPublicationService";
@@ -130,7 +129,7 @@ public class BackgroundServices {
             schedule(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE,
                      futureDate(autoKeyRolloverUpdateIntervalDays, DAY),
                      repeat().withIntervalInHours(autoKeyRolloverUpdateIntervalDays * 24));
-            schedule(MEMBER_KEY_ROLLOVER_MANAGEMENT_SERVICE,
+            schedule(HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE,
                      futureDate(autoKeyRolloverUpdateIntervalDays, DAY),
                      repeat().withIntervalInHours(autoKeyRolloverUpdateIntervalDays * 24));
 

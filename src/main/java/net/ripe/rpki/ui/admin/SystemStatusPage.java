@@ -51,8 +51,8 @@ public class SystemStatusPage extends AdminCertificationBasePage {
     @SpringBean(name = "productionCaKeyRolloverManagementService")
     private BackgroundService productionCaKeyRolloverManagementService;
 
-    @SpringBean(name = "memberKeyRolloverManagementService")
-    private BackgroundService memberKeyRolloverManagementService;
+    @SpringBean(name = BackgroundServices.HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE)
+    private BackgroundService hostedCaKeyRolloverManagementService;
 
     @SpringBean(name = "keyPairActivationManagementService")
     private BackgroundService keyPairActivationManagementService;
@@ -169,7 +169,7 @@ public class SystemStatusPage extends AdminCertificationBasePage {
         add(new Label("repositoryRrdpStatus", serviceLabel(publicRepositoryRrdpService)));
         add(new Label("allCertificateUpdateServiceStatus", serviceLabel(allCertificateUpdateService)));
         add(new Label("productionKeyRolloverServiceStatus", serviceLabel(productionCaKeyRolloverManagementService)));
-        add(new Label("memberKeyRolloverServiceStatus", serviceLabel(memberKeyRolloverManagementService)));
+        add(new Label("hostedCaKeyRolloverServiceStatus", serviceLabel(hostedCaKeyRolloverManagementService)));
         add(new Label("keyPairActivationServiceStatus", serviceLabel(keyPairActivationManagementService)));
         add(new Label("keyPairRevocationServiceStatus", serviceLabel(keyPairRevocationManagementService)));
         add(new Label("certificateExpirationServiceStatus", serviceLabel(certificateExpirationService)));
@@ -188,7 +188,7 @@ public class SystemStatusPage extends AdminCertificationBasePage {
         addBackgroundServiceExecuteLink("revokeOldKeyPairsLink", keyPairRevocationManagementService);
         addBackgroundServiceExecuteLink("certificateExpirationServiceLink", certificateExpirationService);
         addBackgroundServiceExecuteLink("productionCaRollOverLink", productionCaKeyRolloverManagementService);
-        addBackgroundServiceExecuteLink("memberRollOverLink", memberKeyRolloverManagementService);
+        addBackgroundServiceExecuteLink("hostedCaRollOverLink", hostedCaKeyRolloverManagementService);
         addBackgroundServiceExecuteLink("bgpRisUpdateLink", risWhoisUpdateService);
         addBackgroundServiceExecuteLink("roaAlertBackgroundServiceLink", roaAlertBackgroundService);
         addBackgroundServiceExecuteLink("resourceCacheUpdateServiceLink", resourceCacheUpdateService);
@@ -217,6 +217,7 @@ public class SystemStatusPage extends AdminCertificationBasePage {
                     String serviceName = findServiceName(actualBackgroundService.getClass());
                     backgroundServices.trigger(serviceName);
                     logAndDisplayMessage(backgroundService.getName() + " has been triggered manually");
+                    setResponsePage(SystemStatusPage.class);
                 } catch (Exception e) {
                     String message = backgroundService.getName() + " failed to start: " + e;
                     error(message);

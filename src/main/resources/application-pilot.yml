@@ -28,7 +28,7 @@ online.repository:
     notification.uri: https://localcert.ripe.net/rrdp/notification.xml
     uri: rsync://localcert.ripe.net/repository/
 
-provisioning.base.url: https://localcert.ripe.net/certification/updown
+provisioning.base.url: http://localcert.ripe.net/certification/updown
 
 publication:
     client:

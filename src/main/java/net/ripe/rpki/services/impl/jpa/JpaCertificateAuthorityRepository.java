@@ -106,11 +106,11 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     }
 
     @Override
-    public <T extends CertificateAuthority> T findByTypeAndUuid(Class<T> type, UUID memberUuid, LockModeType lockModeType) {
-        Validate.notNull(memberUuid, "memberUuid is null");
+    public <T extends CertificateAuthority> T findByTypeAndUuid(Class<T> type, UUID uuid, LockModeType lockModeType) {
+        Validate.notNull(uuid, "uuid is null");
         try {
             Query query = createQuery("from " + type.getSimpleName() + " ca where uuid = :uuid")
-                .setParameter("uuid", memberUuid)
+                .setParameter("uuid", uuid)
                 .setLockMode(lockModeType);
             return type.cast(query.getSingleResult());
         } catch (NoResultException e) {

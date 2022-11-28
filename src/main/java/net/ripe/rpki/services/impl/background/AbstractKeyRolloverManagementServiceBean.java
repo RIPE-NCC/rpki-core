@@ -35,7 +35,7 @@ public abstract class AbstractKeyRolloverManagementServiceBean extends Sequentia
     protected void runService(Class<? extends ManagedCertificateAuthority> type) {
         final Instant oldestCreationTime = Instant.now().minus(
             Duration.standardDays(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()));
-        runParallel(caViewService.findHostedCasEligibleForKeyRoll(type, oldestCreationTime, batchSize)
+        runParallel(caViewService.findManagedCasEligibleForKeyRoll(type, oldestCreationTime, batchSize)
             .stream()
             .map(ca -> task(
                 () -> commandService.execute(new KeyManagementInitiateRollCommand(ca.getVersionedId(), certificationConfiguration.getAutoKeyRolloverMaxAgeDays())),

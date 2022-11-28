@@ -46,14 +46,14 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
 
         // CAs are too new to be selected
         final Instant tenDaysOld = Instant.now().minus(Duration.standardDays(10));
-        assertThat(subject.findHostedCasEligibleForKeyRoll(HostedCertificateAuthority.class, tenDaysOld, Optional.of(1000))).isEmpty();
+        assertThat(subject.findManagedCasEligibleForKeyRoll(HostedCertificateAuthority.class, tenDaysOld, Optional.of(1000))).isEmpty();
 
         // Child CA should be selected when selecting all hosted CAs
-        assertThat(subject.findHostedCasEligibleForKeyRoll(ManagedCertificateAuthority.class, Instant.now().plus(Duration.standardSeconds(10)), Optional.of(1000))
+        assertThat(subject.findManagedCasEligibleForKeyRoll(ManagedCertificateAuthority.class, Instant.now().plus(Duration.standardSeconds(10)), Optional.of(1000))
         ).anyMatch(ca -> ca.getName().equals(CHILD_CA_NAME));
 
         // And method filters by type - Hosted \notin AllResources
-        assertThat(subject.findHostedCasEligibleForKeyRoll(AllResourcesCertificateAuthority.class, Instant.now(), Optional.of(1000))
+        assertThat(subject.findManagedCasEligibleForKeyRoll(AllResourcesCertificateAuthority.class, Instant.now(), Optional.of(1000))
         ).noneMatch(ca -> ca.getName().equals(CHILD_CA_NAME));
     }
 
@@ -65,7 +65,7 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
         var child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent);
         certificateAuthorityRepository.add(child);
 
-        assertThat(subject.findHostedCasEligibleForKeyRoll(HostedCertificateAuthority.class, Instant.now(), Optional.of(1000))
+        assertThat(subject.findManagedCasEligibleForKeyRoll(HostedCertificateAuthority.class, Instant.now(), Optional.of(1000))
         ).anyMatch(ca -> ca.getName().equals(CHILD_CA_NAME));
     }
 
@@ -80,7 +80,7 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
         KeyPairEntity acaKeyPair = keyPairService.createKeyPairEntity();
         child.addKeyPair(acaKeyPair);
 
-        assertThat(subject.findHostedCasEligibleForKeyRoll(HostedCertificateAuthority.class, Instant.now(), Optional.of(1000))
+        assertThat(subject.findManagedCasEligibleForKeyRoll(HostedCertificateAuthority.class, Instant.now(), Optional.of(1000))
         ).isEmpty();
     }
 

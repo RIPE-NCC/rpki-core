@@ -39,7 +39,7 @@ public class KeyPairRevocationManagementServiceBeanTest {
 
     @Test
     public void shouldReturnIfNoCaFound() {
-        given(certificationService.findAllHostedCertificateAuthorities()).willReturn(Collections.emptyList());
+        given(certificationService.findManagedCasEligibleForKeyRevocation()).willReturn(Collections.emptyList());
 
         subject.execute();
 
@@ -53,7 +53,7 @@ public class KeyPairRevocationManagementServiceBeanTest {
 
         ManagedCertificateAuthorityData ca = mock(ManagedCertificateAuthorityData.class);
         given(ca.getVersionedId()).willReturn(expectedVersionedId);
-        given(certificationService.findAllHostedCertificateAuthorities()).willReturn(Collections.singletonList(ca));
+        given(certificationService.findManagedCasEligibleForKeyRevocation()).willReturn(Collections.singletonList(ca));
 
         subject.execute();
 

@@ -17,7 +17,7 @@ public interface CertificateAuthorityRepository extends Repository<CertificateAu
 
     <T extends CertificateAuthority> T findByTypeAndName(Class<T> type, X500Principal name);
 
-    <T extends CertificateAuthority> T findByTypeAndUuid(Class<T> type, UUID memberUuid, LockModeType lockModeType);
+    <T extends CertificateAuthority> T findByTypeAndUuid(Class<T> type, UUID uuid, LockModeType lockModeType);
 
     ProductionCertificateAuthority findRootCAByName(X500Principal name);
 

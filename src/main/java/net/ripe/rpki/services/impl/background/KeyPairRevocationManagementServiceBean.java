@@ -33,7 +33,7 @@ public class KeyPairRevocationManagementServiceBean extends SequentialBackground
 
     @Override
     protected void runService() {
-        runParallel(caViewService.findAllHostedCertificateAuthorities().stream()
+        runParallel(caViewService.findManagedCasEligibleForKeyRevocation().stream()
                 .filter(ca -> ca.getType() != ALL_RESOURCES)
                 .map(ca -> task(
                     () -> commandService.execute(new KeyManagementRevokeOldKeysCommand(ca.getVersionedId())),

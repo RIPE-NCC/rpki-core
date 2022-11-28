@@ -7,7 +7,7 @@ import net.ripe.rpki.services.impl.background.CertificateExpirationServiceBean;
 import net.ripe.rpki.services.impl.background.KeyPairActivationManagementServiceBean;
 import net.ripe.rpki.services.impl.background.KeyPairRevocationManagementServiceBean;
 import net.ripe.rpki.services.impl.background.ManifestCrlUpdateServiceBean;
-import net.ripe.rpki.services.impl.background.MemberKeyRolloverManagementServiceBean;
+import net.ripe.rpki.services.impl.background.HostedCaKeyRolloverManagementServiceBean;
 import net.ripe.rpki.services.impl.background.ProductionCaKeyRolloverManagementServiceBean;
 import net.ripe.rpki.services.impl.background.PublicRepositoryPublicationServiceBean;
 import net.ripe.rpki.services.impl.background.PublicRepositoryRrdpServiceBean;
@@ -38,7 +38,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
     private BackgroundService publicRepositoryRsyncService;
     private BackgroundService publicRepositoryRrdpService;
     private BackgroundService productionCaKeyRolloverManagementService;
-    private BackgroundService memberKeyRolloverManagementService;
+    private BackgroundService hostedCaKeyRolloverManagementService;
     private BackgroundService keyPairActivationManagementService;
     private BackgroundService keyPairRevocationManagementService;
     private BackgroundService certificateExpirationService;
@@ -72,8 +72,8 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         productionCaKeyRolloverManagementService = createMock(ProductionCaKeyRolloverManagementServiceBean.class);
         addBeanToContext(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE, productionCaKeyRolloverManagementService);
 
-        memberKeyRolloverManagementService = createMock(MemberKeyRolloverManagementServiceBean.class);
-        addBeanToContext(MEMBER_KEY_ROLLOVER_MANAGEMENT_SERVICE, memberKeyRolloverManagementService);
+        hostedCaKeyRolloverManagementService = createMock(HostedCaKeyRolloverManagementServiceBean.class);
+        addBeanToContext(HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE, hostedCaKeyRolloverManagementService);
 
         keyPairActivationManagementService = createMock(KeyPairActivationManagementServiceBean.class);
         addBeanToContext(KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE, keyPairActivationManagementService);
@@ -113,7 +113,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         expect(publicRepositoryRsyncService.isActive()).andReturn(true).anyTimes();
         expect(publicRepositoryRrdpService.isActive()).andReturn(true).anyTimes();
         expect(productionCaKeyRolloverManagementService.isActive()).andReturn(true).anyTimes();
-        expect(memberKeyRolloverManagementService.isActive()).andReturn(true).anyTimes();
+        expect(hostedCaKeyRolloverManagementService.isActive()).andReturn(true).anyTimes();
         expect(keyPairActivationManagementService.isActive()).andReturn(true).anyTimes();
         expect(keyPairRevocationManagementService.isActive()).andReturn(true).anyTimes();
         expect(certificateExpirationService.isActive()).andReturn(true).anyTimes();
@@ -130,7 +130,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         expect(publicRepositoryRsyncService.isWaitingOrRunning()).andReturn(false).anyTimes();
         expect(publicRepositoryRrdpService.isWaitingOrRunning()).andReturn(false).anyTimes();
         expect(productionCaKeyRolloverManagementService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(memberKeyRolloverManagementService.isWaitingOrRunning()).andReturn(false).anyTimes();
+        expect(hostedCaKeyRolloverManagementService.isWaitingOrRunning()).andReturn(false).anyTimes();
         expect(keyPairActivationManagementService.isWaitingOrRunning()).andReturn(false).anyTimes();
         expect(keyPairRevocationManagementService.isWaitingOrRunning()).andReturn(false).anyTimes();
         expect(certificateExpirationService.isWaitingOrRunning()).andReturn(false).anyTimes();
@@ -147,7 +147,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         expect(publicRepositoryRsyncService.getStatus()).andReturn("not running").anyTimes();
         expect(publicRepositoryRrdpService.getStatus()).andReturn("not running").anyTimes();
         expect(productionCaKeyRolloverManagementService.getStatus()).andReturn("not running").anyTimes();
-        expect(memberKeyRolloverManagementService.getStatus()).andReturn("not running").anyTimes();
+        expect(hostedCaKeyRolloverManagementService.getStatus()).andReturn("not running").anyTimes();
         expect(keyPairActivationManagementService.getStatus()).andReturn("not running").anyTimes();
         expect(keyPairRevocationManagementService.getStatus()).andReturn("not running").anyTimes();
         expect(certificateExpirationService.getStatus()).andReturn("not running").anyTimes();
@@ -251,12 +251,12 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldRollOverMemberKeyPairs() {
-        backgroundServices.trigger(MEMBER_KEY_ROLLOVER_MANAGEMENT_SERVICE); expectLastCall();
-        expect(memberKeyRolloverManagementService.getName()).andReturn("name");
+        backgroundServices.trigger(HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE); expectLastCall();
+        expect(hostedCaKeyRolloverManagementService.getName()).andReturn("name");
         replayMocks();
 
         tester.startPage(SystemStatusPage.class);
-        tester.clickLink("memberRollOverLink");
+        tester.clickLink("hostedCaRollOverLink");
         tester.assertRenderedPage(SystemStatusPage.class);
 
         verifyMocks();
@@ -297,7 +297,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         replay(publicRepositoryRsyncService);
         replay(publicRepositoryRrdpService);
         replay(productionCaKeyRolloverManagementService);
-        replay(memberKeyRolloverManagementService);
+        replay(hostedCaKeyRolloverManagementService);
         replay(keyPairActivationManagementService);
         replay(keyPairRevocationManagementService);
         replay(certificateExpirationService);
@@ -318,7 +318,7 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
         verify(publicRepositoryRsyncService);
         verify(publicRepositoryRrdpService);
         verify(productionCaKeyRolloverManagementService);
-        verify(memberKeyRolloverManagementService);
+        verify(hostedCaKeyRolloverManagementService);
         verify(keyPairActivationManagementService);
         verify(keyPairRevocationManagementService);
         verify(certificateExpirationService);

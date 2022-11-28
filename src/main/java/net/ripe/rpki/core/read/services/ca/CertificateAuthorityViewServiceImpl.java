@@ -97,12 +97,20 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     }
 
     @Override
-    public Collection<CertificateAuthorityData> findAllHostedCertificateAuthorities() {
-        return findCertificateAuthoritiesMatchingType(CertificateAuthorityType.ROOT, CertificateAuthorityType.HOSTED, CertificateAuthorityType.ALL_RESOURCES);
+    public Collection<ManagedCertificateAuthorityData> findManagedCasEligibleForKeyRevocation() {
+        return entityManager.createQuery(
+                "FROM ManagedCertificateAuthority ca " +
+                    "WHERE EXISTS (FROM ca.keyPairs kp WHERE kp.status = :old)",
+                ManagedCertificateAuthority.class
+            )
+            .setParameter("old", KeyPairStatus.OLD)
+            .getResultStream()
+            .map(ManagedCertificateAuthority::toData)
+            .collect(Collectors.toList());
     }
 
     @Override
-    public Collection<CertificateAuthorityData> findHostedCasEligibleForKeyRoll(
+    public Collection<ManagedCertificateAuthorityData> findManagedCasEligibleForKeyRoll(
         Class<? extends ManagedCertificateAuthority> type,
         final Instant oldestKpCreationTime,
         final Optional<Integer> batchSize
@@ -126,14 +134,6 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
         return query.getResultStream()
             .map(ManagedCertificateAuthority::toData)
             .collect(Collectors.toList());
-    }
-
-    private List<CertificateAuthorityData> findCertificateAuthoritiesMatchingType(CertificateAuthorityType... allowedType) {
-        final List<CertificateAuthorityType> allowedTypes = Arrays.asList(allowedType);
-        return certificateAuthorityRepository.findAll().stream()
-                .filter(ca -> allowedTypes.contains(ca.getType()))
-                .map(this::convertToCaData)
-                .collect(Collectors.toList());
     }
 
     @Override

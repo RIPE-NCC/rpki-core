@@ -8,6 +8,7 @@ import net.ripe.rpki.server.api.dto.CaIdentity;
 import net.ripe.rpki.server.api.dto.CaStat;
 import net.ripe.rpki.server.api.dto.CaStatEvent;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CommandAuditData;
 import net.ripe.rpki.server.api.dto.ProvisioningAuditData;
 import org.joda.time.Instant;
@@ -44,9 +45,9 @@ public interface CertificateAuthorityViewService {
     Long findCertificateAuthorityIdByTypeAndName(Class<? extends CertificateAuthority> type, X500Principal name);
 
     /**
-     * @return non-null collection of hosted CA's
+     * @return non-null collection of hosted CA's with old keys
      */
-    Collection<CertificateAuthorityData> findAllHostedCertificateAuthorities();
+    Collection<ManagedCertificateAuthorityData> findManagedCasEligibleForKeyRevocation();
 
     /**
      * @return non-null collection of hosted CA's that match the conditions to be included for key-roll.
@@ -58,7 +59,7 @@ public interface CertificateAuthorityViewService {
      * @param oldestKpCreationTime oldest creation time of keypair to be selected
      * @param type type of ManagedCertificateAuthority to select
      */
-    Collection<CertificateAuthorityData> findHostedCasEligibleForKeyRoll(
+    Collection<ManagedCertificateAuthorityData> findManagedCasEligibleForKeyRoll(
         Class<? extends ManagedCertificateAuthority> type,
         Instant oldestKpCreationTime,
         Optional<Integer> batchSize

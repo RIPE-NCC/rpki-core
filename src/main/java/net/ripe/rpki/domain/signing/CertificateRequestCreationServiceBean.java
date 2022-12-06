@@ -2,6 +2,7 @@ package net.ripe.rpki.domain.signing;
 
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
@@ -61,7 +62,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
             .map(certificate -> createCertificateIssuanceRequestForNewKeyPair(ca, certificate.getResources()));
     }
 
-    public CertificateIssuanceRequest createCertificateIssuanceRequestForNewKeyPair(ManagedCertificateAuthority ca, IpResourceSet certifiableResources) {
+    public CertificateIssuanceRequest createCertificateIssuanceRequestForNewKeyPair(ManagedCertificateAuthority ca, ImmutableResourceSet certifiableResources) {
         KeyPairEntity kp = ca.createNewKeyPair(keyPairService);
         final X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
         final X500Principal dn = deriveSubjectDN(kp.getPublicKey(), null);
@@ -69,7 +70,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
     }
 
     @Override
-    public List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(ManagedCertificateAuthority ca, IpResourceSet certifiableResources) {
+    public List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(ManagedCertificateAuthority ca, ImmutableResourceSet certifiableResources) {
         final List<CertificateIssuanceRequest> requests = new ArrayList<>();
         for (KeyPairEntity kp : ca.getKeyPairs()) {
             if (kp.isCertificateNeeded()) {
@@ -85,7 +86,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
     }
 
     @Override
-    public List<SigningRequest> requestProductionCertificates(IpResourceSet certifiableResources,
+    public List<SigningRequest> requestProductionCertificates(ImmutableResourceSet certifiableResources,
                                                               ManagedCertificateAuthority ca) {
         List<SigningRequest> requests = new ArrayList<>();
         for (KeyPairEntity kp : ca.getKeyPairs()) {
@@ -102,7 +103,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
                     final X509ResourceCertificate existingCertificate = currentIncomingCertificate.map(ResourceCertificate::getCertificate).orElse(null);
                     X500Principal dn = deriveSubjectDN(kp.getPublicKey(), existingCertificate);
                     X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
-                    ResourceCertificateRequestData resourceCertificateRequestData = ResourceCertificateRequestData.forUpstreamCARequest(DEFAULT_RESOURCE_CLASS, dn, kp.getPublicKey(), sia, certifiableResources);
+                    ResourceCertificateRequestData resourceCertificateRequestData = ResourceCertificateRequestData.forUpstreamCARequest(DEFAULT_RESOURCE_CLASS, dn, kp.getPublicKey(), sia, new IpResourceSet(certifiableResources));
                     requests.add(new SigningRequest(resourceCertificateRequestData));
                 }
             }
@@ -238,7 +239,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
         return false;
     }
 
-    private boolean resourcesChanged(IncomingResourceCertificate currentCertificate, IpResourceSet certifiableResources, String name) {
+    private boolean resourcesChanged(IncomingResourceCertificate currentCertificate, ImmutableResourceSet certifiableResources, String name) {
         if (!currentCertificate.getResources().equals(certifiableResources)) {
             log.info("Current certificate for resource class " + name + ", has different resources. Was: " + currentCertificate.getResources() + ", will request: " + certifiableResources);
             return true;

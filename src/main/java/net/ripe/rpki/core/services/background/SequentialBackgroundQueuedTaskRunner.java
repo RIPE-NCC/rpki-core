@@ -6,6 +6,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
@@ -28,7 +29,7 @@ public class SequentialBackgroundQueuedTaskRunner extends SequentialBackgroundSe
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         log.warn("this service runs automatically when tasks are submitted");
     }
 

@@ -3,7 +3,7 @@ package net.ripe.rpki.server.api.ports;
 import java.util.Collections;
 
 import com.google.common.collect.ImmutableMap;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.server.api.support.objects.CaName;
 
 import org.junit.Test;
@@ -29,11 +29,11 @@ public class ResourceServicesClientTest {
                        new Ipv6Assignment(2, "::4/128", "ASSIGNED", "ORG-GREENLIGHT")),
                 Collections.singletonList(new Ipv4ErxResource("51.0.0.0/8", "ISSUED", 1L, "1")));
 
-        ImmutableMap<CaName, IpResourceSet> expected = ImmutableMap.of(
-                CaName.fromMembershipId(1L), IpResourceSet.parse("AS123, 10.0.0.0/8, 51.0.0.0/8, ::1/128"),
-                CaName.fromMembershipId(2L), IpResourceSet.parse("::3/128, 12.0.0.0/8"),
-                CaName.fromOrganisationId("ORG-BLUELIGHT"), IpResourceSet.parse("11.0.0.0/8, ::2/128"),
-                CaName.fromOrganisationId("ORG-GREENLIGHT"), IpResourceSet.parse("13.0.0.0/8, ::4/128")
+        ImmutableMap<CaName, ImmutableResourceSet> expected = ImmutableMap.of(
+                CaName.fromMembershipId(1L), ImmutableResourceSet.parse("AS123, 10.0.0.0/8, 51.0.0.0/8, ::1/128"),
+                CaName.fromMembershipId(2L), ImmutableResourceSet.parse("::3/128, 12.0.0.0/8"),
+                CaName.fromOrganisationId("ORG-BLUELIGHT"), ImmutableResourceSet.parse("11.0.0.0/8, ::2/128"),
+                CaName.fromOrganisationId("ORG-GREENLIGHT"), ImmutableResourceSet.parse("13.0.0.0/8, ::4/128")
         );
 
         assertEquals(expected, subject.getCertifiableResources());

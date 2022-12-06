@@ -1,7 +1,7 @@
 package net.ripe.rpki.domain;
 
 import lombok.Getter;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
 import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningPayload;
@@ -151,11 +151,12 @@ public class ProvisioningAuditLogEntity extends EntitySupport {
 
         int count = 0;
         for (ResourceClassListResponseClassElement classElement : classElements) {
-            IpResourceSet resources = new IpResourceSet();
+            ImmutableResourceSet.Builder builder = new ImmutableResourceSet.Builder();
             if (classElement.getResourceSetIpv4() != null)
-                resources.addAll(classElement.getResourceSetIpv4());
+                builder.addAll(classElement.getResourceSetIpv4());
             if (classElement.getResourceSetIpv6() != null)
-                resources.addAll(classElement.getResourceSetIpv6());
+                builder.addAll(classElement.getResourceSetIpv6());
+            ImmutableResourceSet resources = builder.build();
 
             if (count++ > 0) stringBuilder.append(", ");
             stringBuilder.append(classElement.getClassName()).append(" (").append(resources).append(")");
@@ -166,11 +167,12 @@ public class ProvisioningAuditLogEntity extends EntitySupport {
     private void buildCertificateIssuanceRequestPayloadSummary(CertificateIssuanceRequestPayload payload, StringBuilder stringBuilder) {
         stringBuilder.append("requesting certificate with");
 
-        IpResourceSet resources = new IpResourceSet();
+        ImmutableResourceSet.Builder builder = new ImmutableResourceSet.Builder();
         if (payload.getRequestElement().getAllocatedIpv4() != null)
-            resources.addAll(payload.getRequestElement().getAllocatedIpv4());
+            builder.addAll(payload.getRequestElement().getAllocatedIpv4());
         if (payload.getRequestElement().getAllocatedIpv6() != null)
-            resources.addAll(payload.getRequestElement().getAllocatedIpv6());
+            builder.addAll(payload.getRequestElement().getAllocatedIpv6());
+        ImmutableResourceSet resources = builder.build();
 
         if (resources.isEmpty()) {
             stringBuilder.append(" all resources");

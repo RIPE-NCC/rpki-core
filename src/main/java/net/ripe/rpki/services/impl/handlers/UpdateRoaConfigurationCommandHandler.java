@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
@@ -32,7 +32,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
 
     private final RoaConfigurationRepository roaConfigurationRepository;
     private final RoaEntityService roaEntityService;
-    private final IpResourceSet privateAsnRanges;
+    private final ImmutableResourceSet privateAsnRanges;
     private final RoaMetricsService roaMetricsService;
 
     @Inject
@@ -46,7 +46,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
         this.roaEntityService = roaEntityService;
         this.roaMetricsService = roaMetricsService;
 
-        this.privateAsnRanges = IpResourceSet.parse(privateASNS);
+        this.privateAsnRanges = ImmutableResourceSet.parse(privateASNS);
         Preconditions.checkArgument(Iterables.all(privateAsnRanges, a -> IpResourceType.ASN.equals(a.getType())), "Only ASNs allowed for private ASN ranges: %s", privateAsnRanges);
     }
 

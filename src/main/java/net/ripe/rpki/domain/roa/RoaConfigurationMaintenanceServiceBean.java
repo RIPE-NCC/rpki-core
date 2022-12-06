@@ -3,7 +3,7 @@ package net.ripe.rpki.domain.roa;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
 import net.ripe.rpki.core.events.IncomingCertificateRevokedEvent;
@@ -34,18 +34,17 @@ public class RoaConfigurationMaintenanceServiceBean implements CertificateAuthor
     @Override
     public void visitIncomingCertificateRevokedEvent(IncomingCertificateRevokedEvent event, CommandContext context) {
         final ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(event.getCertificateAuthorityVersionedId().getId());
-
         if (ca == null) {
             return;
         }
 
-        updateRoaConfigurationsForResources(ca, ca.getCertifiedResources(), context);
+        updateRoaConfigurationsForResources(ca, ImmutableResourceSet.empty(), context);
     }
 
     @Override
     public void visitIncomingCertificateUpdatedEvent(IncomingCertificateUpdatedEvent event, CommandContext context) {
         final VersionedId caId = event.getCertificateAuthorityVersionedId();
-        final IpResourceSet nowCurrentResources = event.getIncomingCertificate().getResources();
+        final ImmutableResourceSet nowCurrentResources = event.getIncomingCertificate().resources();
 
         final ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(caId.getId());
 
@@ -53,7 +52,7 @@ public class RoaConfigurationMaintenanceServiceBean implements CertificateAuthor
     }
 
 
-    private void updateRoaConfigurationsForResources(ManagedCertificateAuthority ca, IpResourceSet nowCurrentResources, CommandContext context) {
+    private void updateRoaConfigurationsForResources(ManagedCertificateAuthority ca, ImmutableResourceSet nowCurrentResources, CommandContext context) {
         final Optional<RoaConfiguration> maybeConfig = roaConfigurationRepository.findByCertificateAuthority(ca);
         if (!maybeConfig.isPresent()) {
             return;

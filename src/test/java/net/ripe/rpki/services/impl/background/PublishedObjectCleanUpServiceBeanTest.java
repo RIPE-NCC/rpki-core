@@ -18,6 +18,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.util.Collections;
+
 import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -52,10 +54,10 @@ public class PublishedObjectCleanUpServiceBeanTest {
     }
 
     @Test
-    public void should_delete_expired_certificates_and_published_objects() throws Exception {
+    public void should_delete_expired_certificates_and_published_objects() {
         DateTime expirationTime = new DateTime(DateTimeZone.UTC).minusDays(7);
 
-        service.runService();
+        service.runService(Collections.emptyMap());
 
         verify(publishedObjectRepository).deleteExpiredObjects(expirationTime);
         verify(resourceCertificateRepository).deleteExpiredOutgoingResourceCertificates(expirationTime);

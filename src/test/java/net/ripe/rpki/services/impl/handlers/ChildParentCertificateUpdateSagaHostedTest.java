@@ -1,8 +1,8 @@
 package net.ripe.rpki.services.impl.handlers;
 
-import static net.ripe.ipresource.IpResourceSet.parse;
+import static net.ripe.ipresource.ImmutableResourceSet.parse;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
@@ -291,7 +291,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
 
         // Remove some resources from parent, but keep child resources the same. The new parent certificate should
         // still have the child resources to avoid invalidation due to overclaiming.
-        resourceCache.updateEntry(CaName.of(parent.getName()), IpResourceSet.ASN_PRIVATE_USE_RESOURCES);
+        resourceCache.updateEntry(CaName.of(parent.getName()), ImmutableResourceSet.ASN_PRIVATE_USE_RESOURCES);
         execute(new UpdateAllIncomingResourceCertificatesCommand(parent.getVersionedId(), Integer.MAX_VALUE));
 
         assertChildParentInvariants(child, parent);
@@ -304,7 +304,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
 
         // Update the parent certificate again. Now it should no longer contain the extra child resources.
         execute(new UpdateAllIncomingResourceCertificatesCommand(parent.getVersionedId(), Integer.MAX_VALUE));
-        assertThat(parent.getCurrentIncomingCertificate().getResources()).isEqualTo(IpResourceSet.ASN_PRIVATE_USE_RESOURCES);
+        assertThat(parent.getCurrentIncomingCertificate().getResources()).isEqualTo(ImmutableResourceSet.ASN_PRIVATE_USE_RESOURCES);
     }
 
     private CertificateIssuanceRequest certificateToIssuanceRequest(IncomingResourceCertificate certificate) {

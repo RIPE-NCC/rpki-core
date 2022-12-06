@@ -2,7 +2,7 @@ package net.ripe.rpki.domain;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
@@ -42,7 +42,7 @@ public class ProductionCertificateAuthority extends ManagedCertificateAuthority 
     }
 
     @Override
-    public Optional<IpResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
+    public Optional<ImmutableResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
         return resourceLookupService.lookupProductionCaResourcesSet();
     }
 

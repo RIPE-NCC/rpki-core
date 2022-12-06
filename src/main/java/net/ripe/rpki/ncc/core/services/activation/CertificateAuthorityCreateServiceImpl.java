@@ -1,7 +1,8 @@
 package net.ripe.rpki.ncc.core.services.activation;
 
+import com.google.common.annotations.VisibleForTesting;
 import lombok.NonNull;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.domain.NameNotUniqueException;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
@@ -21,6 +22,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.security.auth.x500.X500Principal;
+
+import java.util.UUID;
 
 import static net.ripe.rpki.server.api.security.RunAsUserHolder.asAdmin;
 
@@ -61,7 +64,7 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
         }
 
         LOG.info("Creating Hosted CA: {}", name);
-        IpResourceSet resources = resourceLookupService.lookupMemberCaPotentialResources(name);
+        ImmutableResourceSet resources = resourceLookupService.lookupMemberCaPotentialResources(name);
         provisionMember(name, resources, productionCaName);
     }
 
@@ -80,11 +83,11 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
         }
 
         LOG.info("Creating Non-Hosted CA: {}", name);
-        IpResourceSet resources = resourceLookupService.lookupMemberCaPotentialResources(name);
+        ImmutableResourceSet resources = resourceLookupService.lookupMemberCaPotentialResources(name);
         provisionNonHostedMember(name, resources, productionCaName, identityCertificate);
     }
 
-    void provisionMember(final X500Principal caName, final IpResourceSet resources, final X500Principal productionCaName) {
+    void provisionMember(final X500Principal caName, final ImmutableResourceSet resources, final X500Principal productionCaName) {
         try {
             asAdmin(() -> {
                 Long productionCaId = findProductionCaId(productionCaName);
@@ -95,11 +98,14 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
         }
     }
 
-    void provisionNonHostedMember(final X500Principal caName, final IpResourceSet resources,
+    void provisionNonHostedMember(final X500Principal caName, final ImmutableResourceSet resources,
                                   final X500Principal productionCaName, final ProvisioningIdentityCertificate identityCertificate) {
         asAdmin(() -> {
             Long productionCaId = findProductionCaId(productionCaName);
-            commandService.execute(new ActivateNonHostedCertificateAuthorityCommand(commandService.getNextId(), caName, resources, identityCertificate, productionCaId));
+            // We want to know UUID before creating CA to add the UUID to the command summary
+            final UUID uuid = UUID.randomUUID();
+            commandService.execute(new ActivateNonHostedCertificateAuthorityCommand(commandService.getNextId(),
+                caName, uuid, resources, identityCertificate, productionCaId));
         });
     }
 

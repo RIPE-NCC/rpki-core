@@ -9,15 +9,13 @@ import lombok.Getter;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResource;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.EqualsSupport;
 import net.ripe.rpki.server.api.support.objects.CaName;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public interface ResourceServicesClient {
@@ -98,15 +96,17 @@ public interface ResourceServicesClient {
          *  CN=28402 | 185.66.64.0/22, 2a05:640::/29
          * </pre>
          */
-        public Map<CaName, IpResourceSet> getCertifiableResources() {
-            final Map<CaName, IpResourceSet> map = Maps.newLinkedHashMap();
-            Stream.of(asns, ipv4Allocations, ipv4Assignments, ipv6Allocations, ipv6Assignments, ipv4ErxResources)
-                .filter(Objects::nonNull)
-                .forEach(bunch ->
-                    bunch.forEach(dto -> {
-                        dto.getCertifiableResource().ifPresent(r ->
-                            map.computeIfAbsent(dto.getCaName(), k -> new IpResourceSet()).add(r));
-                }));
+        public Map<CaName, ImmutableResourceSet> getCertifiableResources() {
+            final LinkedHashMap<CaName, ImmutableResourceSet> map =
+                Stream.of(asns, ipv4Allocations, ipv4Assignments, ipv6Allocations, ipv6Assignments, ipv4ErxResources)
+                    .filter(Objects::nonNull)
+                    .flatMap(Collection::stream)
+                    .filter(dto -> dto.getCertifiableResource().isPresent())
+                    .collect(Collectors.groupingBy(
+                        Resource::getCaName,
+                        LinkedHashMap::new,
+                        Collectors.mapping(dto -> dto.getCertifiableResource().get(), ImmutableResourceSet.collector())
+                    ));
 
             return ImmutableMap.copyOf(map);
         }
@@ -130,7 +130,7 @@ public interface ResourceServicesClient {
         private final MemberResources allMembersResources;
         private final RipeNccDelegations ripeNccDelegations;
 
-        public IpResourceSet allDelegationResources() {
+        public ImmutableResourceSet allDelegationResources() {
             return ripeNccDelegations.allDelegationResources();
         }
     }
@@ -143,14 +143,14 @@ public interface ResourceServicesClient {
         private final List<RipeNccDelegation> ripeNccIpv4Delegations;
         private final List<RipeNccDelegation> ripeNccIpv6Delegations;
 
-        public IpResourceSet allDelegationResources() {
+        public ImmutableResourceSet allDelegationResources() {
             return Stream.of(
                 ripeNccAsnDelegations.stream(),
                 ripeNccIpv4Delegations.stream(),
                 ripeNccIpv6Delegations.stream())
                 .flatMap(Function.identity())
-                .map(r -> IpResourceSet.parse(r.range))
-                .collect(IpResourceSet::new, IpResourceSet::addAll, IpResourceSet::addAll);
+                .flatMap(r -> ImmutableResourceSet.parse(r.range).stream())
+                .collect(ImmutableResourceSet.collector());
         }
     }
 

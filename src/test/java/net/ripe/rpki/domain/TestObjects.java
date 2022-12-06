@@ -1,6 +1,6 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest;
@@ -53,8 +53,8 @@ public class TestObjects {
     public static final long ACA_ID = 45L;
     public static final X500Principal PRODUCTION_CA_NAME = new X500Principal("O=ORG-TEST-PRODUCTION-CA");
     public static final X500Principal ALL_RESOURCES_CA_NAME = new X500Principal("CN=Test All Resources CA");
-    public static final IpResourceSet DEFAULT_PRODUCTION_CA_RESOURCES = IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
-    public static final IpResourceSet PRODUCTION_CA_RESOURCES = IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
+    public static final ImmutableResourceSet DEFAULT_PRODUCTION_CA_RESOURCES = ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES;
+    public static final ImmutableResourceSet PRODUCTION_CA_RESOURCES = ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES;
     public static final URI BASE_URI = URI.create("rsync://localhost:20873/repository/");
 
     public static final URI CERTIFICATE_REPOSITORY_LOCATION = URI.create("rsync://localhost/bar/");
@@ -68,7 +68,7 @@ public class TestObjects {
         new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_CA_REPOSITORY, URI.create("rsync://localhost/foo/ca-repository-uri/")),
         new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST, URI.create("rsync://localhost/foo/ca-repository-uri/manifest-uri.mft"))
     };
-    public static final IpResourceSet TEST_RESOURCE_SET = IpResourceSet.parse("10.0.0.0/16, AS21212");
+    public static final ImmutableResourceSet TEST_RESOURCE_SET = ImmutableResourceSet.parse("10.0.0.0/16, AS21212");
     public static final ValidityPeriod TEST_VALIDITY_PERIOD = new ValidityPeriod(new DateTime(2008, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC), new DateTime(2009, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC));
     public static final X500Principal TEST_SELF_SIGNED_CERTIFICATE_NAME = new X500Principal("CN=For Testing Only, C=NL");
     public static final KeyPairEntity TEST_KEY_PAIR_2 = createTestKeyPair(KeyPairEntityTest.TEST_KEY_PAIR_NAME + "-2");
@@ -106,7 +106,7 @@ public class TestObjects {
     public static IncomingResourceCertificate createResourceCertificate(Long serial,
                                                                         KeyPairEntity keyPair,
                                                                         ValidityPeriod validityPeriod,
-                                                                        IpResourceSet resources,
+                                                                        ImmutableResourceSet resources,
                                                                         X509CertificateInformationAccessDescriptor[] subjectInformationAccessDescriptors) {
         OutgoingResourceCertificate outgoing = createOutgoingResourceCertificate(serial,
                 keyPair,
@@ -135,7 +135,7 @@ public class TestObjects {
                                                                                 KeyPairEntity signingKeyPair,
                                                                                 PublicKey subjectPublicKey,
                                                                                 ValidityPeriod validityPeriod,
-                                                                                IpResourceSet resources,
+                                                                                ImmutableResourceSet resources,
                                                                                 X509CertificateInformationAccessDescriptor[] subjectInformationAccess) {
         ResourceCertificateBuilder builder = createBuilder(signingKeyPair, subjectPublicKey);
         builder.withSerial(BigInteger.valueOf(serial)).withCa(true).withEmbedded(false);
@@ -202,7 +202,7 @@ public class TestObjects {
         List<SigningRequest> signingRequests = certificateRequestCreationService.requestProductionCertificates(PRODUCTION_CA_RESOURCES, ca);
         SigningRequest request = signingRequests.get(0);
         CertificateIssuanceResponse response = makeSelfSignedCertificate(resourceCertificateRepository, certificationConfiguration, kp,
-            request.getResourceCertificateRequest().getSubjectDN(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES);
+            request.getResourceCertificateRequest().getSubjectDN(), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES);
         ca.updateIncomingResourceCertificate(kp, response.getCertificate(), response.getPublicationUri());
     }
 
@@ -210,7 +210,7 @@ public class TestObjects {
                                                                  RepositoryConfiguration configuration,
                                                                  KeyPairEntity signingKeyPair,
                                                                  X500Principal subject,
-                                                                 IpResourceSet resources) {
+                                                                 ImmutableResourceSet resources) {
         DateTime now = new DateTime(DateTimeZone.UTC);
         ResourceCertificateInformationAccessStrategy ias = new ResourceCertificateInformationAccessStrategyBean();
         X509CertificateInformationAccessDescriptor[] sia = {

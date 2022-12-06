@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
 import java.util.Collection;
+import java.util.Map;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.CA_CLEAN_UP_SERVICE;
 
@@ -53,7 +54,7 @@ public class CaCleanUpServiceBean extends ConcurrentBackgroundServiceWithAdminPr
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         if (enabled) {
             final Collection<ManagedCertificateAuthority> casToDelete = certificateAuthorityRepository.getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear();
             deletedCasWithoutKeyPairsCounter.increment(casToDelete.size());

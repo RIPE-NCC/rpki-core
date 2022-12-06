@@ -4,7 +4,7 @@ import com.google.common.collect.Iterators;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
@@ -70,29 +70,24 @@ public class ChildParentCertificateUpdateSaga {
         return !requests.isEmpty();
     }
 
-    public boolean isUpdateNeeded(ChildCertificateAuthority childCa) {
-        return !checkIfUpdatedIsNeeded(childCa).isEmpty();
-    }
-
     private List<CertificateProvisioningMessage> checkIfUpdatedIsNeeded(ChildCertificateAuthority childCa) {
-        Optional<IpResourceSet> maybeChildResources = childCa.lookupCertifiableIpResources(resourceLookupService);
+        Optional<ImmutableResourceSet> maybeChildResources = childCa.lookupCertifiableIpResources(resourceLookupService);
 
         if (!maybeChildResources.isPresent()) {
             log.warn("Resource cache for CA is null (not: empty), exiting.");
             return Collections.emptyList();
         }
 
-        IpResourceSet childResources = new IpResourceSet(maybeChildResources.get());
+        ImmutableResourceSet childResources = maybeChildResources.get();
 
         // Do not remove resources that are still on outgoing resource certificates for child CAs, since this can
         // lead to an invalid repository state.
-        IpResourceSet currentOutgoingChildCertificateResources = resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(childCa.getName());
+        ImmutableResourceSet currentOutgoingChildCertificateResources = resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(childCa.getName());
 
         if (childResources.contains(currentOutgoingChildCertificateResources)) {
             this.overclaimingResourcesCounts.remove(childCa.getName());
         } else {
-            IpResourceSet overclaimingResources = new IpResourceSet(currentOutgoingChildCertificateResources);
-            overclaimingResources.removeAll(childResources);
+            ImmutableResourceSet overclaimingResources = currentOutgoingChildCertificateResources.difference(childResources);
 
             this.overclaimingResourcesCounts.put(childCa.getName(), Iterators.size(overclaimingResources.iterator()));
 
@@ -102,7 +97,7 @@ public class ChildParentCertificateUpdateSaga {
                 childCa.getName()
             );
 
-            childResources.addAll(overclaimingResources);
+            childResources = childResources.union(overclaimingResources);
         }
 
         ParentCertificateAuthority parentCa = childCa.getParent();

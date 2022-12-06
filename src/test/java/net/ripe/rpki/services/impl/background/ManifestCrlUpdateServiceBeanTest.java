@@ -61,7 +61,7 @@ public class ManifestCrlUpdateServiceBeanTest {
             .thenReturn(Arrays.asList(prodCa, memberCa))
             .thenReturn(Collections.emptyList());
 
-        subject.execute();
+        subject.execute(Collections.emptyMap());
 
         verify(commandService, times(2)).execute(isA(IssueUpdatedManifestAndCrlCommand.class));
         verify(commandService).execute(new IssueUpdatedManifestAndCrlCommand(prodCaId));
@@ -74,7 +74,7 @@ public class ManifestCrlUpdateServiceBeanTest {
         List<ManagedCertificateAuthority> caData = createCertificateAuthorityDataMocks(MAX_ALLOWED_EXCEPTIONS + 1);
         when(certificateAuthorityRepository.findAllWithOutdatedManifests(any(), anyInt())).thenReturn(caData);
 
-        BackgroundServiceExecutionResult result = subject.execute();
+        BackgroundServiceExecutionResult result = subject.execute(Collections.emptyMap());
 
         assertThat(result.getStatus()).isEqualTo(BackgroundServiceExecutionResult.Status.FAILURE);
     }

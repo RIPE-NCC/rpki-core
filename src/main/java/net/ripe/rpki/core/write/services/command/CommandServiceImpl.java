@@ -106,7 +106,7 @@ public class CommandServiceImpl implements CommandService {
             } catch (OptimisticLockException | PessimisticLockException | TransientDataAccessException e) {
                 // Locking exceptions are most often transient, so retry a few times
                 if (retryCount >= MAX_RETRIES) {
-                    log.warn("Error processing command after {} tries: {}", retryCount, command, e);
+                    log.error("Error processing command after {} tries: {}", retryCount, command, e);
                     throw e;
                 } else {
                     retryCount++;

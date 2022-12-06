@@ -1,8 +1,8 @@
 package net.ripe.rpki.domain.roa;
 
 import net.ripe.ipresource.Asn;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.roa.Roa;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaPrefix;
@@ -42,7 +42,7 @@ public class RoaSpecificationTest {
 
     private IncomingResourceCertificate incomingCertificate;
 
-    private IpResourceSet resources;
+    private ImmutableResourceSet resources;
 
 
     public static RoaSpecification createRoaSpecification() {
@@ -57,7 +57,7 @@ public class RoaSpecificationTest {
         caCertValidityPeriod = new ValidityPeriod(NOW, NOW.plusYears(2));
         incomingCertificate = mock(IncomingResourceCertificate.class);
 
-        resources = new IpResourceSet(RESOURCE_1, RESOURCE_2);
+        resources = ImmutableResourceSet.of(RESOURCE_1, RESOURCE_2);
 
         when(incomingCertificate.getValidityPeriod()).thenReturn(caCertValidityPeriod);
         when(incomingCertificate.getResources()).thenReturn(resources);
@@ -70,7 +70,7 @@ public class RoaSpecificationTest {
     public void should_calculate_resources_based_on_prefixes() {
         assertEquals(resources, subject.getNormalisedResources());
         subject.removeAllowedRoute(ROA_PREFIX_1);
-        assertEquals(new IpResourceSet(RESOURCE_2), subject.getNormalisedResources());
+        assertEquals(ImmutableResourceSet.of(RESOURCE_2), subject.getNormalisedResources());
     }
 
     @Test

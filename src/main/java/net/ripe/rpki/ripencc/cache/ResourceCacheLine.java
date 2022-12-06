@@ -1,6 +1,7 @@
 package net.ripe.rpki.ripencc.cache;
 
-import net.ripe.ipresource.IpResourceSet;
+import lombok.Getter;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.server.api.support.objects.CaName;
 
 import javax.persistence.Entity;
@@ -13,23 +14,20 @@ class ResourceCacheLine {
 
     @Id
     private String name;
-    private String resources;
+    @Getter
+    private ImmutableResourceSet resources;
 
     protected ResourceCacheLine() {
         //for hibernate
     }
 
-    public ResourceCacheLine(final CaName user, final IpResourceSet resources) {
+    public ResourceCacheLine(final CaName user, final ImmutableResourceSet resources) {
         this.name = user.toString();
-        this.resources = resources.toString();
+        this.resources = resources;
     }
 
     public CaName getName() {
         return CaName.parse(name);
-    }
-
-    public IpResourceSet getResources() {
-        return IpResourceSet.parse(resources);
     }
 
 }

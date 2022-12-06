@@ -8,6 +8,7 @@ import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE;
@@ -29,7 +30,7 @@ public class HostedCaKeyRolloverManagementServiceBean extends AbstractKeyRollove
     }
 
     @Override
-    protected void runService() {
-        runService(HostedCertificateAuthority.class);
+    protected void runService(Map<String, String> parameters) {
+        runKeyRoll(HostedCertificateAuthority.class, parameters);
     }
 }

@@ -3,7 +3,7 @@ package net.ripe.rpki.domain;
 import com.google.common.collect.Iterables;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceType;
 import org.apache.commons.lang3.Validate;
 
@@ -28,22 +28,22 @@ import java.util.Optional;
 public class RequestedResourceSets implements Serializable {
 
     @Column(name = "req_resource_set_asn", columnDefinition = "TEXT")
-    private IpResourceSet requestedResourceSetAsn;
+    private ImmutableResourceSet requestedResourceSetAsn;
 
     @Column(name = "req_resource_set_ipv4", columnDefinition = "TEXT")
-    private IpResourceSet requestedResourceSetIpv4;
+    private ImmutableResourceSet requestedResourceSetIpv4;
 
     @Column(name = "req_resource_set_ipv6", columnDefinition = "TEXT")
-    private IpResourceSet requestedResourceSetIpv6;
+    private ImmutableResourceSet requestedResourceSetIpv6;
 
     public RequestedResourceSets() {
         this(Optional.empty(), Optional.empty(), Optional.empty());
     }
 
     public RequestedResourceSets(
-        Optional<IpResourceSet> requestedResourceSetAsn,
-        Optional<IpResourceSet> requestedResourceSetIpv4,
-        Optional<IpResourceSet> requestedResourceSetIpv6
+        Optional<ImmutableResourceSet> requestedResourceSetAsn,
+        Optional<ImmutableResourceSet> requestedResourceSetIpv4,
+        Optional<ImmutableResourceSet> requestedResourceSetIpv6
     ) {
         this.requestedResourceSetAsn = requestedResourceSetAsn.orElse(null);
         this.requestedResourceSetIpv4 = requestedResourceSetIpv4.orElse(null);
@@ -51,25 +51,23 @@ public class RequestedResourceSets implements Serializable {
         invariant();
     }
 
-    public Optional<IpResourceSet> getRequestedResourceSetAsn() {
+    public Optional<ImmutableResourceSet> getRequestedResourceSetAsn() {
         return Optional.ofNullable(requestedResourceSetAsn);
     }
 
-    public Optional<IpResourceSet> getRequestedResourceSetIpv4() {
+    public Optional<ImmutableResourceSet> getRequestedResourceSetIpv4() {
         return Optional.ofNullable(requestedResourceSetIpv4);
     }
 
-    public Optional<IpResourceSet> getRequestedResourceSetIpv6() {
+    public Optional<ImmutableResourceSet> getRequestedResourceSetIpv6() {
         return Optional.ofNullable(requestedResourceSetIpv6);
     }
 
-    public IpResourceSet calculateEffectiveResources(IpResourceSet certifiableResources) {
-        IpResourceSet result = new IpResourceSet();
-        result.addAll(getRequestedResourceSetAsn().orElse(Resources.ALL_AS_RESOURCES));
-        result.addAll(getRequestedResourceSetIpv4().orElse(Resources.ALL_IPV4_RESOURCES));
-        result.addAll(getRequestedResourceSetIpv6().orElse(Resources.ALL_IPV6_RESOURCES));
-        result.retainAll(certifiableResources);
-        return result;
+    public ImmutableResourceSet calculateEffectiveResources(ImmutableResourceSet certifiableResources) {
+        return getRequestedResourceSetAsn().orElse(ImmutableResourceSet.of(Resources.ALL_AS_RESOURCES))
+            .union(getRequestedResourceSetIpv4().orElse(ImmutableResourceSet.of(Resources.ALL_IPV4_RESOURCES)))
+            .union(getRequestedResourceSetIpv6().orElse(ImmutableResourceSet.of(Resources.ALL_IPV6_RESOURCES)))
+            .intersection(certifiableResources);
     }
 
     @PrePersist
@@ -79,7 +77,7 @@ public class RequestedResourceSets implements Serializable {
         Validate.isTrue(onlyContainsResourcesOfType(requestedResourceSetIpv6, IpResourceType.IPv6), "req_resource_set_ipv6 must only contain IPv6 resources");
     }
 
-    private boolean onlyContainsResourcesOfType(IpResourceSet resourceSet, IpResourceType type) {
+    private boolean onlyContainsResourcesOfType(ImmutableResourceSet resourceSet, IpResourceType type) {
         return resourceSet == null || Iterables.all(resourceSet, resource -> resource.getType() == type);
     }
 

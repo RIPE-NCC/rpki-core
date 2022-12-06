@@ -1,6 +1,6 @@
 package net.ripe.rpki.ripencc.services.impl;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient.MemberResourceResponse;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient.MemberResources;
@@ -45,13 +45,13 @@ public class RestResourceServicesClientIT {
             resource.target(URI.create(format(internetResourcesUri, format("member-resources/%d", membershipId)))),
             MemberResourceResponse.class);
 
-        final Map<CaName, IpResourceSet> certifiableResources = allResources.getCertifiableResources();
+        final Map<CaName, ImmutableResourceSet> certifiableResources = allResources.getCertifiableResources();
 
         assertTrue(certifiableResources.containsKey(ripeNccTsMemberId));
 
-        final IpResourceSet ipResourcesByMemberId = certifiableResources.get(ripeNccTsMemberId);
+        final ImmutableResourceSet ipResourcesByMemberId = certifiableResources.get(ripeNccTsMemberId);
 
-        final Map<CaName, IpResourceSet> individualMemberResources = memberResources.getResponse().getContent().getCertifiableResources();
+        final Map<CaName, ImmutableResourceSet> individualMemberResources = memberResources.getResponse().getContent().getCertifiableResources();
 
         for (CaName caName : certifiableResources.keySet()) {
             if (caName.hasOrganizationId()) {

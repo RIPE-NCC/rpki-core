@@ -41,7 +41,7 @@ public class KeyPairRevocationManagementServiceBeanTest {
     public void shouldReturnIfNoCaFound() {
         given(certificationService.findManagedCasEligibleForKeyRevocation()).willReturn(Collections.emptyList());
 
-        subject.execute();
+        subject.execute(Collections.emptyMap());
 
         verifyNoInteractions(commandService);
     }
@@ -55,7 +55,7 @@ public class KeyPairRevocationManagementServiceBeanTest {
         given(ca.getVersionedId()).willReturn(expectedVersionedId);
         given(certificationService.findManagedCasEligibleForKeyRevocation()).willReturn(Collections.singletonList(ca));
 
-        subject.execute();
+        subject.execute(Collections.emptyMap());
 
         verify(commandService).execute(captor.capture());
         assertEquals(expectedVersionedId, captor.getValue().getCertificateAuthorityVersionedId());

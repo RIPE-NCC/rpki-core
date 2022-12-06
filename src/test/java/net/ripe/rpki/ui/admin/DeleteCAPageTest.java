@@ -1,6 +1,6 @@
 package net.ripe.rpki.ui.admin;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityCommand;
@@ -34,11 +34,11 @@ public class DeleteCAPageTest extends CertificationWicketTestCase {
     public void setUp() {
         hostedCA = new ManagedCertificateAuthorityData(new VersionedId(12, 1),
             new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
-            new IpResourceSet(), Collections.emptyList());
+            ImmutableResourceSet.empty(), Collections.emptyList());
 
         nonHostedCA = new NonHostedCertificateAuthorityData(new VersionedId(12, 1),
             new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L,null,
-            new IpResourceSet(), Collections.emptySet());
+            ImmutableResourceSet.empty(), Collections.emptySet());
     }
 
     @Test

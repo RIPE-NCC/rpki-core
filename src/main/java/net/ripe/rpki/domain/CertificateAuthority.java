@@ -56,9 +56,9 @@ public abstract class CertificateAuthority extends AggregateRoot implements Chil
     protected CertificateAuthority() {
     }
 
-    public CertificateAuthority(long id, ParentCertificateAuthority parent, X500Principal name) {
+    public CertificateAuthority(long id, ParentCertificateAuthority parent, X500Principal name, UUID uuid) {
         super(id);
-        this.uuid = UUID.randomUUID();
+        this.uuid = uuid;
         this.parent = parent;
         this.name = requireNonNull(name);
     }

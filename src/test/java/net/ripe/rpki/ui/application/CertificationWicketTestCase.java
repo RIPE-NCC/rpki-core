@@ -1,7 +1,7 @@
 package net.ripe.rpki.ui.application;
 
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.ripencc.services.impl.RipeNccInternalNamePresenter;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -40,10 +40,10 @@ public abstract class CertificationWicketTestCase {
 
     protected static final CertificateAuthorityData ALL_RESOURCES_CA_DATA = new ManagedCertificateAuthorityData(
         new VersionedId(31L, 2), ALL_RESOURCES_CA_NAME, UUID.randomUUID(), null, ALL_RESOURCES,
-        IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
+        ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
     protected static final CertificateAuthorityData PRODUCTION_CA_DATA = new ManagedCertificateAuthorityData(
         PRODUCTION_CA_VERSIONED_ID, PRODUCTION_CA_NAME, UUID.randomUUID(), ALL_RESOURCES_CA_DATA.getId(), ROOT,
-        IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
+        ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
     protected static final VersionedId MEMBER_CA_VERSIONED_ID = new VersionedId(PRODUCTION_CA_ID, 3);
 

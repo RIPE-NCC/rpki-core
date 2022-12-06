@@ -1,15 +1,15 @@
 package net.ripe.rpki.server.api.ports;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Optional;
 
 public interface ResourceLookupService {
 
-    IpResourceSet lookupProductionCaResources();
+    ImmutableResourceSet lookupProductionCaResources();
 
-    Optional<IpResourceSet> lookupProductionCaResourcesSet();
+    Optional<ImmutableResourceSet> lookupProductionCaResourcesSet();
 
-    IpResourceSet lookupMemberCaPotentialResources(X500Principal caName);
+    ImmutableResourceSet lookupMemberCaPotentialResources(X500Principal caName);
 }

@@ -4,7 +4,7 @@ import com.google.common.base.Preconditions;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
@@ -96,7 +96,7 @@ public class RoaConfiguration extends EntitySupport {
     }
 
     Map<Asn, RoaSpecification> toRoaSpecifications(IncomingResourceCertificate currentIncomingCertificate) {
-        IpResourceSet caResources = currentIncomingCertificate.getCertificate().getResources();
+        ImmutableResourceSet caResources = currentIncomingCertificate.getCertificate().resources();
         ValidityPeriod validityPeriod = currentIncomingCertificate.getCertificate().getValidityPeriod();
 
         Map<Asn, RoaSpecification> result = new TreeMap<>();

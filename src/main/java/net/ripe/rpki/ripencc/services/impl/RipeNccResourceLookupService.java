@@ -1,6 +1,6 @@
 package net.ripe.rpki.ripencc.services.impl;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.server.api.ports.IanaRegistryXmlParser;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.support.objects.CaName;
@@ -32,31 +32,29 @@ public class RipeNccResourceLookupService implements ResourceLookupService {
     }
 
     @Override
-    public IpResourceSet lookupProductionCaResources() {
-        final IpResourceSet ripeNccManagedSpace = resourceCacheService.getProductionCaResources().orElse(new IpResourceSet());
+    public ImmutableResourceSet lookupProductionCaResources() {
+        final ImmutableResourceSet ripeNccManagedSpace = resourceCacheService.getProductionCaResources().orElse(ImmutableResourceSet.empty());
 
-        final IpResourceSet productionCaResources = new IpResourceSet(ripeNccManagedSpace);
+        final ImmutableResourceSet.Builder productionCaResources = new ImmutableResourceSet.Builder(ripeNccManagedSpace);
         productionCaResources.addAll(ianaParser.getRirResources(MajorityRir.RIPE));
         productionCaResources.addAll(minoritySpaceForOtherRir(MajorityRir.AFRINIC, ripeNccManagedSpace));
         productionCaResources.addAll(minoritySpaceForOtherRir(MajorityRir.APNIC, ripeNccManagedSpace));
         productionCaResources.addAll(minoritySpaceForOtherRir(MajorityRir.ARIN, ripeNccManagedSpace));
         productionCaResources.addAll(minoritySpaceForOtherRir(MajorityRir.LACNIC, ripeNccManagedSpace));
-        return productionCaResources;
+        return productionCaResources.build();
     }
 
     @Override
-    public Optional<IpResourceSet> lookupProductionCaResourcesSet() {
+    public Optional<ImmutableResourceSet> lookupProductionCaResourcesSet() {
         return resourceCacheService.getProductionCaResources();
     }
 
-    private IpResourceSet minoritySpaceForOtherRir(MajorityRir otherRir, IpResourceSet ripeNccManagedSpace) {
-        IpResourceSet fromOtherRir = new IpResourceSet(ripeNccManagedSpace);
-        fromOtherRir.retainAll((ianaParser.getRirResources(otherRir)));
-        return fromOtherRir;
+    private ImmutableResourceSet minoritySpaceForOtherRir(MajorityRir otherRir, ImmutableResourceSet ripeNccManagedSpace) {
+        return ripeNccManagedSpace.intersection(ianaParser.getRirResources(otherRir));
     }
 
     @Override
-    public IpResourceSet lookupMemberCaPotentialResources(X500Principal caPrincipal) {
+    public ImmutableResourceSet lookupMemberCaPotentialResources(X500Principal caPrincipal) {
         final CaName caName = CaName.of(caPrincipal);
         if (resourceCacheService.getProductionCaName().equals(caName)) {
             throw new UnsupportedOperationException("This method does not support resource lookup for the production CA (" + caName + ")");
@@ -64,6 +62,6 @@ public class RipeNccResourceLookupService implements ResourceLookupService {
         if (resourceCacheService.getAllResourcesCaName().equals(caName)) {
             throw new UnsupportedOperationException("This method does not support resource lookup for the all resources CA (" + caName + ")");
         }
-        return resourceCacheService.getCaResources(caName).orElse(new IpResourceSet());
+        return resourceCacheService.getCaResources(caName).orElse(ImmutableResourceSet.empty());
     }
 }

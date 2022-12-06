@@ -16,6 +16,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.inject.Inject;
 
+import java.util.Map;
+
 import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLISHED_OBJECT_CLEAN_UP_SERVICE;
 
 @Slf4j
@@ -49,7 +51,7 @@ public class PublishedObjectCleanUpServiceBean extends ConcurrentBackgroundServi
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         DateTime expirationTime = new DateTime(DateTimeZone.UTC).minusDays(daysBeforeCleanUp);
         transactionTemplate.executeWithoutResult((status) -> {
             int certificateCount = resourceCertificateRepository.deleteExpiredOutgoingResourceCertificates(expirationTime);

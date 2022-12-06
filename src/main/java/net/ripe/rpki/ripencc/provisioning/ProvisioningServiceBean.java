@@ -23,7 +23,9 @@ class ProvisioningServiceBean implements ProvisioningService {
     private final ProvisioningMetricsService provisioningMetricsService;
 
     @Autowired
-    public ProvisioningServiceBean(ProvisioningRequestProcessor provisioningRequestProcessor, ProvisioningAuditLogService provisioningAuditLogService, ProvisioningMetricsService provisioningMetricsService) {
+    public ProvisioningServiceBean(ProvisioningRequestProcessor provisioningRequestProcessor,
+                                   ProvisioningAuditLogService provisioningAuditLogService,
+                                   ProvisioningMetricsService provisioningMetricsService) {
         this.provisioningRequestProcessor = provisioningRequestProcessor;
         this.provisioningAuditLogService = provisioningAuditLogService;
         this.provisioningMetricsService = provisioningMetricsService;

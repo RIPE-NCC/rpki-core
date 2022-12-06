@@ -108,6 +108,7 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
                 .request(MediaType.APPLICATION_JSON)
                 .get().getStatus() == 200;
         } catch (Exception t) {
+            log.debug("Requesting repository publisher REST API failed: {}", t);
             return false;
         }
     }

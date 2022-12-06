@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
 
+import java.util.Map;
+
 import static net.ripe.rpki.server.api.dto.CertificateAuthorityType.ALL_RESOURCES;
 
 @Service("keyPairRevocationManagementService")
@@ -32,7 +34,7 @@ public class KeyPairRevocationManagementServiceBean extends SequentialBackground
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         runParallel(caViewService.findManagedCasEligibleForKeyRevocation().stream()
                 .filter(ca -> ca.getType() != ALL_RESOURCES)
                 .map(ca -> task(

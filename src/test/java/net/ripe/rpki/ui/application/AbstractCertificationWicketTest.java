@@ -1,7 +1,7 @@
 package net.ripe.rpki.ui.application;
 
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.ripencc.services.impl.RipeNccInternalNamePresenter;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -42,14 +42,9 @@ public class AbstractCertificationWicketTest {
     protected static final long PRODUCTION_CA_ID = 42l;
     protected static final VersionedId PRODUCTION_CA_VERSIONED_ID = new VersionedId(PRODUCTION_CA_ID, 3);
 
-    protected static final IpResourceSet RESOURCES = new IpResourceSet();
-    static {
-        RESOURCES.addAll(IpResourceSet.ALL_PRIVATE_USE_RESOURCES);
-        RESOURCES.addAll(IpResourceSet.parse("2.0.0.0/8"));
-        RESOURCES.addAll(IpResourceSet.parse("3.0.0.0/8"));
-        RESOURCES.addAll(IpResourceSet.parse("4.0.0.0/8"));
-        RESOURCES.addAll(IpResourceSet.parse("5.0.0.0/8"));
-    }
+    protected static final ImmutableResourceSet RESOURCES = ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES.union(
+        ImmutableResourceSet.parse("2.0.0.0/8,3.0.0.0/8,4.0.0.0/8,5.0.0.0/8")
+    );
 
     protected static final CertificateAuthorityData PRODUCTION_CA_DATA = new ManagedCertificateAuthorityData(
         PRODUCTION_CA_VERSIONED_ID, PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), null, ROOT, RESOURCES, Collections.emptyList());
@@ -91,11 +86,13 @@ public class AbstractCertificationWicketTest {
         resourceLookupService = mock(ResourceLookupService.class);
         certificateAuthorityCreateService = mock(CertificateAuthorityCreateService.class);
 
-        IpResourceSet resources = new IpResourceSet(IpResourceSet.parse("2.0.0.0/8, 5.0.0.0/8, 37.0.0.0/8, 46.0.0.0/8, 62.0.0.0/8, 77.0.0.0-95.255.255.255, 109.0.0.0/8, 141.0.0.0/8, 145.0.0.0/8, 151.0.0.0/8, 178.0.0.0/8, 188.0.0.0/8, 193.0.0.0-195.255.255.255, 196.200.0.0/13, 212.0.0.0/7, 217.0.0.0/8, 2001:600::-2001:bff:ffff:ffff:ffff:ffff:ffff:ffff, 2001:1400::/22, 2001:1a00::-2001:3bff:ffff:ffff:ffff:ffff:ffff:ffff, 2001:4000::/23, 2001:4600::/23, 2001:4a00::-2001:4dff:ffff:ffff:ffff:ffff:ffff:ffff, 2001:5000::/20, 2003::/18, 2a00::/12"));
-        resources.addAll(IpResourceSet.parse("3.0.0.0/24, 4.0.0.0/24"));
-        resources.addAll(IpResourceSet.parse("6.0.0.0/24"));
-        resources.addAll(IpResourceSet.parse("7.0.0.0/16"));
-        resources.addAll(IpResourceSet.parse("8.0.0.0/24, 9.0.0.0/24"));
+        ImmutableResourceSet resources = ImmutableResourceSet.parse("2.0.0.0/8, 5.0.0.0/8, 37.0.0.0/8, 46.0.0.0/8, " +
+            "62.0.0.0/8, 77.0.0.0-95.255.255.255, 109.0.0.0/8, 141.0.0.0/8, 145.0.0.0/8, 151.0.0.0/8, 178.0.0.0/8, " +
+            "188.0.0.0/8, 193.0.0.0-195.255.255.255, 196.200.0.0/13, 212.0.0.0/7, 217.0.0.0/8, " +
+            "2001:600::-2001:bff:ffff:ffff:ffff:ffff:ffff:ffff, " +
+            "2001:1400::/22, 2001:1a00::-2001:3bff:ffff:ffff:ffff:ffff:ffff:ffff, " +
+            "2001:4000::/23, 2001:4600::/23, 2001:4a00::-2001:4dff:ffff:ffff:ffff:ffff:ffff:ffff, " +
+            "2001:5000::/20, 2003::/18, 2a00::/12, 3.0.0.0/24, 4.0.0.0/24, 6.0.0.0/24, 7.0.0.0/16, 8.0.0.0/24, 9.0.0.0/24");
 
         given(resourceLookupService.lookupProductionCaResources()).willReturn(resources);
         given(activeNodeService.getCurrentNodeName()).willReturn("current-node");

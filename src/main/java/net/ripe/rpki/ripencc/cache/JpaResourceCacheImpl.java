@@ -2,7 +2,7 @@ package net.ripe.rpki.ripencc.cache;
 
 import com.google.common.base.Preconditions;
 import lombok.Getter;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.property.PropertyEntity;
 import net.ripe.rpki.domain.property.PropertyEntityRepository;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -65,13 +65,13 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
     }
 
     @Override
-    public Optional<IpResourceSet> lookupResources(final CaName user) {
+    public Optional<ImmutableResourceSet> lookupResources(final CaName user) {
         ResourceCacheLine cacheRecord = entityManager.find(ResourceCacheLine.class, user.toString());
         return Optional.ofNullable(cacheRecord).map(ResourceCacheLine::getResources);
     }
 
     @Override
-    public Map<CaName, IpResourceSet> allMemberResources() {
+    public Map<CaName, ImmutableResourceSet> allMemberResources() {
         return entityManager.createQuery(
             "SELECT rcl FROM ResourceCacheLine rcl where rcl.name != :prodCaName ",
             ResourceCacheLine.class)
@@ -82,7 +82,7 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
     }
 
     @Override
-    public void populateCache(Map<CaName, IpResourceSet> certifiableResources) {
+    public void populateCache(Map<CaName, ImmutableResourceSet> certifiableResources) {
         clearCache();
         // clear the session to avoid "duplicate entity in the session error from Hibernate"
         entityManager.clear();
@@ -101,8 +101,8 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
                 .executeUpdate();
     }
 
-    private void populateWith(Map<CaName, IpResourceSet> certifiableResources) {
-        for (final Map.Entry<CaName, IpResourceSet> entry : certifiableResources.entrySet()) {
+    private void populateWith(Map<CaName, ImmutableResourceSet> certifiableResources) {
+        for (final Map.Entry<CaName, ImmutableResourceSet> entry : certifiableResources.entrySet()) {
             final ResourceCacheLine resourceCacheLine = new ResourceCacheLine(entry.getKey(), entry.getValue());
             entityManager.persist(resourceCacheLine);
         }
@@ -117,7 +117,7 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
         return ISODateTimeFormat.dateTime();
     }
 
-    public void updateEntry(CaName caName, IpResourceSet resources) {
+    public void updateEntry(CaName caName, ImmutableResourceSet resources) {
         entityManager.createNativeQuery(
             "insert into resource_cache (name, resources) values (:name, :resources)\n" +
             "on conflict (name) do update set resources = EXCLUDED.resources")
@@ -136,12 +136,12 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
     }
 
     @Override
-    public void cacheDelegations(IpResourceSet delegations) {
+    public void cacheDelegations(ImmutableResourceSet delegations) {
         entityManager.merge(new ResourceCacheLine(productionCaName, delegations));
     }
 
     @Override
-    public Optional<IpResourceSet> getDelegationsCache() {
+    public Optional<ImmutableResourceSet> getDelegationsCache() {
         return lookupResources(productionCaName);
     }
 }

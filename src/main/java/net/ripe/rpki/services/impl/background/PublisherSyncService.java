@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
 
+import java.util.Map;
+
 import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLISHER_SYNC_SERVICE;
 
 @Slf4j
@@ -21,7 +23,7 @@ public class PublisherSyncService extends ConcurrentBackgroundServiceWithAdminPr
         this.publisherSyncDelegate = publisherSyncDelegate;
     }
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
             publisherSyncDelegate.runService();
     }
     @Override

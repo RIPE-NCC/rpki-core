@@ -1,6 +1,6 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
@@ -33,7 +33,7 @@ public class ResourceCertificateBuilderTest {
         subject.withSigningKeyPair(TestObjects.TEST_KEY_PAIR_2);
         DateTime now = new DateTime(DateTimeZone.UTC);
         subject.withValidityPeriod(new ValidityPeriod(now, new DateTime(now.getYear()+1,1,1,0,0,0,0, DateTimeZone.UTC)));
-        subject.withResources(IpResourceSet.parse("10/8"));
+        subject.withResources(ImmutableResourceSet.parse("10/8"));
         subject.withCrlDistributionPoints(URI.create("rsync://localhost/crl.crl"));
 
         subject.withCa(true).withEmbedded(false);

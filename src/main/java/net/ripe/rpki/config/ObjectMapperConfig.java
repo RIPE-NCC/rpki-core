@@ -6,14 +6,7 @@ import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.deser.std.FromStringDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpAddress;
-import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResource;
-import net.ripe.ipresource.IpResourceRange;
-import net.ripe.ipresource.IpResourceSet;
-import net.ripe.ipresource.Ipv4Address;
-import net.ripe.ipresource.Ipv6Address;
+import net.ripe.ipresource.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -28,6 +21,7 @@ public class ObjectMapperConfig {
         SimpleModule result = new SimpleModule("ipresource");
         result.addSerializer(IpResource.class, ToStringSerializer.instance);
         result.addSerializer(IpResourceSet.class, ToStringSerializer.instance);
+        result.addSerializer(ImmutableResourceSet.class, ToStringSerializer.instance);
         result.addDeserializer(Asn.class, deserialize(Asn.class, Asn::parse));
         result.addDeserializer(IpAddress.class, deserialize(IpAddress.class, IpAddress::parse));
         result.addDeserializer(Ipv4Address.class, deserialize(Ipv4Address.class, Ipv4Address::parse));

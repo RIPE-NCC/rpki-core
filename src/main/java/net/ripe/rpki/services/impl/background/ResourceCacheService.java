@@ -13,8 +13,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResource;
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.core.services.background.SequentialBackgroundQueuedTaskRunner;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.ports.DelegationsCache;
@@ -101,7 +101,7 @@ public class ResourceCacheService {
         resourceCacheServiceMetrics = new ResourceCacheServiceMetrics(resourceStats, meterRegistry);
     }
 
-    public Optional<IpResourceSet> getProductionCaResources() {
+    public Optional<ImmutableResourceSet> getProductionCaResources() {
         return delegationsCache.getDelegationsCache();
     }
 
@@ -175,14 +175,14 @@ public class ResourceCacheService {
         }
     }
 
-    private Update productionResourcesUpdate(final IpResourceSet retrieved) {
-        final IpResourceSet cached = delegationsCache.getDelegationsCache().orElse(new IpResourceSet());
+    private Update productionResourcesUpdate(final ImmutableResourceSet retrieved) {
+        final ImmutableResourceSet cached = delegationsCache.getDelegationsCache().orElse(ImmutableResourceSet.empty());
 
         // Cached but no longer in the retrieved set, should be the ones removed.
-        IpResourceSet removed = subtract(cached, retrieved);
+        ImmutableResourceSet removed = cached.difference(retrieved);
 
         // Retrieved but not in the cache should be the ones added.
-        IpResourceSet added = subtract(retrieved, cached);
+        ImmutableResourceSet added = retrieved.difference(cached);
 
         final DelegationDiffStat resourcesDiff = delegationsDiff(retrieved, cached);
 
@@ -221,7 +221,7 @@ public class ResourceCacheService {
 
     private Update memberResourcesUpdate(ResourceServicesClient.MemberResources memberResources) {
         final Map<String, Integer> certifiableResourcesCounts = memberResources.getMemberResourcesCounts();
-        final Map<CaName, IpResourceSet> registryResources = memberResources.getCertifiableResources();
+        final Map<CaName, ImmutableResourceSet> registryResources = memberResources.getCertifiableResources();
         /// Make sure this is in one long line to prevent multiple messages in the logfile, which may be interleaved.
         if (log.isInfoEnabled()) {
             final StringBuilder out = new StringBuilder("Fetched resources from RSNG:\n");
@@ -231,7 +231,7 @@ public class ResourceCacheService {
             log.info(out.toString());
         }
 
-        final Map<CaName, IpResourceSet> localResources = resourceCache.allMemberResources();
+        final Map<CaName, ImmutableResourceSet> localResources = resourceCache.allMemberResources();
         final ResourceDiffStat resourcesDiff = resourcesDiff(registryResources, localResources);
 
         Runnable accepted = () -> {
@@ -260,17 +260,11 @@ public class ResourceCacheService {
         return new Update(resourcesDiff.getChangesMap(), isAcceptableDiff(resourcesDiff), accepted, rejected);
     }
 
-    private static IpResourceSet subtract(IpResourceSet s1, IpResourceSet s2) {
-        final IpResourceSet result = new IpResourceSet(s1);
-        result.removeAll(s2);
-        return result;
-    }
-
-    static int resourceSetSize(IpResourceSet ipr) {
+    static int resourceSetSize(ImmutableResourceSet ipr) {
         return Iterators.size(ipr.iterator());
     }
 
-    static ResourceDiffStat resourcesDiff(Map<CaName, IpResourceSet> registryResources, Map<CaName, IpResourceSet> localResources) {
+    static ResourceDiffStat resourcesDiff(Map<CaName, ImmutableResourceSet> registryResources, Map<CaName, ImmutableResourceSet> localResources) {
 
         final Map<CaName, Changes> changesMap = new HashMap<>();
         final HashSet<CaName> casOnBoth = new HashSet<>(registryResources.keySet());
@@ -308,11 +302,11 @@ public class ResourceCacheService {
         return new ResourceDiffStat(localSize, registrySize, totalAdded, totalDeleted, changesMap);
     }
 
-    private static Integer accumulateResourcesSize(Map<CaName, IpResourceSet> resourcesMap) {
+    private static Integer accumulateResourcesSize(Map<CaName, ImmutableResourceSet> resourcesMap) {
         return resourcesMap.values().stream().map(ResourceCacheService::resourceSetSize).reduce(0, Integer::sum);
     }
 
-    static DelegationDiffStat delegationsDiff(IpResourceSet registryDelegations, IpResourceSet localDelegations) {
+    static DelegationDiffStat delegationsDiff(ImmutableResourceSet registryDelegations, ImmutableResourceSet localDelegations) {
         final Changes changes = resourcesSetDiff(registryDelegations, localDelegations);
         return new DelegationDiffStat(
                 resourceSetSize(localDelegations),
@@ -321,7 +315,7 @@ public class ResourceCacheService {
                 changes.deleted);
     }
 
-    private static Changes resourcesSetDiff(IpResourceSet newSet, IpResourceSet oldSet) {
+    private static Changes resourcesSetDiff(ImmutableResourceSet newSet, ImmutableResourceSet oldSet) {
         int added = 0;
         int deleted = 0;
         for (final IpResource r : oldSet) {
@@ -394,7 +388,7 @@ public class ResourceCacheService {
         return Optional.empty();
     }
 
-    public Optional<IpResourceSet> getCaResources(CaName caName) {
+    public Optional<ImmutableResourceSet> getCaResources(CaName caName) {
         return resourceCache.lookupResources(caName);
     }
 
@@ -586,13 +580,13 @@ public class ResourceCacheService {
             return rs -> rs.get() == null || rs.get().lastUpdated == null ? Double.NaN : rs.get().lastUpdated.getMillis() / 1000.0;
         }
 
-        private static double resourceSetSizeDouble(IpResourceSet ipr) {
+        private static double resourceSetSizeDouble(ImmutableResourceSet ipr) {
             return Iterators.size(ipr.iterator());
         }
 
         public void onDelegationsUpdateException() { delegationsUpdatesException.increment(); }
 
-        public void onDelegationsUpdateAccepted(IpResourceSet added, IpResourceSet removed) {
+        public void onDelegationsUpdateAccepted(ImmutableResourceSet added, ImmutableResourceSet removed) {
             delegationsUpdatesAccepted.increment();
             delegationsAdded.set(resourceSetSizeDouble(added));
             delegationsRemoved.set(resourceSetSizeDouble(removed));

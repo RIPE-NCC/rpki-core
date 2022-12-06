@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.x500.X500Principal;
+import java.util.Collections;
 
 public class PendingRequestPanel extends Panel {
 
@@ -94,7 +95,7 @@ public class PendingRequestPanel extends Panel {
                     TrustAnchorResponse responseObject = new TrustAnchorResponseSerializer().deserialize(content);
                     commandService.execute(createCommand(responseObject));
 
-                    allCertificateUpdateService.execute();
+                    allCertificateUpdateService.execute(Collections.emptyMap());
 
                     setResponsePage(UpstreamCaManagementPage.class);
                 }

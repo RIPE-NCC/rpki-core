@@ -1,6 +1,6 @@
 package net.ripe.rpki.ripencc.services.impl;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.server.api.ports.IanaRegistryXmlParser;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import net.ripe.rpki.services.impl.background.ResourceCacheService;
@@ -20,14 +20,14 @@ public class RipeNccResourceLookupServiceTest {
     private static final X500Principal PRODUCTION_CA_NAME = new X500Principal("CN=DELEGATIONS");
     private static final X500Principal ALL_RESOURCES_CA_NAME= new X500Principal("CN=ALL_RESOURCES");
 
-    private IpResourceSet managedResources = IpResourceSet.parse("2/8, 3/24, 4/24, 2003::/32");
-    private IpResourceSet ncc = IpResourceSet.parse("2/8, 2003::/32");
-    private IpResourceSet afrinic = IpResourceSet.parse("3/8");
-    private IpResourceSet apnic = IpResourceSet.parse("4/8");
-    private IpResourceSet fromApnic = IpResourceSet.parse("4/24");
-    private IpResourceSet arin = IpResourceSet.parse("5/8");
-    private IpResourceSet lacnic = IpResourceSet.parse("6/8");
-    private IpResourceSet fromAfrinic = IpResourceSet.parse("3/24");
+    private ImmutableResourceSet managedResources = ImmutableResourceSet.parse("2/8, 3/24, 4/24, 2003::/32");
+    private ImmutableResourceSet ncc = ImmutableResourceSet.parse("2/8, 2003::/32");
+    private ImmutableResourceSet afrinic = ImmutableResourceSet.parse("3/8");
+    private ImmutableResourceSet apnic = ImmutableResourceSet.parse("4/8");
+    private ImmutableResourceSet fromApnic = ImmutableResourceSet.parse("4/24");
+    private ImmutableResourceSet arin = ImmutableResourceSet.parse("5/8");
+    private ImmutableResourceSet lacnic = ImmutableResourceSet.parse("6/8");
+    private ImmutableResourceSet fromAfrinic = ImmutableResourceSet.parse("3/24");
 
 
     private RipeNccResourceLookupService subject;
@@ -68,17 +68,17 @@ public class RipeNccResourceLookupServiceTest {
 //            .plus("RIPE", ncc)
 //            .plus("AFRINIC", fromAfrinic)
 //            .plus("APNIC", fromApnic)
-//            .plus("ARIN", new IpResourceSet())
-//            .plus("LACNIC", new IpResourceSet());
+//            .plus("ARIN", new ImmutableResourceSet())
+//            .plus("LACNIC", new ImmutableResourceSet());
 //        assertEquals(Optional.of(expected), subject.lookupProductionCaResources());
 //    }
 
     @Test
     public void should_extract_membership_id_from_member_ca_and_query_member_resources() {
-        when(resourceCacheService.getCaResources(any(CaName.class))).thenReturn(Optional.of(IpResourceSet.parse("2.0.0.0/16, 2003::/32")));
+        when(resourceCacheService.getCaResources(any(CaName.class))).thenReturn(Optional.of(ImmutableResourceSet.parse("2.0.0.0/16, 2003::/32")));
 
-        IpResourceSet resources = subject.lookupMemberCaPotentialResources(new X500Principal("CN=1"));
+        ImmutableResourceSet resources = subject.lookupMemberCaPotentialResources(new X500Principal("CN=1"));
 
-        assertEquals(IpResourceSet.parse("2.0.0.0/16, 2003::/32"), resources);
+        assertEquals(ImmutableResourceSet.parse("2.0.0.0/16, 2003::/32"), resources);
     }
 }

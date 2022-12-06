@@ -1,6 +1,7 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.ta.domain.request.ResourceCertificateRequestData;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
@@ -88,7 +89,7 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
                                 request.getSubjectDN(),
                                 request.getSubjectPublicKey(),
                                 request.getSubjectInformationAccess(),
-                                request.getResources())))
+                                new IpResourceSet(request.getResources()))))
                 .collect(Collectors.toList());
     }
 

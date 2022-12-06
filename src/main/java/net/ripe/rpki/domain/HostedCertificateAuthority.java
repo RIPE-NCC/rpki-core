@@ -1,7 +1,7 @@
 package net.ripe.rpki.domain;
 
 import lombok.NonNull;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
@@ -49,7 +49,7 @@ public class HostedCertificateAuthority extends ManagedCertificateAuthority {
     }
 
     @Override
-    public Optional<IpResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
+    public Optional<ImmutableResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
         return Optional.of(resourceLookupService.lookupMemberCaPotentialResources(getName()));
     }
 

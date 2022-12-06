@@ -1,6 +1,6 @@
 package net.ripe.rpki.ripencc.cache;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.junit.Before;
@@ -37,9 +37,9 @@ public class JpaResourceCacheImplTest extends CertificationDomainTestCase {
 
     @Test
     public void testEmptyAfterCleaning() {
-        Map<CaName, IpResourceSet> m = new HashMap<>();
-        m.put(CaName.fromMembershipId(1), IpResourceSet.parse("10.0.0.0/8"));
-        m.put(CaName.fromMembershipId(2), IpResourceSet.parse("11.0.0.0/8"));
+        Map<CaName, ImmutableResourceSet> m = new HashMap<>();
+        m.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/8"));
+        m.put(CaName.fromMembershipId(2), ImmutableResourceSet.parse("11.0.0.0/8"));
         inTx(() -> resourceCache.populateCache(m));
         assertFalse(resourceCache.hasNoMemberResources());
         inTx(() -> resourceCache.clearCache());
@@ -48,13 +48,13 @@ public class JpaResourceCacheImplTest extends CertificationDomainTestCase {
 
     @Test
     public void testLookupAfterPopulate() {
-        Map<CaName, IpResourceSet> m = new HashMap<>();
-        m.put(CaName.fromMembershipId(1), IpResourceSet.parse("10.0.0.0/8"));
-        m.put(CaName.fromMembershipId(2), IpResourceSet.parse("11.0.0.0/8"));
+        Map<CaName, ImmutableResourceSet> m = new HashMap<>();
+        m.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/8"));
+        m.put(CaName.fromMembershipId(2), ImmutableResourceSet.parse("11.0.0.0/8"));
         inTx(() -> resourceCache.populateCache(m));
 
-        assertEquals(Optional.of(IpResourceSet.parse("10.0.0.0/8")), resourceCache.lookupResources(CaName.fromMembershipId(1)));
-        assertEquals(Optional.of(IpResourceSet.parse("11.0.0.0/8")), resourceCache.lookupResources(CaName.fromMembershipId(2)));
+        assertEquals(Optional.of(ImmutableResourceSet.parse("10.0.0.0/8")), resourceCache.lookupResources(CaName.fromMembershipId(1)));
+        assertEquals(Optional.of(ImmutableResourceSet.parse("11.0.0.0/8")), resourceCache.lookupResources(CaName.fromMembershipId(2)));
         assertEquals(Optional.empty(), resourceCache.lookupResources(CaName.fromMembershipId(3)));
     }
 

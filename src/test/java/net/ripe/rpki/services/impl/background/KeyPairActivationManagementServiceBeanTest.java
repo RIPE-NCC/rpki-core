@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static net.ripe.ipresource.IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
+import static net.ripe.ipresource.ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES;
 import static net.ripe.rpki.server.api.dto.CertificateAuthorityType.HOSTED;
 import static net.ripe.rpki.server.api.dto.CertificateAuthorityType.ROOT;
 import static org.junit.Assert.assertEquals;
@@ -78,14 +78,14 @@ public class KeyPairActivationManagementServiceBeanTest {
     public void shouldReturnIfNoCaFound() {
         when(certificationService.findAllManagedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth()).thenReturn(Collections.emptyList());
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         verifyNoInteractions(commandService);
     }
 
     @Test
     public void shouldThrowExceptionIfResourceCacheIsEmpty() {
-        subject.runService();
+        subject.runService(Collections.emptyMap());
         verify(resourceCache, times(1)).verifyResourcesArePresent();
 
         verifyNoInteractions(commandService);
@@ -97,7 +97,7 @@ public class KeyPairActivationManagementServiceBeanTest {
         when(configuration.getStagingPeriod()).thenReturn(Duration.standardHours(24));
         when(commandService.execute(any())).thenReturn(CommandStatus.create());
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         ArgumentCaptor<KeyManagementActivatePendingKeysCommand> commandCaptor = ArgumentCaptor.forClass(KeyManagementActivatePendingKeysCommand.class);
         verify(commandService).execute(commandCaptor.capture());
@@ -111,7 +111,7 @@ public class KeyPairActivationManagementServiceBeanTest {
         when(configuration.getStagingPeriod()).thenReturn(Duration.standardHours(24));
         when(commandService.execute(any())).thenReturn(CommandStatus.create());
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         ArgumentCaptor<CertificateAuthorityModificationCommand> commandCaptor = ArgumentCaptor.forClass(CertificateAuthorityModificationCommand.class);
         verify(commandService, times(3)).execute(commandCaptor.capture());

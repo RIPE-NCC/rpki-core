@@ -1,6 +1,6 @@
 package net.ripe.rpki.ripencc.provisioning;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.provisioning.payload.PayloadMessageType;
 import net.ripe.rpki.commons.provisioning.payload.error.NotPerformedError;
@@ -50,7 +50,7 @@ public class CertificateRevocationProcessorTest {
         nonHostedCertificateAuthority = new NonHostedCertificateAuthorityData(
             new VersionedId(1234L, 1), NON_HOSTED_CA_NAME, UUID.randomUUID(), 1L,
             ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT,
-            new IpResourceSet(),
+            ImmutableResourceSet.empty(),
             Collections.singleton(new NonHostedPublicKeyData(publicKey, PayloadMessageType.issue, new RequestedResourceSets(), null))
         );
         processor = new CertificateRevocationProcessor(null, commandService);

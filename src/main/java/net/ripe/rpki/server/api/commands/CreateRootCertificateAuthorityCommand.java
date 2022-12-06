@@ -1,6 +1,6 @@
 package net.ripe.rpki.server.api.commands;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 
 /**
@@ -14,7 +14,7 @@ import net.ripe.rpki.commons.util.VersionedId;
 public class CreateRootCertificateAuthorityCommand extends CertificateAuthorityCreationCommand {
 
     public CreateRootCertificateAuthorityCommand(VersionedId certificateAuthorityId) {
-        super(certificateAuthorityId, new IpResourceSet());
+        super(certificateAuthorityId, ImmutableResourceSet.empty());
     }
 
     @Override

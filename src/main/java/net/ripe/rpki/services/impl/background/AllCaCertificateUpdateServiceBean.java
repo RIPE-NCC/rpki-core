@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -52,7 +53,7 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         runService(Predicates.alwaysTrue());
     }
 

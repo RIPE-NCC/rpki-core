@@ -3,7 +3,7 @@ package net.ripe.rpki.bgpris;
 import net.ripe.ipresource.IpAddress;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResource;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.etree.IntervalMap;
 import net.ripe.ipresource.etree.IpResourceIntervalStrategy;
 import net.ripe.ipresource.etree.NestedIntervalMap;
@@ -37,7 +37,7 @@ public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
     }
 
     @Override
-    public Collection<BgpRisEntry> findMostSpecificOverlapping(IpResourceSet resources) {
+    public Collection<BgpRisEntry> findMostSpecificOverlapping(ImmutableResourceSet resources) {
         IntervalMap<IpRange, ArrayList<BgpRisEntry>> current = this.entries.get();
 
         Collection<BgpRisEntry> result = new HashSet<>();
@@ -48,14 +48,14 @@ public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
                 .collect(Collectors.toList());
             result.addAll(exactAndMoreSpecific);
 
-            final IpResourceSet remaining = findResourcesNotCovered(prefix, exactAndMoreSpecific);
+            final ImmutableResourceSet remaining = findResourcesNotCovered(prefix, exactAndMoreSpecific);
             addLessSpecificAnnouncements(current, result, remaining);
         }
         return result;
     }
 
     @Override
-    public Map<Boolean, Collection<BgpRisEntry>> findMostSpecificContainedAndNotContained(IpResourceSet resources) {
+    public Map<Boolean, Collection<BgpRisEntry>> findMostSpecificContainedAndNotContained(ImmutableResourceSet resources) {
         IntervalMap<IpRange, ArrayList<BgpRisEntry>> current = this.entries.get();
 
         Collection<BgpRisEntry> containedEntries = new HashSet<>();
@@ -66,7 +66,7 @@ public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
             containedEntries.addAll(exactAndMoreSpecific);
-            final IpResourceSet remaining = findResourcesNotCovered(prefix, exactAndMoreSpecific);
+            final ImmutableResourceSet remaining = findResourcesNotCovered(prefix, exactAndMoreSpecific);
             addLessSpecificAnnouncements(current, notContainedEntries, remaining);
         }
         Map<Boolean, Collection<BgpRisEntry>> result = new HashMap<>();
@@ -75,7 +75,7 @@ public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
         return result;
     }
 
-    private void addLessSpecificAnnouncements(IntervalMap<IpRange, ArrayList<BgpRisEntry>> current, Collection<BgpRisEntry> result, IpResourceSet remaining) {
+    private void addLessSpecificAnnouncements(IntervalMap<IpRange, ArrayList<BgpRisEntry>> current, Collection<BgpRisEntry> result, ImmutableResourceSet remaining) {
         if (!remaining.isEmpty()) {
             getPrefixes(remaining).stream()
                     .map(current::findFirstLessSpecific)
@@ -84,14 +84,12 @@ public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
         }
     }
 
-    private IpResourceSet findResourcesNotCovered(IpRange prefix, List<BgpRisEntry> exactAndMoreSpecific) {
-        IpResourceSet exactAndMoreSpecificResources = new IpResourceSet();
+    private ImmutableResourceSet findResourcesNotCovered(IpRange prefix, List<BgpRisEntry> exactAndMoreSpecific) {
+        ImmutableResourceSet.Builder builder = new ImmutableResourceSet.Builder().add(prefix);
         for (BgpRisEntry entry: exactAndMoreSpecific) {
-            exactAndMoreSpecificResources.add(entry.getPrefix());
+            builder.remove(entry.getPrefix());
         }
-        IpResourceSet remaining = new IpResourceSet(prefix);
-        remaining.removeAll(exactAndMoreSpecificResources);
-        return remaining;
+        return builder.build();
     }
 
     @Override
@@ -132,7 +130,7 @@ public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
         throw new IllegalArgumentException("Resource of unknown type: " + prefix);
     }
 
-    private static List<IpRange> getPrefixes(final IpResourceSet resources) {
+    private static List<IpRange> getPrefixes(final ImmutableResourceSet resources) {
         List<IpRange> result = new ArrayList<>();
         for (IpResource resource : resources) {
             if (resource instanceof IpRange) {

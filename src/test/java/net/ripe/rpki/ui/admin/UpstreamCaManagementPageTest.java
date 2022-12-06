@@ -1,5 +1,6 @@
 package net.ripe.rpki.ui.admin;
 
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCms;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsTest;
@@ -185,11 +186,8 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
         List<KeyPairData> keys = Collections.singletonList(new KeyPairData(1L, "currentKeyStore",
             KeyPairStatus.CURRENT, new DateTime(), null, REPO_LOCATION, "key1.crl", "key1.mft", false));
 
-        IpResourceSet resources = new IpResourceSet(RESOURCES);
-        resources.addAll(IpResourceSet.IP_PRIVATE_USE_RESOURCES);
-
         CertificateAuthorityData productionCa = new ManagedCertificateAuthorityData(PRODUCTION_CA_VERSIONED_ID,
-            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), 1L, CertificateAuthorityType.ROOT, resources, keys);
+            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), 1L, CertificateAuthorityType.ROOT, RESOURCES, keys);
         given(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_PRINCIPAL)).willReturn(productionCa);
     }
 
@@ -197,11 +195,8 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
         List<KeyPairData> keys = Collections.singletonList(new KeyPairData(1L, "currentKeyStore",
             KeyPairStatus.NEW, new DateTime(), null, REPO_LOCATION, "key1.crl", "key1.mft", false));
 
-        IpResourceSet resources = new IpResourceSet(RESOURCES);
-        resources.addAll(IpResourceSet.IP_PRIVATE_USE_RESOURCES);
-
         CertificateAuthorityData productionCa = new ManagedCertificateAuthorityData(PRODUCTION_CA_VERSIONED_ID,
-            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), 1L,CertificateAuthorityType.ROOT, resources, keys);
+            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), 1L,CertificateAuthorityType.ROOT, RESOURCES, keys);
         given(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_PRINCIPAL)).willReturn(productionCa);
     }
 
@@ -212,10 +207,8 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
         keys.add(new KeyPairData(1L, "pendingKeyStore", KeyPairStatus.PENDING,
             new DateTime(), null, REPO_LOCATION, "key2.crl", "key2.mft", false));
 
-        IpResourceSet resources = new IpResourceSet(RESOURCES);
-        resources.addAll(IpResourceSet.IP_PRIVATE_USE_RESOURCES);
         CertificateAuthorityData productionCa = new ManagedCertificateAuthorityData(PRODUCTION_CA_VERSIONED_ID, PRODUCTION_CA_PRINCIPAL,
-            UUID.randomUUID(), 1L, CertificateAuthorityType.ROOT, resources, keys);
+            UUID.randomUUID(), 1L, CertificateAuthorityType.ROOT, RESOURCES, keys);
         given(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_PRINCIPAL)).willReturn(productionCa);
     }
 
@@ -224,11 +217,8 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
         keys.add(new KeyPairData(1L, "oldKeyStore", KeyPairStatus.OLD, new DateTime().minusMonths(1), null, REPO_LOCATION, "key1.crl", "key1.mft", false));
         keys.add(new KeyPairData(1L, "currentKeyStore", KeyPairStatus.CURRENT, new DateTime(), null, REPO_LOCATION, "key2.crl", "key2.mft", false));
 
-        IpResourceSet resources = new IpResourceSet(RESOURCES);
-        resources.addAll(IpResourceSet.IP_PRIVATE_USE_RESOURCES);
-
         CertificateAuthorityData productionCa = new ManagedCertificateAuthorityData(PRODUCTION_CA_VERSIONED_ID,
-            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), 1L, CertificateAuthorityType.ROOT, resources, keys);
+            PRODUCTION_CA_PRINCIPAL, UUID.randomUUID(), 1L, CertificateAuthorityType.ROOT, RESOURCES, keys);
         given(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_PRINCIPAL)).willReturn(productionCa);
     }
 
@@ -245,7 +235,7 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
 
         final CertificateAuthorityData allResourcesCertificateAuthorityData = new ManagedCertificateAuthorityData(
             ALL_RESOURCES_CA_VERSIONED_ID, ALL_RESOURCES_CA_PRINCIPAL, UUID.randomUUID(), null, ALL_RESOURCES,
-            new IpResourceSet(), trustAnchorRequest, Collections.emptyList());
+            ImmutableResourceSet.empty(), trustAnchorRequest, Collections.emptyList());
 
         given(caViewService.findCertificateAuthorityByName(ALL_RESOURCES_CA_PRINCIPAL)).willReturn(allResourcesCertificateAuthorityData);
     }
@@ -259,7 +249,7 @@ public class UpstreamCaManagementPageTest extends AbstractCertificationWicketTes
     }
 
     private TrustAnchorResponse getOfflineTrustAnchorsResponse() {
-        X509ResourceCertificate newCertificate = createSelfSignedCaResourceCertificate(IpResourceSet.ALL_PRIVATE_USE_RESOURCES);
+        X509ResourceCertificate newCertificate = createSelfSignedCaResourceCertificate(new IpResourceSet(ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES));
         URI newCertificateUri = URI.create("rsync://nowhere/res.cer");
         X509Crl crl = X509CrlTest.createCrl();
         RoaCms roa = RoaCmsTest.getRoaCms();

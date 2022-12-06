@@ -1,6 +1,6 @@
 package net.ripe.rpki.services.impl.jpa;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
@@ -191,21 +191,22 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
     }
 
     @Override
-    public IpResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName) {
+    public ImmutableResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName) {
         return manager.createQuery(
                 "SELECT rc.resources " +
                     "  FROM OutgoingResourceCertificate rc INNER JOIN rc.requestingCertificateAuthority child " +
                     " WHERE rc.status = :current " +
                     "   AND upper(child.parent.name) = upper(:name)",
-                IpResourceSet.class)
+                ImmutableResourceSet.class)
             .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
             .setParameter("name", caName.getName())
             .getResultStream()
-            .collect(IpResourceSet::new, IpResourceSet::addAll, IpResourceSet::addAll);
+            .flatMap(ImmutableResourceSet::stream)
+            .collect(ImmutableResourceSet.collector());
     }
 
     @Override
-    public IpResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName) {
+    public ImmutableResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName) {
         return manager.createQuery(
                 "SELECT rc.resources " +
                     "  FROM ManagedCertificateAuthority ca JOIN ca.keyPairs kp," +
@@ -214,10 +215,11 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
                     "   AND upper(ca.name) = upper(:name) " +
                     "   AND rc.requestingCertificateAuthority IS NULL " +
                     "   AND rc.signingKeyPair = kp",
-                IpResourceSet.class)
+                ImmutableResourceSet.class)
             .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
             .setParameter("name", caName.getName())
             .getResultStream()
-            .collect(IpResourceSet::new, IpResourceSet::addAll, IpResourceSet::addAll);
+            .flatMap(ImmutableResourceSet::stream)
+            .collect(ImmutableResourceSet.collector());
     }
 }

@@ -1,7 +1,7 @@
 package net.ripe.rpki.services.impl.background;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
@@ -35,7 +35,7 @@ public class RoaAlertBackgroundServiceDailyBeanTest {
 
     private static final CertificateAuthorityData CA_DATA = new ManagedCertificateAuthorityData(
         new VersionedId(23L, 2L), new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
-        IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
+        ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
     public static final RoaAlertConfigurationData ALERT_SUBSCRIPTION_DATA = new RoaAlertConfigurationData(CA_DATA,
             new RoaAlertSubscriptionData("joeok@example.com", Arrays.asList(RouteValidityState.INVALID_ASN,
@@ -62,7 +62,7 @@ public class RoaAlertBackgroundServiceDailyBeanTest {
     public void shouldCheckEveryDailySubscription() {
         when(roaAlertConfigurationViewService.findByFrequency(RoaAlertFrequency.DAILY)).thenReturn(Collections.singletonList(ALERT_SUBSCRIPTION_DATA));
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         verify(roaAlertChecker).checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_DATA);
         verifyNoMoreInteractions(roaAlertChecker);
@@ -73,7 +73,7 @@ public class RoaAlertBackgroundServiceDailyBeanTest {
         when(roaAlertConfigurationViewService.findByFrequency(RoaAlertFrequency.DAILY)).thenReturn(Arrays.asList(ALERT_SUBSCRIPTION_DATA, ALERT_SUBSCRIPTION_ERROR));
         doThrow(new RuntimeException("testing")).when(roaAlertChecker).checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_ERROR);
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         verify(roaAlertChecker).checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_ERROR);
         verify(roaAlertChecker).checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_DATA);

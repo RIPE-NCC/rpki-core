@@ -1,6 +1,6 @@
 package net.ripe.rpki.rest.service;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
@@ -56,7 +56,7 @@ public class PublisherRepositoriesServiceTest {
         UUID.randomUUID(),
         1L,
         null,
-        new IpResourceSet(),
+        ImmutableResourceSet.empty(),
         Collections.emptySet()
     );
 

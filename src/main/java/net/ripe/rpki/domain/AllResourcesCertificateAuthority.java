@@ -2,7 +2,7 @@ package net.ripe.rpki.domain;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
@@ -41,7 +41,7 @@ public class AllResourcesCertificateAuthority extends ManagedCertificateAuthorit
     }
 
     @Override
-    public Optional<IpResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
+    public Optional<ImmutableResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
         return Optional.of(Resources.ALL_RESOURCES);
     }
 

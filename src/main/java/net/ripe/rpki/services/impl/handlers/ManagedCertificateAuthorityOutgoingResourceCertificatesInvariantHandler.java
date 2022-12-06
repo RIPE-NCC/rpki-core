@@ -5,7 +5,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.CertificateAuthorityInvariantViolationException;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
@@ -85,7 +85,7 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
     }
 
     private void checkCertificateAuthorityInvariants(ManagedCertificateAuthority ca) {
-        IpResourceSet incomingResources = determineIncomingResources(ca);
+        ImmutableResourceSet incomingResources = determineIncomingResources(ca);
 
         checkOutgoingChildResourcesInvariant(ca, incomingResources);
 
@@ -96,14 +96,14 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
         }
     }
 
-    private IpResourceSet determineIncomingResources(ManagedCertificateAuthority ca) {
-        Set<IpResourceSet> distinctIncomingResources = ca.getKeyPairs().stream()
+    private ImmutableResourceSet determineIncomingResources(ManagedCertificateAuthority ca) {
+        Set<ImmutableResourceSet> distinctIncomingResources = ca.getKeyPairs().stream()
             .filter(KeyPairEntity::isPublishable)
             .map(kp -> kp.getCurrentIncomingCertificate().getResources())
             .collect(Collectors.toSet());
 
         if (distinctIncomingResources.isEmpty()) {
-            return new IpResourceSet();
+            return ImmutableResourceSet.empty();
         } else if (distinctIncomingResources.size() == 1) {
             return distinctIncomingResources.iterator().next();
         } else {
@@ -115,30 +115,26 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
         }
     }
 
-    private void checkOutgoingChildResourcesInvariant(ManagedCertificateAuthority ca, IpResourceSet incomingResources) {
-        IpResourceSet currentOutgoingChildCertificateResources = resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(ca.getName());
+    private void checkOutgoingChildResourcesInvariant(ManagedCertificateAuthority ca, ImmutableResourceSet incomingResources) {
+        ImmutableResourceSet currentOutgoingChildCertificateResources = resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(ca.getName());
         if (!incomingResources.contains(currentOutgoingChildCertificateResources)) {
-            IpResourceSet missing = new IpResourceSet(currentOutgoingChildCertificateResources);
-            missing.removeAll(incomingResources);
             throw new CertificateAuthorityInvariantViolationException(String.format(
                 "CA %s: with current resources %s does not contain issued child resources %s",
                 ca,
                 incomingResources,
-                missing
+                currentOutgoingChildCertificateResources.difference(incomingResources)
             ));
         }
     }
 
-    private void checkOutgoingRpkiObjectResourcesInvariant(ManagedCertificateAuthority ca, IpResourceSet incomingResources) {
-        IpResourceSet currentOutgoingResources = resourceCertificateRepository.findCurrentOutgoingRpkiObjectCertificateResources(ca.getName());
+    private void checkOutgoingRpkiObjectResourcesInvariant(ManagedCertificateAuthority ca, ImmutableResourceSet incomingResources) {
+        ImmutableResourceSet currentOutgoingResources = resourceCertificateRepository.findCurrentOutgoingRpkiObjectCertificateResources(ca.getName());
         if (!incomingResources.contains(currentOutgoingResources)) {
-            IpResourceSet missing = new IpResourceSet(currentOutgoingResources);
-            missing.removeAll(incomingResources);
             throw new CertificateAuthorityInvariantViolationException(String.format(
                 "CA %s: with current resources %s does not contain issued non-child resources %s",
                 ca,
                 incomingResources,
-                missing
+                currentOutgoingResources.difference(incomingResources)
             ));
         }
     }

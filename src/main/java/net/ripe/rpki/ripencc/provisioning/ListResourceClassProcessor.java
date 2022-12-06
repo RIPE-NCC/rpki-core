@@ -1,5 +1,6 @@
 package net.ripe.rpki.ripencc.provisioning;
 
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
 import net.ripe.rpki.commons.provisioning.payload.common.GenericClassElementBuilder;
@@ -35,13 +36,13 @@ class ListResourceClassProcessor extends AbstractProvisioningProcessor {
 
         final ResourceClassListResponsePayloadBuilder responsePayloadBuilder = new ResourceClassListResponsePayloadBuilder();
 
-        final IpResourceSet resources = getCertifiableResources(nonHostedCertificateAuthority, productionCA);
+        final ImmutableResourceSet resources = getCertifiableResources(nonHostedCertificateAuthority, productionCA);
         if (!resources.isEmpty()) {
             resourceCertificateViewService.findCurrentIncomingResourceCertificate(productionCA.getId())
                 .ifPresent(currentIncomingResourceCertificate -> {
                     final ResourceClassListResponseClassElement classElement = new GenericClassElementBuilder()
                         .withClassName(DEFAULT_RESOURCE_CLASS)
-                        .withIpResourceSet(resources)
+                        .withIpResourceSet(new IpResourceSet(resources))
                         .withCertificateAuthorityUri(Collections.singletonList(currentIncomingResourceCertificate.getPublicationUri()))
                         .withIssuer(currentIncomingResourceCertificate.getCertificate())
                         .withValidityNotAfter(CertificateAuthority.calculateValidityNotAfter(new DateTime()))

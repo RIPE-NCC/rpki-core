@@ -1,6 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityCommand;
@@ -42,7 +42,7 @@ public class LockCertificateAuthorityHandlerTest {
         subject.handle(new ActivateHostedCertificateAuthorityCommand(
             new VersionedId(123, 0),
             new X500Principal("CN=test"),
-            IpResourceSet.ALL_PRIVATE_USE_RESOURCES,
+            ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES,
             456
         ), CommandStatus.create());
 

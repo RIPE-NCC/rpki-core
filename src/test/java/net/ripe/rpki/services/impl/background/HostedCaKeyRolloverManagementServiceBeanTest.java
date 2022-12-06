@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
-import static net.ripe.ipresource.IpResourceSet.*;
+import static net.ripe.ipresource.ImmutableResourceSet.*;
 import static net.ripe.rpki.server.api.dto.CertificateAuthorityType.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -61,7 +61,7 @@ public class HostedCaKeyRolloverManagementServiceBeanTest {
     public void shouldReturnIfNoCaFound() {
         when(certificationService.findManagedCasEligibleForKeyRoll(any(), any(), any())).thenReturn(Collections.emptyList());
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         verifyNoInteractions(commandService);
     }
@@ -72,7 +72,7 @@ public class HostedCaKeyRolloverManagementServiceBeanTest {
         when(certificationService.findManagedCasEligibleForKeyRoll(eq(HostedCertificateAuthority.class), any(), any())).thenReturn(Collections.singletonList(MEMBER_CA));
         when(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()).thenReturn(maxAge);
 
-        subject.execute();
+        subject.execute(Collections.emptyMap());
 
         ArgumentCaptor<KeyManagementInitiateRollCommand> commandCaptor = ArgumentCaptor.forClass(KeyManagementInitiateRollCommand.class);
         Mockito.verify(commandService).execute(commandCaptor.capture());
@@ -89,7 +89,7 @@ public class HostedCaKeyRolloverManagementServiceBeanTest {
 
         doThrow(new RuntimeException("test")).when(commandService).execute(isA(KeyManagementActivatePendingKeysCommand.class));
 
-        subject.execute();
+        subject.execute(Collections.emptyMap());
 
         verify(commandService, times(2)).execute(any());
     }

@@ -1,6 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
@@ -13,6 +13,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.security.auth.x500.X500Principal;
+
+import java.util.UUID;
 
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,13 +48,13 @@ public class ActivateNonHostedCertificateAuthorityCommandHandlerTest {
 
         ProductionCertificateAuthority parent = mock(ProductionCertificateAuthority.class);
         when(parent.processResourceClassListQuery(any(ResourceClassListQuery.class))).thenReturn(new ResourceClassListResponse(
-            IpResourceSet.ALL_PRIVATE_USE_RESOURCES
+            ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES
         ));
 
         when(certificateAuthorityRepository.findManagedCa(1L)).thenReturn(parent);
 
         ActivateNonHostedCertificateAuthorityCommand command = new ActivateNonHostedCertificateAuthorityCommand(new VersionedId(1),
-            CUSTOMER_CA_NAME, IpResourceSet.ALL_PRIVATE_USE_RESOURCES, certificate, 1);
+            CUSTOMER_CA_NAME, UUID.randomUUID(), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, certificate, 1);
 
         // when
         subject.handle(command);

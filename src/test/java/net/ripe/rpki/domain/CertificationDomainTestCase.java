@@ -1,7 +1,7 @@
 package net.ripe.rpki.domain;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.domain.aspa.AspaEntityService;
@@ -118,7 +118,7 @@ public abstract class CertificationDomainTestCase {
         allResources.processCertifiableResources(keyPairService, certificateRequestCreationService);
         KeyPairEntity allResourcesKeyPair = allResources.getKeyPairs().iterator().next();
         CertificateIssuanceResponse response = TestObjects.makeSelfSignedCertificate(resourceCertificateRepository, repositoryConfiguration, allResourcesKeyPair,
-            allResources.getName(), IpResourceSet.ALL_PRIVATE_USE_RESOURCES);
+            allResources.getName(), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES);
 
         allResources.updateIncomingResourceCertificate(allResourcesKeyPair, response.getCertificate(), response.getPublicationUri());
         allResources.setUpStreamCARequestEntity(null);
@@ -130,7 +130,7 @@ public abstract class CertificationDomainTestCase {
         return production;
     }
 
-    protected KeyPairEntity issueCertificateForNewKey(ManagedCertificateAuthority parent, ManagedCertificateAuthority child, IpResourceSet requestedResources) {
+    protected KeyPairEntity issueCertificateForNewKey(ManagedCertificateAuthority parent, ManagedCertificateAuthority child, ImmutableResourceSet requestedResources) {
         KeyPairEntity kp = keyPairService.createKeyPairEntity();
         child.addKeyPair(kp);
         certificateAuthorityRepository.add(child);

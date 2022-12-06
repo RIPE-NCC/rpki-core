@@ -7,7 +7,7 @@ import lombok.NonNull;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResource;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.etree.NestedIntervalMap;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
@@ -22,7 +22,6 @@ import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy.allowedRoutesToNestedIntervalMap;
 
@@ -127,9 +126,7 @@ class Utils {
         return maxLength >= prefix.getPrefixLength() && maxLength <= prefix.getType().getBitSize();
     }
 
-    public static List<String> toStringList(IpResourceSet resources) {
-        return StreamSupport.stream(resources.spliterator(), false)
-                .map(Object::toString)
-                .collect(Collectors.toList());
+    public static List<String> toStringList(ImmutableResourceSet resources) {
+        return resources.stream().map(Object::toString).collect(Collectors.toList());
     }
 }

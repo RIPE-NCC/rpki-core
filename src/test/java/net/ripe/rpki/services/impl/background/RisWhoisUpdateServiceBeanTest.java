@@ -14,6 +14,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -49,7 +50,7 @@ public class RisWhoisUpdateServiceBeanTest {
         when(fetcher.fetch(IPV4_FILE_URL)).thenReturn(getTestLines(100001));
         when(fetcher.fetch(IPV6_FILE_URL)).thenReturn(getTestLines(0));
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         verify(repository).resetEntries(isA(List.class));
     }
@@ -67,7 +68,7 @@ public class RisWhoisUpdateServiceBeanTest {
                 "268624\t::ffff:80.94.90.0/120\t1\n"
         );
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         verify(repository).resetEntries(isA(List.class));
     }
@@ -78,7 +79,7 @@ public class RisWhoisUpdateServiceBeanTest {
         when(fetcher.fetch(IPV4_FILE_URL)).thenReturn(getTestLines(0));
         when(fetcher.fetch(IPV6_FILE_URL)).thenReturn(getTestLines(99999));
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         verify(repository, never()).resetEntries(isA(Collection.class));
     }
@@ -89,7 +90,7 @@ public class RisWhoisUpdateServiceBeanTest {
         when(fetcher.fetch(IPV6_FILE_URL)).thenThrow(new IOException());
 
         // No uncaught exception
-        subject.runService();
+        subject.runService(Collections.emptyMap());
     }
 
     private String getTestLines(int lines) {

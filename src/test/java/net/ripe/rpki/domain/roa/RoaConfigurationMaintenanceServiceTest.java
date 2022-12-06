@@ -25,7 +25,7 @@ import javax.transaction.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static net.ripe.ipresource.IpResourceSet.parse;
+import static net.ripe.ipresource.ImmutableResourceSet.parse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Setter

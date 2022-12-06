@@ -3,7 +3,7 @@ package net.ripe.rpki.server.api.dto;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.util.VersionedId;
 
@@ -21,7 +21,7 @@ public class NonHostedCertificateAuthorityData extends CertificateAuthorityData 
 
     public NonHostedCertificateAuthorityData(VersionedId versionedId, X500Principal name, UUID uuid, Long parentId,
                                              ProvisioningIdentityCertificate provisioningIdentityCertificate,
-                                             IpResourceSet ipResourceSet,
+                                             ImmutableResourceSet ipResourceSet,
                                              Set<NonHostedPublicKeyData> publicKeys) {
         super(versionedId, name, uuid, parentId, CertificateAuthorityType.NONHOSTED, ipResourceSet, null);
 

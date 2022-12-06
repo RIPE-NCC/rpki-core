@@ -1,6 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
@@ -21,8 +21,6 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class CreateRootCertificateAuthorityCommandHandlerTest {
-
-    private static final X500Principal CA_NAME = new X500Principal("CN=Test Root CA");
 
     private CreateRootCertificateAuthorityCommandHandler subject;
 
@@ -67,6 +65,6 @@ public class CreateRootCertificateAuthorityCommandHandlerTest {
         verify(certificateAuthorityRepository).add(ca.capture());
         assertEquals(0, ca.getValue().getVersionedId().getVersion());
         assertEquals(prodCaName, ca.getValue().getName());
-        assertEquals(new IpResourceSet(), ca.getValue().getCertifiedResources());
+        assertEquals(ImmutableResourceSet.empty(), ca.getValue().getCertifiedResources());
     }
 }

@@ -1,6 +1,6 @@
 package net.ripe.rpki.ripencc.services.impl;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -8,7 +8,7 @@ import static org.junit.Assert.assertThrows;
 
 public class IanaRegistryXmlParserImplTest {
 
-    private static final IpResourceSet TEST_RIPENCC_DELEGATIONS = IpResourceSet.parse(
+    private static final ImmutableResourceSet TEST_RIPENCC_DELEGATIONS = ImmutableResourceSet.parse(
             "AS7, AS28, AS137, AS224, AS248-AS251, AS261, AS286, AS288, AS294, AS375, " +
                     "AS378, AS513, AS517, AS528-AS529, AS544, AS553, AS559, AS565, AS590, " +
                     "AS593, AS669, AS679-AS680, AS695-AS697, AS709-AS710, AS712, AS719, " +

@@ -3,7 +3,7 @@ package net.ripe.rpki.domain.aspa;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
 import net.ripe.rpki.core.events.IncomingCertificateRevokedEvent;
@@ -45,19 +45,19 @@ public class AspaConfigurationMaintenanceServiceBean implements CertificateAutho
             return;
         }
 
-        updateAspaConfigurationForResources(ca, ca.getCertifiedResources(), context);
+        updateAspaConfigurationForResources(ca, ImmutableResourceSet.empty(), context);
     }
 
     @Override
     public void visitIncomingCertificateUpdatedEvent(IncomingCertificateUpdatedEvent event, CommandContext context) {
         ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(event.getCertificateAuthorityVersionedId().getId());
-        IpResourceSet nowCurrentResources = event.getIncomingCertificate().getResources();
+        ImmutableResourceSet nowCurrentResources = event.getIncomingCertificate().resources();
 
         updateAspaConfigurationForResources(ca, nowCurrentResources, context);
     }
 
 
-    private void updateAspaConfigurationForResources(ManagedCertificateAuthority ca, IpResourceSet certifiedResources, CommandContext context) {
+    private void updateAspaConfigurationForResources(ManagedCertificateAuthority ca, ImmutableResourceSet certifiedResources, CommandContext context) {
         SortedMap<Asn, AspaConfiguration> configuration = aspaConfigurationRepository.findByCertificateAuthority(ca);
 
         List<AspaConfiguration> toBeRemoved = configuration.values().stream()
@@ -67,9 +67,6 @@ public class AspaConfigurationMaintenanceServiceBean implements CertificateAutho
             return;
         }
 
-        toBeRemoved.forEach(aspaConfigurationRepository::remove);
-        ca.configurationUpdated();
-
         context.recordEvent(
             new AspaConfigurationUpdatedDueToChangedResourcesEvent(
                 ca.getVersionedId(),
@@ -77,6 +74,9 @@ public class AspaConfigurationMaintenanceServiceBean implements CertificateAutho
                     .map(AspaConfiguration::toData)
                     .collect(Collectors.toList()))
         );
+
+        toBeRemoved.forEach(aspaConfigurationRepository::remove);
+        ca.configurationUpdated();
     }
 
     @Value

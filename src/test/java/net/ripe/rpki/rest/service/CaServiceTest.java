@@ -1,6 +1,6 @@
 package net.ripe.rpki.rest.service;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
@@ -137,7 +137,7 @@ public class CaServiceTest {
 
         final CertificateAuthorityData certificateAuthorityData = new ManagedCertificateAuthorityData(new VersionedId(1L),
                 principal, UUID.randomUUID(), 2L, CertificateAuthorityType.HOSTED,
-                IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
+                ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
         when(commandService.execute(new DeleteCertificateAuthorityCommand(certificateAuthorityData.getVersionedId(), principal, any()))).thenReturn(null);
@@ -159,7 +159,7 @@ public class CaServiceTest {
 
         final CertificateAuthorityData certificateAuthorityData = new ManagedCertificateAuthorityData(new VersionedId(1L),
                 principal, UUID.randomUUID(), 2L, CertificateAuthorityType.ROOT,
-                IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
+                ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
         when(commandService.execute(
@@ -183,7 +183,7 @@ public class CaServiceTest {
 
         final CertificateAuthorityData certificateAuthorityData = new ManagedCertificateAuthorityData(new VersionedId(1L),
                 principal, UUID.randomUUID(), 2L, CertificateAuthorityType.HOSTED,
-                IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
+                ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
         when(commandService.execute(
@@ -235,10 +235,10 @@ public class CaServiceTest {
 
         CertificateAuthorityData certificateAuthorityData = new ManagedCertificateAuthorityData(new VersionedId(1L),
                 new X500Principal("CN=1"), UUID.randomUUID(), 2L, CertificateAuthorityType.HOSTED,
-                IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
+                ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
-        when(resourceCache.lookupMemberCaPotentialResources(principal)).thenReturn(IpResourceSet.parse("10/8"));
+        when(resourceCache.lookupMemberCaPotentialResources(principal)).thenReturn(ImmutableResourceSet.parse("10/8"));
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123"))
                 .andExpect(status().isOk())
@@ -253,7 +253,7 @@ public class CaServiceTest {
         X500Principal principal = CaName.parse("123").getPrincipal();
 
         when(certificateAuthorityViewService.findCertificateAuthorityIdByName(principal)).thenReturn(null);
-        when(resourceCache.lookupMemberCaPotentialResources(principal)).thenReturn(IpResourceSet.parse("10/8"));
+        when(resourceCache.lookupMemberCaPotentialResources(principal)).thenReturn(ImmutableResourceSet.parse("10/8"));
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123"))
                 .andExpect(status().isOk())
@@ -348,7 +348,7 @@ public class CaServiceTest {
         final X500Principal principal = CaName.parse("123").getPrincipal();
         ManagedCertificateAuthorityData managedCertificateAuthorityData = new ManagedCertificateAuthorityData(
             VersionedId.parse("1"), principal, UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
-            IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList()
+            ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList()
         );
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(managedCertificateAuthorityData);
 

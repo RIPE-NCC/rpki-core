@@ -7,6 +7,8 @@ import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -52,7 +54,7 @@ public class BackgroundServiceBeanTest {
         // Allow subject to terminate.
         subject.stoppingLatch.countDown();
 
-        subject.execute();
+        subject.execute(Collections.emptyMap());
 
         assertEquals(1, subject.getExecutionCounter());
     }
@@ -61,14 +63,14 @@ public class BackgroundServiceBeanTest {
     public void shouldNotExecuteServiceIfInactive() {
         when(activeNodeService.isActiveNode()).thenReturn(false);
 
-        subject.execute();
+        subject.execute(Collections.emptyMap());
 
         assertEquals(0, subject.getExecutionCounter());
     }
 
     @Test
     public void shouldNotExecuteServiceIfAlreadyRunning() throws Exception {
-        new Thread(() -> subject.execute()).start();
+        new Thread(() -> subject.execute(Collections.emptyMap())).start();
 
         // Wait for process to run.
         if (!subject.runningLatch.await(1, TimeUnit.SECONDS)) {
@@ -76,7 +78,8 @@ public class BackgroundServiceBeanTest {
         }
         assertEquals("process did not start running", 1, subject.getExecutionCounter());
 
-        subject.execute(); // Skips process, since other thread is running.
+        // Skips process, since other thread is running.
+        subject.execute(Collections.emptyMap());
 
         subject.stoppingLatch.countDown(); // Allow second thread to terminate.
 
@@ -100,7 +103,7 @@ public class BackgroundServiceBeanTest {
         }
 
         @Override
-        protected void runService() {
+        protected void runService(Map<String, String> parameters) {
             executionCounter++; //called from the execute() method within a synchronized block hence thread-safe
             runningLatch.countDown();
             try {

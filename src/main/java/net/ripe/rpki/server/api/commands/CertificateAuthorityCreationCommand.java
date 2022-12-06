@@ -1,6 +1,6 @@
 package net.ripe.rpki.server.api.commands;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import org.apache.commons.lang.Validate;
 
@@ -9,15 +9,15 @@ import org.apache.commons.lang.Validate;
  */
 public abstract class CertificateAuthorityCreationCommand extends CertificateAuthorityCommand {
 
-    private final IpResourceSet resources;
+    private final ImmutableResourceSet resources;
 
-    public CertificateAuthorityCreationCommand(VersionedId certificateAuthorityId, IpResourceSet resources) {
+    public CertificateAuthorityCreationCommand(VersionedId certificateAuthorityId, ImmutableResourceSet resources) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
         Validate.notNull(resources, "resources are required");
         this.resources = resources;
     }
 
-    public IpResourceSet getResources() {
+    public ImmutableResourceSet getResources() {
     	return resources;
     }
 }

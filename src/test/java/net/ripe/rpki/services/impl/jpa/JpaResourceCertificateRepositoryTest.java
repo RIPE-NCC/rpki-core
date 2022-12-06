@@ -1,8 +1,8 @@
 package net.ripe.rpki.services.impl.jpa;
 
 import net.ripe.ipresource.Asn;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
@@ -145,7 +145,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     public void findCurrentOutgoingChildCertificateResources() {
         ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
 
-        assertThat(subject.findCurrentOutgoingChildCertificateResources(ca.getName())).isEqualTo(new IpResourceSet());
+        assertThat(subject.findCurrentOutgoingChildCertificateResources(ca.getName())).isEqualTo(ImmutableResourceSet.empty());
     }
 
     @Test

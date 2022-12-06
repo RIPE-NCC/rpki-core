@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.rest.pojo.ResourcesCollection;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.support.objects.CaName;
@@ -32,7 +32,7 @@ public class ResourceService extends AbstractCaRestService {
         log.info("Getting resources for CA: {}", caName);
 
         final CertificateAuthorityData ca = getCa(CertificateAuthorityData.class, caName);
-        final IpResourceSet certifiedResources = ca.getResources();
+        final ImmutableResourceSet certifiedResources = ca.getResources();
         return ok(new ResourcesCollection(Utils.toStringList(certifiedResources)));
     }
 
@@ -43,7 +43,7 @@ public class ResourceService extends AbstractCaRestService {
         log.info("Validating prefix[{}] prefix for caName[{}]", prefix, caName);
 
         final CertificateAuthorityData ca = getCa(CertificateAuthorityData.class, caName);
-        final IpResourceSet certifiedResources = ca.getResources();
+        final ImmutableResourceSet certifiedResources = ca.getResources();
 
         PrefixValidationResult prefixValidation = validatePrefix(prefix, certifiedResources);
 

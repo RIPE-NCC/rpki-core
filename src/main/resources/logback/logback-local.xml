@@ -33,6 +33,13 @@
         <appender-ref ref="stdout"/>
     </logger>
 
+    <!--
+     Turn off logging of SQL exceptions by hibernate, since we already log all exceptions at the outermost application
+     layers. Otherwise we get many false-positive ERROR messages about non-serializable transactions that are
+     automatically retried by our command service.
+    -->
+    <logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="off" additivity="false" />
+
     <logger name="provisioning-logger" level="info" additivity="false">
         <appender-ref ref="provisioning-jsonl"/>
     </logger>

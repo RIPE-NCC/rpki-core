@@ -4,10 +4,7 @@ import com.google.common.base.Preconditions;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResource;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.*;
 import net.ripe.ipresource.etree.NestedIntervalMap;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
@@ -87,7 +84,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
         log.info("REST call: Get all ROAs belonging to CA: {}", caName);
 
         final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
-        final IpResourceSet certifiedResources = ca.getResources();
+        final ImmutableResourceSet certifiedResources = ca.getResources();
 
         final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
         final RouteOriginValidationPolicy routeOriginValidationPolicy = new RouteOriginValidationPolicy();
@@ -116,7 +113,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
                 .comparing(ar -> ((AllowedRoute) ar).getAsn().longValue())
                 .thenComparing(ar -> ((AllowedRoute) ar).getPrefix()))
             .forEach(allowedRoute -> {
-                final Collection<BgpRisEntry> overlappingAnnouncements = bgpRisEntryViewService.findMostSpecificOverlapping(new IpResourceSet(allowedRoute.getPrefix()));
+                final Collection<BgpRisEntry> overlappingAnnouncements = bgpRisEntryViewService.findMostSpecificOverlapping(ImmutableResourceSet.of(allowedRoute.getPrefix()));
                 final NestedIntervalMap<IpResource, List<AllowedRoute>> allowed = allowedRoutesToNestedIntervalMap(Collections.singletonList(allowedRoute));
                 int valids = 0;
                 int invalids = 0;
@@ -191,7 +188,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
         }
 
         final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
-        final IpResourceSet certifiedResources = ca.getResources();
+        final ImmutableResourceSet certifiedResources = ca.getResources();
 
         final Map<Boolean, Collection<BgpRisEntry>> bgpAnnouncements = bgpRisEntryViewService.findMostSpecificContainedAndNotContained(certifiedResources);
         final RoaConfigurationData currentRoaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
@@ -251,7 +248,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
         }
 
         final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
-        final IpResourceSet certifiedResources = ca.getResources();
+        final ImmutableResourceSet certifiedResources = ca.getResources();
 
         for (ROA roa : publishSet.getAdded()) {
             PrefixValidationResult validationResult = validatePrefix(roa.getPrefix(), certifiedResources);

@@ -1,19 +1,19 @@
 package net.ripe.rpki.domain;
 
 import lombok.Value;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 
 import static java.util.Objects.requireNonNull;
 
 @Value
 public class ResourceClassListResponse {
-    IpResourceSet certifiableResources;
+    ImmutableResourceSet certifiableResources;
 
     public ResourceClassListResponse() {
-        this(new IpResourceSet());
+        this(ImmutableResourceSet.empty());
     }
 
-    public ResourceClassListResponse(IpResourceSet certifiableResources) {
+    public ResourceClassListResponse(ImmutableResourceSet certifiableResources) {
         this.certifiableResources = requireNonNull(certifiableResources, "certifiableResources is required");
     }
 

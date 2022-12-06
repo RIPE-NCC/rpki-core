@@ -27,6 +27,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_REPOSITORY_PUBLICATION_SERVICE;
@@ -101,7 +102,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         try {
             transactionTemplate.executeWithoutResult((status) -> runTransaction());
         } catch (TransientDataAccessException e) {

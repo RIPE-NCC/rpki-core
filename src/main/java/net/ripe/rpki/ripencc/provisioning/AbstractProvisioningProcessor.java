@@ -1,5 +1,6 @@
 package net.ripe.rpki.ripencc.provisioning;
 
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
@@ -19,22 +20,21 @@ abstract class AbstractProvisioningProcessor {
         this.resourceLookupService = resourceLookupService;
     }
 
-    protected IpResourceSet getCertifiableResources(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, ManagedCertificateAuthorityData productionCA) {
+    protected ImmutableResourceSet getCertifiableResources(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, ManagedCertificateAuthorityData productionCA) {
         // We cannot use `nonHostedCertificateAuthority.getResources()` here since they only include _certified_
         // resources (which may be limited by the requested resource set) and we must include all _certifiable_
         // resources.
-        IpResourceSet memberResources = resourceLookupService.lookupMemberCaPotentialResources(nonHostedCertificateAuthority.getName());
-        memberResources.retainAll(productionCA.getResources());
-        return memberResources;
+        ImmutableResourceSet memberResources = resourceLookupService.lookupMemberCaPotentialResources(nonHostedCertificateAuthority.getName());
+        return memberResources.intersection(productionCA.getResources());
     }
 
     protected CertificateElement createClassElement(X509ResourceCertificate certificate, RequestedResourceSets requestedResourceSets, URI publicationUri) {
         CertificateElement element = new CertificateElement();
         element.setCertificate(certificate);
         element.setIssuerCertificatePublicationLocation(Collections.singletonList(publicationUri));
-        element.setAllocatedAsn(requestedResourceSets.getRequestedResourceSetAsn().orElse(null));
-        element.setAllocatedIpv4(requestedResourceSets.getRequestedResourceSetIpv4().orElse(null));
-        element.setAllocatedIpv6(requestedResourceSets.getRequestedResourceSetIpv6().orElse(null));
+        element.setAllocatedAsn(requestedResourceSets.getRequestedResourceSetAsn().map(IpResourceSet::new).orElse(null));
+        element.setAllocatedIpv4(requestedResourceSets.getRequestedResourceSetIpv4().map(IpResourceSet::new).orElse(null));
+        element.setAllocatedIpv6(requestedResourceSets.getRequestedResourceSetIpv6().map(IpResourceSet::new).orElse(null));
         return element;
     }
 }

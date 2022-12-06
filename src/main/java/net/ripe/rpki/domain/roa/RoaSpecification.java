@@ -2,8 +2,8 @@ package net.ripe.rpki.domain.roa;
 
 import com.google.common.base.Preconditions;
 import net.ripe.ipresource.Asn;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.roa.Roa;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaPrefix;
@@ -69,7 +69,7 @@ public class RoaSpecification implements Specification<Roa> {
         if (prefixes.size() != roa.getPrefixes().size()) {
             return false;
         }
-        IpResourceSet resources = getNormalisedResources();
+        ImmutableResourceSet resources = getNormalisedResources();
         for (RoaPrefix actual: roa.getPrefixes()) {
             if (!(resources.contains(actual.getPrefix())
                     && containsPrefix(actual.getPrefix())
@@ -109,8 +109,8 @@ public class RoaSpecification implements Specification<Roa> {
         return asn;
     }
 
-    public IpResourceSet getNormalisedResources() {
-        return new IpResourceSet(prefixes.keySet());
+    public ImmutableResourceSet getNormalisedResources() {
+        return ImmutableResourceSet.of(prefixes.keySet());
     }
 
     public ValidityPeriod calculateValidityPeriod() {

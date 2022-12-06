@@ -5,7 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.bgpris.BgpRisEntryRepositoryBean;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.server.api.configuration.Environment;
@@ -44,7 +44,7 @@ public class RoaAlertCheckerTest {
     private static final RoaAlertConfigurationData ALERT_SUBSCRIPTION_DATA = RoaAlertBackgroundServiceDailyBeanTest.ALERT_SUBSCRIPTION_DATA;
 
     private static final long CA_ID = ALERT_SUBSCRIPTION_DATA.getCertificateAuthority().getId();
-    private static final IpResourceSet CERTIFIED_RESOURCES = ALERT_SUBSCRIPTION_DATA.getCertificateAuthority().getResources();
+    private static final ImmutableResourceSet CERTIFIED_RESOURCES = ALERT_SUBSCRIPTION_DATA.getCertificateAuthority().getResources();
 
     private static final RoaConfigurationData ROA_CONFIGURATION_DATA = new RoaConfigurationData(Collections.singletonList(
         new RoaConfigurationPrefixData(Asn.parse("AS65535"), IpRange.parse("127.0.0.0/8"), null)));

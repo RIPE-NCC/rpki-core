@@ -1,6 +1,7 @@
 package net.ripe.rpki.ripencc.provisioning;
 
 import net.ripe.ipresource.Asn;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
@@ -80,13 +81,13 @@ public class CertificateIssuanceProcessorTest {
         nonHostedCertificateAuthority = new NonHostedCertificateAuthorityData(
             new VersionedId(1234L, 1), NON_HOSTED_CA_NAME, UUID.randomUUID(), productionCA.getId(),
             ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT,
-            new IpResourceSet(),
+            ImmutableResourceSet.empty(),
             Collections.emptySet()
         );
 
         processor = new CertificateIssuanceProcessor(resourceLookupService, commandService, resourceCertificateViewService);
 
-        when(resourceLookupService.lookupMemberCaPotentialResources(NON_HOSTED_CA_NAME)).thenReturn(IpResourceSet.parse("10/8,fc00::/48"));
+        when(resourceLookupService.lookupMemberCaPotentialResources(NON_HOSTED_CA_NAME)).thenReturn(ImmutableResourceSet.parse("10/8,fc00::/48"));
 
         ResourceCertificateData productionSigningCertificate = new ResourceCertificateData(mock(X509ResourceCertificate.class), caRepositoryUri.resolve("cert.cer"));
         when(resourceCertificateViewService.findCurrentIncomingResourceCertificate(productionCA.getId()))
@@ -97,8 +98,8 @@ public class CertificateIssuanceProcessorTest {
     public void shouldProcessCertificateIssuanceRequest() {
         X509ResourceCertificate mockCertificate = mock(X509ResourceCertificate.class);
         RequestedResourceSets requestedResources = new RequestedResourceSets(
-            Optional.of(IpResourceSet.parse("AS3333")),
-            Optional.of(IpResourceSet.parse("10/9")),
+            Optional.of(ImmutableResourceSet.parse("AS3333")),
+            Optional.of(ImmutableResourceSet.parse("10/9")),
             Optional.empty()
         );
         CertificateIssuanceRequestPayload requestPayload = createPayload(caRepositoryUri, requestedResources);
@@ -131,7 +132,7 @@ public class CertificateIssuanceProcessorTest {
 
     @Test
     public void shouldFailToProcessAnyResourceClassExceptDefault() {
-        CertificateIssuanceRequestPayload requestPayload = createPayloadClass("RIPE", caRepositoryUri, new RequestedResourceSets(Optional.empty(), Optional.of(IpResourceSet.parse("11/8")), Optional.empty()));
+        CertificateIssuanceRequestPayload requestPayload = createPayloadClass("RIPE", caRepositoryUri, new RequestedResourceSets(Optional.empty(), Optional.of(ImmutableResourceSet.parse("11/8")), Optional.empty()));
         assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (error) -> {
                 assertThat(error.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_NO_SUCH_RESOURCE_CLASS);
@@ -141,7 +142,7 @@ public class CertificateIssuanceProcessorTest {
     //http://tools.ietf.org/html/rfc6492#page-23
     @Test
     public void shouldReturnNoResourcesAllocatedResponsePayloadIfClientHoldsResources() {
-        when(resourceLookupService.lookupMemberCaPotentialResources(NON_HOSTED_CA_NAME)).thenReturn(new IpResourceSet());
+        when(resourceLookupService.lookupMemberCaPotentialResources(NON_HOSTED_CA_NAME)).thenReturn(ImmutableResourceSet.empty());
 
         CertificateIssuanceRequestPayload requestPayload = createPayload(caRepositoryUri);
         assertThatThrownBy(()-> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
@@ -168,14 +169,14 @@ public class CertificateIssuanceProcessorTest {
 
     @Test
     public void should_check_requested_resource_set_entries_limit() {
-        IpResourceSet tooBig = new IpResourceSet();
+        ImmutableResourceSet.Builder tooBig = new ImmutableResourceSet.Builder();
         for (int i = 0; i <= CertificateIssuanceProcessor.RESOURCE_SET_ENTRIES_LIMIT; ++i) {
             tooBig.add(new Asn(2 * i));
         }
 
         RequestedResourceSets requestedResources = new RequestedResourceSets(
-            Optional.of(tooBig),
-            Optional.of(IpResourceSet.parse("10/9")),
+            Optional.of(tooBig.build()),
+            Optional.of(ImmutableResourceSet.parse("10/9")),
             Optional.empty()
         );
         CertificateIssuanceRequestPayload requestPayload = createPayload(caRepositoryUri, requestedResources);
@@ -316,9 +317,9 @@ public class CertificateIssuanceProcessorTest {
         CertificateIssuanceRequestPayloadBuilder certificateIssuanceRequestPayloadBuilder = new CertificateIssuanceRequestPayloadBuilder();
         certificateIssuanceRequestPayloadBuilder.withClassName(className);
         certificateIssuanceRequestPayloadBuilder.withCertificateRequest(certificate);
-        certificateIssuanceRequestPayloadBuilder.withAllocatedAsn(resources.getRequestedResourceSetAsn().orElse(null));
-        certificateIssuanceRequestPayloadBuilder.withIpv4ResourceSet(resources.getRequestedResourceSetIpv4().orElse(null));
-        certificateIssuanceRequestPayloadBuilder.withIpv6ResourceSet(resources.getRequestedResourceSetIpv6().orElse(null));
+        certificateIssuanceRequestPayloadBuilder.withAllocatedAsn(resources.getRequestedResourceSetAsn().map(IpResourceSet::new).orElse(null));
+        certificateIssuanceRequestPayloadBuilder.withIpv4ResourceSet(resources.getRequestedResourceSetIpv4().map(IpResourceSet::new).orElse(null));
+        certificateIssuanceRequestPayloadBuilder.withIpv6ResourceSet(resources.getRequestedResourceSetIpv6().map(IpResourceSet::new).orElse(null));
 
         CertificateIssuanceRequestPayload requestPayload = certificateIssuanceRequestPayloadBuilder.build();
 

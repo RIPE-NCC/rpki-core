@@ -3,7 +3,7 @@ package net.ripe.rpki.domain.roa;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCms;
@@ -183,7 +183,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
         return roaCmsBuilder.build(eeKeyPair.getPrivate());
     }
 
-    private CertificateIssuanceRequest requestForRoaEeCertificate(IpResourceSet resources, KeyPairEntity signingKeyPair, KeyPair eeKeyPair) {
+    private CertificateIssuanceRequest requestForRoaEeCertificate(ImmutableResourceSet resources, KeyPairEntity signingKeyPair, KeyPair eeKeyPair) {
         X500Principal subject = informationAccessStrategy.eeCertificateSubject(eeKeyPair.getPublic());
         X509CertificateInformationAccessDescriptor[] sia = informationAccessStrategy.siaForSignedObjectCertificate(signingKeyPair,
                 RepositoryObjectNamingStrategy.ROA_FILE_EXTENSION, subject, eeKeyPair.getPublic());

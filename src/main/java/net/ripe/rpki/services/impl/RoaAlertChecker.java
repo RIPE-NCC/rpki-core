@@ -5,7 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResource;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.etree.NestedIntervalMap;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
@@ -94,7 +94,7 @@ public class RoaAlertChecker {
         updateMetrics(invalidAsnsToMail, invalidLengthsToMail, unknownsToMail);
         // Ignored announcements do not affect decision of whether to mail or not.
         if (!invalidAsnsToMail.isEmpty() || !invalidLengthsToMail.isEmpty() || !unknownsToMail.isEmpty()) {
-            final IpResourceSet caResources = ca.getResources();
+            final ImmutableResourceSet caResources = ca.getResources();
             Collection<BgpRisEntry> announcements = bgpRisEntryRepository.findMostSpecificOverlapping(caResources);
             log.info("We are going to send ROA alert to the CA {}. \nIts certified resources are {}, " +
                     "\nannouncements are {}, \nROA configuration is {}, \nannouncedRoutes is {}",

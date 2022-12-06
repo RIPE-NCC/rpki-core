@@ -12,6 +12,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Collections;
+
 import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -38,8 +40,8 @@ public class CaCleanUpServiceBeanTest {
     }
 
     @Test
-    public void should_delete_old_cas_without_keypairs() throws Exception {
-        service.runService();
+    public void should_delete_old_cas_without_keypairs() {
+        service.runService(Collections.emptyMap());
         verify(certificateAuthorityRepository).getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear();
     }
 

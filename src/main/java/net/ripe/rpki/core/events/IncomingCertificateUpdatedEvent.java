@@ -26,7 +26,7 @@ public class IncomingCertificateUpdatedEvent extends CertificateAuthorityEvent {
 
     @Override
     public String toString() {
-        String displayResources = incomingCertificate.getResources().toString();
+        String displayResources = incomingCertificate.resources().toString();
         // prevent extremely long lines when resource certificate is updated. The full resources are in logfiles.
         //
         // This limit is ~2x what is needed for all CAs except the production CA. When truncating we log a short prefix.

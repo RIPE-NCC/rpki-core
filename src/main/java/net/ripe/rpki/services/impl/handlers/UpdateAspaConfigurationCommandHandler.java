@@ -1,13 +1,12 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SortedMapDifference;
 import lombok.NonNull;
 import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
@@ -37,7 +36,7 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
 
     private final AspaConfigurationRepository aspaConfigurationRepository;
 
-    private final IpResourceSet privateAsns;
+    private final ImmutableResourceSet privateAsns;
 
     @Inject
     public UpdateAspaConfigurationCommandHandler(
@@ -48,8 +47,8 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
         super(certificateAuthorityRepository);
         this.aspaConfigurationRepository = aspaConfigurationRepository;
 
-        this.privateAsns = IpResourceSet.parse(privateAsnRanges);
-        Preconditions.checkArgument(Iterables.all(privateAsns, a -> IpResourceType.ASN == a.getType()), "Only ASNs allowed for private ASN ranges: %s", privateAsns);
+        this.privateAsns = ImmutableResourceSet.parse(privateAsnRanges);
+        Preconditions.checkArgument(privateAsns.stream().allMatch(a -> IpResourceType.ASN == a.getType()), "Only ASNs allowed for private ASN ranges: %s", privateAsns);
     }
 
     @Override
@@ -106,11 +105,10 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
     }
 
     private static void validateCustomerAsns(ManagedCertificateAuthority ca, SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> updatedConfiguration) {
-        IpResourceSet certifiedResources = ca.getCertifiedResources();
-        IpResourceSet customerAsns = new IpResourceSet(updatedConfiguration.keySet());
-        customerAsns.removeAll(certifiedResources);
-        if (!customerAsns.isEmpty()) {
-            throw new NotHolderOfResourcesException(customerAsns);
+        ImmutableResourceSet certifiedResources = ca.getCertifiedResources();
+        ImmutableResourceSet uncertifiedAsns = ImmutableResourceSet.of(updatedConfiguration.keySet()).difference(certifiedResources);
+        if (!uncertifiedAsns.isEmpty()) {
+            throw new NotHolderOfResourcesException(uncertifiedAsns);
         }
     }
 

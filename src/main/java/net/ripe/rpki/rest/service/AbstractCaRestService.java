@@ -3,7 +3,7 @@ package net.ripe.rpki.rest.service;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.rest.exception.CaNameInvalidException;
 import net.ripe.rpki.rest.exception.CaNotFoundException;
 import net.ripe.rpki.rest.exception.UserIdRequiredException;
@@ -77,7 +77,7 @@ public class AbstractCaRestService {
         return ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
     }
 
-    PrefixValidationResult validatePrefix(String prefix, IpResourceSet certifiedResources) {
+    PrefixValidationResult validatePrefix(String prefix, ImmutableResourceSet certifiedResources) {
         final IpRange range;
         try {
             range = IpRange.parse(prefix);

@@ -3,7 +3,7 @@ package net.ripe.rpki.rest.service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.rest.pojo.BgpAnnouncement;
@@ -77,7 +77,7 @@ public class CaStatService {
             return ResponseEntity.status(NOT_FOUND).body(of("error", "unknown CA: " + rawCaName));
         }
         final long caId = caByName.getId();
-        final IpResourceSet certifiedResources = resourceCertificateViewService.findCertifiedResources(caId);
+        final ImmutableResourceSet certifiedResources = resourceCertificateViewService.findCertifiedResources(caId);
         if (certifiedResources == null) {
             return ResponseEntity.status(NOT_FOUND).body(of("error", "CA doesn't have resources, CA: " + rawCaName));
         }
@@ -108,7 +108,7 @@ public class CaStatService {
                     result.put(caName.toString(), Collections.singletonMap("error", "Unknown CA: " + caName));
                 } else {
                     final long caId = caByName.getId();
-                    final IpResourceSet certifiedResources = resourceCertificateViewService.findCertifiedResources(caId);
+                    final ImmutableResourceSet certifiedResources = resourceCertificateViewService.findCertifiedResources(caId);
                     if (certifiedResources == null) {
                         result.put(caName.toString(), Collections.singletonMap("error", "Ca doesn't have resources, CA: " + caName));
                     } else {
@@ -127,7 +127,7 @@ public class CaStatService {
                 .body(result);
     }
 
-    private CaStatus getCaStatus(long caId, IpResourceSet certifiedResources) {
+    private CaStatus getCaStatus(long caId, ImmutableResourceSet certifiedResources) {
         final Map<Boolean, Collection<BgpRisEntry>> announcements = bgpRisEntryViewService.findMostSpecificContainedAndNotContained(certifiedResources);
         final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(caId);
         final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, caId);

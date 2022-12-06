@@ -1,6 +1,6 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
@@ -30,7 +30,7 @@ public class IncomingResourceCertificateTest {
     @Test
     public void shouldUpdateCertificate() {
         X509ResourceCertificate updatedCertificate = TestObjects.createResourceCertificate(15L, keyPair,
-            new ValidityPeriod(new DateTime(), new DateTime().plusDays(10)), IpResourceSet.ALL_PRIVATE_USE_RESOURCES,
+            new ValidityPeriod(new DateTime(), new DateTime().plusDays(10)), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES,
             new X509CertificateInformationAccessDescriptor[] {
                 new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_CA_REPOSITORY,
                     BASE_URI),
@@ -41,7 +41,7 @@ public class IncomingResourceCertificateTest {
         subject.update(updatedCertificate, UPDATED_PUBLICATION_URI);
 
         assertThat(subject.getPublicationUri()).isEqualTo(UPDATED_PUBLICATION_URI);
-        assertThat(subject.getResources()).isEqualTo(IpResourceSet.ALL_PRIVATE_USE_RESOURCES);
+        assertThat(subject.getResources()).isEqualTo(ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES);
         assertThat(subject.getSubject()).isEqualTo(updatedCertificate.getSubject());
     }
 

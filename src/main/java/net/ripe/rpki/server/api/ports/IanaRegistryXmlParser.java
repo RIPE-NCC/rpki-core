@@ -1,6 +1,6 @@
 package net.ripe.rpki.server.api.ports;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 
 public interface IanaRegistryXmlParser {
 
@@ -8,5 +8,5 @@ public interface IanaRegistryXmlParser {
         AFRINIC, APNIC, ARIN, LACNIC, RIPE
     }
 
-    IpResourceSet getRirResources(MajorityRir rir);
+    ImmutableResourceSet getRirResources(MajorityRir rir);
 }

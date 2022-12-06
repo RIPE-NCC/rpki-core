@@ -2,6 +2,7 @@ package net.ripe.rpki.domain.aspa;
 
 import com.google.common.collect.ImmutableSortedSet;
 import net.ripe.ipresource.Asn;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCms;
 import net.ripe.rpki.commons.crypto.cms.aspa.ProviderAS;
@@ -190,7 +191,7 @@ public class AspaEntityServiceBeanTest {
             .withSerial(BigInteger.valueOf(10000L))
             .withValidityPeriod(currentIncomingCertificate.getValidityPeriod())
             .withPublicKey(certificateAuthority.getCurrentKeyPair().getPublicKey())
-            .withResources(IpResourceSet.ALL_PRIVATE_USE_RESOURCES)
+            .withResources(new IpResourceSet(ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES))
             .build();
         certificateAuthority.processCertificateIssuanceResponse(new CertificateIssuanceResponse(certificate, TestObjects.PUBLICATION_URI), null);
 

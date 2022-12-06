@@ -3,7 +3,7 @@ package net.ripe.rpki.domain.alerts;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
@@ -42,7 +42,7 @@ public class RoaAlertMaintenanceServiceBean implements CertificateAuthorityEvent
     @Override
     public void visitIncomingCertificateUpdatedEvent(IncomingCertificateUpdatedEvent event, CommandContext context) {
         final VersionedId caId = event.getCertificateAuthorityVersionedId();
-        final IpResourceSet nowCurrentResources = event.getIncomingCertificate().getResources();
+        final ImmutableResourceSet nowCurrentResources = event.getIncomingCertificate().resources();
 
         updateRoaAlertsForResources(caId, nowCurrentResources, context);
     }
@@ -50,17 +50,16 @@ public class RoaAlertMaintenanceServiceBean implements CertificateAuthorityEvent
     @Override
     public void visitIncomingCertificateRevokedEvent(IncomingCertificateRevokedEvent event, CommandContext context) {
         final ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(event.getCertificateAuthorityVersionedId().getId());
-
         if (ca == null) {
             return;
         }
 
         log.info("incoming certificate revoked: {}", ca.getCertifiedResources());
 
-        updateRoaAlertsForResources(event.getCertificateAuthorityVersionedId(), ca.getCertifiedResources(), context);
+        updateRoaAlertsForResources(event.getCertificateAuthorityVersionedId(), ImmutableResourceSet.empty(), context);
     }
 
-    private void updateRoaAlertsForResources(VersionedId caId, IpResourceSet nowCurrentResources, CommandContext context) {
+    private void updateRoaAlertsForResources(VersionedId caId, ImmutableResourceSet nowCurrentResources, CommandContext context) {
         final RoaAlertConfiguration roaAlertConfiguration = roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(caId.getId());
         if (roaAlertConfiguration == null) {
             return;
@@ -68,12 +67,7 @@ public class RoaAlertMaintenanceServiceBean implements CertificateAuthorityEvent
         // Update subscriptions, removing subscriptions for resources that do not overlap with the current resources.
         final List<AnnouncedRoute> alertsToRemove = roaAlertConfiguration.getIgnored().stream()
                 .map(RoaAlertIgnoredAnnouncement::toData)
-                .filter(ignoredAnnouncement -> {
-                    IpResourceSet overlap = new IpResourceSet(nowCurrentResources);
-                    overlap.retainAll(new IpResourceSet(ignoredAnnouncement.getPrefix()));
-
-                    return overlap.isEmpty();
-                })
+                .filter(ignoredAnnouncement -> !nowCurrentResources.intersects(ignoredAnnouncement.getPrefix()))
                 .collect(Collectors.toList());
 
         if (!alertsToRemove.isEmpty()) {

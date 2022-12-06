@@ -16,7 +16,7 @@ import javax.security.auth.x500.X500Principal;
 import java.math.BigInteger;
 import java.net.URI;
 
-import static net.ripe.ipresource.IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
+import static net.ripe.ipresource.ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.Collection;
+import java.util.Map;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.MANIFEST_CRL_UPDATE_SERVICE;
 
@@ -48,7 +49,7 @@ public class ManifestCrlUpdateServiceBean extends SequentialBackgroundServiceWit
 
     @Override
     @SneakyThrows
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         // Process all CAs with pending publications and a next update time within the hard limit "time to next update"
         Collection<ManagedCertificateAuthority> mustCheckForUpdatesCAs = certificateAuthorityRepository.findAllWithOutdatedManifests(
             UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_HARD_LIMIT),

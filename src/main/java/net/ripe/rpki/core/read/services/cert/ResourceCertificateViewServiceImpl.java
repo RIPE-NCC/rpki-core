@@ -1,7 +1,7 @@
 package net.ripe.rpki.core.read.services.cert;
 
 import lombok.NonNull;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
@@ -31,7 +31,7 @@ public class ResourceCertificateViewServiceImpl implements ResourceCertificateVi
     private EntityManager entityManager;
 
     @Override
-    public IpResourceSet findCertifiedResources(Long caId) {
+    public ImmutableResourceSet findCertifiedResources(Long caId) {
         ManagedCertificateAuthority managedCertificateAuthority = certificateAuthorityRepository.findManagedCa(caId);
         if (managedCertificateAuthority != null) {
             return managedCertificateAuthority.getCertifiedResources();

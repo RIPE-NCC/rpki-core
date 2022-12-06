@@ -1,5 +1,6 @@
 package net.ripe.rpki.offline.ra.service;
 
+import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.FixedDateRule;
 import net.ripe.rpki.commons.crypto.CertificateRepositoryObject;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
@@ -43,7 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static net.ripe.ipresource.IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
+import static net.ripe.ipresource.ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES;
 import static net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateTest.createSelfSignedCaResourceCertificate;
 import static net.ripe.rpki.domain.TestObjects.ACA_ID;
 import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
@@ -69,7 +70,7 @@ public class TrustAnchorResponseProcessorTest {
 
     private static final X500Principal CA_NAME = new X500Principal("CN=test");
     private static final X500Principal PROD_CA_NAME = new X500Principal("CN=production-test");
-    private static final X509ResourceCertificate NEW_CERTIFICATE = createSelfSignedCaResourceCertificate(ALL_PRIVATE_USE_RESOURCES);
+    private static final X509ResourceCertificate NEW_CERTIFICATE = createSelfSignedCaResourceCertificate(new IpResourceSet(ALL_PRIVATE_USE_RESOURCES));
     private static final String NEW_CERTIFICATE_FILE_NAME = "cert.cer";
     private static final URI NEW_CERTIFICATE_PUBLICATION_BASE_URI = URI.create("rsync://nowhere/");
     private static final URI NEW_CERTIFICATE_PUBLICATION_URI = NEW_CERTIFICATE_PUBLICATION_BASE_URI.resolve(NEW_CERTIFICATE_FILE_NAME);

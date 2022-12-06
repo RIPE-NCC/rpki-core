@@ -3,7 +3,7 @@ package net.ripe.rpki.server.api.dto;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.util.VersionedId;
 import org.apache.commons.lang.Validate;
@@ -25,13 +25,13 @@ public abstract class CertificateAuthorityData implements Serializable {
     private final Long parentId;
     private final X500Principal name;
     private final CertificateAuthorityType type;
-    private final IpResourceSet resources;
+    private final ImmutableResourceSet resources;
     private final TrustAnchorRequest trustAnchorRequest;
 
     public CertificateAuthorityData(VersionedId versionedId, X500Principal name,
                                     UUID uuid, Long parentId,
                                     CertificateAuthorityType type,
-                                    IpResourceSet resources,
+                                    ImmutableResourceSet resources,
                                     TrustAnchorRequest trustAnchorRequest) {
         Validate.notNull(versionedId, "versionedId is required");
         Validate.notNull(name, "name is required");

@@ -8,6 +8,8 @@ import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
+
 import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -32,7 +34,7 @@ public class CertificateExpirationServiceBeanTest {
         when(resourceCertificateRepository.expireOutgoingResourceCertificates(isA(DateTime.class)))
             .thenReturn(new ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult(0, 0, 0, 0));
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         verify(resourceCertificateRepository).expireOutgoingResourceCertificates(isA(DateTime.class));
     }

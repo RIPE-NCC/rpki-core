@@ -1,6 +1,6 @@
 package net.ripe.rpki.ripencc.provisioning;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
 import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningPayload;
@@ -50,7 +50,6 @@ import static net.ripe.rpki.ripencc.provisioning.CertificateIssuanceProcessorTes
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 
@@ -86,7 +85,7 @@ public class ProvisioningRequestProcessorBeanTest {
         child = new NonHostedCertificateAuthorityData(
             new VersionedId(1234L, 1), NON_HOSTED_CA_NAME, UUID.randomUUID(), parent.getId(),
             ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT,
-            new IpResourceSet(),
+            ImmutableResourceSet.IP_PRIVATE_USE_RESOURCES,
             Collections.singleton(new NonHostedPublicKeyData(PUBLIC_KEY, PayloadMessageType.issue, new RequestedResourceSets(), null))
         );
 

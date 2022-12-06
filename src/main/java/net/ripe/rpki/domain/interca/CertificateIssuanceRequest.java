@@ -2,7 +2,7 @@ package net.ripe.rpki.domain.interca;
 
 import lombok.Value;
 import lombok.With;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 
 import javax.security.auth.x500.X500Principal;
@@ -21,12 +21,12 @@ import static java.util.Objects.requireNonNull;
 @With
 public class CertificateIssuanceRequest implements CertificateProvisioningMessage {
 
-    IpResourceSet resources;
+    ImmutableResourceSet resources;
     X500Principal subjectDN;
     PublicKey subjectPublicKey;
     X509CertificateInformationAccessDescriptor[] subjectInformationAccess;
 
-    public CertificateIssuanceRequest(IpResourceSet resources,
+    public CertificateIssuanceRequest(ImmutableResourceSet resources,
                                       X500Principal subjectDN,
                                       PublicKey subjectPublicKey,
                                       X509CertificateInformationAccessDescriptor[] subjectInformationAccess) {

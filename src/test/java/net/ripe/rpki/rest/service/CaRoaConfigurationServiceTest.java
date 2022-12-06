@@ -1,10 +1,6 @@
 package net.ripe.rpki.rest.service;
 
-import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceSet;
-import net.ripe.ipresource.Ipv4Address;
-import net.ripe.ipresource.Ipv6Address;
+import net.ripe.ipresource.*;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
@@ -90,7 +86,7 @@ public class CaRoaConfigurationServiceTest {
         when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Collections.singletonList(
                 new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("192.168.0.0/16"), 16))));
 
-        IpResourceSet ipResourceSet = new IpResourceSet(Ipv4Address.parse("127.0.0.1"), Ipv6Address.parse("::1"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1, ::1");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         when(bgpRisEntryViewService.findMostSpecificOverlapping(ipResourceSet)).thenReturn(
@@ -119,7 +115,7 @@ public class CaRoaConfigurationServiceTest {
         when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Collections.singletonList(
                 new RoaConfigurationPrefixData(new Asn(10), IpRange.parse(TESTNET_1), 32))));
 
-        IpResourceSet ipResourceSet = new IpResourceSet(Ipv4Address.parse("127.0.0.1"), Ipv6Address.parse("::1"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1, ::1");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         // first /28 in TESTNET_1
@@ -153,7 +149,7 @@ public class CaRoaConfigurationServiceTest {
         when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Collections.singletonList(
                 new RoaConfigurationPrefixData(new Asn(10), IpRange.parse(TESTNET_1), 24))));
 
-        IpResourceSet ipResourceSet = new IpResourceSet(Ipv4Address.parse("127.0.0.1"), Ipv6Address.parse("::1"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1, ::1");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
@@ -180,7 +176,7 @@ public class CaRoaConfigurationServiceTest {
                 new RoaConfigurationPrefixData(new Asn(11), IpRange.parse("192.168.0.0/16"), 16),
                 new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("193.0.24.0/21"), 21))));
 
-        IpResourceSet ipResourceSet = new IpResourceSet(Ipv4Address.parse("127.0.0.1"), Ipv6Address.parse("::1"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1, ::1");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
@@ -218,7 +214,7 @@ public class CaRoaConfigurationServiceTest {
                 new RoaConfigurationPrefixData(new Asn(11), IpRange.parse("192.168.0.0/16"), 16),
                 new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("193.0.24.0/21"), 21))));
 
-        IpResourceSet ipResourceSet = new IpResourceSet(Ipv4Address.parse("127.0.0.1"), Ipv6Address.parse("::1"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1, ::1");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
@@ -365,7 +361,7 @@ public class CaRoaConfigurationServiceTest {
     @Test
     public void shouldPublishRoas() throws Exception {
 
-        IpResourceSet ipResourceSet = new IpResourceSet(IpRange.parse("193.0.24.0/21"), IpRange.parse("2001:67c:64::/48"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("193.0.24.0/21, 2001:67c:64::/48");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         when(certificateAuthorityData.getVersionedId()).thenReturn(VersionedId.parse("1"));
@@ -395,7 +391,7 @@ public class CaRoaConfigurationServiceTest {
 
     @Test
     public void shouldNotAddRoasIfCaIsNotTheOwner() throws Exception {
-        IpResourceSet ipResourceSet = new IpResourceSet(IpRange.parse("193.0.24.0/21"), IpRange.parse("2001:67c:64::/48"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("193.0.24.0/21, 2001:67c:64::/48");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         when(certificateAuthorityData.getVersionedId()).thenReturn(VersionedId.parse("1"));
@@ -431,7 +427,7 @@ public class CaRoaConfigurationServiceTest {
 
     @Test
     public void shouldNotAddPrivateRoas() throws Exception {
-        IpResourceSet ipResourceSet = new IpResourceSet(IpRange.parse("193.0.24.0/21"), IpRange.parse("2001:67c:64::/48"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("193.0.24.0/21, 2001:67c:64::/48");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         when(certificateAuthorityData.getVersionedId()).thenReturn(VersionedId.parse("1"));
@@ -480,11 +476,11 @@ public class CaRoaConfigurationServiceTest {
         when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Collections.singletonList(
                 new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("192.168.0.0/16"), 16))));
 
-        IpResourceSet ipResourceSet = new IpResourceSet(IpRange.parse("192.168.0.0/16"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("192.168.0.0/16");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(20), IpRange.parse("192.168.0.0/16"), 25);
-        when(bgpRisEntryViewService.findMostSpecificOverlapping(new IpResourceSet(IpRange.parse("192.168.0.0/16")))).thenReturn(Collections.singletonList(e1));
+        when(bgpRisEntryViewService.findMostSpecificOverlapping(ImmutableResourceSet.parse("192.168.0.0/16"))).thenReturn(Collections.singletonList(e1));
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/roas"))
                 .andExpect(status().isOk())
@@ -502,7 +498,7 @@ public class CaRoaConfigurationServiceTest {
                 new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("192.168.0.0/16"), 16))));
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 25);
-        when(bgpRisEntryViewService.findMostSpecificOverlapping(new IpResourceSet(IpRange.parse("192.168.0.0/16")))).thenReturn(Collections.singletonList(e1));
+        when(bgpRisEntryViewService.findMostSpecificOverlapping(ImmutableResourceSet.parse("192.168.0.0/16"))).thenReturn(Collections.singletonList(e1));
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/roas"))
                 .andExpect(status().isOk())
@@ -522,7 +518,7 @@ public class CaRoaConfigurationServiceTest {
         ));
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(20), IpRange.parse("192.168.0.0/16"), 25);
-        when(bgpRisEntryViewService.findMostSpecificOverlapping(new IpResourceSet(IpRange.parse("192.168.0.0/16")))).thenReturn(Collections.singletonList(e1));
+        when(bgpRisEntryViewService.findMostSpecificOverlapping(ImmutableResourceSet.parse("192.168.0.0/16"))).thenReturn(Collections.singletonList(e1));
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/roas"))
                 .andExpect(status().isOk())
@@ -547,13 +543,13 @@ public class CaRoaConfigurationServiceTest {
                         new RoaConfigurationPrefixData(new Asn(30), IpRange.parse("192.168.128.0/24"), 24)))
         );
 
-        IpResourceSet ipResourceSet = new IpResourceSet(IpRange.parse("192.168.0.0/16"), IpRange.parse("192.168.128.0/24"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("192.168.0.0/16, 192.168.128.0/24");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(20), IpRange.parse("192.168.0.0/16"), 25);
         final BgpRisEntry e2 = new BgpRisEntry(new Asn(30), IpRange.parse("192.168.128.0/24"), 35);
-        when(bgpRisEntryViewService.findMostSpecificOverlapping(new IpResourceSet(IpRange.parse("192.168.0.0/16")))).thenReturn(Collections.singletonList(e1));
-        when(bgpRisEntryViewService.findMostSpecificOverlapping(new IpResourceSet(IpRange.parse("192.168.128.0/24")))).thenReturn(Collections.singletonList(e2));
+        when(bgpRisEntryViewService.findMostSpecificOverlapping(ImmutableResourceSet.parse("192.168.0.0/16"))).thenReturn(Collections.singletonList(e1));
+        when(bgpRisEntryViewService.findMostSpecificOverlapping(ImmutableResourceSet.parse("192.168.128.0/24"))).thenReturn(Collections.singletonList(e2));
         when(bgpRisEntryViewService.findMostSpecificOverlapping(ipResourceSet)).thenReturn(Arrays.asList(e1, e2));
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/roas"))

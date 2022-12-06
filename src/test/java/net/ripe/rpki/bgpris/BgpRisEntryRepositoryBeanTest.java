@@ -2,7 +2,7 @@ package net.ripe.rpki.bgpris;
 
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,49 +33,49 @@ public class BgpRisEntryRepositoryBeanTest {
 
     @Test
     public void should_find_entries_with_overlapping_prefixes() {
-        assertEquals(entries(BGP_RIS_ENTRY_193_8), subject.findMostSpecificOverlapping(IpResourceSet.parse("0.0.0.0/0")));
-        assertEquals(entries(BGP_RIS_ENTRY_193_8), subject.findMostSpecificOverlapping(IpResourceSet.parse("192.0.0.0-193.0.0.1")));
-        assertEquals(entries(BGP_RIS_ENTRY_FFCE_16), subject.findMostSpecificOverlapping(IpResourceSet.parse("ffce:abcd::/32")));
-        assertEquals(entries(BGP_RIS_ENTRY_193_8, BGP_RIS_ENTRY_FFCE_16), subject.findMostSpecificOverlapping(IpResourceSet.parse("0.0.0.0/0, ffce:abcd::/32")));
+        assertEquals(entries(BGP_RIS_ENTRY_193_8), subject.findMostSpecificOverlapping(ImmutableResourceSet.parse("0.0.0.0/0")));
+        assertEquals(entries(BGP_RIS_ENTRY_193_8), subject.findMostSpecificOverlapping(ImmutableResourceSet.parse("192.0.0.0-193.0.0.1")));
+        assertEquals(entries(BGP_RIS_ENTRY_FFCE_16), subject.findMostSpecificOverlapping(ImmutableResourceSet.parse("ffce:abcd::/32")));
+        assertEquals(entries(BGP_RIS_ENTRY_193_8, BGP_RIS_ENTRY_FFCE_16), subject.findMostSpecificOverlapping(ImmutableResourceSet.parse("0.0.0.0/0, ffce:abcd::/32")));
     }
 
     @Test
     public void should_skip_entries_below_threshold() {
-        assertEquals(entries(), subject.findMostSpecificOverlapping(IpResourceSet.parse("10.0.0.0/8")));
+        assertEquals(entries(), subject.findMostSpecificOverlapping(ImmutableResourceSet.parse("10.0.0.0/8")));
     }
 
     @Test
     public void should_skip_large_prefixes() {
-        assertEquals(entries(), subject.findMostSpecificOverlapping(IpResourceSet.parse("6.0.0.0/8")));
-        assertEquals(entries(), subject.findMostSpecificOverlapping(IpResourceSet.parse("ff00::/12")));
+        assertEquals(entries(), subject.findMostSpecificOverlapping(ImmutableResourceSet.parse("6.0.0.0/8")));
+        assertEquals(entries(), subject.findMostSpecificOverlapping(ImmutableResourceSet.parse("ff00::/12")));
     }
 
     @Test
     public void should_skip_entries_without_overlapping_prefixes() {
-        assertEquals(entries(), subject.findMostSpecificOverlapping(IpResourceSet.parse("9.0.0.0/8")));
+        assertEquals(entries(), subject.findMostSpecificOverlapping(ImmutableResourceSet.parse("9.0.0.0/8")));
     }
 
     @Test
     public void should_not_match_entries_by_origin_asn() {
-        assertEquals(entries(), subject.findMostSpecificOverlapping(IpResourceSet.parse("AS3333")));
+        assertEquals(entries(), subject.findMostSpecificOverlapping(ImmutableResourceSet.parse("AS3333")));
     }
 
     @Test
     public void should_only_match_most_specific_routing_entries_when_resources_are_full_covered() {
         subject.resetEntries(entries(BGP_RIS_ENTRY_193_16, BGP_RIS_ENTRY_193_8));
-        assertEquals(entries(BGP_RIS_ENTRY_193_16), subject.findMostSpecificOverlapping(IpResourceSet.parse("193.16.0.0/17")));
+        assertEquals(entries(BGP_RIS_ENTRY_193_16), subject.findMostSpecificOverlapping(ImmutableResourceSet.parse("193.16.0.0/17")));
     }
 
     @Test
     public void should_match_all_routing_entries_when_most_specific_do_not_fully_cover_resources() {
         subject.resetEntries(entries(BGP_RIS_ENTRY_193_16, BGP_RIS_ENTRY_193_8));
-        assertEquals(entries(BGP_RIS_ENTRY_193_8, BGP_RIS_ENTRY_193_16), subject.findMostSpecificOverlapping(IpResourceSet.parse("193.16.0.0/15")));
+        assertEquals(entries(BGP_RIS_ENTRY_193_8, BGP_RIS_ENTRY_193_16), subject.findMostSpecificOverlapping(ImmutableResourceSet.parse("193.16.0.0/15")));
     }
 
     @Test
     public void should_split_in_contained_and_not_contained() {
         subject.resetEntries(entries(BGP_RIS_ENTRY_193_16, BGP_RIS_ENTRY_193_8));
-        Map<Boolean, Collection<BgpRisEntry>> result = subject.findMostSpecificContainedAndNotContained(IpResourceSet.parse("193.16.0.0/15"));
+        Map<Boolean, Collection<BgpRisEntry>> result = subject.findMostSpecificContainedAndNotContained(ImmutableResourceSet.parse("193.16.0.0/15"));
         assertEquals(entries(BGP_RIS_ENTRY_193_16), result.get(true));
         assertEquals(entries(BGP_RIS_ENTRY_193_8), result.get(false));
 
@@ -109,7 +109,7 @@ public class BgpRisEntryRepositoryBeanTest {
         BgpRisEntryRepositoryBean bgpRisEntryRepositoryBean = new BgpRisEntryRepositoryBean();
         bgpRisEntryRepositoryBean.resetEntries(Arrays.asList(BGP_96_22, BGP_98_24, BGP_100_24, BGP_101_24, BGP_91_8));
 
-        assertEquals(entries(BGP_96_22, BGP_98_24, BGP_100_24, BGP_101_24), bgpRisEntryRepositoryBean.findMostSpecificOverlapping(IpResourceSet.parse("91.194.96.0-91.194.101.255")));
+        assertEquals(entries(BGP_96_22, BGP_98_24, BGP_100_24, BGP_101_24), bgpRisEntryRepositoryBean.findMostSpecificOverlapping(ImmutableResourceSet.parse("91.194.96.0-91.194.101.255")));
     }
 
     @Test
@@ -141,7 +141,7 @@ public class BgpRisEntryRepositoryBeanTest {
         bgpRisEntryRepositoryBean.resetEntries(Arrays.asList(BGP_IPV4_1, BGP_IPV4_2, BGP_IPV6_1, BGP_IPV6_2));
 
         final Map<Boolean, Collection<BgpRisEntry>> announcements = bgpRisEntryRepositoryBean
-            .findMostSpecificContainedAndNotContained(IpResourceSet.parse("176.97.158.0/24, 2001:67c:10b8::/48"));
+            .findMostSpecificContainedAndNotContained(ImmutableResourceSet.parse("176.97.158.0/24, 2001:67c:10b8::/48"));
 
         assertEquals(4, announcements.get(true).size());
         assertEquals(0, announcements.get(false).size());

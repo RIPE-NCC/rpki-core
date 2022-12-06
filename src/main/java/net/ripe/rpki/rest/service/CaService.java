@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.identity.*;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.rest.pojo.RevokeHostedResult;
@@ -188,7 +188,7 @@ public class CaService extends AbstractCaRestService {
         boolean wasInstantiated = certificateAuthority.isPresent();
         boolean isHosted = certificateAuthority.filter(ca -> ca.getType() == CertificateAuthorityType.HOSTED).isPresent();
 
-        IpResourceSet certifiableResources = resourceCache.lookupMemberCaPotentialResources(caName.getPrincipal());
+        ImmutableResourceSet certifiableResources = resourceCache.lookupMemberCaPotentialResources(caName.getPrincipal());
 
         return ok(of("summary", new Summary(
                 wasInstantiated,

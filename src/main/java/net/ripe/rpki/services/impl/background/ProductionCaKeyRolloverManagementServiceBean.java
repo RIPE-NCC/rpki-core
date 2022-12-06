@@ -7,6 +7,7 @@ import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE;
@@ -28,8 +29,8 @@ public class ProductionCaKeyRolloverManagementServiceBean extends AbstractKeyRol
     }
 
     @Override
-    protected void runService() {
-        runService(ProductionCertificateAuthority.class);
+    protected void runService(Map<String, String> parameters) {
+        runKeyRoll(ProductionCertificateAuthority.class, parameters);
     }
 
 }

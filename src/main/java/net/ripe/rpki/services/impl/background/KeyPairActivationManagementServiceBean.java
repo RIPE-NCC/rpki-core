@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
@@ -51,7 +52,7 @@ public class KeyPairActivationManagementServiceBean extends SequentialBackground
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         resourceCache.verifyResourcesArePresent();
 
         // Process all key activation and certificate updates from the top down by sorting the CAs by the depth

@@ -1,6 +1,7 @@
 package net.ripe.rpki.domain.aspa;
 
 import net.ripe.ipresource.Asn;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateTest;
 import net.ripe.rpki.commons.util.VersionedId;
@@ -63,7 +64,7 @@ public class AspaConfigurationMaintenanceServiceBeanTest  {
 
     @Test
     public void should_remove_customer_asns_not_included_in_certified_resources() {
-        subject.visitIncomingCertificateUpdatedEvent(new IncomingCertificateUpdatedEvent(CERTIFICATE_AUTHORITY_ID, X509ResourceCertificateTest.createSelfSignedCaResourceCertificate(IpResourceSet.ALL_PRIVATE_USE_RESOURCES)), commandContext);
+        subject.visitIncomingCertificateUpdatedEvent(new IncomingCertificateUpdatedEvent(CERTIFICATE_AUTHORITY_ID, X509ResourceCertificateTest.createSelfSignedCaResourceCertificate(new IpResourceSet(ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES))), commandContext);
 
         verify(aspaConfigurationRepository).remove(aspaConfiguration);
         assertThat(commandContext.getRecordedEvents()).hasSize(1).allSatisfy(recordedEvent -> {

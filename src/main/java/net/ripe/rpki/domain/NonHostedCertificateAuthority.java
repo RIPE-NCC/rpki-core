@@ -2,7 +2,7 @@ package net.ripe.rpki.domain;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
@@ -80,8 +80,15 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     public NonHostedCertificateAuthority(long id, X500Principal name,
                                          ProvisioningIdentityCertificate identityCertificate,
                                          ParentCertificateAuthority parent) {
-        super(id, parent, name);
+        this(id, name, UUID.randomUUID(), identityCertificate, parent);
+    }
+
+    public NonHostedCertificateAuthority(long id, X500Principal name, UUID uuid,
+                                         ProvisioningIdentityCertificate identityCertificate,
+                                         ParentCertificateAuthority parent) {
+        super(id, parent, name, uuid);
         this.identityCertificate = Base64.encodeBase64URLSafeString(identityCertificate.getEncoded());
+
     }
 
     public ProvisioningIdentityCertificate getProvisioningIdentityCertificate() {
@@ -96,19 +103,17 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     }
 
     @Override
-    public Optional<IpResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
+    public Optional<ImmutableResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
         return Optional.of(resourceLookupService.lookupMemberCaPotentialResources(getName()));
     }
 
     @Override
     public NonHostedCertificateAuthorityData toData() {
-        final IpResourceSet resources = new IpResourceSet();
         Set<NonHostedPublicKeyData> publicKeyData = getPublicKeys().stream().map(PublicKeyEntity::toData).collect(Collectors.toSet());
-        for (NonHostedPublicKeyData publicKeyDatum : publicKeyData) {
-            if (publicKeyDatum.getCurrentCertificate() != null) {
-                resources.addAll(publicKeyDatum.getCurrentCertificate().getCertificate().getResources());
-            }
-        }
+        ImmutableResourceSet resources = publicKeyData.stream()
+            .filter(x -> x.getCurrentCertificate() != null)
+            .flatMap(x -> x.getCurrentCertificate().getCertificate().resources().stream())
+            .collect(ImmutableResourceSet.collector());
 
         return new NonHostedCertificateAuthorityData(
             getVersionedId(),
@@ -166,8 +171,8 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     public List<? extends CertificateProvisioningMessage> processResourceClassListResponse(ResourceClassListResponse response, CertificateRequestCreationService certificateRequestCreationService) {
         return publicKeys.stream()
             .flatMap(pk -> {
-                IpResourceSet certifiableResources = response.getCertifiableResources();
-                IpResourceSet certificateResources = pk.getRequestedResourceSets().calculateEffectiveResources(certifiableResources);
+                ImmutableResourceSet certifiableResources = response.getCertifiableResources();
+                ImmutableResourceSet certificateResources = pk.getRequestedResourceSets().calculateEffectiveResources(certifiableResources);
                 if (pk.isRevoked() || certificateResources.isEmpty()) {
                     return Stream.of(new CertificateRevocationRequest(pk.getPublicKey()));
                 }

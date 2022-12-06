@@ -1,7 +1,7 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
@@ -50,7 +50,7 @@ public class UpdateAspaConfigurationCommandHandlerTest {
         managedCertificateAuthority = mock(ManagedCertificateAuthority.class);
 
         when(certificateAuthorityRepository.findManagedCa(CA_ID)).thenReturn(managedCertificateAuthority);
-        when(managedCertificateAuthority.getCertifiedResources()).thenReturn(IpResourceSet.parse("AS1234"));
+        when(managedCertificateAuthority.getCertifiedResources()).thenReturn(ImmutableResourceSet.parse("AS1234"));
 
         subject = new UpdateAspaConfigurationCommandHandler(certificateAuthorityRepository, aspaConfigurationRepository, PRIVATE_ASNS);
     }

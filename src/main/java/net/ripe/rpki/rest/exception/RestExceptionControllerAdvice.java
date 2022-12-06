@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import javax.servlet.http.HttpServletRequest;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -28,7 +28,7 @@ public class RestExceptionControllerAdvice {
                 .status(status)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(ImmutableMap.of(
-                        "timestamp", LocalDateTime.now(),
+                        "timestamp", Instant.now(),
                         "status", status.value(),
                         "error", e.getMessage(),
                         "message", e.getLocalizedMessage(),

@@ -1,9 +1,6 @@
 package net.ripe.rpki.rest.service;
 
-import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceSet;
-import net.ripe.ipresource.Ipv4Address;
-import net.ripe.ipresource.Ipv6Address;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -56,7 +53,7 @@ public class ResourceServiceTest {
     @Test
     public void shouldGetResources() throws Exception {
 
-        IpResourceSet ipResourceSet = new IpResourceSet(Ipv4Address.parse("127.0.0.1"), Ipv6Address.parse("::1"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1,::1");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/resources"))
@@ -76,7 +73,7 @@ public class ResourceServiceTest {
     @Test
     public void shouldInvalidateIllegalPrefix() throws Exception {
 
-        IpResourceSet ipResourceSet = new IpResourceSet(Ipv4Address.parse("127.0.0.1"), Ipv6Address.parse("::1"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1,::1");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/resources/validate-prefix/{prefix}", "192.168.0.0-192.168.12.0"))
@@ -90,7 +87,7 @@ public class ResourceServiceTest {
     @Test
     public void shouldInvalidateNotOwnedPrefix() throws Exception {
 
-        IpResourceSet ipResourceSet = new IpResourceSet(Ipv4Address.parse("127.0.0.1"), Ipv6Address.parse("::1"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1,::1");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/resources/validate-prefix/{prefix}", "192.168.0.0/16"))
@@ -103,7 +100,7 @@ public class ResourceServiceTest {
 
     @Test
     public void shouldValidatePrefixWhenCAOwnsLargerPrefix() throws Exception {
-        IpResourceSet ipResourceSet = new IpResourceSet(IpRange.parse("192.18.0.0/15"), Ipv6Address.parse("::1"));
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("192.18.0.0/15,::1");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/resources/validate-prefix/{prefix}", "192.18.0.0/16"))

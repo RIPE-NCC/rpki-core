@@ -3,7 +3,7 @@ package net.ripe.rpki.domain;
 import com.google.common.annotations.VisibleForTesting;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -95,7 +96,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     }
 
     protected ManagedCertificateAuthority(long id, X500Principal name, ParentCertificateAuthority parent) {
-        super(id, parent, name);
+        super(id, parent, name, UUID.randomUUID());
     }
 
     public UpStreamCARequestEntity getUpStreamCARequestEntity() {
@@ -144,22 +145,21 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
             .findFirst();
     }
 
-    public IpResourceSet getCertifiedResources() {
+    public ImmutableResourceSet getCertifiedResources() {
         return findCurrentKeyPair()
             .flatMap(KeyPairEntity::findCurrentIncomingCertificate)
             .map(ResourceCertificate::getResources)
-            .orElse(new IpResourceSet());
+            .orElse(ImmutableResourceSet.empty());
     }
 
     public KeyPairEntity getCurrentKeyPair() {
         return findCurrentKeyPair().orElseThrow(() -> new CertificateAuthorityException("No active key pair available to sign requested certificate"));
     }
 
-    public void validateChildResourceSet(IpResourceSet childResources) {
-        IpResourceSet parentResources = getCertifiedResources();
+    public void validateChildResourceSet(ImmutableResourceSet childResources) {
+        ImmutableResourceSet parentResources = getCertifiedResources();
         if (!parentResources.contains(childResources)) {
-            IpResourceSet bad = new IpResourceSet(childResources);
-            bad.removeAll(parentResources);
+            ImmutableResourceSet bad = childResources.difference(parentResources);
             throw new CertificateAuthorityException("child resources '" + bad + "' are not contained in parent resources");
         }
     }
@@ -219,11 +219,8 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         }
 
         if (log.isInfoEnabled()) {
-            final IpResourceSet added = new IpResourceSet(request.getResources());
-            added.removeAll(latestOutgoingCertificate.getResources());
-
-            final IpResourceSet removed = new IpResourceSet(latestOutgoingCertificate.getResources());
-            removed.removeAll(request.getResources());
+            final ImmutableResourceSet added = request.getResources().difference(latestOutgoingCertificate.getResources());
+            final ImmutableResourceSet removed = latestOutgoingCertificate.getResources().difference(request.getResources());
 
             log.info(
                     "Current certificate for resource class {} of {} has different resources. Added resources: {}, removed resources: {}",
@@ -355,8 +352,23 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
                                                      PublishedObjectRepository publishedObjectRepository,
                                                      KeyPairDeletionService keyPairDeletionService) {
         findKeyPairByPublicKey(response.getSubjectPublicKey()).ifPresent(keyPair -> {
-            final Optional<IncomingResourceCertificate> maybeIncomingCert = keyPair.findCurrentIncomingCertificate();
-            final Optional<URI> publicationUri = maybeIncomingCert.map(ResourceCertificate::getPublicationUri);
+            if (keyPair.isCurrent()) {
+                keyPair.findCurrentIncomingCertificate().ifPresent(incomingResourceCertificate -> {
+                    log.info(
+                        "[ca={}] incoming certificate for CURRENT key revoked serial={} uri={} resources before revocation={}",
+                        getId(),
+                        incomingResourceCertificate.getCertificate(),
+                        incomingResourceCertificate.getPublicationUri(),
+                        incomingResourceCertificate.getResources()
+                    );
+                    ManagedCertificateAuthority.EVENTS.publish(this, new IncomingCertificateRevokedEvent(
+                        getVersionedId(),
+                        response,
+                        incomingResourceCertificate.getPublicationUri(),
+                        incomingResourceCertificate.getCertificate())
+                    );
+                });
+            }
 
             keyPair.deleteIncomingResourceCertificate();
             keyPair.requestRevoke();
@@ -365,9 +377,6 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
             keyPairDeletionService.deleteRevokedKeysFromResponses(this, Collections.singletonList(response));
 
             this.manifestAndCrlCheckNeeded = true;
-
-            log.info("[ca={}] certificate revoked serial={} uri={} resources after revocation={}", getId(), maybeIncomingCert.map(ResourceCertificate::getSerial), publicationUri, getCertifiedResources());
-            ManagedCertificateAuthority.EVENTS.publish(this, new IncomingCertificateRevokedEvent(getVersionedId(), response, publicationUri, maybeIncomingCert.map(IncomingResourceCertificate::getCertificate)));
         });
     }
 
@@ -378,7 +387,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     ) {
         Validate.isTrue(!isAllResourcesCa(), "Only Production and Hosted CAs can do it.");
 
-        IpResourceSet certifiableResources = response.getCertifiableResources();
+        ImmutableResourceSet certifiableResources = response.getCertifiableResources();
         if (certifiableResources.isEmpty()) {
             // No certifiable resources, revoke any existing certificates.
             return certificateRequestCreationService.createCertificateRevocationRequestForAllKeys(this);
@@ -405,8 +414,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
 
     @Override
     public ResourceClassListResponse processResourceClassListQuery(ResourceClassListQuery query) {
-        final IpResourceSet certifiedResources = new IpResourceSet(getCertifiedResources());
-        certifiedResources.retainAll(query.getResources());
+        final ImmutableResourceSet certifiedResources = getCertifiedResources().intersection(query.getResources());
         return new ResourceClassListResponse(certifiedResources);
     }
 

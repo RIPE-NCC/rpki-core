@@ -1,7 +1,7 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.CertificateAuthorityInvariantViolationException;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
@@ -49,21 +49,21 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
 
         oldKeyPair = mock(KeyPairEntity.class, RETURNS_DEEP_STUBS);
         when(oldKeyPair.isPublishable()).thenReturn(true);
-        when(oldKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(IpResourceSet.parse("10.0.0.0/8"));
+        when(oldKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
         currentKeyPair = mock(KeyPairEntity.class, RETURNS_DEEP_STUBS);
         when(currentKeyPair.isPublishable()).thenReturn(true);
-        when(currentKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(IpResourceSet.parse("10.0.0.0/8"));
+        when(currentKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
         when(certificateAuthority.getKeyPairs()).thenReturn(Arrays.asList(oldKeyPair, currentKeyPair));
 
-        when(resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(certificateAuthority.getName())).thenReturn(IpResourceSet.parse("10.0.0.0/8"));
-        when(resourceCertificateRepository.findCurrentOutgoingRpkiObjectCertificateResources(certificateAuthority.getName())).thenReturn(IpResourceSet.parse("10.0.0.0/8"));
+        when(resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(certificateAuthority.getName())).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
+        when(resourceCertificateRepository.findCurrentOutgoingRpkiObjectCertificateResources(certificateAuthority.getName())).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
     }
 
     @Test
     public void should_check_incoming_resource_consistency() {
         // All incoming resource certificates should have the same resources
-        when(oldKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(IpResourceSet.parse("10.0.0.0/8"));
-        when(currentKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(IpResourceSet.parse("172.16.0.0/12"));
+        when(oldKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
+        when(currentKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(ImmutableResourceSet.parse("172.16.0.0/12"));
 
         // so an CertificateAuthorityInvariantViolationException is thrown when they do not match
         assertThatThrownBy(
@@ -76,7 +76,7 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
     @Test
     public void should_check_outgoing_child_resource_consistency() {
         // Outgoing child resources should always be contained in incoming resources
-        when(resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(certificateAuthority.getName())).thenReturn(IpResourceSet.parse("192.168.0.0/16"));
+        when(resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(certificateAuthority.getName())).thenReturn(ImmutableResourceSet.parse("192.168.0.0/16"));
 
         // so an CertificateAuthorityInvariantViolationException is thrown when they do not match
         assertThatThrownBy(
@@ -90,7 +90,7 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
     public void should_check_outgoing_rpki_object_resource_consistency_when_manifest_is_uptodate() {
         // Outgoing RPKI object resources should be contained in incoming resources when manifest/CRL are up-to-date
         when(certificateAuthority.isManifestAndCrlCheckNeeded()).thenReturn(false);
-        when(resourceCertificateRepository.findCurrentOutgoingRpkiObjectCertificateResources(certificateAuthority.getName())).thenReturn(IpResourceSet.parse("192.168.0.0/16"));
+        when(resourceCertificateRepository.findCurrentOutgoingRpkiObjectCertificateResources(certificateAuthority.getName())).thenReturn(ImmutableResourceSet.parse("192.168.0.0/16"));
 
         // so an CertificateAuthorityInvariantViolationException is thrown when they do not match
         assertThatThrownBy(

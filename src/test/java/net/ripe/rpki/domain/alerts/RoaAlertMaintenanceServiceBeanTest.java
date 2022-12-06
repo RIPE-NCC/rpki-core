@@ -1,12 +1,11 @@
 package net.ripe.rpki.domain.alerts;
 
 import com.google.common.collect.Lists;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.var;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.domain.*;
@@ -18,8 +17,6 @@ import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.assertj.core.api.InstanceOfAssertFactory;
-import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,18 +26,17 @@ import javax.transaction.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static net.ripe.ipresource.IpResourceSet.parse;
+import static net.ripe.ipresource.ImmutableResourceSet.parse;
 import static net.ripe.rpki.commons.validation.roa.RouteValidityState.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Setter
 @Slf4j
 @Transactional
-public class RoaAlertMaintenanceServiceTest extends CertificationDomainTestCase {
+public class RoaAlertMaintenanceServiceBeanTest extends CertificationDomainTestCase {
     private static final long HOSTED_CA_ID = 7L;
 
     private static final X500Principal CHILD_CA_NAME = new X500Principal("CN=child");
-    public static final IpResourceSet INITIAL_CHILD_RESOURCES = parse("fc00::/8");
+    public static final ImmutableResourceSet INITIAL_CHILD_RESOURCES = parse("fc00::/8");
 
     private static List<AnnouncedRoute> ALL_ROUTES = Lists.newArrayList(
             // The /7 private use resource - less specific than allocation
@@ -80,14 +76,15 @@ public class RoaAlertMaintenanceServiceTest extends CertificationDomainTestCase 
         certificateAuthorityRepository.add(child);
         child.createNewKeyPair(keyPairService);
 
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), INITIAL_CHILD_RESOURCES);
+        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
+        assertThat(child.findCurrentKeyPair()).isPresent();
+
         // Add an alert
         var ca = certificateAuthorityRepository.findManagedCa(HOSTED_CA_ID);
         RoaAlertConfiguration weekly = new RoaAlertConfiguration(ca, "weekly@example.org", Arrays.asList(INVALID_ASN, INVALID_LENGTH, UNKNOWN), RoaAlertFrequency.WEEKLY);
         weekly.update(ALL_ROUTES, Collections.emptyList());
         roaAlertConfigurationRepository.add(weekly);
-
-        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), INITIAL_CHILD_RESOURCES);
-        execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
     }
 
     /**
@@ -147,7 +144,7 @@ public class RoaAlertMaintenanceServiceTest extends CertificationDomainTestCase 
     @Test
     public void should_remove_alerts_out_of_resources_when_resources_are_removed() {
         // Certificate loses its resources and is revoked
-        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse(""));
+        resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), ImmutableResourceSet.empty());
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
 
         assertThat(roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(HOSTED_CA_ID))

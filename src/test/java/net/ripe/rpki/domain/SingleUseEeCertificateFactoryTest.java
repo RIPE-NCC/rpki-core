@@ -1,6 +1,6 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.util.BouncyCastleUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.inmemory.InMemoryResourceCertificateRepository;
@@ -35,7 +35,7 @@ public class SingleUseEeCertificateFactoryTest {
 
     @Test
     public void shouldIssueEECertificateWithAuthorityKeyIdentifier() {
-        CertificateIssuanceRequest request = new CertificateIssuanceRequest(IpResourceSet.parse("10.0.0.0/8"), new X500Principal("CN=test"), SECOND_TEST_KEY_PAIR.getPublic(), SIA);
+        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ImmutableResourceSet.parse("10.0.0.0/8"), new X500Principal("CN=test"), SECOND_TEST_KEY_PAIR.getPublic(), SIA);
 
         OutgoingResourceCertificate endEntity = subject.issueSingleUseEeResourceCertificate(request, TestObjects.TEST_VALIDITY_PERIOD, currentKeyPair);
 
@@ -67,12 +67,12 @@ public class SingleUseEeCertificateFactoryTest {
 
     @Test
     public void shouldIssueEndEntityResourceCertificate() {
-        CertificateIssuanceRequest request = new CertificateIssuanceRequest(IpResourceSet.parse("10.0.0.0/8"), new X500Principal("CN=test"), currentKeyPair.getPublicKey(), SIA);
+        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ImmutableResourceSet.parse("10.0.0.0/8"), new X500Principal("CN=test"), currentKeyPair.getPublicKey(), SIA);
         OutgoingResourceCertificate endEntity = subject.issueSingleUseEeResourceCertificate(request, TestObjects.TEST_VALIDITY_PERIOD, currentKeyPair);
         assertTrue(endEntity.getCertificate().isEe());
         assertNull(endEntity.getPublishedObject());
         assertEquals(currentKeyPair.getCurrentIncomingCertificate().getSubject(), endEntity.getIssuer());
-        assertEquals(IpResourceSet.parse("10.0.0.0/8"), endEntity.getResources());
+        assertEquals(ImmutableResourceSet.parse("10.0.0.0/8"), endEntity.getResources());
         assertNull(endEntity.getPublicationUri());
     }
 

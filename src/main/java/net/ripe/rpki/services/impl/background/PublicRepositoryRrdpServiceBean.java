@@ -12,6 +12,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
+import java.util.Map;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_REPOSITORY_RRDP_SERVICE;
 
@@ -46,7 +47,7 @@ public class PublicRepositoryRrdpServiceBean extends ConcurrentBackgroundService
 
     @Override
     @SneakyThrows
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         List<PublishedObjectData> publishedObjects = transactionTemplate.execute(
             (status) -> publishedObjectRepository.findCurrentlyPublishedObjects()
         );

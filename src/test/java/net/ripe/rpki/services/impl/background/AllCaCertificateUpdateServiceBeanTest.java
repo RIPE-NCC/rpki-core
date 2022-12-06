@@ -22,9 +22,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -78,7 +78,7 @@ public class AllCaCertificateUpdateServiceBeanTest {
     public void shouldNotCallBackendServiceIfInactive() {
         when(activeNodeService.isActiveNode()).thenReturn(false);
 
-        subject.execute();
+        subject.execute(Collections.emptyMap());
 
         verifyNoInteractions(commandService);
     }
@@ -88,7 +88,7 @@ public class AllCaCertificateUpdateServiceBeanTest {
         when(activeNodeService.isActiveNode()).thenReturn(true);
         when(caViewService.findCertificateAuthorityByName(repositoryConfiguration.getProductionCaPrincipal())).thenReturn(null);
 
-        subject.execute();
+        subject.execute(Collections.emptyMap());
 
         verifyNoInteractions(commandService);
     }
@@ -99,7 +99,7 @@ public class AllCaCertificateUpdateServiceBeanTest {
         CaIdentity memberCa2 = new CaIdentity(new VersionedId(11L), CaName.of(new X500Principal("CN=gr.isp")));
         when(caViewService.findAllChildrenIdsForCa(PRODUCTION_CA_NAME)).thenReturn(Arrays.asList(memberCa1, memberCa2));
 
-        subject.execute();
+        subject.execute(Collections.emptyMap());
 
         verify(commandService, times(4)).execute(isA(UpdateAllIncomingResourceCertificatesCommand.class));
         verify(commandService, times(2)).execute(new UpdateAllIncomingResourceCertificatesCommand(productionCaMock.getVersionedId(), Integer.MAX_VALUE));
@@ -111,7 +111,7 @@ public class AllCaCertificateUpdateServiceBeanTest {
     public void should_not_throw_exception_if_command_fails() {
         doThrow(new RuntimeException("test")).when(commandService).execute(any());
 
-        subject.execute();
+        subject.execute(Collections.emptyMap());
 
         verify(commandService).execute(any());
     }
@@ -120,7 +120,7 @@ public class AllCaCertificateUpdateServiceBeanTest {
     public void shouldSkipCaIfResourceCacheIsEmpty() {
         doThrow(new IllegalStateException("TEST")).when(resourceCache).verifyResourcesArePresent();
 
-        assertThatThrownBy(() -> subject.runService()).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> subject.runService(Collections.emptyMap())).isInstanceOf(IllegalStateException.class);
 
         verify(resourceCache, times(1)).verifyResourcesArePresent();
         verifyNoInteractions(commandService);

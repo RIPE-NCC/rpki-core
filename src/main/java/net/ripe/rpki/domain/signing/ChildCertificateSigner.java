@@ -1,6 +1,6 @@
 package net.ripe.rpki.domain.signing;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil;
@@ -19,7 +19,7 @@ public class ChildCertificateSigner {
 
     public OutgoingResourceCertificate buildOutgoingResourceCertificate(CertificateIssuanceRequest request, ValidityPeriod validityPeriod, KeyPairEntity signingKeyPair, BigInteger serial) {
         IncomingResourceCertificate signingCertificate = signingKeyPair.getCurrentIncomingCertificate();
-        IpResourceSet resources = request.getResources();
+        ImmutableResourceSet resources = request.getResources();
         ResourceCertificateInformationAccessStrategy ias = new ResourceCertificateInformationAccessStrategyBean();
 
         ResourceCertificateBuilder builder = new ResourceCertificateBuilder()

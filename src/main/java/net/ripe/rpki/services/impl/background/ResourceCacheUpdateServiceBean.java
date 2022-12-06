@@ -6,6 +6,8 @@ import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdm
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 @Slf4j
 @Service("resourceCacheUpdateService")
 public class ResourceCacheUpdateServiceBean extends ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode {
@@ -25,7 +27,7 @@ public class ResourceCacheUpdateServiceBean extends ConcurrentBackgroundServiceW
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         resourceCacheService.updateFullResourceCache();
     }
 }

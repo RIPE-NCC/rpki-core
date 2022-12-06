@@ -1,7 +1,7 @@
 package net.ripe.rpki.domain;
 
 import lombok.Getter;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
@@ -56,7 +56,7 @@ public abstract class ResourceCertificate extends EntitySupport {
 
     @NotNull
     @Column(nullable = false)
-    private IpResourceSet resources;
+    private ImmutableResourceSet resources;
 
     @NotNull
     @Column(nullable = false)
@@ -107,7 +107,7 @@ public abstract class ResourceCertificate extends EntitySupport {
         this.serial = certificate.getCertificate().getSerialNumber();
         this.subject = certificate.getSubject();
         this.issuer = certificate.getIssuer();
-        this.resources = certificate.getResources();
+        this.resources = certificate.resources();
         this.subjectPublicKey = certificate.getPublicKey();
         this.encodedSubjectPublicKey = certificate.getPublicKey().getEncoded();
         this.validityPeriod = new EmbeddedValidityPeriod(certificate.getValidityPeriod());
@@ -123,8 +123,8 @@ public abstract class ResourceCertificate extends EntitySupport {
         this.id = id;
     }
 
-    public IpResourceSet getResources() {
-        return new IpResourceSet(resources);
+    public ImmutableResourceSet getResources() {
+        return resources;
     }
 
     public ValidityPeriod getValidityPeriod() {

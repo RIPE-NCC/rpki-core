@@ -70,9 +70,15 @@ sentry:
     logging.minimum-event-level: error
     # Ensure Sentry can report before other exception handlers swallow the exception.
     exception-resolver-order: -2147483647
-    # Set traces-sample-rate to 1%, if all environments have it enabled, we use
-    # ~100K events/day with a cost of ~400/month. This should catch performance issues.
-    traces-sample-rate: 0.01
+    # We have evaluated the sentry tracing support and in 11-2022 it did not
+    # deliver value for us. For debugging we would (a) a better UI for exploring
+    # traces (b) trace across all applications and (c) have a sample rate of 1.
+    #
+    # It would also have to store sensitive information (tokens) in sentry,
+    # whille the current setup is configured to not capture user data.
+    #
+    # This combination is not realistic on sentry.
+    traces-sample-rate: 0
     ignored-exceptions-for-type: net.ripe.rpki.rest.exception.CaNotFoundException
 
 background-services:

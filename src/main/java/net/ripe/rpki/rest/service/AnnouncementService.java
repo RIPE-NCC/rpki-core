@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResource;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.etree.NestedIntervalMap;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
@@ -73,7 +73,7 @@ public class AnnouncementService extends AbstractCaRestService {
         log.info("Getting resources for CA: {}", caName);
 
         final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
-        final IpResourceSet certifiedResources = ca.getResources();
+        final ImmutableResourceSet certifiedResources = ca.getResources();
         final Map<Boolean, Collection<BgpRisEntry>> announcements = bgpRisEntryViewService.findMostSpecificContainedAndNotContained(certifiedResources);
         final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
         final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, ca.getId());
@@ -114,7 +114,7 @@ public class AnnouncementService extends AbstractCaRestService {
         }
 
         HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
-        IpResourceSet certifiedResources = ca.getResources();
+        ImmutableResourceSet certifiedResources = ca.getResources();
 
         final Asn roaAsn = Asn.parse(roa.getAsn());
         final IpRange roaPrefix = IpRange.parse(roa.getPrefix());

@@ -1,7 +1,7 @@
 package net.ripe.rpki.domain;
 
 import lombok.Value;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.ripencc.support.persistence.Repository;
 import org.joda.time.DateTime;
 
@@ -55,13 +55,13 @@ public interface ResourceCertificateRepository extends Repository<ResourceCertif
     /**
      * @return find the union of the resources of _all_ current child certificates of the CA with given name.
      */
-    IpResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName);
+    ImmutableResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName);
 
     /**
      * @return find the union of the resources of _all_ current outgoing RPKI object (ROA, Manifest, etc.) certificates
      * of the CA with given name.
      */
-    IpResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName);
+    ImmutableResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName);
 
     @Value
     class ExpireOutgoingResourceCertificatesResult {

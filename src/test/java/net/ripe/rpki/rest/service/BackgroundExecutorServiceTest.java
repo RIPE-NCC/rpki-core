@@ -24,6 +24,9 @@ import static net.ripe.rpki.rest.security.ApiKeySecurity.API_KEY_HEADER;
 import static net.ripe.rpki.rest.security.ApiKeySecurity.USER_ID_HEADER;
 import static net.ripe.rpki.rest.service.Rest.TESTING_API_KEY;
 import static org.hamcrest.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -98,7 +101,7 @@ public class BackgroundExecutorServiceTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(startsWith("dummyService has been triggered through REST API")));
 
-        verify(backgroundServices).trigger(BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE);
+        verify(backgroundServices).trigger(eq(BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE), anyMap());
     }
 
     @Test
@@ -113,6 +116,32 @@ public class BackgroundExecutorServiceTest {
                 .andExpect(status().is(412))
                 .andExpect(content().string(startsWith("allCertificateUpdateService is already waiting or running")));
 
-        verify(backgroundServices, never()).trigger(BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE);
+        verify(backgroundServices, never()).trigger(anyString(), anyMap());
+    }
+
+    @Test
+    public void postShouldRejectUnknownOrBadParameters() throws Exception {
+        mockMvc.perform(post("/api/background/service/allCertificateUpdateService?foo=bar&batchSize=@$")
+                .header(API_KEY_HEADER, TESTING_API_KEY)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .cookie(new Cookie(USER_ID_HEADER, UUID.randomUUID().toString()))
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(content().string(startsWith("incorrect job parameter(s) - [foo=bar, batchSize=@$]")));
+
+        verify(backgroundServices, never()).trigger(anyString(), anyMap());
+    }
+
+    @Test
+    public void postShouldRejectTooManyParameters() throws Exception {
+        mockMvc.perform(post("/api/background/service/allCertificateUpdateService?1=1&2=2&3=3&4=4&5=5&6=6&7=7&8=8&9=9&10=10&11=11")
+                .header(API_KEY_HEADER, TESTING_API_KEY)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .cookie(new Cookie(USER_ID_HEADER, UUID.randomUUID().toString()))
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(content().string(startsWith("too many job parameters")));
+
+        verify(backgroundServices, never()).trigger(anyString(), anyMap());
     }
 }

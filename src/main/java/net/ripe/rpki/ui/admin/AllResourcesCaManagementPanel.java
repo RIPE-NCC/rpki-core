@@ -22,6 +22,7 @@ import org.apache.wicket.spring.injection.annot.SpringBean;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
+import java.util.Collections;
 
 @Slf4j
 public class AllResourcesCaManagementPanel extends Panel {
@@ -153,7 +154,7 @@ public class AllResourcesCaManagementPanel extends Panel {
             CertificateAuthorityData productionCa = caViewService.findCertificateAuthorityByName(productionCaName);
 
             try {
-                allCertificateUpdateService.execute();
+                allCertificateUpdateService.execute(Collections.emptyMap());
             } catch (RuntimeException e) {
                 log.error("Error for CA '" + productionCa.getName() + "': " + e.getMessage(), e);
             }
@@ -178,53 +179,4 @@ public class AllResourcesCaManagementPanel extends Panel {
             });
         }
     }
-
-
-//    public class ProductionCaCertifiableSpacePanel extends Panel {
-//
-//        private static final long serialVersionUID = 1L;
-//
-//        public ProductionCaCertifiableSpacePanel(String id, final CertificateAuthorityData allResourcesCA) {
-//            super(id);
-//            final ResourceClassMap certifiableResources = resourceLookupService.lookupProductionCaResources();
-//            final ResourceClassMap certifiedResources = allResourcesCA.getResources().toResourceClassMap();
-//            final ResourceClassMap toAdd = certifiableResources.minus(certifiedResources);
-//            final ResourceClassMap toRemove = certifiedResources.minus(certifiableResources);
-//
-//            List<String> classNames = new ArrayList<>(certifiableResources.getResourceClasses().keySet());
-//            ListView resourceClassList = new ListView<String>("resourceClassList", classNames) {
-//                @Override
-//                protected void populateItem(ListItem<String> item) {
-//                    String resourceClass = item.getModelObject();
-//                    IpResourceSet resourcesToAdd = toAdd.getResources(resourceClass);
-//                    IpResourceSet resourcesToRemove = toRemove.getResources(resourceClass);
-//                    boolean resourcesWillChange = !resourcesToAdd.isEmpty() || !resourcesToRemove.isEmpty();
-//
-//                    item.add(new Label("name", resourceClass));
-//                    item.add(new Label("certified", certifiedResources.getResources(resourceClass).toString()));
-//                    item.add(new Label("added", resourcesToAdd.toString()));
-//                    item.add(new Label("removed", resourcesToRemove.toString()));
-//                    item.add(new Label("certifiable", resourcesWillChange ? certifiableResources.getResources(resourceClass).toString() : ""));
-//                }
-//            };
-//            add(resourceClassList);
-//            addAcceptNewResourcesButton(certifiableResources);
-//        }
-//
-//        private void addAcceptNewResourcesButton(final ResourceClassMap certifiableResources) {
-//            add(new Link<Object>("signRequest") {
-//                private static final long serialVersionUID = 1L;
-//
-//                @Override
-//                public void onClick() {
-//                    X500Principal productionCaName = certificationConfiguration.getProductionCaName();
-//                    CertificateAuthorityData productionCaData = caViewService.findCertificateAuthorityByName(productionCaName);
-//
-//                    commandService.execute(new ProductionCaResourcesCommand(productionCaData.getVersionedId(), certifiableResources));
-//                    setResponsePage(UpstreamCaManagementPage.class);
-//                }
-//
-//            });
-//        }
-//    }
 }

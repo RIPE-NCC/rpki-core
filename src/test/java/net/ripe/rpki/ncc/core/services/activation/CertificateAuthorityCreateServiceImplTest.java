@@ -1,6 +1,6 @@
 package net.ripe.rpki.ncc.core.services.activation;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateParser;
 import net.ripe.rpki.commons.util.VersionedId;
@@ -8,17 +8,20 @@ import net.ripe.rpki.domain.NameNotUniqueException;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.ActivateNonHostedCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -35,7 +38,7 @@ public class CertificateAuthorityCreateServiceImplTest {
 
     private static final X500Principal MEMBER_CA = new X500Principal("CN=nl.bluelight");
     private static final VersionedId MEMBER_CA_ID = new VersionedId(2L);
-    private static final IpResourceSet MEMBER_RESOURCES = IpResourceSet.parse("10.0.0.0/16");
+    private static final ImmutableResourceSet MEMBER_RESOURCES = ImmutableResourceSet.parse("10.0.0.0/16");
 
     private CertificateAuthorityCreateServiceImpl subject;
 
@@ -90,11 +93,19 @@ public class CertificateAuthorityCreateServiceImplTest {
         when(caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
         when(commandService.getNextId()).thenReturn(MEMBER_CA_ID);
 
-        ActivateNonHostedCertificateAuthorityCommand command = new ActivateNonHostedCertificateAuthorityCommand(MEMBER_CA_ID, MEMBER_CA, MEMBER_RESOURCES, identityCertificate, PRODUCTION_CA_ID);
+        ArgumentCaptor<ActivateNonHostedCertificateAuthorityCommand> commandArgument =
+            ArgumentCaptor.forClass(ActivateNonHostedCertificateAuthorityCommand.class);
 
         subject.provisionNonHostedMember(MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_NAME, identityCertificate);
 
-        verify(commandService).execute(command);
+        verify(commandService).execute(commandArgument.capture());
+
+        final ActivateNonHostedCertificateAuthorityCommand command = commandArgument.getValue();
+        assertEquals(command.getCertificateAuthorityId(), MEMBER_CA_ID.getId());
+        assertEquals(command.getName(), MEMBER_CA);
+        assertEquals(command.getResources(), MEMBER_RESOURCES);
+        assertEquals(command.getIdentityCertificate(), identityCertificate);
+        assertEquals(command.getParentId(), PRODUCTION_CA_ID);
     }
 
     private ProvisioningIdentityCertificate loadCertificate() throws IOException {

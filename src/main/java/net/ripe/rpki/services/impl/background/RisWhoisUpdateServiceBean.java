@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -65,7 +66,7 @@ public class RisWhoisUpdateServiceBean extends ConcurrentBackgroundServiceWithAd
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         List<BgpRisEntry> entries = new ArrayList<>();
 
         for (String filename : FILENAMES) {

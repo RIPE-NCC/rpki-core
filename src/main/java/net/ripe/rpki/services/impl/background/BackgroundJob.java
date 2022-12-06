@@ -12,6 +12,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Slf4j
 public class BackgroundJob implements Job {
 
@@ -27,11 +30,19 @@ public class BackgroundJob implements Job {
     @Transactional(propagation = Propagation.NEVER)
     public void execute(JobExecutionContext context) {
         final JobDataMap jobDataMap = context.getJobDetail().getJobDataMap();
-        final String name = (String) jobDataMap.get(BACKGROUND_SERVICE_KEY);
+        final String name = jobDataMap.getString(BACKGROUND_SERVICE_KEY);
 
         try {
             backgroundServiceMetrics.trackStartTime(name);
-            BackgroundServiceExecutionResult result = applicationContext.getBean(name, BackgroundService.class).execute();
+
+            Map<String, String> parameters = new HashMap<>();
+            for (Map.Entry<String, Object> entry : context.getTrigger().getJobDataMap().entrySet()) {
+                if (entry.getValue() instanceof String) {
+                    parameters.put(entry.getKey(), (String) entry.getValue());
+                }
+            }
+
+            BackgroundServiceExecutionResult result = applicationContext.getBean(name, BackgroundService.class).execute(parameters);
 
             backgroundServiceMetrics.trackResult(name, result);
         } catch (BeansException e) {

@@ -18,7 +18,6 @@ import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.dto.KeyPairStatus;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,7 +57,7 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
     @InjectMocks
     private DeleteCertificateAuthorityService subject;
 
-    private final long HOSTED_CA_ID = 101l;
+    private final long HOSTED_CA_ID = 101L;
     private final X500Principal name = new X500Principal("CN=101");
     @Mock
     private ParentCertificateAuthority parentCA;
@@ -93,8 +92,7 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
 
         when(keyPair.getPublicKey())
                 .thenReturn(publicKey);
-        when(keyPair.getStatus())
-                .thenReturn(KeyPairStatus.CURRENT);
+        when(keyPair.isCurrent()).thenReturn(true);
 
         subject.revokeCa(HOSTED_CA_ID);
 

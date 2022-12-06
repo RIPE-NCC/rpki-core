@@ -1,7 +1,7 @@
 package net.ripe.rpki.core.read.services.ca;
 
 import lombok.var;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Transactional
 public class CertificateAuthorityViewServiceImplTest extends CertificationDomainTestCase {
-    public static final IpResourceSet CHILD_CA_RESOURCES = IpResourceSet.parse("10.0.0.0/8");
+    public static final ImmutableResourceSet CHILD_CA_RESOURCES = ImmutableResourceSet.parse("10.0.0.0/8");
     private static final long HOSTED_CA_ID = 7L;
 
     private static final X500Principal CHILD_CA_NAME = new X500Principal("CN=child");

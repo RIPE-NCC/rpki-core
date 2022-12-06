@@ -1,5 +1,6 @@
 package net.ripe.rpki.ripencc.provisioning;
 
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.provisioning.payload.PayloadMessageType;
@@ -74,7 +75,7 @@ public class ListResourceClassProcessorTest {
         X500Principal x500Principal = new X500Principal("CN=101");
         when(nonHostedCertificateAuthority.getName()).thenReturn(x500Principal);
         when(resourceLookupService.lookupMemberCaPotentialResources(x500Principal))
-                .thenReturn(IpResourceSet.parse("127.0.0.1,::1"));
+                .thenReturn(ImmutableResourceSet.parse("127.0.0.1,::1"));
     }
 
     @Test
@@ -92,8 +93,8 @@ public class ListResourceClassProcessorTest {
 
     @Test
     public void shouldBuildClassElementWithCertificateElement() {
-        RequestedResourceSets requestedResourceSets = new RequestedResourceSets(Optional.empty(), Optional.of(IpResourceSet.parse("127.0.0.0/8")), Optional.empty());
-        IpResourceSet certifiedResources = IpResourceSet.parse("127.0.0.1,::1");
+        RequestedResourceSets requestedResourceSets = new RequestedResourceSets(Optional.empty(), Optional.of(ImmutableResourceSet.parse("127.0.0.0/8")), Optional.empty());
+        ImmutableResourceSet certifiedResources = ImmutableResourceSet.parse("127.0.0.1,::1");
         X509ResourceCertificate certificate = mock(X509ResourceCertificate.class);
 
         ResourceCertificateData resourceCertificateData = new ResourceCertificateData(certificate, URI.create("rsync://url.com/whatever"));

@@ -1,5 +1,6 @@
 package net.ripe.rpki.domain;
 
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
@@ -20,7 +21,7 @@ public class ResourceCertificateBuilder {
 
     private BigInteger serial;
     private EnumSet<IpResourceType> inheritedResourceTypes = EnumSet.noneOf(IpResourceType.class);
-    private IpResourceSet resources = new IpResourceSet();
+    private ImmutableResourceSet resources = ImmutableResourceSet.empty();
     private X500Principal subjectDN;
     private PublicKey subjectPublicKey;
     private X500Principal issuerDN;
@@ -45,7 +46,7 @@ public class ResourceCertificateBuilder {
         return this;
     }
 
-    public ResourceCertificateBuilder withResources(IpResourceSet resources) {
+    public ResourceCertificateBuilder withResources(ImmutableResourceSet resources) {
         this.resources = resources;
         return this;
     }
@@ -156,7 +157,7 @@ public class ResourceCertificateBuilder {
             builder.withAuthorityKeyIdentifier(false);
         }
         builder.withSerial(serial);
-        builder.withResources(resources).withInheritedResourceTypes(inheritedResourceTypes);
+        builder.withResources(new IpResourceSet(resources)).withInheritedResourceTypes(inheritedResourceTypes);
         X509ResourceCertificate cert = builder.build();
         return new OutgoingResourceCertificate(cert, signingKeyPair, embedded, filename, directory);
     }

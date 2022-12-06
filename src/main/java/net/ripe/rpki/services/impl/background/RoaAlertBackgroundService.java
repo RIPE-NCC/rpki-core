@@ -7,6 +7,8 @@ import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
 import net.ripe.rpki.services.impl.RoaAlertChecker;
 
+import java.util.Map;
+
 @Slf4j
 abstract class RoaAlertBackgroundService extends ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode {
 
@@ -25,7 +27,7 @@ abstract class RoaAlertBackgroundService extends ConcurrentBackgroundServiceWith
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         roaAlertConfigurationViewService.findByFrequency(frequency).forEach(alertSubscription -> {
             try {
                 roaAlertChecker.checkAndSendRoaAlertEmailToSubscription(alertSubscription);

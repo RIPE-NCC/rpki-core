@@ -1,5 +1,7 @@
 package net.ripe.rpki.server.api.services.command;
 
+import lombok.NonNull;
+
 import javax.security.auth.x500.X500Principal;
 
 /**
@@ -12,7 +14,7 @@ public class CertificateAuthorityNameNotUniqueException extends CertificationExc
 
     private static final long serialVersionUID = 1L;
 
-    public CertificateAuthorityNameNotUniqueException(X500Principal memberCa) {
+    public CertificateAuthorityNameNotUniqueException(@NonNull X500Principal memberCa) {
         super(String.format("CA for %s already exists.", memberCa.getName()));
     }
 }

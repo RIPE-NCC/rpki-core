@@ -1,6 +1,7 @@
 package net.ripe.rpki.rest.service;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -11,11 +12,12 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -29,6 +31,8 @@ import static org.springframework.http.HttpStatus.PRECONDITION_FAILED;
 @RequestMapping(path = "/api/background/service/{serviceName}", produces = { APPLICATION_JSON })
 @Tag(name = "/api/background/service/{serviceName}", description = "Rest Endpoint for background service")
 public class BackgroundExecutorService {
+    private static final Set<String> ALLOWED_BACKGROUND_JOB_PARAMETERS = Sets.newHashSet("batchSize");
+
     private final BackgroundServices backgroundServices;
 
     @Autowired
@@ -53,17 +57,35 @@ public class BackgroundExecutorService {
 
     @PostMapping
     @Operation(summary = "Schedules the background service for execution")
-    public ResponseEntity<String> executeInBackground(@PathVariable("serviceName") String serviceName) {
+    public ResponseEntity<String> executeInBackground(@PathVariable("serviceName") String serviceName, @RequestParam Map<String, String> parameters) {
         log.info("Background service execution requested for " + serviceName);
         try {
             if (isNotValid(serviceName)) {
                 return logAndReturnResponse(BAD_REQUEST, "service missing or invalid - " + serviceName);
             }
+
+            if (parameters.size() > 10) {
+                return logAndReturnResponse(BAD_REQUEST, "too many job parameters");
+            }
+
+            // Restrict parameter names to known values and parameter values to short, simple strings to avoid
+            // potential injection attacks.
+            List<Map.Entry<String, String>> badParameters = parameters.entrySet().stream()
+                .filter(entry ->
+                    !ALLOWED_BACKGROUND_JOB_PARAMETERS.contains(entry.getKey())
+                        || entry.getValue().length() > 100
+                        || !entry.getValue().matches("[0-9a-zA-Z_:-]*")
+                )
+                .collect(Collectors.toList());
+            if (!badParameters.isEmpty()) {
+                return logAndReturnResponse(BAD_REQUEST, "incorrect job parameter(s) - " + badParameters);
+            }
+
             final BackgroundService backgroundService = backgroundServices.getByName(serviceName);
             if (backgroundService.isWaitingOrRunning()) {
                 return logAndReturnResponse(PRECONDITION_FAILED, serviceName + " is already waiting or running");
             }
-            backgroundServices.trigger(serviceName);
+            backgroundServices.trigger(serviceName, parameters);
             return logAndReturnResponse(OK, backgroundService.getName() + " has been triggered through REST API");
         } catch (Exception e) {
             return logAndReturnResponse(INTERNAL_SERVER_ERROR, e.getMessage());

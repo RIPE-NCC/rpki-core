@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
-import static net.ripe.ipresource.IpResourceSet.ALL_PRIVATE_USE_RESOURCES;
+import static net.ripe.ipresource.ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -63,7 +63,7 @@ public class RoaAlertBackgroundServiceWeeklyBeanTest {
     public void shouldCheckEveryWeekSubscription() {
         when(roaAlertConfigurationViewService.findByFrequency(RoaAlertFrequency.WEEKLY)).thenReturn(Collections.singletonList(ALERT_SUBSCRIPTION_WEEKLY));
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         verify(roaAlertChecker).checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_WEEKLY);
         verifyNoMoreInteractions(roaAlertChecker);
@@ -74,7 +74,7 @@ public class RoaAlertBackgroundServiceWeeklyBeanTest {
         when(roaAlertConfigurationViewService.findByFrequency(RoaAlertFrequency.WEEKLY)).thenReturn(Arrays.asList(ALERT_SUBSCRIPTION_ERROR, ALERT_SUBSCRIPTION_WEEKLY));
         doThrow(new RuntimeException("testing")).when(roaAlertChecker).checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_ERROR);
 
-        subject.runService();
+        subject.runService(Collections.emptyMap());
 
         verify(roaAlertChecker).checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_ERROR);
         verify(roaAlertChecker).checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_WEEKLY);

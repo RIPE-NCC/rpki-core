@@ -1,7 +1,7 @@
 package net.ripe.rpki.domain.roa;
 
 import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCms;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsTest;
@@ -44,7 +44,7 @@ public class RoaEntityTest {
     @Before
     public void setUp() {
         roaEntityRepository = mock(RoaEntityRepository.class);
-        IpResourceSet resources = new IpResourceSet(RESOURCE_1, RESOURCE_2);
+        ImmutableResourceSet resources = ImmutableResourceSet.of(RESOURCE_1, RESOURCE_2);
         certificate = TestObjects.createBuilder(TestObjects.TEST_KEY_PAIR_2, TestObjects.TEST_KEY_PAIR_2.getPublicKey()).withSubjectPublicKey(ROA_KEY_PAIR.getPublic()).withResources(resources).withSubjectInformationAccess(TestObjects.EE_CERT_SIA).build();
         roaCms = createRoaEntity(certificate, Arrays.asList(new RoaPrefix(RESOURCE_1, 16), new RoaPrefix(RESOURCE_2, null))).getRoaCms();
         subject = new RoaEntity(certificate, roaCms, "filename.roa", KeyPairEntityTest.TEST_REPOSITORY_LOCATION);
@@ -72,7 +72,7 @@ public class RoaEntityTest {
     public static RoaEntity createEeSignedRoaEntity(ManagedCertificateAuthority ca, PublicKey subjectPublicKey, ValidityPeriod validityPeriod) {
         IpRange roaPrefix = IpRange.parse("10.0.0.0/8");
         CertificateIssuanceRequest request = new CertificateIssuanceRequest(
-            new IpResourceSet(roaPrefix),
+            ImmutableResourceSet.of(roaPrefix),
             new UuidRepositoryObjectNamingStrategy().eeCertificateSubject(subjectPublicKey),
             subjectPublicKey,
             TestObjects.EE_CERT_SIA

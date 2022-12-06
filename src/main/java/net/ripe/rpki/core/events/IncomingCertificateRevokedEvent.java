@@ -15,10 +15,10 @@ import java.util.Optional;
 public class IncomingCertificateRevokedEvent extends CertificateAuthorityEvent {
     private final CertificateRevocationResponse response;
 
-    private final Optional<URI> publicationUri;
-    private final Optional<X509ResourceCertificate> incomingCertificate;
+    private final URI publicationUri;
+    private final X509ResourceCertificate incomingCertificate;
 
-    public IncomingCertificateRevokedEvent(final VersionedId certificateAuthorityId, CertificateRevocationResponse response, Optional<URI> publicationUri, Optional<X509ResourceCertificate> incomingCertificate) {
+    public IncomingCertificateRevokedEvent(final VersionedId certificateAuthorityId, CertificateRevocationResponse response, URI publicationUri, X509ResourceCertificate incomingCertificate) {
         super(certificateAuthorityId);
         this.response = response;
         this.publicationUri = publicationUri;
@@ -35,8 +35,8 @@ public class IncomingCertificateRevokedEvent extends CertificateAuthorityEvent {
         // This string representation is stored in the command audit table and shown to the user
         return String.format(
                 "Certificate for CA was revoked [uri=%s, serial=%s, public key hash=%s]",
-                publicationUri.map(URI::toString).orElse("n/a"),
-                incomingCertificate.map(X509ResourceCertificate::getSerialNumber).map(BigInteger::toString).orElse("n/a"),
+                publicationUri,
+                incomingCertificate.getSerialNumber(),
                 KeyPairUtil.getAsciiHexEncodedPublicKeyHash(response.getSubjectPublicKey())
         );
     }

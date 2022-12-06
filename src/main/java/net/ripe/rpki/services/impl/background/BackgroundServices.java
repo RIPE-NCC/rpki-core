@@ -196,14 +196,6 @@ public class BackgroundServices {
             .build();
     }
 
-    public void validate(String serviceName) {
-        try {
-            applicationContext.getBean(serviceName, BackgroundService.class);
-        } catch (BeansException e) {
-            throw new RuntimeException("Service '" + serviceName + "' can not be found in the application context", e);
-        }
-    }
-
     public BackgroundService getByName(String serviceName) {
         try {
             return applicationContext.getBean(serviceName, BackgroundService.class);
@@ -217,15 +209,29 @@ public class BackgroundServices {
     }
 
     public void trigger(String serviceName) {
+        trigger(serviceName, Collections.emptyMap());
+    }
+
+    public void trigger(String serviceName, Map<String, String> parameters) {
+        validate(serviceName);
         try {
+            JobDataMap jobDataMap = new JobDataMap(parameters);
             JobKey jobKey = JobKey.jobKey(serviceName);
             if (scheduler.checkExists(jobKey)) {
-                scheduler.triggerJob(jobKey);
+                scheduler.triggerJob(jobKey, jobDataMap);
             } else {
-                scheduler.scheduleJob(createJobDetail(serviceName), newTrigger().build());
+                scheduler.scheduleJob(createJobDetail(serviceName), newTrigger().usingJobData(jobDataMap).build());
             }
         } catch (SchedulerException e) {
             throw new IllegalStateException("error triggering job: " + e, e);
+        }
+    }
+
+    private void validate(String serviceName) {
+        try {
+            applicationContext.getBean(serviceName, BackgroundService.class);
+        } catch (BeansException e) {
+            throw new IllegalArgumentException("Service '" + serviceName + "' can not be found in the application context", e);
         }
     }
 }

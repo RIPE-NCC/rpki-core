@@ -10,6 +10,7 @@ import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
+import java.util.Map;
 
 @Slf4j
 @Service("certificateExpirationService")
@@ -47,7 +48,7 @@ public class CertificateExpirationServiceBean extends SequentialBackgroundServic
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult counts = resourceCertificateRepository.expireOutgoingResourceCertificates(DateTime.now());
 
         expiredOutgoingResourceCertificatesCounter.increment(counts.getExpiredCertificateCount());

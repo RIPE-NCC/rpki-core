@@ -1,6 +1,6 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.interca.CertificateProvisioningMessage;
@@ -17,7 +17,7 @@ public interface ChildCertificateAuthority {
 
     ParentCertificateAuthority getParent();
 
-    Optional<IpResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService);
+    Optional<ImmutableResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService);
 
     void processCertificateIssuanceResponse(CertificateIssuanceResponse response, ResourceCertificateRepository resourceCertificateRepository);
 

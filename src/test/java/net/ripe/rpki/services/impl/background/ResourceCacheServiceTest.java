@@ -2,7 +2,7 @@ package net.ripe.rpki.services.impl.background;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.Getter;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.core.services.background.SequentialBackgroundQueuedTaskRunner;
 import net.ripe.rpki.server.api.dto.CaIdentity;
@@ -167,7 +167,7 @@ public class ResourceCacheServiceTest {
         // The one time override was "used"
         assertThat(subject.isAcceptOneRejectedResourceCacheUpdate()).isFalse();
 
-        final IpResourceSet expectedValue = DataSamples.ripeNccDelegations(resourcesToReject).allDelegationResources();
+        final ImmutableResourceSet expectedValue = DataSamples.ripeNccDelegations(resourcesToReject).allDelegationResources();
         assertThat(delegationsCache.getDelegationsCache()).hasValue(expectedValue);
         assertThat(resourceCache.allMemberResources()).isEqualTo(resourcesToReject.getCertifiableResources());
         assertThat(resourceCache.lastUpdateTime()).isGreaterThan(lastUpdate);
@@ -194,15 +194,15 @@ public class ResourceCacheServiceTest {
 
     @Test
     public void shouldCalculateProperDiff() throws Exception {
-        final Map<CaName, IpResourceSet> registryResources = new HashMap<>();
-        registryResources.put(CaName.fromMembershipId(1), IpResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
-        registryResources.put(CaName.fromMembershipId(2), IpResourceSet.parse("20.20.0.0/16, AS123"));
-        registryResources.put(CaName.fromMembershipId(4), IpResourceSet.parse("30.0.0.0/8, 32.0.0.0/8"));
+        final Map<CaName, ImmutableResourceSet> registryResources = new HashMap<>();
+        registryResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
+        registryResources.put(CaName.fromMembershipId(2), ImmutableResourceSet.parse("20.20.0.0/16, AS123"));
+        registryResources.put(CaName.fromMembershipId(4), ImmutableResourceSet.parse("30.0.0.0/8, 32.0.0.0/8"));
 
-        final Map<CaName, IpResourceSet> localResources = new HashMap<>();
-        localResources.put(CaName.fromMembershipId(1), IpResourceSet.parse("12.0.0.0/8, 13.0.0.0/8, 14.0.0.0/8")); //This counts as 1 resource only (12.0.0.0 - 14.255.255.255)
-        localResources.put(CaName.fromMembershipId(3), IpResourceSet.parse("19.0.0.0/8, 21.0.0.0/8, AS16"));
-        localResources.put(CaName.fromMembershipId(4), IpResourceSet.parse("32.0.0.0/8, 34.0.0.0/8, 36.0.0.0/8"));
+        final Map<CaName, ImmutableResourceSet> localResources = new HashMap<>();
+        localResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("12.0.0.0/8, 13.0.0.0/8, 14.0.0.0/8")); //This counts as 1 resource only (12.0.0.0 - 14.255.255.255)
+        localResources.put(CaName.fromMembershipId(3), ImmutableResourceSet.parse("19.0.0.0/8, 21.0.0.0/8, AS16"));
+        localResources.put(CaName.fromMembershipId(4), ImmutableResourceSet.parse("32.0.0.0/8, 34.0.0.0/8, 36.0.0.0/8"));
 
         final ResourceCacheService.ResourceDiffStat resourceDiff = resourcesDiff(registryResources, localResources);
         assertEquals(7, resourceDiff.getLocalSize());
@@ -227,11 +227,11 @@ public class ResourceCacheServiceTest {
 
     @Test
     public void shouldCalculateProperDiffWhenPrefixesAreNotExact() throws Exception {
-        final Map<CaName, IpResourceSet> registryResources = new HashMap<>();
-        registryResources.put(CaName.fromMembershipId(1), IpResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
+        final Map<CaName, ImmutableResourceSet> registryResources = new HashMap<>();
+        registryResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
 
-        final Map<CaName, IpResourceSet> localResources = new HashMap<>();
-        localResources.put(CaName.fromMembershipId(1), IpResourceSet.parse("10.0.0.0/16, 12.0.0.0/16"));
+        final Map<CaName, ImmutableResourceSet> localResources = new HashMap<>();
+        localResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/16, 12.0.0.0/16"));
 
         final ResourceCacheService.ResourceDiffStat resourceDiff = resourcesDiff(registryResources, localResources);
         assertEquals(2, resourceDiff.getLocalSize());
@@ -244,11 +244,11 @@ public class ResourceCacheServiceTest {
 
     @Test
     public void shouldCalculateProperDiffWhenPrefixesAreNotExactTheOtherWay() throws Exception {
-        final Map<CaName, IpResourceSet> registryResources = new HashMap<>();
-        registryResources.put(CaName.fromMembershipId(1), IpResourceSet.parse("10.0.0.0/16, 12.0.0.0/16"));
+        final Map<CaName, ImmutableResourceSet> registryResources = new HashMap<>();
+        registryResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/16, 12.0.0.0/16"));
 
-        final Map<CaName, IpResourceSet> localResources = new HashMap<>();
-        localResources.put(CaName.fromMembershipId(1), IpResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
+        final Map<CaName, ImmutableResourceSet> localResources = new HashMap<>();
+        localResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
 
         final ResourceCacheService.ResourceDiffStat resourceDiff = resourcesDiff(registryResources, localResources);
         assertEquals(2, resourceDiff.getLocalSize());
@@ -261,11 +261,11 @@ public class ResourceCacheServiceTest {
 
     @Test
     public void shouldCalculateProperDiffWhenPrefixesAreNotExactReverse() throws Exception {
-        final Map<CaName, IpResourceSet> registryResources = new HashMap<>();
-        registryResources.put(CaName.fromMembershipId(1), IpResourceSet.parse("10.0.0.0/16, 12.0.0.0/16"));
+        final Map<CaName, ImmutableResourceSet> registryResources = new HashMap<>();
+        registryResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/16, 12.0.0.0/16"));
 
-        final Map<CaName, IpResourceSet> localResources = new HashMap<>();
-        localResources.put(CaName.fromMembershipId(1), IpResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
+        final Map<CaName, ImmutableResourceSet> localResources = new HashMap<>();
+        localResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
 
         final ResourceCacheService.ResourceDiffStat resourceDiff = resourcesDiff(registryResources, localResources);
         assertEquals(2, resourceDiff.getLocalSize());
@@ -278,8 +278,8 @@ public class ResourceCacheServiceTest {
 
     @Test
     public void shouldCountDelegations() {
-        final IpResourceSet registry = IpResourceSet.parse("10.0.0.0/8, 12.0.0.0/8, 20.20.0.0/16, AS123");
-        final IpResourceSet local    = IpResourceSet.parse("12.0.0.0/8, 21.0.0.0/8, AS16");
+        final ImmutableResourceSet registry = ImmutableResourceSet.parse("10.0.0.0/8, 12.0.0.0/8, 20.20.0.0/16, AS123");
+        final ImmutableResourceSet local    = ImmutableResourceSet.parse("12.0.0.0/8, 21.0.0.0/8, AS16");
 
         ResourceCacheService.DelegationDiffStat resourceDiff = ResourceCacheService.delegationsDiff(registry, local);
         assertEquals(3, resourceDiff.getLocalResourceCount());
@@ -326,9 +326,10 @@ public class ResourceCacheServiceTest {
             );
         }
 
-        static IpResourceSet productionCaDelegations(MemberResources memberResources) {
+        static ImmutableResourceSet productionCaDelegations(MemberResources memberResources) {
             return memberResources.getCertifiableResources().values().stream()
-                    .collect(IpResourceSet::new, IpResourceSet::addAll, IpResourceSet::addAll);
+                .flatMap(ImmutableResourceSet::stream)
+                .collect(ImmutableResourceSet.collector());
         }
 
         static RipeNccDelegations ripeNccDelegations(MemberResources memberResources) {
@@ -353,15 +354,15 @@ public class ResourceCacheServiceTest {
     }
 
     private static class InMemoryDelegationsCache implements DelegationsCache {
-        private final AtomicReference<IpResourceSet> delegations = new AtomicReference<>();
+        private final AtomicReference<ImmutableResourceSet> delegations = new AtomicReference<>();
 
         @Override
-        public void cacheDelegations(IpResourceSet delegations) {
+        public void cacheDelegations(ImmutableResourceSet delegations) {
             this.delegations.set(delegations);
         }
 
         @Override
-        public Optional<IpResourceSet> getDelegationsCache() {
+        public Optional<ImmutableResourceSet> getDelegationsCache() {
             return Optional.ofNullable(delegations.get());
         }
     }
@@ -392,7 +393,7 @@ public class ResourceCacheServiceTest {
     }
 
     private static class InMemoryResourceCache implements ResourceCache {
-        private final AtomicReference<Map<CaName, IpResourceSet>> cache = new AtomicReference<>(emptyMap());
+        private final AtomicReference<Map<CaName, ImmutableResourceSet>> cache = new AtomicReference<>(emptyMap());
         private final AtomicLong lastUpdate = new AtomicLong(0L);
 
         private final CaName productionCaName;
@@ -403,11 +404,11 @@ public class ResourceCacheServiceTest {
 
         @Override
         public boolean hasNoProductionResources() {
-            return cache.get().getOrDefault(productionCaName, new IpResourceSet()).isEmpty();
+            return cache.get().getOrDefault(productionCaName, ImmutableResourceSet.empty()).isEmpty();
         }
 
         @Override
-        public Optional<IpResourceSet> lookupResources(CaName user) {
+        public Optional<ImmutableResourceSet> lookupResources(CaName user) {
             return Optional.ofNullable(cache.get().get(user));
         }
 
@@ -424,13 +425,13 @@ public class ResourceCacheServiceTest {
         }
 
         @Override
-        public void populateCache(Map<CaName, IpResourceSet> certifiableResources) {
+        public void populateCache(Map<CaName, ImmutableResourceSet> certifiableResources) {
             this.cache.set(certifiableResources);
             this.lastUpdate.set(System.currentTimeMillis());
         }
 
         @Override
-        public Map<CaName, IpResourceSet> allMemberResources() {
+        public Map<CaName, ImmutableResourceSet> allMemberResources() {
             return cache.get().entrySet().stream()
                     .filter(x -> !x.getKey().equals(productionCaName))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

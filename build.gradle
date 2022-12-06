@@ -39,13 +39,13 @@ dependencies {
     }
     implementation 'org.flywaydb:flyway-core'
 
-    implementation platform('io.sentry:sentry-bom:6.6.0')
+    implementation platform('io.sentry:sentry-bom:6.9.1')
     implementation 'io.sentry:sentry-spring-boot-starter'
     implementation 'io.sentry:sentry-logback'
 
     implementation "net.ripe.rpki:rpki-commons:$rpki_commons_version"
 
-    implementation 'org.springdoc:springdoc-openapi-ui:1.6.12'
+    implementation 'org.springdoc:springdoc-openapi-ui:1.6.13'
 
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     implementation 'org.postgresql:postgresql:42.5.1'

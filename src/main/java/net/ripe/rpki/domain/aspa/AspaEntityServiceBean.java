@@ -5,7 +5,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SortedMapDifference;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCms;
@@ -90,7 +90,7 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
         }
 
         IncomingResourceCertificate incomingResourceCertificate = maybeCurrentIncomingResourceCertificate.get();
-        IpResourceSet certifiedResources = incomingResourceCertificate.getResources();
+        ImmutableResourceSet certifiedResources = incomingResourceCertificate.getResources();
 
         SortedMap<Asn, AspaEntity> aspaEntities = loadValidAspaEntities(ca, incomingResourceCertificate);
         SortedMap<Asn, AspaConfiguration> aspaConfiguration = aspaConfigurationRepository.findByCertificateAuthority(ca);
@@ -187,6 +187,6 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
         X500Principal subject = informationAccessStrategy.eeCertificateSubject(eeKeyPair.getPublic());
         X509CertificateInformationAccessDescriptor[] sia = informationAccessStrategy.siaForSignedObjectCertificate(signingKeyPair,
             RepositoryObjectNamingStrategy.ASPA_FILE_EXTENSION, subject, eeKeyPair.getPublic());
-        return new CertificateIssuanceRequest(new IpResourceSet(customerAsn), subject, eeKeyPair.getPublic(), sia);
+        return new CertificateIssuanceRequest(ImmutableResourceSet.of(customerAsn), subject, eeKeyPair.getPublic(), sia);
     }
 }

@@ -1,7 +1,7 @@
 package net.ripe.rpki.ripencc.services.impl;
 
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResource;
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.util.XML;
 import net.ripe.rpki.server.api.ports.IanaRegistryXmlParser;
 import org.apache.commons.io.FileUtils;
@@ -50,7 +50,7 @@ public class IanaRegistryXmlParserImpl implements IanaRegistryXmlParser {
     }
 
     @Override
-    public IpResourceSet getRirResources(MajorityRir rir) {
+    public ImmutableResourceSet getRirResources(MajorityRir rir) {
         InputStream asnXml = read(ianaAsnDelegations);
         InputStream ipv4Xml = read(ianaIpv4Delegations);
         InputStream ipv6Xml = read(ianaIpv6Delegations);
@@ -64,13 +64,12 @@ public class IanaRegistryXmlParserImpl implements IanaRegistryXmlParser {
         NodeList ipv4Nodes = runXPath(ipv4Doc, "/registry/record/prefix[ancestor::record/whois/text() = '" + MAJORITY_RIR_KEYS.get(rir) + "']");
         NodeList ipv6Nodes = runXPath(ipv6Doc, "/registry/record/prefix[ancestor::record/whois/text() = '" + MAJORITY_RIR_KEYS.get(rir) + "']");
 
-        IpResourceSet result = new IpResourceSet();
-        result.addAll(extractIpResources(asnNodes16));
-        result.addAll(extractIpResources(asnNodes32));
-        result.addAll(extractIpResources(ipv4Nodes));
-        result.addAll(extractIpResources(ipv6Nodes));
-
-        return result;
+        ImmutableResourceSet.Builder builder = new ImmutableResourceSet.Builder();
+        extractIpResources(builder, asnNodes16);
+        extractIpResources(builder, asnNodes32);
+        extractIpResources(builder, ipv4Nodes);
+        extractIpResources(builder, ipv6Nodes);
+        return builder.build();
     }
 
     private InputStream read(String ianaDelegationsLocation) {
@@ -104,11 +103,9 @@ public class IanaRegistryXmlParserImpl implements IanaRegistryXmlParser {
         }
     }
 
-    private IpResourceSet extractIpResources(NodeList nodes) {
-        IpResourceSet resources = new IpResourceSet();
+    private void extractIpResources(ImmutableResourceSet.Builder builder, NodeList nodes) {
         for (int i = 0; i < nodes.getLength(); i++) {
-            resources.add(IpResource.parse(nodes.item(i).getTextContent()));
+            builder.add(IpResource.parse(nodes.item(i).getTextContent()));
         }
-        return resources;
     }
 }

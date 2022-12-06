@@ -1,7 +1,6 @@
 package net.ripe.rpki.domain.inmemory;
 
-import net.ripe.ipresource.IpResourceSet;
-import net.ripe.rpki.domain.ChildCertificateAuthority;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
@@ -64,13 +63,13 @@ public class InMemoryResourceCertificateRepository extends InMemoryRepository<Re
     }
 
     @Override
-    public IpResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName) {
-        return new IpResourceSet();
+    public ImmutableResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName) {
+        return ImmutableResourceSet.empty();
     }
 
     @Override
-    public IpResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName) {
-        return new IpResourceSet();
+    public ImmutableResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName) {
+        return ImmutableResourceSet.empty();
     }
 
     @Override

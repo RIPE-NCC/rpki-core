@@ -1,6 +1,6 @@
 package net.ripe.rpki.server.api.ports;
 
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.joda.time.DateTime;
 
@@ -11,15 +11,15 @@ public interface ResourceCache {
 
     boolean hasNoProductionResources();
 
-    Optional<IpResourceSet> lookupResources(CaName user);
+    Optional<ImmutableResourceSet> lookupResources(CaName user);
 
     DateTime lastUpdateTime();
 
     boolean hasNoMemberResources();
 
-    void populateCache(Map<CaName, IpResourceSet> certifiableResources);
+    void populateCache(Map<CaName, ImmutableResourceSet> certifiableResources);
 
-    Map<CaName, IpResourceSet> allMemberResources();
+    Map<CaName, ImmutableResourceSet> allMemberResources();
 
     default void verifyResourcesArePresent() {
         if (hasNoProductionResources()) {

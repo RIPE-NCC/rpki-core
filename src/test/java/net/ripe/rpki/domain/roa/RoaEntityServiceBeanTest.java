@@ -2,6 +2,7 @@ package net.ripe.rpki.domain.roa;
 
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
+import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
@@ -184,7 +185,7 @@ public class RoaEntityServiceBeanTest  {
                 .withSerial(BigInteger.valueOf(10000L))
                 .withValidityPeriod(new ValidityPeriod(old.getNotValidBefore(), old.getNotValidAfter().minusDays(100)))
                 .withPublicKey(ca.getCurrentKeyPair().getPublicKey())
-                .withResources(ca.getCertifiedResources())
+                .withResources(new IpResourceSet(ca.getCertifiedResources()))
                 .build();
         ca.processCertificateIssuanceResponse(new CertificateIssuanceResponse(certificate, TestObjects.PUBLICATION_URI), resourceCertificateRepository);
 

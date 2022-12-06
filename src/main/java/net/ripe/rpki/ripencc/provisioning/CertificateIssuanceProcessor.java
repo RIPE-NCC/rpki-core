@@ -1,6 +1,7 @@
 package net.ripe.rpki.ripencc.provisioning;
 
 import com.google.common.collect.Iterators;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
@@ -80,9 +81,9 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
             validateRequestedResources(request.getAllocatedIpv4()),
             validateRequestedResources(request.getAllocatedIpv6())
         );
-        IpResourceSet certifiableResources = getCertifiableResources(nonHostedCertificateAuthority, productionCA);
+        ImmutableResourceSet certifiableResources = getCertifiableResources(nonHostedCertificateAuthority, productionCA);
 
-        IpResourceSet certificateResources = requestedResourceSets.calculateEffectiveResources(certifiableResources);
+        ImmutableResourceSet certificateResources = requestedResourceSets.calculateEffectiveResources(certifiableResources);
         if (certificateResources.isEmpty()) {
             // Note that we also return this error in case the non-hosted CA has certifiable resources, but they
             // do not match the requested resources. It is not clear from the RFC if this is the right error code
@@ -102,7 +103,7 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
             .orElseThrow(() -> new NotPerformedException(NotPerformedError.REQ_NO_RESOURCES_ALLOTED_IN_RESOURCE_CLASS));
     }
 
-    private Optional<IpResourceSet> validateRequestedResources(IpResourceSet resourceSet) {
+    private Optional<ImmutableResourceSet> validateRequestedResources(IpResourceSet resourceSet) {
         if (resourceSet == null) {
             return Optional.empty();
         }
@@ -112,13 +113,13 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
             throw badRequest("requested resource set exceeds entry limit (" + entries + " > " + RESOURCE_SET_ENTRIES_LIMIT + ")");
         }
 
-        return Optional.of(resourceSet);
+        return Optional.of(ImmutableResourceSet.of(resourceSet));
     }
 
     private CertificateIssuanceResponsePayload createResponse(
         CertificateIssuanceRequestElement request,
         RequestedResourceSets requestedResourceSets,
-        IpResourceSet certifiableResources,
+        ImmutableResourceSet certifiableResources,
         ResourceCertificateData issuedCertificate, ResourceCertificateData issuingCertificate
     ) {
         CertificateElement certificateElement = createClassElement(issuedCertificate.getCertificate(), requestedResourceSets, issuedCertificate.getPublicationUri());
@@ -135,14 +136,14 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
 
     private CertificateIssuanceResponseClassElement buildClassElement(CertificateIssuanceRequestElement request,
                                                                       ResourceCertificateData currentIncomingResourceCertificate,
-                                                                      IpResourceSet ipResources,
+                                                                      ImmutableResourceSet ipResources,
                                                                       CertificateElement certificateElement) {
         return new GenericClassElementBuilder()
                 .withClassName(request.getClassName())
                 .withIssuer(currentIncomingResourceCertificate.getCertificate())
                 .withCertificateAuthorityUri(Collections.singletonList(currentIncomingResourceCertificate.getPublicationUri()))
                 .withValidityNotAfter(CertificateAuthority.calculateValidityNotAfter(new DateTime()))
-                .withIpResourceSet(ipResources)
+                .withIpResourceSet(new IpResourceSet(ipResources))
                 .withCertificateElements(Collections.singletonList(certificateElement))
                 .buildCertificateIssuanceResponseClassElement();
     }

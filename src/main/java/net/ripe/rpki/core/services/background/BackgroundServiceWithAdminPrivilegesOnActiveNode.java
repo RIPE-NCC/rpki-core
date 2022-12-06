@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -93,8 +95,8 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
 
     @Override
     @Transactional(propagation = Propagation.NEVER)
-    public BackgroundServiceExecutionResult execute() {
-        final Time.Timed<Pair<BackgroundServiceExecutionResult.Status, Long>> timed = Time.timed(() -> doExecute(this::runService));
+    public BackgroundServiceExecutionResult execute(Map<String, String> parameters) {
+        final Time.Timed<Pair<BackgroundServiceExecutionResult.Status, Long>> timed = Time.timed(() -> doExecute(() -> runService(parameters)));
         final long pureDuration = timed.getResult().getRight();
         final long fullDuration = timed.getTime();
         return new BackgroundServiceExecutionResult(pureDuration, fullDuration, timed.getResult().getLeft());
@@ -184,6 +186,21 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
         return backgroundTaskRunner.task(task, onError);
     }
 
-    protected abstract void runService();
+    protected Optional<Integer> parseBatchSizeParameter(Map<String, String> parameters, Optional<Integer> defaultValue)
+        throws IllegalArgumentException
+    {
+        String batchSizeParameterValue = parameters.get("batchSize");
+        if (batchSizeParameterValue == null) {
+            return defaultValue;
+        } else {
+            Optional<Integer> actualBatchSize = Optional.of(Integer.parseUnsignedInt(batchSizeParameterValue));
+            if (actualBatchSize.get() <= 0) {
+                throw new IllegalArgumentException("batch size must be greater than 0");
+            }
+            return actualBatchSize;
+        }
+    }
+
+    protected abstract void runService(Map<String, String> parameters);
 
 }

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
 import javax.security.auth.x500.X500Principal;
+import java.util.Map;
 
 @Service("reinitServiceBean")
 @Profile("!production & !pilot")
@@ -43,7 +44,7 @@ public class ReinitServiceBean extends SequentialBackgroundServiceWithAdminPrivi
     }
 
     @Override
-    protected void runService() {
+    protected void runService(Map<String, String> parameters) {
         final X500Principal allResourcesCaPrincipal = repositoryConfiguration.getAllResourcesCaPrincipal();
         final CertificateAuthorityData allResourcesCa = caViewService.findCertificateAuthorityByName(allResourcesCaPrincipal);
         if (allResourcesCa == null) {

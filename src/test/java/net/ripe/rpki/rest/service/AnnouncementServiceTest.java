@@ -1,8 +1,8 @@
 package net.ripe.rpki.rest.service;
 
 import net.ripe.ipresource.Asn;
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
@@ -93,7 +93,7 @@ public class AnnouncementServiceTest {
     @Test
     public void announcements_shouldGetAnnouncement() throws Exception {
 
-        final IpResourceSet ipResourceSet = new IpResourceSet();
+        final ImmutableResourceSet ipResourceSet = ImmutableResourceSet.empty();
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
@@ -127,7 +127,7 @@ public class AnnouncementServiceTest {
     @Test
     public void announcements_shouldIncludeSilencesThatAreNotVisibleInBGP() throws Exception {
 
-        final IpResourceSet ipResourceSet = new IpResourceSet();
+        final ImmutableResourceSet ipResourceSet = ImmutableResourceSet.empty();
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
@@ -199,7 +199,7 @@ public class AnnouncementServiceTest {
     @Test
     public void affected_shouldReturnAnnouncementAffectedByROA() throws Exception {
 
-        final IpResourceSet ipResourceSet = new IpResourceSet();
+        final ImmutableResourceSet ipResourceSet = ImmutableResourceSet.empty();
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
@@ -241,7 +241,7 @@ public class AnnouncementServiceTest {
     @Test
     public void affected_shouldReturnAnnouncementAffectedByROAValidatedByOtherROAs() throws Exception {
 
-        final IpResourceSet ipResourceSet = new IpResourceSet();
+        final ImmutableResourceSet ipResourceSet = ImmutableResourceSet.empty();
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
@@ -277,7 +277,7 @@ public class AnnouncementServiceTest {
     @Test
     public void affected_shouldNotReturnUnknownAnnouncements() throws Exception {
 
-        final IpResourceSet ipResourceSet = new IpResourceSet(IpRange.parse("192.168.0.0/16"));
+        final ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("192.168.0.0/16");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("191.168.0.0/16"), 10);
@@ -305,7 +305,7 @@ public class AnnouncementServiceTest {
     private RoaAlertConfigurationData getRoaAlertConfigurationData(Asn asn, IpRange range) {
         final CertificateAuthorityData caData = new ManagedCertificateAuthorityData(new VersionedId(CA_ID, 1L),
             new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
-            IpResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
+            ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         final Set<AnnouncedRoute> ignoredAnnouncements = new HashSet<>(1);
         ignoredAnnouncements.add(new AnnouncedRoute(asn, range));

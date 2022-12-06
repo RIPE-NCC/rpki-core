@@ -28,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.security.auth.x500.X500Principal;
 import javax.ws.rs.core.MediaType;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 import static com.google.common.collect.ImmutableMap.of;
@@ -79,7 +80,7 @@ public class UpstreamCaService {
 
             CompletableFuture.runAsync(() -> {
                 commandService.execute(new ProcessTrustAnchorResponseCommand(allResourcesCa.getVersionedId(), responseObject));
-                allCertificateUpdateService.execute();
+                allCertificateUpdateService.execute(Collections.emptyMap());
             });
 
             return ResponseEntity.ok()

@@ -18,14 +18,12 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateService;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
-import net.ripe.rpki.server.api.services.read.RoaViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,9 +80,6 @@ public class CaServiceTest {
     @MockBean
     private CommandService commandService;
 
-    @MockBean
-    private RoaViewService roaViewService;
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -140,7 +135,7 @@ public class CaServiceTest {
                 ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
-        when(commandService.execute(new DeleteCertificateAuthorityCommand(certificateAuthorityData.getVersionedId(), principal, any()))).thenReturn(null);
+        when(commandService.execute(new DeleteCertificateAuthorityCommand(certificateAuthorityData.getVersionedId(), principal))).thenReturn(null);
 
         mockMvc.perform(Rest.delete(API_URL_PREFIX + "/123/hosted"))
                 .andExpect(status().isOk())
@@ -149,7 +144,7 @@ public class CaServiceTest {
                 .andExpect(jsonPath(".revoked").value(true))
                 .andExpect(jsonPath(".error").doesNotExist());
 
-        then(commandService).should().execute(new DeleteCertificateAuthorityCommand(certificateAuthorityData.getVersionedId(), principal, any()));
+        then(commandService).should().execute(new DeleteCertificateAuthorityCommand(certificateAuthorityData.getVersionedId(), principal));
     }
 
     @Test
@@ -163,7 +158,7 @@ public class CaServiceTest {
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
         when(commandService.execute(
-                new DeleteCertificateAuthorityCommand(certificateAuthorityData.getVersionedId(), principal, any())
+                new DeleteCertificateAuthorityCommand(certificateAuthorityData.getVersionedId(), principal)
         )).thenReturn(null);
 
         mockMvc.perform(Rest.delete(API_URL_PREFIX + "/123/hosted"))
@@ -187,9 +182,8 @@ public class CaServiceTest {
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
         when(commandService.execute(
-                new DeleteCertificateAuthorityCommand(certificateAuthorityData.getVersionedId(), principal, any())
+                new DeleteCertificateAuthorityCommand(certificateAuthorityData.getVersionedId(), principal)
         )).thenThrow(new IllegalStateException("REASON"));
-        when(roaViewService.getRoaConfiguration(1L)).thenReturn(new RoaConfigurationData(Collections.emptyList()));
 
         mockMvc.perform(Rest.delete(API_URL_PREFIX + "/123/hosted"))
                 .andExpect(status().isInternalServerError())
@@ -198,7 +192,7 @@ public class CaServiceTest {
                 .andExpect(jsonPath(".revoked").doesNotExist())
                 .andExpect(jsonPath(".error").isNotEmpty());
 
-        then(commandService).should().execute(new DeleteCertificateAuthorityCommand(certificateAuthorityData.getVersionedId(), principal, any()));
+        then(commandService).should().execute(new DeleteCertificateAuthorityCommand(certificateAuthorityData.getVersionedId(), principal));
     }
 
     @Test

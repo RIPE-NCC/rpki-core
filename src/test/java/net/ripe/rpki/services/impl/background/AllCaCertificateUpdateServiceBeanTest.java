@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import javax.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
 import java.util.Arrays;
 import java.util.Collections;
@@ -124,5 +125,19 @@ public class AllCaCertificateUpdateServiceBeanTest {
 
         verify(resourceCache, times(1)).verifyResourcesArePresent();
         verifyNoInteractions(commandService);
+    }
+
+    @Test
+    public void should_ignore_error_when_ca_is_deleted_during_run() {
+        CaIdentity memberCa1 = new CaIdentity(new VersionedId(10L), CaName.of(new X500Principal("CN=nl.isp")));
+        when(caViewService.findAllChildrenIdsForCa(PRODUCTION_CA_NAME)).thenReturn(Collections.singletonList(memberCa1));
+        when(commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa1.getVersionedId(), Integer.MAX_VALUE)))
+            .thenThrow(new EntityNotFoundException());
+
+        subject.execute(Collections.emptyMap());
+
+        verify(commandService, times(2)).execute(isA(UpdateAllIncomingResourceCertificatesCommand.class));
+        verify(commandService, times(1)).execute(new UpdateAllIncomingResourceCertificatesCommand(productionCaMock.getVersionedId(), Integer.MAX_VALUE));
+        verify(commandService).execute(new UpdateAllIncomingResourceCertificatesCommand(memberCa1.getVersionedId(), Integer.MAX_VALUE));
     }
 }

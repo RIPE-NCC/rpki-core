@@ -14,6 +14,7 @@ import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
 import java.util.Map;
@@ -108,7 +109,7 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
             .filter(certificateAuthorityFilter)
             .map(member -> task(
                 () -> updateChildCertificate(commandService, member, updatedCounter),
-                ex -> log.error("Unable to update incoming resource certificate for CA '{}", member.getCaName(), ex)
+                ex -> log.error("Unable to update incoming resource certificate for CA '{}'", member.getCaName(), ex)
             ))
         );
 
@@ -117,14 +118,19 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
         return updatedCounter.get();
     }
 
-
     private void updateChildCertificate(CommandService commandService, CaIdentity member, AtomicInteger updatedCounter) {
         if (updatedCounter.get() >= updateBatchSize) {
             return;
         }
-        CommandStatus status = commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(member.getVersionedId(), Integer.MAX_VALUE));
-        if (status.isHasEffect()) {
-            updatedCounter.incrementAndGet();
+        try {
+            CommandStatus status = commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(member.getVersionedId(), Integer.MAX_VALUE));
+            if (status.isHasEffect()) {
+                updatedCounter.incrementAndGet();
+            }
+        } catch (EntityNotFoundException e) {
+            // CA was deleted between the initial query and executing the command, ignore this exception. Note that the
+            // command service already logs a warning, so no need to log anything else here.
+            log.warn("failed to update all incoming resource certificates for CA '{}': {}", member.getCaName(), e.toString());
         }
     }
 

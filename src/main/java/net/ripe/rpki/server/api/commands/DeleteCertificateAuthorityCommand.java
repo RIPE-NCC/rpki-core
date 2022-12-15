@@ -1,7 +1,6 @@
 package net.ripe.rpki.server.api.commands;
 
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 
 import javax.security.auth.x500.X500Principal;
 
@@ -12,16 +11,14 @@ import javax.security.auth.x500.X500Principal;
  */
 public class DeleteCertificateAuthorityCommand extends ChildParentCertificateAuthorityCommand {
     private final X500Principal name;
-    private final RoaConfigurationData roaConfiguration;
 
-    public DeleteCertificateAuthorityCommand(VersionedId certificateAuthorityId, X500Principal name, RoaConfigurationData roaConfiguration) {
+    public DeleteCertificateAuthorityCommand(VersionedId certificateAuthorityId, X500Principal name) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
         this.name = name;
-        this.roaConfiguration = roaConfiguration;
     }
 
     @Override
     public String getCommandSummary() {
-        return "Deleted Certificate Authority '" + name + "' with ROAs: " + roaConfiguration.getPrefixes() + ".";
+        return "Deleted Certificate Authority '" + name + "'";
     }
 }

@@ -4,7 +4,6 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.server.api.services.read.RoaViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,13 +29,10 @@ public class CaCleanUpServiceBeanTest {
     @Mock
     private CommandService commandService;
 
-    @Mock
-    private RoaViewService roaViewService;
-
     @Before
     public void setUp() {
         service = new CaCleanUpServiceBean(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()), certificateAuthorityRepository,
-            commandService, roaViewService, new SimpleMeterRegistry(), true);
+            commandService, new SimpleMeterRegistry(), true);
     }
 
     @Test

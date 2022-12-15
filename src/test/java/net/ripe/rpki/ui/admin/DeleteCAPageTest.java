@@ -8,7 +8,6 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.ui.application.CertificationWicketTestCase;
 import org.apache.wicket.PageParameters;
@@ -151,7 +150,6 @@ public class DeleteCAPageTest extends CertificationWicketTestCase {
     public void shouldSubmitTheDeleteFormAndDeleteHostedCA() {
         expect(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).andReturn(hostedCA);
         expect(caViewService.findMostRecentCommandsForCa(12L)).andReturn(Collections.emptyList());
-        expect(roaService.getRoaConfiguration(12L)).andReturn(new RoaConfigurationData(Collections.emptyList()));
         expect(commandService.execute(isA(DeleteCertificateAuthorityCommand.class))).andReturn(CommandStatus.create());
         replayMocks();
 
@@ -184,7 +182,6 @@ public class DeleteCAPageTest extends CertificationWicketTestCase {
     public void shouldShowErrorMessageIfCADeletionFails() {
         expect(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).andReturn(hostedCA);
         expect(caViewService.findMostRecentCommandsForCa(12L)).andReturn(Collections.emptyList());
-        expect(roaService.getRoaConfiguration(12L)).andReturn(new RoaConfigurationData(Collections.emptyList()));
         commandService.execute(isA(DeleteCertificateAuthorityCommand.class));
         expectLastCall().andThrow(new RuntimeException("Some error"));
         replayMocks();

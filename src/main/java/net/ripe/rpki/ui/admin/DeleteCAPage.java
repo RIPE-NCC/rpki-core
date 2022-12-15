@@ -6,8 +6,6 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.CommandAuditData;
 import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.server.api.services.read.RoaViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import net.ripe.rpki.ui.audit.CommandListPanel;
 import net.ripe.rpki.ui.commons.AdminCertificationBasePage;
@@ -29,12 +27,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class DeleteCAPage extends AdminCertificationBasePage {
-    @SpringBean
-    private RoaViewService roaConfiguration;
-
-    @SpringBean
-    private CertificateAuthorityViewService caViewService;
-
     @SpringBean
     private CommandService commandService;
 
@@ -179,7 +171,7 @@ public class DeleteCAPage extends AdminCertificationBasePage {
                 CertificateAuthorityData certificateAuthority = getCurrentCertificateAuthority();
                 Validate.isTrue(certificateAuthority.getType() != CertificateAuthorityType.ROOT, "Root CA removal attempt!");
                 if(certificateAuthority.getType() == CertificateAuthorityType.HOSTED){
-                    commandService.execute(new DeleteCertificateAuthorityCommand(certificateAuthority.getVersionedId(), certificateAuthority.getName(), roaConfiguration.getRoaConfiguration(certificateAuthority.getId())));
+                    commandService.execute(new DeleteCertificateAuthorityCommand(certificateAuthority.getVersionedId(), certificateAuthority.getName()));
                     info("Deleted CA " + certificateAuthority.getName());
                 } else if(certificateAuthority.getType() == CertificateAuthorityType.NONHOSTED) {
                     commandService.execute(new DeleteNonHostedCertificateAuthorityCommand(certificateAuthority.getVersionedId()));

@@ -17,8 +17,6 @@ import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
-import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -27,7 +25,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.security.auth.x500.X500Principal;
 import java.security.PublicKey;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -72,7 +69,6 @@ public class DeleteCertificateAuthorityServiceTest extends TestCase {
 
         VersionedId caId = new VersionedId(HOSTED_CA_ID);
         RoaConfiguration roaConfiguration = new RoaConfiguration();
-        DeleteCertificateAuthorityCommand command = new DeleteCertificateAuthorityCommand(caId, new X500Principal("CN=Test"), new RoaConfigurationData(new ArrayList<>()));
         ManagedCertificateAuthority hostedCA = new HostedCertificateAuthority(HOSTED_CA_ID, name, parentCA);
         hostedCA.addKeyPair(keyPair);
 

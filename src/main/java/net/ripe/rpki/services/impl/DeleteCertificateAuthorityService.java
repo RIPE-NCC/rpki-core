@@ -69,17 +69,18 @@ public class DeleteCertificateAuthorityService {
         if (hostedCa != null) {
             log.warn("Deleting hosted CA with id " + id);
 
-            final RoaAlertConfiguration roaAlertConfiguration = roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(hostedCa.getId());
-            if (roaAlertConfiguration != null) {
-                roaAlertConfigurationRepository.remove(roaAlertConfiguration);
-            }
-
-            roaConfigurationRepository.findByCertificateAuthority(hostedCa)
-                .ifPresent(roaConfigurationRepository::remove);
-
             // List of keypairs is duplicated to prevent concurrent modification of underlying collection during iteration, e.g during key rollover when a CA has multiple keypairs
             final Collection<KeyPairEntity> keyPairs = new HashSet<>(hostedCa.getKeyPairs());
             keyPairs.forEach(keyPair -> deleteArtifactsOfKeyPairEntity(hostedCa, keyPair));
+
+            // Remove ROA configuration after deleting keys above, otherwise there will be no events generated for the
+            // ROA configuration changes.
+            roaConfigurationRepository.findByCertificateAuthority(hostedCa)
+                .ifPresent(roaConfigurationRepository::remove);
+            RoaAlertConfiguration roaAlertConfiguration = roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(hostedCa.getId());
+            if (roaAlertConfiguration != null) {
+                roaAlertConfigurationRepository.remove(roaAlertConfiguration);
+            }
 
             commandAuditService.deleteCommandsForCa(hostedCa.getId());
 

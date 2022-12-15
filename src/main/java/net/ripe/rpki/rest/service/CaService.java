@@ -20,7 +20,6 @@ import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateSe
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
-import net.ripe.rpki.server.api.services.read.RoaViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.apache.commons.io.IOUtils;
 import org.joda.time.DateTime;
@@ -65,7 +64,6 @@ public class CaService extends AbstractCaRestService {
 
     private final CertificateAuthorityCreateService certificateAuthorityCreateService;
     private final ResourceLookupService resourceCache;
-    private final RoaViewService roaViewService;
     private final CommandService commandService;
     private final ProvisioningIdentityViewService delegationCaProvisioningService;
 
@@ -73,13 +71,11 @@ public class CaService extends AbstractCaRestService {
     public CaService(CertificateAuthorityCreateService certificateAuthorityCreateService,
                      ResourceLookupService resourceCache,
                      CommandService commandService,
-                     ProvisioningIdentityViewService delegationCaProvisioningService,
-                     RoaViewService roaViewService) {
+                     ProvisioningIdentityViewService delegationCaProvisioningService) {
         this.certificateAuthorityCreateService = certificateAuthorityCreateService;
         this.resourceCache = resourceCache;
         this.commandService = commandService;
         this.delegationCaProvisioningService = delegationCaProvisioningService;
-        this.roaViewService = roaViewService;
     }
 
     private ResponseEntity<Map<String,String>> responseForCaNameNotUniqueException(CaName caName) {
@@ -161,8 +157,8 @@ public class CaService extends AbstractCaRestService {
         try {
             commandService.execute(new DeleteCertificateAuthorityCommand(
                     certificateAuthority.getVersionedId(),
-                    certificateAuthority.getName(),
-                    roaViewService.getRoaConfiguration(certificateAuthority.getId())));
+                    certificateAuthority.getName()
+            ));
             log.info("Deleted hosted CA '{}'", caName);
 
             return ok(RevokeHostedResult.builder()

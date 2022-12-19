@@ -4,7 +4,6 @@ import net.ripe.rpki.server.api.commands.CreateAllResourcesCertificateAuthorityC
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
 import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.ui.ca.CreateProductionCaPage;
 import net.ripe.rpki.ui.commons.AdminCertificationBasePage;
@@ -16,9 +15,6 @@ import org.apache.wicket.spring.injection.annot.SpringBean;
 
 
 public class UpstreamCaManagementPage extends AdminCertificationBasePage {
-
-    @SpringBean
-    private CertificateAuthorityViewService caViewService;
 
     @SpringBean
     private ActiveNodeService activeNodeService;
@@ -57,7 +53,7 @@ public class UpstreamCaManagementPage extends AdminCertificationBasePage {
         @Override
         protected void onSubmit() {
             try {
-                commandService.execute(new CreateAllResourcesCertificateAuthorityCommand(commandService.getNextId()));
+                commandService.execute(new CreateAllResourcesCertificateAuthorityCommand(commandService.getNextId(), repositoryConfiguration.getAllResourcesCaPrincipal()));
                 activeNodeService.activateCurrentNode();
                 setResponsePage(UpstreamCaManagementPage.class);
             } catch (CertificateAuthorityNameNotUniqueException ex) {

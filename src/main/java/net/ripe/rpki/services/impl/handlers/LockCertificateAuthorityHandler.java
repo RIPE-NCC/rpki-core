@@ -40,7 +40,7 @@ public class LockCertificateAuthorityHandler implements CertificateAuthorityComm
             lockedForUpdateCaIds.add(parentId);
         } else if (command instanceof ChildSharedParentCertificateAuthorityCommand) {
             // Must lock child exclusively and parent for sharing
-            long childId = command.getCertificateAuthorityVersionedId().getId();
+            long childId = command.getCertificateAuthorityId();
             Long parentId = dbComponent.lockCertificateAuthorityForUpdate(childId);
             lockedForUpdateCaIds.add(childId);
             if (parentId != null) {
@@ -48,7 +48,7 @@ public class LockCertificateAuthorityHandler implements CertificateAuthorityComm
             }
         } else if (command instanceof ChildParentCertificateAuthorityCommand) {
             // Must lock child and then the parent
-            long childId = command.getCertificateAuthorityVersionedId().getId();
+            long childId = command.getCertificateAuthorityId();
             Long parentId = dbComponent.lockCertificateAuthorityForUpdate(childId);
             lockedForUpdateCaIds.add(childId);
             if (parentId != null) {
@@ -57,7 +57,7 @@ public class LockCertificateAuthorityHandler implements CertificateAuthorityComm
             }
         } else {
             // Other command types only affect a single CA that must be locked
-            long id = command.getCertificateAuthorityVersionedId().getId();
+            long id = command.getCertificateAuthorityId();
             dbComponent.lockCertificateAuthorityForUpdate(id);
             lockedForUpdateCaIds.add(id);
         }

@@ -48,7 +48,7 @@ public class ReinitServiceBean extends SequentialBackgroundServiceWithAdminPrivi
         final X500Principal allResourcesCaPrincipal = repositoryConfiguration.getAllResourcesCaPrincipal();
         final CertificateAuthorityData allResourcesCa = caViewService.findCertificateAuthorityByName(allResourcesCaPrincipal);
         if (allResourcesCa == null) {
-            commandService.execute(new CreateAllResourcesCertificateAuthorityCommand(commandService.getNextId()));
+            commandService.execute(new CreateAllResourcesCertificateAuthorityCommand(commandService.getNextId(), allResourcesCaPrincipal));
             log.info("Created All Resources CA {}.", allResourcesCaPrincipal);
         } else {
             log.warn("All Resources CA {} already exists, will not try to re-create it.", allResourcesCaPrincipal);
@@ -57,7 +57,7 @@ public class ReinitServiceBean extends SequentialBackgroundServiceWithAdminPrivi
         final X500Principal productionCaPrincipal = repositoryConfiguration.getProductionCaPrincipal();
         final CertificateAuthorityData maybeProductionCa = caViewService.findCertificateAuthorityByName(productionCaPrincipal);
         if (maybeProductionCa == null) {
-            commandService.execute(new CreateRootCertificateAuthorityCommand(commandService.getNextId()));
+            commandService.execute(new CreateRootCertificateAuthorityCommand(commandService.getNextId(), productionCaPrincipal));
             log.info("Created Production CA {}.", productionCaPrincipal);
         } else {
             log.warn("Production Certificate Authority '{}' already exists, will not try to re-create it.", productionCaPrincipal);

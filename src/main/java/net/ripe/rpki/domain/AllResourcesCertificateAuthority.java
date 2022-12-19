@@ -17,6 +17,7 @@ import javax.security.auth.x500.X500Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 
 @Entity
@@ -31,8 +32,8 @@ public class AllResourcesCertificateAuthority extends ManagedCertificateAuthorit
     protected AllResourcesCertificateAuthority() {
     }
 
-    public AllResourcesCertificateAuthority(long id, X500Principal name) {
-        super(id, name, null);
+    public AllResourcesCertificateAuthority(long id, X500Principal name, UUID uuid) {
+        super(id, name, uuid, null);
     }
 
     @Override

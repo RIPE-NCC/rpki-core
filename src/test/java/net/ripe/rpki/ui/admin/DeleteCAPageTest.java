@@ -3,11 +3,9 @@ package net.ripe.rpki.ui.admin;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.ui.application.CertificationWicketTestCase;
 import org.apache.wicket.PageParameters;
@@ -27,17 +25,12 @@ import static org.junit.Assert.assertEquals;
 public class DeleteCAPageTest extends CertificationWicketTestCase {
 
     private CertificateAuthorityData hostedCA;
-    private CertificateAuthorityData nonHostedCA;
 
     @Before
     public void setUp() {
         hostedCA = new ManagedCertificateAuthorityData(new VersionedId(12, 1),
             new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L, CertificateAuthorityType.HOSTED,
             ImmutableResourceSet.empty(), Collections.emptyList());
-
-        nonHostedCA = new NonHostedCertificateAuthorityData(new VersionedId(12, 1),
-            new X500Principal("CN=zz.example"), UUID.randomUUID(), 1L,null,
-            ImmutableResourceSet.empty(), Collections.emptySet());
     }
 
     @Test
@@ -158,22 +151,6 @@ public class DeleteCAPageTest extends CertificationWicketTestCase {
         formTester.submit("deleteButton");
 
         tester.assertInfoMessages(new String[]{"Deleted CA " + "CN=zz.example"});
-
-        verifyMocks();
-    }
-
-    @Test
-    public void shouldSubmitTheDeleteFormAndDeleteNonhostedCA() {
-        expect(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).andReturn(nonHostedCA);
-        expect(caViewService.findMostRecentCommandsForCa(12L)).andReturn(Collections.emptyList());
-        expect(commandService.execute(isA(DeleteNonHostedCertificateAuthorityCommand.class))).andReturn(CommandStatus.create());
-        replayMocks();
-
-        tester.startPage(DeleteCAPage.class, pageParams());
-        FormTester formTester = tester.newFormTester("deleteForm");
-        formTester.submit("deleteButton");
-
-        tester.assertInfoMessages(new String[]{"Deleted non hosted CA " + "CN=zz.example"});
 
         verifyMocks();
     }

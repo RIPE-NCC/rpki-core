@@ -14,6 +14,7 @@ import javax.persistence.Entity;
 import javax.security.auth.x500.X500Principal;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -27,8 +28,8 @@ public class HostedCertificateAuthority extends ManagedCertificateAuthority {
 
     protected HostedCertificateAuthority() { }
 
-    public HostedCertificateAuthority(long id, X500Principal name, @NonNull ParentCertificateAuthority parent) {
-        super(id, name, parent);
+    public HostedCertificateAuthority(long id, @NonNull X500Principal name, @NonNull UUID uuid, @NonNull ParentCertificateAuthority parent) {
+        super(id, name, uuid, parent);
     }
 
     @Override

@@ -15,6 +15,8 @@ import org.junit.Test;
 import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -55,7 +57,7 @@ public class JpaCertificateAuthorityRepositoryTest extends CertificationDomainTe
     @Test
     public void should_throw_NameNotUniqueException_for_duplicate_ca_name() {
         ProductionCertificateAuthority prodCa = createInitialisedProdCaWithRipeResources();
-        CertificateAuthority ca1 = new HostedCertificateAuthority(1000L, new X500Principal("CN=ca"), prodCa);
+        CertificateAuthority ca1 = new HostedCertificateAuthority(1000L, new X500Principal("CN=ca"), UUID.randomUUID(), prodCa);
         certificateAuthorityRepository.add(ca1);
         CertificateAuthority ca2 = new NonHostedCertificateAuthority(1001L, new X500Principal("CN=ca"), ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, prodCa);
         assertThatThrownBy(() -> certificateAuthorityRepository.add(ca2)).isInstanceOfSatisfying(

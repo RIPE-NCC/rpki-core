@@ -1,6 +1,7 @@
 package net.ripe.rpki.domain;
 
 import lombok.Getter;
+import lombok.NonNull;
 import net.ripe.rpki.ncc.core.domain.support.AggregateRoot;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
@@ -20,10 +21,8 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.security.auth.x500.X500Principal;
 import javax.validation.constraints.NotNull;
+import java.util.Optional;
 import java.util.UUID;
-
-import static java.util.Objects.requireNonNull;
-
 
 /**
  * A certificate authority is a trusted authority within an PKI responsible for certifying Internet
@@ -56,11 +55,11 @@ public abstract class CertificateAuthority extends AggregateRoot implements Chil
     protected CertificateAuthority() {
     }
 
-    public CertificateAuthority(long id, ParentCertificateAuthority parent, X500Principal name, UUID uuid) {
+    protected CertificateAuthority(long id, @NonNull X500Principal name, @NonNull UUID uuid, ParentCertificateAuthority parent) {
         super(id);
+        this.name = name;
         this.uuid = uuid;
         this.parent = parent;
-        this.name = requireNonNull(name);
     }
 
     public X500Principal getName() {
@@ -86,6 +85,8 @@ public abstract class CertificateAuthority extends AggregateRoot implements Chil
     public boolean isAllResourcesCa() {
         return getType().equals(CertificateAuthorityType.ALL_RESOURCES);
     }
+
+    public abstract Optional<ManagedCertificateAuthority> asManagedCertificateAuthority();
 
     /**
      * Calculates the depth of this CA in the CA hierarchy (in other words, it is the length of the parent

@@ -10,7 +10,6 @@ import net.ripe.rpki.commons.provisioning.identity.*;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.rest.pojo.RevokeHostedResult;
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
@@ -118,7 +117,7 @@ public class CaService extends AbstractCaRestService {
         } catch (CertificateAuthorityNameNotUniqueException e) {
             log.warn("CA was already provisioned for '{}': {}", caName, e.getMessage());
             return responseForCaNameNotUniqueException(caName);
-        } catch (IOException | IllegalArgumentException e) {
+        } catch (IdentitySerializer.IdentitySerializerException | IOException | IllegalArgumentException e) {
             log.warn("Could not parse uploaded certificate: {}", e.getMessage(), e);
             return ResponseEntity.status(BAD_REQUEST).body(bodyForError(e.getMessage()));
         }
@@ -130,7 +129,7 @@ public class CaService extends AbstractCaRestService {
         log.info("Revoking non-hosted CA: {}", caName);
         NonHostedCertificateAuthorityData ca = getCa(NonHostedCertificateAuthorityData.class, caName);
         try {
-            commandService.execute(new DeleteNonHostedCertificateAuthorityCommand(ca.getVersionedId()));
+            commandService.execute(new DeleteCertificateAuthorityCommand(ca.getVersionedId(), ca.getName()));
             log.info("Revoked non-hosted CA: {}", caName);
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (Exception e) {

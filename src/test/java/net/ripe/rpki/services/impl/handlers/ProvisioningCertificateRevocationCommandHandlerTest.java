@@ -16,6 +16,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.security.auth.x500.X500Principal;
 import java.security.PublicKey;
+import java.util.UUID;
 
 import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,7 +41,7 @@ public class ProvisioningCertificateRevocationCommandHandlerTest {
 
     @Before
     public void setUp() {
-        ParentCertificateAuthority parent = new AllResourcesCertificateAuthority(1L, ALL_RESOURCES_CA_NAME);
+        ParentCertificateAuthority parent = new AllResourcesCertificateAuthority(1L, ALL_RESOURCES_CA_NAME, UUID.randomUUID());
         nonHostedCertificateAuthority = new NonHostedCertificateAuthority(12L, new X500Principal("CN=101"), ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, parent);
         nonHostedCertificateAuthority.findOrCreatePublicKeyEntityByPublicKey(publicKey);
 
@@ -54,7 +55,7 @@ public class ProvisioningCertificateRevocationCommandHandlerTest {
 
         subject.handle(new ProvisioningCertificateRevocationCommand(nonHostedCertificateAuthority.getVersionedId(),publicKey));
 
-        assertThat(nonHostedCertificateAuthority.getPublicKeys()).hasSize(1).allSatisfy(pke -> {
+        assertThat(nonHostedCertificateAuthority.getPublicKeyEntities()).hasSize(1).allSatisfy(pke -> {
             assertThat(pke.getLatestProvisioningRequestType()).isEqualTo(PayloadMessageType.revoke);
         });
         verify(childParentCertificateUpdateSaga).execute(nonHostedCertificateAuthority, NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT);

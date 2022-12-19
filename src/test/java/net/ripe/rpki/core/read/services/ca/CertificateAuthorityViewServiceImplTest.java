@@ -14,6 +14,7 @@ import javax.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,7 +42,7 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
     public void findAllHostedCasWithCurrentKeyOnlyAndOlderThan_with_keypair() {
         clearDatabase();
         var parent = createInitializedAllResourcesAndProductionCertificateAuthority();
-        var child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent);
+        var child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, UUID.randomUUID(), parent);
         issueCertificateForNewKey(parent, child, CHILD_CA_RESOURCES);
 
         // CAs are too new to be selected
@@ -62,7 +63,7 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
         clearDatabase();
         var parent = createInitializedAllResourcesAndProductionCertificateAuthority();
         // CA without keypair or certificate
-        var child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent);
+        var child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, UUID.randomUUID(), parent);
         certificateAuthorityRepository.add(child);
 
         assertThat(subject.findManagedCasEligibleForKeyRoll(HostedCertificateAuthority.class, Instant.now(), Optional.of(1000))
@@ -73,7 +74,7 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
     public void findAllHostedCasWithCurrentKeyOnlyAndOlderThan_has_pending() {
         clearDatabase();
         var parent = createInitializedAllResourcesAndProductionCertificateAuthority();
-        var child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent);
+        var child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, UUID.randomUUID(), parent);
         issueCertificateForNewKey(parent, child, CHILD_CA_RESOURCES);
 
         // Add a new (NEW) key -> ca will not be selected

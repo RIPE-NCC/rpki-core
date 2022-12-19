@@ -1,7 +1,8 @@
 package net.ripe.rpki.server.api.commands;
 
+import lombok.Getter;
+import lombok.NonNull;
 import net.ripe.rpki.commons.util.VersionedId;
-import org.apache.commons.lang.Validate;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -10,28 +11,22 @@ import org.apache.commons.lang.builder.ToStringStyle;
 /**
  * Base class for <b>all</b> commands related to Certificate Authorities.
  */
+@Getter
 public abstract class CertificateAuthorityCommand {
 
-    private final VersionedId certificateAuthorityId; // Maybe change name to certificationAuthorityVersionedId? If so, need to migrate existing serialised history
+    @NonNull
+    private final VersionedId certificateAuthorityVersionedId;
 
+    @NonNull
     private final CertificateAuthorityCommandGroup commandGroup;
 
-    public CertificateAuthorityCommand(VersionedId certificateAuthorityId, CertificateAuthorityCommandGroup commandGroup) {
-        Validate.notNull(certificateAuthorityId, "certificateAuthorityId is required");
-        this.certificateAuthorityId = certificateAuthorityId;
+    protected CertificateAuthorityCommand(VersionedId certificateAuthorityVersionedId, CertificateAuthorityCommandGroup commandGroup) {
+        this.certificateAuthorityVersionedId = certificateAuthorityVersionedId;
         this.commandGroup = commandGroup;
-    }
-
-    public VersionedId getCertificateAuthorityVersionedId() {
-        return certificateAuthorityId;
     }
 
     public long getCertificateAuthorityId() {
         return getCertificateAuthorityVersionedId().getId();
-    }
-
-    public CertificateAuthorityCommandGroup getCommandGroup() {
-    	return commandGroup;
     }
 
     public String getCommandType() {

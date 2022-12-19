@@ -3,6 +3,9 @@ package net.ripe.rpki.server.api.commands;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 
+import javax.security.auth.x500.X500Principal;
+import java.util.UUID;
+
 /**
  * <p>
  * Created All Resources Certificate Authority.
@@ -13,12 +16,12 @@ import net.ripe.rpki.commons.util.VersionedId;
  */
 public class CreateAllResourcesCertificateAuthorityCommand extends CertificateAuthorityCreationCommand {
 
-    public CreateAllResourcesCertificateAuthorityCommand(VersionedId certificateAuthorityId) {
-        super(certificateAuthorityId, ImmutableResourceSet.empty());
+    public CreateAllResourcesCertificateAuthorityCommand(VersionedId certificateAuthorityId, X500Principal name) {
+        super(certificateAuthorityId, name, UUID.randomUUID(), ImmutableResourceSet.empty());
     }
 
     @Override
     public String getCommandSummary() {
-        return "Created All Resources Certificate Authority.";
+        return String.format("Created All Resources Certificate Authority '%s'.", getName());
     }
 }

@@ -34,10 +34,11 @@ public class IncomingCertificateRevokedEvent extends CertificateAuthorityEvent {
     public String toString() {
         // This string representation is stored in the command audit table and shown to the user
         return String.format(
-                "Certificate for CA was revoked [uri=%s, serial=%s, public key hash=%s]",
+                "Certificate for CA was revoked [uri=%s, serial=%s, public key hash=%s, manifest=%s]",
                 publicationUri,
                 incomingCertificate.getSerialNumber(),
-                KeyPairUtil.getAsciiHexEncodedPublicKeyHash(response.getSubjectPublicKey())
+                KeyPairUtil.getAsciiHexEncodedPublicKeyHash(response.getSubjectPublicKey()),
+                incomingCertificate.getManifestUri()
         );
     }
 }

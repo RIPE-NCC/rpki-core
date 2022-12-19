@@ -16,6 +16,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.UUID;
+
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -47,7 +49,8 @@ public class UpdateAllIncomingResourceCertificatesCommandHandlerTest {
     public void should_skip_ca_without_parent() {
         when(certificateAuthorityRepository.get(any())).thenReturn(new AllResourcesCertificateAuthority(
             TestObjects.ACA_ID,
-            TestObjects.ALL_RESOURCES_CA_NAME
+            TestObjects.ALL_RESOURCES_CA_NAME,
+            UUID.randomUUID()
         ));
 
         assertThrows(CommandWithoutEffectException.class, () ->

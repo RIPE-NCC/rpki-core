@@ -20,6 +20,7 @@ import javax.security.auth.x500.X500Principal;
 import java.security.PublicKey;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +47,7 @@ public class ProvisioningCertificateIssuanceCommandHandlerTest {
 
     @Before
     public void setUp() {
-        ParentCertificateAuthority parent = new AllResourcesCertificateAuthority(1L, ALL_RESOURCES_CA_NAME);
+        ParentCertificateAuthority parent = new AllResourcesCertificateAuthority(1L, ALL_RESOURCES_CA_NAME, UUID.randomUUID());
         nonHostedCertificateAuthority = new NonHostedCertificateAuthority(12L, new X500Principal("CN=101"), ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, parent);
 
         subject = new ProvisioningCertificateIssuanceCommandHandler(certificateAuthorityRepository, childParentCertificateUpdateSaga);
@@ -64,7 +65,7 @@ public class ProvisioningCertificateIssuanceCommandHandlerTest {
             sia
         ));
 
-        assertThat(nonHostedCertificateAuthority.getPublicKeys()).hasSize(1).allSatisfy(pke -> {
+        assertThat(nonHostedCertificateAuthority.getPublicKeyEntities()).hasSize(1).allSatisfy(pke -> {
             assertThat(pke.getLatestProvisioningRequestType()).isEqualTo(PayloadMessageType.issue);
             assertThat(pke.getRequestedResourceSets()).isSameAs(requestedResourceSets);
             assertThat(pke.getRequestedSia()).isEqualTo(sia);

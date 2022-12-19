@@ -32,7 +32,7 @@ public class GenerateOfflineCARepublishRequestCommandHandler extends AbstractCer
 
     @Override
     public void handle(GenerateOfflineCARepublishRequestCommand command, CommandStatus commandStatus) {
-        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityId());
         Validate.isTrue(ca.isAllResourcesCa(), "Only All Resources CA can request Offline CA to republish");
 
         TrustAnchorRequest trustAnchorRequest = requestCreationService.createTrustAnchorRequest(Collections.emptyList());

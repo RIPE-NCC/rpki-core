@@ -39,8 +39,8 @@ public class ActivateHostedCertificateAuthorityCommandHandler extends AbstractCe
     }
 
     private HostedCertificateAuthority createMemberCA(ActivateHostedCertificateAuthorityCommand command, ManagedCertificateAuthority parentCa) {
-        HostedCertificateAuthority ca = new HostedCertificateAuthority(command.getCertificateAuthorityVersionedId().getId(),
-                command.getName(), parentCa);
+        HostedCertificateAuthority ca = new HostedCertificateAuthority(command.getCertificateAuthorityId(),
+                command.getName(), command.getUuid(), parentCa);
         getCertificateAuthorityRepository().add(ca);
         return ca;
     }

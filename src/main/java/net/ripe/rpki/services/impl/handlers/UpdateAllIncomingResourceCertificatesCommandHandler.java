@@ -32,7 +32,7 @@ public class UpdateAllIncomingResourceCertificatesCommandHandler extends Abstrac
     public void handle(UpdateAllIncomingResourceCertificatesCommand command, CommandStatus commandStatus) {
         Validate.notNull(command);
         final boolean hasEffect;
-        final CertificateAuthority certificateAuthority = lookupCA(command.getCertificateAuthorityVersionedId().getId());
+        final CertificateAuthority certificateAuthority = lookupCA(command.getCertificateAuthorityId());
         if (certificateAuthority.getParent() == null) {
             log.error("cannot update incoming resource certificate for CAs without parent {}", certificateAuthority);
             hasEffect = false;

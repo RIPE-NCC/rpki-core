@@ -10,6 +10,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import javax.security.auth.x500.X500Principal;
+
+import java.util.UUID;
+
 import static net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup.*;
 import static org.junit.Assert.*;
 
@@ -40,7 +44,7 @@ public class CommandAuditTest {
 
     @Before
     public void setUp() {
-        subject = new CommandAudit(PRINCIPAL, TEST_COMMAND.getCertificateAuthorityVersionedId(), TEST_COMMAND, "");
+        subject = new CommandAudit(PRINCIPAL, TEST_COMMAND.getCertificateAuthorityVersionedId(), new X500Principal("CN=text"), UUID.randomUUID(), TEST_COMMAND);
     }
 
     @Test

@@ -1,7 +1,6 @@
 package net.ripe.rpki.ui.admin;
 
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.CommandAuditData;
@@ -170,13 +169,9 @@ public class DeleteCAPage extends AdminCertificationBasePage {
             try {
                 CertificateAuthorityData certificateAuthority = getCurrentCertificateAuthority();
                 Validate.isTrue(certificateAuthority.getType() != CertificateAuthorityType.ROOT, "Root CA removal attempt!");
-                if(certificateAuthority.getType() == CertificateAuthorityType.HOSTED){
-                    commandService.execute(new DeleteCertificateAuthorityCommand(certificateAuthority.getVersionedId(), certificateAuthority.getName()));
-                    info("Deleted CA " + certificateAuthority.getName());
-                } else if(certificateAuthority.getType() == CertificateAuthorityType.NONHOSTED) {
-                    commandService.execute(new DeleteNonHostedCertificateAuthorityCommand(certificateAuthority.getVersionedId()));
-                    info("Deleted non hosted CA " + certificateAuthority.getName());
-                }
+                Validate.isTrue(certificateAuthority.getType() != CertificateAuthorityType.ALL_RESOURCES, "All Resources CA removal attempt!");
+                commandService.execute(new DeleteCertificateAuthorityCommand(certificateAuthority.getVersionedId(), certificateAuthority.getName()));
+                info("Deleted CA " + certificateAuthority.getName());
             } catch (Exception ex) {
                 error("" + ex.getMessage());
             }

@@ -5,7 +5,6 @@ import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.CreateAllResourcesCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 
 import javax.inject.Inject;
@@ -13,13 +12,9 @@ import javax.inject.Inject;
 @Handler
 public class CreateAllResourcesCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<CreateAllResourcesCertificateAuthorityCommand> {
 
-    private final RepositoryConfiguration repositoryConfiguration;
-
     @Inject
-    public CreateAllResourcesCertificateAuthorityCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
-                                                                RepositoryConfiguration repositoryConfiguration) {
+    public CreateAllResourcesCertificateAuthorityCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository) {
         super(certificateAuthorityRepository);
-        this.repositoryConfiguration = repositoryConfiguration;
     }
 
     @Override
@@ -30,8 +25,9 @@ public class CreateAllResourcesCertificateAuthorityCommandHandler extends Abstra
     @Override
     public void handle(@NonNull CreateAllResourcesCertificateAuthorityCommand command, CommandStatus commandStatus) {
         final ManagedCertificateAuthority allResourcesCertificateAuthority = new AllResourcesCertificateAuthority(
-                command.getCertificateAuthorityVersionedId().getId(),
-                repositoryConfiguration.getAllResourcesCaPrincipal()
+                command.getCertificateAuthorityId(),
+                command.getName(),
+                command.getUuid()
         );
         getCertificateAuthorityRepository().add(allResourcesCertificateAuthority);
     }

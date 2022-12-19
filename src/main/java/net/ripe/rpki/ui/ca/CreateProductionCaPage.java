@@ -47,7 +47,7 @@ public class CreateProductionCaPage extends AdminCertificationBasePage {
         protected void onSubmit() {
             try {
                 VersionedId caId = commandService.getNextId();
-                commandService.execute(new CreateRootCertificateAuthorityCommand(caId));
+                commandService.execute(new CreateRootCertificateAuthorityCommand(caId, repositoryConfiguration.getProductionCaPrincipal()));
                 activeNodeService.activateCurrentNode();
                 setResponsePage(UpstreamCaManagementPage.class);
             } catch (CertificateAuthorityNameNotUniqueException ex) {

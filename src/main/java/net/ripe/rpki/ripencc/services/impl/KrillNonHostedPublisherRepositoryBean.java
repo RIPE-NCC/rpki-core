@@ -22,7 +22,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
-import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -31,7 +30,6 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -65,13 +63,6 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
     public KrillNonHostedPublisherRepositoryBean(
         @Value("${non-hosted.publisher.repository.url}") String publisherRepositoryURL,
         @Value("${non-hosted.publisher.repository.token}") String apiToken
-    ) throws NoSuchAlgorithmException {
-        this(publisherRepositoryURL, apiToken, SSLContext.getDefault());
-    }
-
-    public KrillNonHostedPublisherRepositoryBean(
-        String publisherRepositoryURL,
-        String apiToken, SSLContext sslContext
     ) {
         this.publisherRepositoryURL = publisherRepositoryURL;
         this.apiToken = apiToken;
@@ -83,7 +74,6 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
             Level.INFO, LoggingFeature.Verbosity.PAYLOAD_ANY, 1024));
 
         publisherRepositoryClient = ClientBuilder.newBuilder()
-            .sslContext(sslContext)
             .withConfig(clientConfig)
             .build();
 
@@ -91,6 +81,7 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
     }
 
     private Invocation.Builder clientForTarget(String pathTarget) {
+        log.info("API call of core -> krill {}/{}", publisherRepositoryURL, pathTarget);
         return publisherRepositoryClient.target(publisherRepositoryURL)
                 .path(pathTarget)
                 .request(MediaType.APPLICATION_JSON)
@@ -99,14 +90,10 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
 
     @Override
     public boolean isAvailable() {
-        log.debug("Checking if repository publisher REST API is available");
+        log.debug("Checking if krill REST API is available");
         try {
-
-            return publisherRepositoryClient
-                .target(publisherRepositoryURL)
-                .path(MONITORING_TARGET)
-                .request(MediaType.APPLICATION_JSON)
-                .get().getStatus() == 200;
+            // Unauthenticated endpoint which accepts requests with authorisation as well.
+            return clientForTarget(MONITORING_TARGET).get().getStatus() == 200;
         } catch (Exception t) {
             log.debug("Requesting repository publisher REST API failed: {}", t);
             return false;

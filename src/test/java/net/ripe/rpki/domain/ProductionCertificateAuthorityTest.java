@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.security.auth.x500.X500Principal;
 
+import java.util.UUID;
+
 import static net.ripe.rpki.domain.TestObjects.TEST_VALIDITY_PERIOD;
 import static org.junit.Assert.assertFalse;
 
@@ -23,7 +25,7 @@ public class ProductionCertificateAuthorityTest extends CertificationDomainTestC
 
     @Before
     public void setUp() {
-        prodCa = new ProductionCertificateAuthority(12, TestObjects.PRODUCTION_CA_NAME, null);
+        prodCa = new ProductionCertificateAuthority(12, TestObjects.PRODUCTION_CA_NAME, UUID.randomUUID(), null);
         kp = TestObjects.createActiveKeyPair("TEST-KEY");
     }
 

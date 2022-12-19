@@ -2,6 +2,7 @@ package net.ripe.rpki.core.write.services.command;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.domain.audit.CommandAudit;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.CommandContext;
@@ -43,14 +44,16 @@ public class CommandServiceImplTest {
 
     private CommandServiceImpl subject;
     private SimpleMeterRegistry meterRegistry;
+    private CommandAudit commandAudit;
 
     @Before
     public void setUp() {
+        commandAudit = mock(CommandAudit.class);
         command = mock(CertificateAuthorityCommand.class);
         messageDispatcher = mock(MessageDispatcher.class);
         transactionStatuses = new ArrayList<>();
         CommandAuditService commandAuditService = mock(CommandAuditService.class);
-        when(commandAuditService.startRecording(any())).thenAnswer((args) -> new CommandContext(args.getArgument(0)));
+        when(commandAuditService.startRecording(any())).thenAnswer((args) -> new CommandContext(args.getArgument(0), commandAudit));
 
         final TransactionTemplate transactionTemplate = new TransactionTemplate() {
             @Override

@@ -28,7 +28,7 @@ public class KeyManagementActivatePendingKeysCommandHandler extends AbstractCert
      */
     @Override
     public void handle(KeyManagementActivatePendingKeysCommand command, CommandStatus commandStatus) {
-        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityId());
         if (!ca.activatePendingKeys(command.getMinStagingTime())) {
             throw new CommandWithoutEffectException("No keys to activate for ca: " + ca.getName());
         }

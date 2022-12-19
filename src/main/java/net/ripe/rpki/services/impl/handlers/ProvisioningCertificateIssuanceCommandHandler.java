@@ -30,7 +30,7 @@ public class ProvisioningCertificateIssuanceCommandHandler extends AbstractCerti
 
     @Override
     public void handle(@NonNull ProvisioningCertificateIssuanceCommand command, @NonNull CommandStatus commandStatus) {
-        final NonHostedCertificateAuthority nonHostedCa = lookupNonHostedCA(command.getCertificateAuthorityVersionedId().getId());
+        final NonHostedCertificateAuthority nonHostedCa = lookupNonHostedCA(command.getCertificateAuthorityId());
 
         PublicKey publicKey = command.getPublicKey();
 

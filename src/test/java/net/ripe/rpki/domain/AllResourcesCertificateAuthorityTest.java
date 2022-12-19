@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.UUID;
 
 import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
 import static net.ripe.rpki.domain.TestObjects.BASE_URI;
@@ -33,7 +34,7 @@ public class AllResourcesCertificateAuthorityTest  {
 
     @Before
     public void setUp() {
-        allResourcesCa = new AllResourcesCertificateAuthority(13, ALL_RESOURCES_CA_NAME);
+        allResourcesCa = new AllResourcesCertificateAuthority(13, ALL_RESOURCES_CA_NAME, UUID.randomUUID());
         keyPairService = mock(KeyPairService.class);
         kp = TestObjects.createActiveKeyPair("TEST-KEY");
         repositoryConfiguration = mock(RepositoryConfiguration.class);

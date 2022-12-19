@@ -31,7 +31,7 @@ public class IssueUpdatedManifestAndCrlCommandHandler extends AbstractCertificat
 
     @Override
     public void handle(IssueUpdatedManifestAndCrlCommand command, CommandStatus commandStatus) {
-        ManagedCertificateAuthority hostedCa = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority hostedCa = lookupManagedCa(command.getCertificateAuthorityId());
 
         long updateCount = manifestPublicationService.updateManifestAndCrlIfNeeded(hostedCa);
         if (hostedCa.isManifestAndCrlCheckNeeded()) {

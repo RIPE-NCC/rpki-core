@@ -1,10 +1,10 @@
 package net.ripe.rpki.server.api.commands;
 
 import lombok.Getter;
+import lombok.NonNull;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.util.VersionedId;
-import org.apache.commons.lang.Validate;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.UUID;
@@ -22,8 +22,8 @@ import java.util.UUID;
 @Getter
 public class ActivateNonHostedCertificateAuthorityCommand extends CertificateAuthorityActivationCommand {
 
+    @NonNull
     private final ProvisioningIdentityCertificate identityCertificate;
-    private final UUID uuid;
 
     public ActivateNonHostedCertificateAuthorityCommand(VersionedId certificateAuthorityId,
                                                         X500Principal name,
@@ -31,15 +31,13 @@ public class ActivateNonHostedCertificateAuthorityCommand extends CertificateAut
                                                         ImmutableResourceSet resources,
                                                         ProvisioningIdentityCertificate identityCertificate,
                                                         long parentId) {
-        super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER, name, resources, parentId);
-        Validate.notNull(identityCertificate, "identityCertificate is required");
+        super(certificateAuthorityId, name, uuid, resources, parentId);
         this.identityCertificate = identityCertificate;
-        this.uuid = uuid;
     }
 
     @Override
     public String getCommandSummary() {
         return String.format("Created non-Hosted Certificate Authority '%s' with uuid '%s' and with resources '%s'",
-                name, uuid, resources.toString());
+                getName(), getUuid(), getResources());
     }
 }

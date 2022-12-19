@@ -28,6 +28,7 @@ import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static net.ripe.rpki.commons.crypto.util.KeyStoreUtilTest.DEFAULT_KEYSTORE_PROVIDER;
@@ -186,7 +187,7 @@ public class TestObjects {
 
     public static ProductionCertificateAuthority createInitialisedProdCaWithRipeResources(ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration) {
         CertificateRequestCreationService certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificationConfiguration, null);
-        ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, null);
+        ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, UUID.randomUUID(), null);
         KeyPairEntity kp = createActiveKeyPair("TEST-KEY");
 
         ca.addKeyPair(kp);

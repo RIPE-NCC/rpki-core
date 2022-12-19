@@ -58,7 +58,7 @@ public class ProductionCAService {
     public Response create() {
         try {
             VersionedId caId = commandService.getNextId();
-            commandService.execute(new CreateRootCertificateAuthorityCommand(caId));
+            commandService.execute(new CreateRootCertificateAuthorityCommand(caId, certificationConfiguration.getProductionCaPrincipal()));
             activeNodeService.activateCurrentNode();
 
             return Response.status(NO_CONTENT).build();

@@ -40,7 +40,7 @@ public class UpstreamCaServiceTest extends CertificationDomainTestCase {
 
     @Test
     public void shouldGetRequestWithAllResourcesCA() throws Exception {
-        commandService.execute(new CreateAllResourcesCertificateAuthorityCommand(commandService.getNextId()));
+        commandService.execute(new CreateAllResourcesCertificateAuthorityCommand(commandService.getNextId(), repositoryConfiguration.getAllResourcesCaPrincipal()));
         mockMvc.perform(Rest.post("/api/upstream/request"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(APPLICATION_XML))

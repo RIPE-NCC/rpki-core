@@ -1,73 +1,90 @@
 package net.ripe.rpki.application.impl;
 
-import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.domain.CertificateAuthority;
+import net.ripe.rpki.domain.CertificationDomainTestCase;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.audit.CommandAudit;
-import net.ripe.rpki.server.api.commands.CommandContext;
-import net.ripe.rpki.server.api.commands.CreateRootCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
-import net.ripe.rpki.server.api.security.CertificationUserId;
-import net.ripe.rpki.server.api.security.RoleBasedAuthenticationStrategy;
+import net.ripe.rpki.server.api.commands.*;
+import net.ripe.rpki.server.api.security.RunAsUser;
+import net.ripe.rpki.server.api.security.RunAsUserHolder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
+import javax.inject.Inject;
+import java.util.Collections;
 import java.util.UUID;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup.USER;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class CommandAuditServiceBeanTest {
+@Transactional
+public class CommandAuditServiceBeanTest extends CertificationDomainTestCase {
 
-    private EntityManager entityManager;
+    @Inject
     private CommandAuditServiceBean subject;
-    private RoleBasedAuthenticationStrategy authStrategy;
 
-    private static final String TEST_USER_UUID = "6e80bc78-7f56-407a-be41-3d3f76af2919";
-    private static final CertificationUserId TEST_USER = new CertificationUserId(UUID.fromString(TEST_USER_UUID));
-
+    private static final UUID TEST_USER_UUID = UUID.randomUUID();
+    private ManagedCertificateAuthority ca;
     @Before
     public void setUp() {
-        entityManager = mock(EntityManager.class);
-        authStrategy = mock(RoleBasedAuthenticationStrategy.class);
-        subject = new CommandAuditServiceBean(authStrategy, entityManager);
+        clearDatabase();
 
-        CertificateAuthority ca = mock(CertificateAuthority.class);
-        when(ca.getVersionedId()).thenReturn(new VersionedId(12));
-        when(entityManager.find(eq(CertificateAuthority.class), any())).thenReturn(ca);
+        ca = createInitialisedProdCaWithRipeResources();
+        RunAsUserHolder.set(RunAsUser.operator(TEST_USER_UUID));
+    }
+
+    @After
+    public void tearDown() {
+        RunAsUserHolder.clear();
     }
 
     @Test
-    public void shouldRecordUserCommands() {
-        when(authStrategy.getOriginalUserId()).thenReturn(TEST_USER);
-        ArgumentCaptor<CommandAudit> capturedArgument = ArgumentCaptor.forClass(CommandAudit.class);
-
-        CreateRootCertificateAuthorityCommand command = new CreateRootCertificateAuthorityCommand(new VersionedId(12));
+    public void should_store_user_commands() {
+        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(ca.getVersionedId(), "", Collections.emptyList());
         CommandContext commandContext = subject.startRecording(command);
         subject.finishRecording(commandContext);
 
-        verify(entityManager).persist(capturedArgument.capture());
-
-        CommandAudit commandAudit = capturedArgument.getValue();
-
-        assertEquals(TEST_USER_UUID, commandAudit.getPrincipal());
-        assertEquals(command.getCertificateAuthorityVersionedId(), commandAudit.getCertificateAuthorityVersionedId());
-        assertEquals(command.getCertificateAuthorityId(), commandAudit.getCertificateAuthorityId());
-
-        assertEquals(command.getCommandType(), commandAudit.getCommandType());
-        assertEquals(command.getCommandGroup(), commandAudit.getCommandGroup());
-        assertEquals(command.getCommandSummary(), commandAudit.getCommandSummary());
+        CommandAudit commandAudit = commandContext.getCommandAudit();
+        assertThat(entityManager.contains(commandAudit)).isTrue();
+        assertThat(commandAudit.getPrincipal()).isEqualTo(TEST_USER_UUID.toString());
+        assertThat(commandAudit.getCommandGroup()).isEqualTo(USER);
+        assertThat(commandAudit.getCommandType()).isEqualTo(command.getCommandType());
+        assertThat(commandAudit.getCommandSummary()).isEqualTo(command.getCommandSummary());
     }
 
     @Test
-    public void shouldNotRecordSystemCommands() {
-        when(authStrategy.getOriginalUserId()).thenReturn(TEST_USER);
+    public void should_store_system_commands_with_events() {
+        UpdateAllIncomingResourceCertificatesCommand command = new UpdateAllIncomingResourceCertificatesCommand(ca.getVersionedId(), 1);
+        CommandContext commandContext = subject.startRecording(command);
+        commandContext.recordEvent("some event");
+        subject.finishRecording(commandContext);
 
-        KeyManagementInitiateRollCommand command = new KeyManagementInitiateRollCommand(new VersionedId(1), 120);
+        CommandAudit commandAudit = commandContext.getCommandAudit();
+        assertThat(entityManager.contains(commandAudit)).isTrue();
+        assertThat(commandAudit.getCommandSummary()).isEqualTo("Updated all incoming certificates.");
+        assertThat(commandAudit.getCommandEvents()).isEqualTo("some event");
+    }
+
+    @Test
+    public void should_not_store_system_commands_without_events() {
+        UpdateAllIncomingResourceCertificatesCommand command = new UpdateAllIncomingResourceCertificatesCommand(ca.getVersionedId(), 1);
         CommandContext commandContext = subject.startRecording(command);
         subject.finishRecording(commandContext);
 
-        verify(entityManager, never()).persist(isA(CommandAudit.class));
+        assertThat(entityManager.contains(commandContext.getCommandAudit())).isFalse();
+    }
+
+    @Test
+    public void should_set_deleted_at_for_all_commands_including_current_command() {
+        DeleteCertificateAuthorityCommand command = new DeleteCertificateAuthorityCommand(ca.getVersionedId(), ca.getName());
+        CommandContext commandContext = subject.startRecording(command);
+        commandContext.recordEvent("some event");
+        subject.deleteCommandsForCa(ca.getId());
+        subject.finishRecording(commandContext);
+
+        entityManager.flush();
+        entityManager.refresh(commandContext.getCommandAudit());
+        assertThat(commandContext.getCommandAudit().getDeletedAt()).isNotNull();
     }
 }

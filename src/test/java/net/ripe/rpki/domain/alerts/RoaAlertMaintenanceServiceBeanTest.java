@@ -72,7 +72,7 @@ public class RoaAlertMaintenanceServiceBeanTest extends CertificationDomainTestC
 
         parent = createInitializedAllResourcesAndProductionCertificateAuthority();
 
-        child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, parent);
+        child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, UUID.randomUUID(), parent);
         certificateAuthorityRepository.add(child);
         child.createNewKeyPair(keyPairService);
 

@@ -9,6 +9,7 @@ import net.ripe.rpki.core.events.IncomingCertificateUpdatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.aspa.AspaConfigurationMaintenanceServiceBean.AspaConfigurationUpdatedDueToChangedResourcesEvent;
+import net.ripe.rpki.domain.audit.CommandAudit;
 import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.dto.AspaAfiLimit;
@@ -24,6 +25,7 @@ import java.util.TreeMap;
 
 import static net.ripe.rpki.domain.TestObjects.CA_ID;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,7 +46,7 @@ public class AspaConfigurationMaintenanceServiceBeanTest  {
     @InjectMocks
     private AspaConfigurationMaintenanceServiceBean subject;
     private AspaConfiguration aspaConfiguration;
-    private final CommandContext commandContext = new CommandContext(new UpdateAllIncomingResourceCertificatesCommand(CERTIFICATE_AUTHORITY_ID, Integer.MAX_VALUE));
+    private final CommandContext commandContext = new CommandContext(new UpdateAllIncomingResourceCertificatesCommand(CERTIFICATE_AUTHORITY_ID, Integer.MAX_VALUE), mock(CommandAudit.class));
 
     @Before
     public void setUp() {

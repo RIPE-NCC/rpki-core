@@ -3,22 +3,22 @@ package net.ripe.rpki.server.api.commands;
 import lombok.Getter;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
-import org.apache.commons.lang.Validate;
 
 import javax.security.auth.x500.X500Principal;
+import java.util.UUID;
 
 @Getter
-public abstract class CertificateAuthorityActivationCommand extends CertificateAuthorityCommand {
-    protected final X500Principal name;
-    protected final ImmutableResourceSet resources;
+public abstract class CertificateAuthorityActivationCommand extends CertificateAuthorityCreationCommand {
     protected final long parentId;
 
-    public CertificateAuthorityActivationCommand(VersionedId certificateAuthorityId, CertificateAuthorityCommandGroup commandGroup, X500Principal name, ImmutableResourceSet resources, long parentId) {
-        super(certificateAuthorityId, commandGroup);
-        Validate.notNull(name, "name is required");
-        Validate.notNull(resources, "resources are required");
-        this.name = name;
-        this.resources = resources;
+    protected CertificateAuthorityActivationCommand(
+        VersionedId certificateAuthorityId,
+        X500Principal name,
+        UUID uuid,
+        ImmutableResourceSet resources,
+        long parentId
+    ) {
+        super(certificateAuthorityId, name, uuid, resources);
         this.parentId = parentId;
     }
 }

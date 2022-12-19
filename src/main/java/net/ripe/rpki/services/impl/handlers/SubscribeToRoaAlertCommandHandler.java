@@ -40,7 +40,7 @@ public class SubscribeToRoaAlertCommandHandler extends AbstractCertificateAuthor
 
     @Override
     public void handle(SubscribeToRoaAlertCommand command, CommandStatus commandStatus) {
-        RoaAlertConfiguration configuration = repository.findByCertificateAuthorityIdOrNull(command.getCertificateAuthorityVersionedId().getId());
+        RoaAlertConfiguration configuration = repository.findByCertificateAuthorityIdOrNull(command.getCertificateAuthorityId());
         if (configuration == null) {
             createConfigurationAndSendConfirmation(command);
         } else {
@@ -92,7 +92,7 @@ public class SubscribeToRoaAlertCommandHandler extends AbstractCertificateAuthor
     }
 
     private RoaAlertConfiguration createConfiguration(SubscribeToRoaAlertCommand command) {
-        ManagedCertificateAuthority certificateAuthority = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority certificateAuthority = lookupManagedCa(command.getCertificateAuthorityId());
         RoaAlertConfiguration configuration = new RoaAlertConfiguration(certificateAuthority);
         configuration.setSubscription(new RoaAlertSubscriptionData(command.getEmail(),
                 command.getRouteValidityStates(), command.getFrequency()));

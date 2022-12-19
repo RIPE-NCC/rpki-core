@@ -28,8 +28,8 @@ public class UpdateRoaAlertIgnoredAnnouncedRoutesCommandHandler extends Abstract
 
     @Override
     public void handle(UpdateRoaAlertIgnoredAnnouncedRoutesCommand command, CommandStatus commandStatus) {
-        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
-        RoaAlertConfiguration configuration = repository.findByCertificateAuthorityIdOrNull(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityId());
+        RoaAlertConfiguration configuration = repository.findByCertificateAuthorityIdOrNull(command.getCertificateAuthorityId());
         if (configuration == null) {
             configuration = new RoaAlertConfiguration(ca);
             configuration.clearSubscription();

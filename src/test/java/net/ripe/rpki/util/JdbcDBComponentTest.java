@@ -20,6 +20,7 @@ import javax.security.auth.x500.X500Principal;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
@@ -80,7 +81,7 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
     public void should_lock_certificate_authority_and_return_parent_id() {
         transactionTemplate.executeWithoutResult((status) -> {
             ManagedCertificateAuthority parentCa = (ManagedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
-            HostedCertificateAuthority childCa = new HostedCertificateAuthority(parentCa.getId() + 1, new X500Principal("CN=child"), parentCa);
+            HostedCertificateAuthority childCa = new HostedCertificateAuthority(parentCa.getId() + 1, new X500Principal("CN=child"), UUID.randomUUID(), parentCa);
             entityManager.persist(childCa);
 
             Long parentId = jdbcDbComponent.lockCertificateAuthorityForSharing(childCa.getId());

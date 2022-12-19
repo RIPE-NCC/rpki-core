@@ -95,12 +95,17 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     protected ManagedCertificateAuthority() {
     }
 
-    protected ManagedCertificateAuthority(long id, X500Principal name, ParentCertificateAuthority parent) {
-        super(id, parent, name, UUID.randomUUID());
+    protected ManagedCertificateAuthority(long id, X500Principal name, UUID uuid, ParentCertificateAuthority parent) {
+        super(id, name, uuid, parent);
     }
 
     public UpStreamCARequestEntity getUpStreamCARequestEntity() {
         return null;
+    }
+
+    @Override
+    public Optional<ManagedCertificateAuthority> asManagedCertificateAuthority() {
+        return Optional.of(this);
     }
 
     @Override
@@ -121,6 +126,11 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     public void removeKeyPair(final KeyPairEntity keyPair) {
         Validate.isTrue(keyPair.isRemovable(), "Key pair is in use");
         keyPairs.remove(keyPair);
+    }
+
+    @Override
+    public Collection<PublicKey> getSignedPublicKeys() {
+        return keyPairs.stream().map(KeyPairEntity::getPublicKey).collect(Collectors.toList());
     }
 
     public Collection<KeyPairEntity> getKeyPairs() {

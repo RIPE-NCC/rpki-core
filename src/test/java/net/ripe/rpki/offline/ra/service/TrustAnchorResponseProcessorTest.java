@@ -104,7 +104,7 @@ public class TrustAnchorResponseProcessorTest {
         subject = new TrustAnchorResponseProcessor(CA_NAME, PROD_CA_NAME, certificateAuthorityRepository, publishedObjectRepository,
                 trustAnchorPublishedObjectRepository, keyPairDeletionService, resourceCache);
         subject.setEntityManager(entityManager);
-        allResourcesCA = new AllResourcesCertificateAuthority(ACA_ID, ALL_RESOURCES_CA_NAME);
+        allResourcesCA = new AllResourcesCertificateAuthority(ACA_ID, ALL_RESOURCES_CA_NAME, UUID.randomUUID());
     }
 
     @Test

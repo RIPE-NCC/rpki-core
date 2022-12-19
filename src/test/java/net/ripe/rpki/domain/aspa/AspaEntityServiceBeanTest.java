@@ -17,6 +17,7 @@ import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.SingleUseKeyPairFactory;
 import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.domain.TestServices;
+import net.ripe.rpki.domain.audit.CommandAudit;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
@@ -35,6 +36,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import static net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateTest.createSelfSignedCaResourceCertificateBuilder;
 import static net.ripe.rpki.domain.TestObjects.CA_ID;
@@ -42,6 +44,7 @@ import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_NAME;
 import static net.ripe.rpki.domain.TestObjects.TEST_VALIDITY_PERIOD;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -70,7 +73,7 @@ public class AspaEntityServiceBeanTest {
         DateTimeUtils.setCurrentMillisFixed(TEST_VALIDITY_PERIOD.getNotValidBefore().getMillis() + 1000);
         subject = new AspaEntityServiceBean(certificateAuthorityRepository, aspaConfigurationRepository, aspaEntityRepository, new SingleUseKeyPairFactory(), TestServices.createSingleUseEeCertificateFactory());
 
-        certificateAuthority = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, null);
+        certificateAuthority = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, UUID.randomUUID(), null);
         oldKeyPair = TestObjects.createActiveKeyPair("OLD");
         certificateAuthority.addKeyPair(oldKeyPair);
         oldKeyPair.deactivate();
@@ -95,7 +98,10 @@ public class AspaEntityServiceBeanTest {
     public void should_remove_aspa_entities_signed_by_old_key_on_activation_of_new_key() {
         when(aspaEntityRepository.findByCertificateSigningKeyPair(oldKeyPair)).thenReturn(Collections.singletonList(aspaEntity));
 
-        subject.visitKeyPairActivatedEvent(new KeyPairActivatedEvent(certificateAuthority.getVersionedId(), activeKeyPair), new CommandContext(KeyManagementActivatePendingKeysCommand.manualActivationCommand(certificateAuthority.getVersionedId())));
+        subject.visitKeyPairActivatedEvent(
+            new KeyPairActivatedEvent(certificateAuthority.getVersionedId(), activeKeyPair),
+            new CommandContext(KeyManagementActivatePendingKeysCommand.manualActivationCommand(certificateAuthority.getVersionedId()), mock(CommandAudit.class))
+        );
 
         assertThat(aspaEntity.isRevoked()).isTrue();
         verify(aspaEntityRepository).remove(aspaEntity);

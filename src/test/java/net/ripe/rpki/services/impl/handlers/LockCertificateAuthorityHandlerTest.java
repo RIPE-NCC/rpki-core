@@ -3,7 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.util.DBComponent;
@@ -55,8 +55,9 @@ public class LockCertificateAuthorityHandlerTest {
     public void should_lock_child_and_parent_ca_for_any_ChildParentCertificateAuthorityCommand() {
         when(dbComponent.lockCertificateAuthorityForUpdate(123L)).thenReturn(456L);
 
-        subject.handle(new DeleteNonHostedCertificateAuthorityCommand(
-            new VersionedId(123, 0)
+        subject.handle(new DeleteCertificateAuthorityCommand(
+            new VersionedId(123, 0),
+            new X500Principal("CN=test")
         ), CommandStatus.create());
 
         verify(dbComponent).lockCertificateAuthorityForUpdate(123L);

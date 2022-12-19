@@ -9,6 +9,8 @@ import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
 import javax.security.auth.x500.X500Principal;
+import java.security.PublicKey;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +20,8 @@ public interface ChildCertificateAuthority {
     ParentCertificateAuthority getParent();
 
     Optional<ImmutableResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService);
+
+    Collection<PublicKey> getSignedPublicKeys();
 
     void processCertificateIssuanceResponse(CertificateIssuanceResponse response, ResourceCertificateRepository resourceCertificateRepository);
 

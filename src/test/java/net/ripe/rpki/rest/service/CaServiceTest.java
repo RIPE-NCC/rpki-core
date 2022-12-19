@@ -11,13 +11,8 @@ import net.ripe.rpki.commons.provisioning.identity.ParentIdentitySerializer;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilder;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.DeleteNonHostedCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
-import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateService;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
@@ -130,8 +125,8 @@ public class CaServiceTest {
         final String caName = "123";
         X500Principal principal = CaName.parse(caName).getPrincipal();
 
-        final CertificateAuthorityData certificateAuthorityData = new ManagedCertificateAuthorityData(new VersionedId(1L),
-                principal, UUID.randomUUID(), 2L, CertificateAuthorityType.HOSTED,
+        final CertificateAuthorityData certificateAuthorityData = new HostedCertificateAuthorityData(new VersionedId(1L),
+                principal, UUID.randomUUID(), 2L,
                 ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
@@ -176,8 +171,8 @@ public class CaServiceTest {
         final String caName = "123";
         X500Principal principal = CaName.parse(caName).getPrincipal();
 
-        final CertificateAuthorityData certificateAuthorityData = new ManagedCertificateAuthorityData(new VersionedId(1L),
-                principal, UUID.randomUUID(), 2L, CertificateAuthorityType.HOSTED,
+        final CertificateAuthorityData certificateAuthorityData = new HostedCertificateAuthorityData(new VersionedId(1L),
+                principal, UUID.randomUUID(), 2L,
                 ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
@@ -320,13 +315,13 @@ public class CaServiceTest {
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(ca);
         when(ca.getVersionedId()).thenReturn(VersionedId.parse("111"));
 
-        ArgumentCaptor<CertificateAuthorityCommand> certificateArgument = ArgumentCaptor.forClass(CertificateAuthorityCommand.class);
+        ArgumentCaptor<DeleteCertificateAuthorityCommand> certificateArgument = ArgumentCaptor.forClass(DeleteCertificateAuthorityCommand.class);
 
         mockMvc.perform(Rest.delete(API_URL_PREFIX + "/123/non-hosted"))
                 .andExpect(status().is(204));
 
         verify(commandService).execute(certificateArgument.capture());
-        DeleteNonHostedCertificateAuthorityCommand command = (DeleteNonHostedCertificateAuthorityCommand) certificateArgument.getValue();
+        DeleteCertificateAuthorityCommand command = certificateArgument.getValue();
         assertEquals(111L, command.getCertificateAuthorityId());
     }
 

@@ -10,6 +10,7 @@ import net.ripe.rpki.domain.ParentCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.PublicationStatus;
 import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
+import net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup;
 import net.ripe.rpki.server.api.dto.CaStat;
 import net.ripe.rpki.server.api.dto.CaStatCaEvent;
 import net.ripe.rpki.server.api.dto.CaStatEvent;
@@ -333,7 +334,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
         final DateTime yearAgo = new DateTime().minus(Duration.standardDays(366));
         return sql
             .setParameter("threshold", yearAgo)
-            .setParameter("user", "USER")
+            .setParameter("user", CertificateAuthorityCommandGroup.USER)
             .getResultList();
     }
 

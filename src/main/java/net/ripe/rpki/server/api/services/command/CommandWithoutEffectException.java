@@ -7,7 +7,7 @@ public class CommandWithoutEffectException extends CertificationException {
     private static final long serialVersionUID = 1L;
 
     public CommandWithoutEffectException(CertificateAuthorityCommand command) {
-        super(String.format("Discarded [%s] for Certificate Authority with id [%s]", command.getCommandType(), command.getCertificateAuthorityVersionedId()));
+        super(String.format("Discarded [%s] for Certificate Authority with id [%s]", command.getCommandType(), command.getCertificateAuthorityId()));
     }
 
     public CommandWithoutEffectException(String message) {

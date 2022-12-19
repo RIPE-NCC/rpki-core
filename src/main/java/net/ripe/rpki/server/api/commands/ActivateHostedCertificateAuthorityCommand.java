@@ -6,6 +6,7 @@ import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateSe
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
 
 import javax.security.auth.x500.X500Principal;
+import java.util.UUID;
 
 /**
  * <p>
@@ -20,11 +21,11 @@ import javax.security.auth.x500.X500Principal;
 public class ActivateHostedCertificateAuthorityCommand extends CertificateAuthorityActivationCommand {
 
     public ActivateHostedCertificateAuthorityCommand(VersionedId certificateAuthorityId, X500Principal name, ImmutableResourceSet resources, long parentId) {
-        super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER, name, resources, parentId);
+        super(certificateAuthorityId, name, UUID.randomUUID(), resources, parentId);
     }
 
     @Override
     public String getCommandSummary() {
-        return "Created and activated Certificate Authority '" + name + "' with resources " + resources;
+        return "Created and activated Certificate Authority '" + getName() + "' with resources " + getResources();
     }
 }

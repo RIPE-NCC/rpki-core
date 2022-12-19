@@ -39,8 +39,9 @@ public class CreateRootCertificateAuthorityCommandHandler extends AbstractCertif
         Validate.notNull(allResourcesCertificateAuthority, "all resources CA not found");
 
         ManagedCertificateAuthority ca = new ProductionCertificateAuthority(
-            command.getCertificateAuthorityVersionedId().getId(),
-            repositoryConfiguration.getProductionCaPrincipal(),
+            command.getCertificateAuthorityId(),
+            command.getName(),
+            command.getUuid(),
             allResourcesCertificateAuthority
         );
         getCertificateAuthorityRepository().add(ca);

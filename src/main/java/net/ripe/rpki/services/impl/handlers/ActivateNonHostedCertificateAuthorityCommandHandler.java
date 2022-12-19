@@ -31,7 +31,7 @@ public class ActivateNonHostedCertificateAuthorityCommandHandler extends Abstrac
         ManagedCertificateAuthority productionCa = lookupManagedCa(command.getParentId());
 
         NonHostedCertificateAuthority nonHosted = new NonHostedCertificateAuthority(
-            command.getCertificateAuthorityVersionedId().getId(), command.getName(),
+            command.getCertificateAuthorityId(), command.getName(),
             command.getUuid(), identityCertificate, productionCa);
         getCertificateAuthorityRepository().add(nonHosted);
     }

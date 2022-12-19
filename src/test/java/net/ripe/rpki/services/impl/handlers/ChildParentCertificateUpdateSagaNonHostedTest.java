@@ -80,7 +80,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
 
         assertThat(status.isHasEffect()).as("command has effect").isTrue();
 
-        Collection<PublicKeyEntity> keyPairs = child.getPublicKeys();
+        Collection<PublicKeyEntity> keyPairs = child.getPublicKeyEntities();
         assertThat(keyPairs).hasSize(1);
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
@@ -109,7 +109,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
 
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
-        Collection<PublicKeyEntity> publicKeys = child.getPublicKeys();
+        Collection<PublicKeyEntity> publicKeys = child.getPublicKeyEntities();
         assertThat(publicKeys).hasSize(1);
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
@@ -131,7 +131,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
 
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
-        Collection<PublicKeyEntity> publicKeys = child.getPublicKeys();
+        Collection<PublicKeyEntity> publicKeys = child.getPublicKeyEntities();
         assertThat(publicKeys).hasSize(1);
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
@@ -147,7 +147,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
 
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CHILD_CA_ID, VersionedId.INITIAL_VERSION), INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT));
 
-        Collection<PublicKeyEntity> publicKeys = child.getPublicKeys();
+        Collection<PublicKeyEntity> publicKeys = child.getPublicKeyEntities();
         assertThat(publicKeys).hasSize(1);
 
         Optional<OutgoingResourceCertificate> certificate = findCurrentResourceCertificate(child);
@@ -274,7 +274,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     private void assertChildParentInvariants(NonHostedCertificateAuthority child, ManagedCertificateAuthority parent) {
         // For every published, outgoing certificate in parent there should be a matching incoming certificate in child.
         // A child should never be left without a published outgoing certificate for each of its publishable keys.
-        Set<PublicKey> childPublicKeys = child.getPublicKeys().stream()
+        Set<PublicKey> childPublicKeys = child.getPublicKeyEntities().stream()
             .filter(x -> !x.isRevoked())
             .map(PublicKeyEntity::getPublicKey)
             .collect(Collectors.toSet());
@@ -285,7 +285,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
             .filter(c -> c.isCurrent() && PublicationStatus.ACTIVE_STATUSES.contains(c.getPublishedObject().getStatus()))
             .filter(c -> childPublicKeys.contains(c.getSubjectPublicKey()))
             .collect(Collectors.toList());
-        Collection<OutgoingResourceCertificate> incomingResourceCertificates = child.getPublicKeys().stream()
+        Collection<OutgoingResourceCertificate> incomingResourceCertificates = child.getPublicKeyEntities().stream()
             .filter(x -> !x.isRevoked())
             .flatMap(x -> x.findCurrentOutgoingResourceCertificate().map(Stream::of).orElse(Stream.empty()))
             .collect(Collectors.toList());
@@ -306,7 +306,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
     }
 
     private Optional<OutgoingResourceCertificate> findCurrentResourceCertificate(NonHostedCertificateAuthority ca) {
-        return ca.getPublicKeys().iterator().next().findCurrentOutgoingResourceCertificate();
+        return ca.getPublicKeyEntities().iterator().next().findCurrentOutgoingResourceCertificate();
     }
 
     private CommandStatus execute(CertificateAuthorityCommand command) {

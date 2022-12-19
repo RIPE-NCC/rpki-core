@@ -14,7 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import javax.security.auth.x500.X500Principal;
+import java.util.UUID;
 
 import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
 import static org.junit.Assert.*;
@@ -39,7 +39,7 @@ public class CreateRootCertificateAuthorityCommandHandlerTest {
         keyPairService = mock(KeyPairService.class);
         when(keyPairService.createKeyPairEntity()).thenReturn(TestObjects.TEST_KEY_PAIR_2);
         subject = new CreateRootCertificateAuthorityCommandHandler(certificateAuthorityRepository, repositoryConfiguration, keyPairService);
-        command = new CreateRootCertificateAuthorityCommand(new VersionedId(12));
+        command = new CreateRootCertificateAuthorityCommand(new VersionedId(12), TestObjects.PRODUCTION_CA_NAME);
     }
 
     @Test
@@ -53,18 +53,15 @@ public class CreateRootCertificateAuthorityCommandHandlerTest {
     public void shouldCreateRootCertificateAuthority() {
         ArgumentCaptor<ProductionCertificateAuthority> ca = ArgumentCaptor.forClass(ProductionCertificateAuthority.class);
 
-        X500Principal prodCaName = new X500Principal("CN=production");
-
         when(repositoryConfiguration.getAllResourcesCaPrincipal()).thenReturn(ALL_RESOURCES_CA_NAME);
         when(certificateAuthorityRepository.findByTypeAndName(AllResourcesCertificateAuthority.class, ALL_RESOURCES_CA_NAME))
-            .thenReturn(new AllResourcesCertificateAuthority(1, ALL_RESOURCES_CA_NAME));
-        when(repositoryConfiguration.getProductionCaPrincipal()).thenReturn(prodCaName);
+            .thenReturn(new AllResourcesCertificateAuthority(1, ALL_RESOURCES_CA_NAME, UUID.randomUUID()));
 
         subject.handle(command);
 
         verify(certificateAuthorityRepository).add(ca.capture());
         assertEquals(0, ca.getValue().getVersionedId().getVersion());
-        assertEquals(prodCaName, ca.getValue().getName());
+        assertEquals(TestObjects.PRODUCTION_CA_NAME, ca.getValue().getName());
         assertEquals(ImmutableResourceSet.empty(), ca.getValue().getCertifiedResources());
     }
 }

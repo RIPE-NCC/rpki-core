@@ -1,5 +1,6 @@
 package net.ripe.rpki.domain;
 
+import com.google.common.annotations.VisibleForTesting;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
@@ -77,6 +78,7 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     protected NonHostedCertificateAuthority() {
     }
 
+    @VisibleForTesting
     public NonHostedCertificateAuthority(long id, X500Principal name,
                                          ProvisioningIdentityCertificate identityCertificate,
                                          ParentCertificateAuthority parent) {
@@ -86,7 +88,7 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     public NonHostedCertificateAuthority(long id, X500Principal name, UUID uuid,
                                          ProvisioningIdentityCertificate identityCertificate,
                                          ParentCertificateAuthority parent) {
-        super(id, parent, name, uuid);
+        super(id, name, uuid, parent);
         this.identityCertificate = Base64.encodeBase64URLSafeString(identityCertificate.getEncoded());
 
     }
@@ -108,8 +110,13 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     }
 
     @Override
+    public Optional<ManagedCertificateAuthority> asManagedCertificateAuthority() {
+        return Optional.empty();
+    }
+
+    @Override
     public NonHostedCertificateAuthorityData toData() {
-        Set<NonHostedPublicKeyData> publicKeyData = getPublicKeys().stream().map(PublicKeyEntity::toData).collect(Collectors.toSet());
+        Set<NonHostedPublicKeyData> publicKeyData = getPublicKeyEntities().stream().map(PublicKeyEntity::toData).collect(Collectors.toSet());
         ImmutableResourceSet resources = publicKeyData.stream()
             .filter(x -> x.getCurrentCertificate() != null)
             .flatMap(x -> x.getCurrentCertificate().getCertificate().resources().stream())
@@ -126,13 +133,17 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
         );
     }
 
-    public Collection<PublicKeyEntity> getPublicKeys() {
+    public Collection<PublicKey> getSignedPublicKeys() {
+        return publicKeys.stream().map(PublicKeyEntity::getPublicKey).collect(Collectors.toList());
+    }
+
+    public Collection<PublicKeyEntity> getPublicKeyEntities() {
         return Collections.unmodifiableCollection(publicKeys);
     }
 
     public Optional<PublicKeyEntity> findPublicKeyEntityByPublicKey(PublicKey publicKey) {
         String encodedPublicKey = KeyPairUtil.getEncodedKeyIdentifier(publicKey);
-        return getPublicKeys()
+        return getPublicKeyEntities()
             .stream()
             .filter(publicKeyEntity -> {
                 String encodedStoredPublicKey = KeyPairUtil.getEncodedKeyIdentifier(publicKeyEntity.getPublicKey());

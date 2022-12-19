@@ -9,6 +9,7 @@ import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup;
 import net.ripe.rpki.server.api.commands.CommandContext;
+import net.ripe.rpki.server.api.commands.CertificateAuthorityCreationCommand;
 import net.ripe.rpki.server.api.dto.CommandAuditData;
 import net.ripe.rpki.server.api.security.RoleBasedAuthenticationStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,9 @@ import org.springframework.stereotype.Component;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import javax.security.auth.x500.X500Principal;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -71,34 +74,49 @@ public class CommandAuditServiceBean implements CommandAuditService {
     @Override
     @NonNull
     public CommandContext startRecording(CertificateAuthorityCommand command) {
-        return new CommandContext(command);
+        final String userId = authenticationStrategy.getOriginalUserId().getId().toString();
+        VersionedId caVersionedId;
+        X500Principal caName;
+        UUID caUuid;
+        if (command instanceof CertificateAuthorityCreationCommand) {
+            CertificateAuthorityCreationCommand activationCommand = (CertificateAuthorityCreationCommand) command;
+            caVersionedId = activationCommand.getCertificateAuthorityVersionedId();
+            caName = activationCommand.getName();
+            caUuid = activationCommand.getUuid();
+        } else {
+            CertificateAuthority ca = entityManager.getReference(CertificateAuthority.class, command.getCertificateAuthorityId());
+            caVersionedId = ca.getVersionedId();
+            caName = ca.getName();
+            caUuid = ca.getUuid();
+        }
+
+        CommandAudit commandAudit = new CommandAudit(userId, caVersionedId, caName, caUuid, command);
+        if (command.getCommandGroup() == CertificateAuthorityCommandGroup.USER) {
+            entityManager.persist(commandAudit);
+        }
+
+        return new CommandContext(command, commandAudit);
     }
 
     @Override
     public void finishRecording(CommandContext context) {
-        final String userId = authenticationStrategy.getOriginalUserId().getId().toString();
-
+        CommandAudit commandAudit = context.getCommandAudit();
         CertificateAuthorityCommand command = context.getCommand();
 
-        CertificateAuthority ca = entityManager.find(CertificateAuthority.class, command.getCertificateAuthorityId());
-        // The CA may have been deleted so fall back to the (possibly incorrect) versioned ID in the command.
-        VersionedId caVersionedId = ca != null ? ca.getVersionedId() : command.getCertificateAuthorityVersionedId();
-
         List<String> events = context.getRecordedEvents().stream().map(Object::toString).collect(Collectors.toList());
-
         String commandEvents = events.stream().collect(Collectors.joining("\n    ", "\n    ", ""));
 
         log.info(
             "principal={} caId={} commandType={} commandGroup={} commandSummary={}, events=[{}]",
-            userId,
-            caVersionedId,
+            commandAudit.getPrincipal(),
+            commandAudit.getCertificateAuthorityVersionedId(),
             command.getCommandType(),
             command.getCommandGroup().name(),
             command.getCommandSummary(),
             commandEvents
         );
-        if (command.getCommandGroup() == CertificateAuthorityCommandGroup.USER || !events.isEmpty()) {
-            CommandAudit commandAudit = new CommandAudit(userId, caVersionedId, command, String.join("\n", events));
+        if (entityManager.contains(commandAudit) || !events.isEmpty()) {
+            commandAudit.setCommandEvents(String.join("\n", events));
             entityManager.persist(commandAudit);
         }
     }

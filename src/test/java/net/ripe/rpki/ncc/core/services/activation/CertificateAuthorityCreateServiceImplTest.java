@@ -1,5 +1,6 @@
 package net.ripe.rpki.ncc.core.services.activation;
 
+import lombok.var;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateParser;
@@ -8,7 +9,6 @@ import net.ripe.rpki.domain.NameNotUniqueException;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.ActivateNonHostedCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
 import net.ripe.rpki.server.api.services.command.CommandService;
@@ -21,10 +21,11 @@ import javax.security.auth.x500.X500Principal;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -59,11 +60,14 @@ public class CertificateAuthorityCreateServiceImplTest {
         when(caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
         when(commandService.getNextId()).thenReturn(MEMBER_CA_ID);
 
-        ActivateHostedCertificateAuthorityCommand command = new ActivateHostedCertificateAuthorityCommand(MEMBER_CA_ID, MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_ID);
-
         subject.provisionMember(MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_NAME);
 
-        verify(commandService).execute(command);
+        var commandArgumentCaptor = ArgumentCaptor.forClass(ActivateHostedCertificateAuthorityCommand.class);
+        verify(commandService).execute(commandArgumentCaptor.capture());
+        ActivateHostedCertificateAuthorityCommand command = commandArgumentCaptor.getValue();
+        assertThat(command.getName()).isEqualTo(MEMBER_CA);
+        assertThat(command.getResources()).isEqualTo(MEMBER_RESOURCES);
+        assertThat(command.getParentId()).isEqualTo(PRODUCTION_CA_ID);
     }
 
     @Test(expected = CertificateAuthorityNameNotUniqueException.class)
@@ -71,8 +75,7 @@ public class CertificateAuthorityCreateServiceImplTest {
         when(caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
         when(commandService.getNextId()).thenReturn(MEMBER_CA_ID);
 
-        ActivateHostedCertificateAuthorityCommand command = new ActivateHostedCertificateAuthorityCommand(MEMBER_CA_ID, MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_ID);
-        doThrow(NameNotUniqueException.class).when(commandService).execute(command);
+        doThrow(NameNotUniqueException.class).when(commandService).execute(isA(ActivateHostedCertificateAuthorityCommand.class));
 
         subject.provisionMember(MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_NAME);
     }

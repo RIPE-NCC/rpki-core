@@ -65,7 +65,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
             throw new PrivateAsnsUsedException("ROA configuration", privateAsns);
         }
 
-        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityVersionedId().getId());
+        ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityId());
         RoaConfiguration configuration = roaConfigurationRepository.getOrCreateByCertificateAuthority(ca);
         final Set<RoaConfigurationPrefix> formerPrefixes = new HashSet<>(configuration.getPrefixes());
         configuration.addPrefix(RoaConfigurationPrefix.fromData(command.getAdditions()));

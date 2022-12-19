@@ -16,6 +16,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.security.auth.x500.X500Principal;
 import java.util.Optional;
+import java.util.UUID;
 
 
 @Entity
@@ -32,8 +33,8 @@ public class ProductionCertificateAuthority extends ManagedCertificateAuthority 
     protected ProductionCertificateAuthority() {
     }
 
-    public ProductionCertificateAuthority(long id, X500Principal name, AllResourcesCertificateAuthority parent) {
-        super(id, name, parent);
+    public ProductionCertificateAuthority(long id, X500Principal name, UUID uuid, AllResourcesCertificateAuthority parent) {
+        super(id, name, uuid, parent);
     }
 
     @Override

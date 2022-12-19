@@ -6,23 +6,16 @@ import lombok.SneakyThrows;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequestSerializer;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
-import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509ExtendedTrustManager;
+import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.SecureRandom;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,7 +32,6 @@ import static net.ripe.rpki.ripencc.services.impl.KrillNonHostedPublisherReposit
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 
 public class KrillNonHostedPublisherRepositoryBeanTest {
@@ -55,7 +47,7 @@ public class KrillNonHostedPublisherRepositoryBeanTest {
 
     @Before
     public void setUp() throws Exception {
-        subject = new KrillNonHostedPublisherRepositoryBean(BASE_URL, API_TOKEN, getInsecureContext());
+        subject = new KrillNonHostedPublisherRepositoryBean(BASE_URL, API_TOKEN);
     }
 
     private void stubMonitoringTargets() {
@@ -168,12 +160,5 @@ public class KrillNonHostedPublisherRepositoryBeanTest {
     private String readFromFile(String resourcePath) {
         final Resource resource = new ClassPathResource(resourcePath);
         return Resources.toString(resource.getURL(), StandardCharsets.UTF_8);
-    }
-
-    public static SSLContext getInsecureContext() throws GeneralSecurityException {
-        TrustManager[] dummyTrustManager = new TrustManager[]{mock(X509ExtendedTrustManager.class)};
-        SSLContext insecureContext = SSLContext.getInstance("TLS");
-        insecureContext.init(null, dummyTrustManager, new SecureRandom());
-        return insecureContext;
     }
 }

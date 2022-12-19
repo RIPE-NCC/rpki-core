@@ -25,6 +25,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.inject.Named;
 import javax.persistence.EntityManager;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -110,7 +111,7 @@ public abstract class CertificationDomainTestCase {
     }
 
     protected ProductionCertificateAuthority createInitializedAllResourcesAndProductionCertificateAuthority() {
-        AllResourcesCertificateAuthority allResources = new AllResourcesCertificateAuthority(TestObjects.ACA_ID, TestObjects.ALL_RESOURCES_CA_NAME);
+        AllResourcesCertificateAuthority allResources = new AllResourcesCertificateAuthority(TestObjects.ACA_ID, TestObjects.ALL_RESOURCES_CA_NAME, UUID.randomUUID());
         KeyPairEntity acaKeyPair = keyPairService.createKeyPairEntity();
         allResources.addKeyPair(acaKeyPair);
         certificateAuthorityRepository.add(allResources);
@@ -124,7 +125,7 @@ public abstract class CertificationDomainTestCase {
         allResources.setUpStreamCARequestEntity(null);
         assertThat(acaKeyPair.isCurrent()).isTrue();
 
-        ProductionCertificateAuthority production = new ProductionCertificateAuthority(TestObjects.CA_ID, repositoryConfiguration.getProductionCaPrincipal(), allResources);
+        ProductionCertificateAuthority production = new ProductionCertificateAuthority(TestObjects.CA_ID, repositoryConfiguration.getProductionCaPrincipal(), UUID.randomUUID(), allResources);
         issueCertificateForNewKey(allResources, production, TestObjects.PRODUCTION_CA_RESOURCES);
 
         return production;

@@ -38,7 +38,7 @@ public class UnsubscribeFromRoaAlertCommandHandler extends AbstractCertificateAu
 
     @Override
     public void handle(UnsubscribeFromRoaAlertCommand command, CommandStatus commandStatus) {
-        RoaAlertConfiguration configuration = repository.findByCertificateAuthorityIdOrNull(command.getCertificateAuthorityVersionedId().getId());
+        RoaAlertConfiguration configuration = repository.findByCertificateAuthorityIdOrNull(command.getCertificateAuthorityId());
         RoaAlertSubscriptionData subscription = configuration == null ? null : configuration.getSubscriptionOrNull();
         if (subscription == null) {
             return;

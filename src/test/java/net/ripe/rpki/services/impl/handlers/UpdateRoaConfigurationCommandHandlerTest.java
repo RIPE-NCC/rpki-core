@@ -5,13 +5,13 @@ import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.TestObjects;
-import net.ripe.rpki.domain.inmemory.InMemoryResourceCertificateRepository;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
+import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
 import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import net.ripe.rpki.services.impl.background.RoaMetricsService;
 import org.junit.Before;
@@ -19,6 +19,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -83,6 +84,15 @@ public class UpdateRoaConfigurationCommandHandlerTest {
                 Collections.singletonList(new RoaConfigurationPrefixData(PRIVATE_ASN, PREFIX, null)),
                 Collections.emptyList()));
         verifyNoMoreInteractions(roaMetricsService);
+    }
+
+    @Test
+    public void should_reject_uncertified_prefixes() {
+        assertThatThrownBy(() -> subject.handle(new UpdateRoaConfigurationCommand(
+            certificateAuthority.getVersionedId(),
+            Collections.singletonList(new RoaConfigurationPrefixData(ASN, IpRange.parse("1.0.0.0/8"), null)),
+            Collections.emptyList()
+        ))).isInstanceOf(NotHolderOfResourcesException.class);
     }
 
     @Test

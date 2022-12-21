@@ -105,7 +105,7 @@ customer.service:
     read.timeout.milliseconds: 30000
 
 resource:
-    update.interval.hours: 1
+    update.interval.hours: 2
     services:
         enable.asn: true
         # Source of resource data:

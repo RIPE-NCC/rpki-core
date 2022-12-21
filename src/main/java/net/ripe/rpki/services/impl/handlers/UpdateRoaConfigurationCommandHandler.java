@@ -1,7 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceType;
@@ -14,6 +13,7 @@ import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
+import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
 import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import net.ripe.rpki.services.impl.background.RoaMetricsService;
 import org.apache.commons.lang.Validate;
@@ -47,7 +47,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
         this.roaMetricsService = roaMetricsService;
 
         this.privateAsnRanges = ImmutableResourceSet.parse(privateASNS);
-        Preconditions.checkArgument(Iterables.all(privateAsnRanges, a -> IpResourceType.ASN.equals(a.getType())), "Only ASNs allowed for private ASN ranges: %s", privateAsnRanges);
+        Preconditions.checkArgument(privateAsnRanges.stream().allMatch(a -> a.getType() == IpResourceType.ASN), "Only ASNs allowed for private ASN ranges: %s", privateAsnRanges);
     }
 
 
@@ -68,9 +68,15 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
         ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityId());
         RoaConfiguration configuration = roaConfigurationRepository.getOrCreateByCertificateAuthority(ca);
         final Set<RoaConfigurationPrefix> formerPrefixes = new HashSet<>(configuration.getPrefixes());
-        configuration.addPrefix(RoaConfigurationPrefix.fromData(command.getAdditions()));
-        final Collection<? extends RoaConfigurationPrefix> deletedPrefixes = RoaConfigurationPrefix.fromData(command.getDeletions());
+
+        Collection<RoaConfigurationPrefix> addedPrefixes = RoaConfigurationPrefix.fromData(command.getAdditions());
+        Collection<RoaConfigurationPrefix> deletedPrefixes = RoaConfigurationPrefix.fromData(command.getDeletions());
+
+        validateAddedPrefixes(ca, addedPrefixes);
+
+        configuration.addPrefix(addedPrefixes);
         configuration.removePrefix(deletedPrefixes);
+
         if (!deletedPrefixes.isEmpty()) {
             final Set<? extends RoaConfigurationPrefix> actualDeletable =
                 deletedPrefixes.stream().filter(formerPrefixes::contains).collect(Collectors.toSet());
@@ -80,6 +86,16 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
         roaMetricsService.countDeleted(command.getDeletions().size());
 
         ca.configurationUpdated();
+    }
+
+    private void validateAddedPrefixes(ManagedCertificateAuthority ca, Collection<RoaConfigurationPrefix> addedPrefixes) {
+        ImmutableResourceSet addedResources = addedPrefixes.stream()
+            .map(RoaConfigurationPrefix::getPrefix)
+            .collect(ImmutableResourceSet.collector());
+        ImmutableResourceSet uncertifiedResources = addedResources.difference(ca.getCertifiedResources());
+        if (!uncertifiedResources.isEmpty()) {
+            throw new NotHolderOfResourcesException(uncertifiedResources);
+        }
     }
 
     private List<Asn> findAddedPrivateAsns(UpdateRoaConfigurationCommand command) {

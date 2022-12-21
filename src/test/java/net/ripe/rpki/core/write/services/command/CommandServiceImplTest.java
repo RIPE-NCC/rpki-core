@@ -10,6 +10,7 @@ import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 import net.ripe.rpki.services.impl.handlers.CertificateAuthorityCommandHandler;
 import net.ripe.rpki.services.impl.handlers.CommandHandlerMetrics;
+import net.ripe.rpki.services.impl.handlers.LockCertificateAuthorityHandler;
 import net.ripe.rpki.services.impl.handlers.MessageDispatcher;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,7 +65,7 @@ public class CommandServiceImplTest {
         };
 
         meterRegistry = new SimpleMeterRegistry();
-        subject = new CommandServiceImpl(messageDispatcher, transactionTemplate, Collections.emptyList(), commandAuditService, null, meterRegistry);
+        subject = new CommandServiceImpl(messageDispatcher, transactionTemplate, Collections.emptyList(), commandAuditService, new CommandHandlerMetrics(meterRegistry), mock(LockCertificateAuthorityHandler.class), null, meterRegistry);
     }
 
     @Test

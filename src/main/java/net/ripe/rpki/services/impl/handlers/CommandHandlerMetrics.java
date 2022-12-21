@@ -34,6 +34,7 @@ public class CommandHandlerMetrics {
     public final static class Metrics {
         private final Counter callFailure;
         private final Counter callNoEffect;
+        private final Counter callTransactionNotSerializable;
         private final Counter callSuccess;
 
         private final Timer executionTimer;
@@ -53,6 +54,11 @@ public class CommandHandlerMetrics {
                     .description(RPKICORE_COMMANDHANDLER_CALL_HELP)
                     .tag(TAG_HANDLER, handlerName(handler))
                     .tag(TAG_STATUS, "noop")
+                    .register(registry);
+            callTransactionNotSerializable = Counter.builder(RPKICORE_COMMANDHANDLER_CALL)
+                    .description(RPKICORE_COMMANDHANDLER_CALL_HELP)
+                    .tag(TAG_HANDLER, handlerName(handler))
+                    .tag(TAG_STATUS, "not-serializable")
                     .register(registry);
 
             executionTimer = Timer.builder("rpkicore.commandhandler.duration")
@@ -77,6 +83,10 @@ public class CommandHandlerMetrics {
 
         public void noEffect() {
             callNoEffect.increment();
+        }
+
+        public void transactionNotSerializable() {
+            callTransactionNotSerializable.increment();
         }
 
         public void failure() {

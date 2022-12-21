@@ -12,7 +12,7 @@ import org.apache.commons.lang.builder.ToStringStyle;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import java.math.BigInteger;
-import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Objects.*;
@@ -105,7 +105,7 @@ public class RoaConfigurationPrefix {
                 .toString();
     }
 
-    public static Collection<? extends RoaConfigurationPrefix> fromData(Collection<? extends RoaConfigurationPrefixData> data) {
+    public static List<RoaConfigurationPrefix> fromData(List<? extends RoaConfigurationPrefixData> data) {
         return data.stream().map(RoaConfigurationPrefix::new).collect(Collectors.toList());
     }
 }

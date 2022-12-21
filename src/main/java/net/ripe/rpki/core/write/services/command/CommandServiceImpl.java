@@ -17,6 +17,8 @@ import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
+import net.ripe.rpki.services.impl.handlers.CommandHandlerMetrics;
+import net.ripe.rpki.services.impl.handlers.LockCertificateAuthorityHandler;
 import net.ripe.rpki.services.impl.handlers.MessageDispatcher;
 import org.slf4j.MDC;
 import org.springframework.dao.TransientDataAccessException;
@@ -50,6 +52,8 @@ public class CommandServiceImpl implements CommandService {
     private final TransactionTemplate transactionTemplate;
     private final List<CertificateAuthorityEventVisitor> eventVisitors;
     private final CommandAuditService commandAuditService;
+    private final CommandHandlerMetrics commandHandlerMetrics;
+    private final LockCertificateAuthorityHandler lockCertificateAuthorityHandler;
     private final EntityManager entityManager;
 
     private final MeterRegistry meterRegistry;
@@ -62,6 +66,8 @@ public class CommandServiceImpl implements CommandService {
         TransactionTemplate transactionTemplate,
         List<CertificateAuthorityEventVisitor> eventVisitors,
         CommandAuditService commandAuditService,
+        CommandHandlerMetrics commandHandlerMetrics,
+        LockCertificateAuthorityHandler lockCertificateAuthorityHandler,
         EntityManager entityManager,
         MeterRegistry meterRegistry
     ) {
@@ -69,6 +75,8 @@ public class CommandServiceImpl implements CommandService {
         this.transactionTemplate = transactionTemplate;
         this.eventVisitors = eventVisitors;
         this.commandAuditService = commandAuditService;
+        this.commandHandlerMetrics = commandHandlerMetrics;
+        this.lockCertificateAuthorityHandler = lockCertificateAuthorityHandler;
         this.entityManager = entityManager;
 
         this.meterRegistry = meterRegistry;
@@ -107,6 +115,10 @@ public class CommandServiceImpl implements CommandService {
                 // Locking exceptions are most often transient, so retry a few times
                 if (retryCount >= MAX_RETRIES) {
                     log.error("Error processing command after {} tries: {}", retryCount, command, e);
+                    // Metrics are registered on the `LockCertificateAuthorityHandler` since this is the one
+                    // mostly triggering this problem, but they could also occur later in a TX. Unfortunately
+                    // we don't know when/where exactly.
+                    commandHandlerMetrics.track(lockCertificateAuthorityHandler).failure();
                     throw e;
                 } else {
                     retryCount++;

@@ -7,9 +7,12 @@ import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 import org.apache.commons.lang.Validate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import javax.persistence.OptimisticLockException;
+import javax.persistence.PessimisticLockException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -57,6 +60,9 @@ public class MessageDispatcher {
                         sample.success();
                     } catch (CommandWithoutEffectException e) {
                         sample.noEffect();
+                        throw e;
+                    } catch (OptimisticLockException | PessimisticLockException | TransientDataAccessException e) {
+                        sample.transactionNotSerializable();
                         throw e;
                     } catch (Exception e) {
                         sample.failure();

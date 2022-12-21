@@ -96,8 +96,8 @@ public class MessageDispatcherTest {
         assertEquals("Rollover", executedHandlers.get(1));
         assertEquals("Persistence", executedHandlers.get(2));
 
-        // 3 handlers, with {noop, success, failure} each
-        assertThat(registry.find("rpkicore.commandhandler.call").counters()).asList().hasSize(9);
+        // 3 handlers, with {noop, not-serializable, success, failure} each
+        assertThat(registry.find("rpkicore.commandhandler.call").counters()).asList().hasSize(12);
         // with a timer per handler
         assertThat(registry.find("rpkicore.commandhandler.duration").timers()).asList().hasSize(3);
     }

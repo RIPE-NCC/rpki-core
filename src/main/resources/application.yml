@@ -138,6 +138,10 @@ public.repository:
     rrdp.interval.minutes: 1
     rsync.interval.minutes: 15
 
+publication:
+    client:
+        keystore.alias: ${instance.name}
+
 keypair:
     activation:
         interval.hours: 8760

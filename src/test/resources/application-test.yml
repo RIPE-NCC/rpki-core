@@ -74,6 +74,7 @@ publication:
     client:
         keystore: ''
         keystore.password: ''
+        keystore.alias: ''
         truststore: ''
         truststore.password: ''
     server.url: ''

@@ -5,7 +5,6 @@ import net.ripe.rpki.rest.security.SpringAuthInterceptor;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningMetricsService;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningService;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningServlet;
-import net.ripe.rpki.ripencc.ui.daemon.health.HealthServlet;
 import net.ripe.rpki.ui.application.CertificationAdminWicketApplication;
 import org.apache.wicket.protocol.http.WicketFilter;
 import org.apache.wicket.protocol.http.servlet.WicketSessionFilter;
@@ -86,10 +85,5 @@ public class WebConfig implements WebMvcConfigurer {
             ProvisioningService provisioningService,
             ProvisioningMetricsService provisioningMetrics) {
         return new ServletRegistrationBean<>(new ProvisioningServlet(provisioningService, provisioningMetrics), "/updown");
-    }
-
-    @Bean
-    public ServletRegistrationBean<HealthServlet> healthCheckServlet() {
-        return new ServletRegistrationBean<>(new HealthServlet(), "/monitoring/healthcheck");
     }
 }

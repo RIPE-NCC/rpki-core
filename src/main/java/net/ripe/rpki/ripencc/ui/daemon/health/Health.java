@@ -1,6 +1,9 @@
 package net.ripe.rpki.ripencc.ui.daemon.health;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.gson.Gson;
+import org.springframework.http.HttpStatus;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -11,13 +14,14 @@ import java.util.concurrent.Future;
 
 public class Health {
 
-    private enum Code {
+    protected enum Code {
         OK, WARNING, ERROR
     }
 
     public static class Status {
         public final Code status;
 
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public final String message;
 
         Status(Code status, String message) {
@@ -25,6 +29,7 @@ public class Health {
             this.message = message;
         }
 
+        @JsonIgnore
         public boolean isHealthy() {
             return status == Code.OK;
         }
@@ -56,16 +61,17 @@ public class Health {
         return new Status(Code.ERROR, message);
     }
 
-    static int httpCode(Map<String, Status> statuses) {
+    static HttpStatus httpCode(Map<?, Status> statuses) {
         final Collection<Status> values = statuses.values();
         if (values.stream().anyMatch(c -> c.status == Code.ERROR)) {
-            return 500;
+            return HttpStatus.BAD_REQUEST;
         }
         if (values.stream().anyMatch(c -> c.status == Code.WARNING)) {
-            return 299;
+            return HttpStatus.PARTIAL_CONTENT;
         }
-        return 200;
+        return HttpStatus.OK;
     }
+
 
     // Parallel execution here is mostly for the cases when some of the checks are
     // seriously slower than other or time out.

@@ -12,16 +12,20 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.KeyStore;
+import java.security.KeyStore.PasswordProtection;
+import java.security.KeyStore.PrivateKeyEntry;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
+import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.Optional;
 
 @Configuration
 @Slf4j
@@ -30,15 +34,21 @@ public class PublishingServerClientConfig {
     public WebClient publishingClient(
             @Value("${publication.client.keystore}") String keyStoreLocation,
             @Value("${publication.client.keystore.password}") String keyStorePassword,
+            @Value("${publication.client.keystore.alias}") String keyStoreAlias,
             @Value("${publication.client.truststore}") String trustStoreLocation,
             @Value("${publication.client.truststore.password}") String trustStorePassword,
             WebClient.Builder builder
-    ) throws CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException {
-        KeyManagerFactory keyManager = initKeyManager(keyStoreLocation, stringToCharArrayOrNull(keyStorePassword));
+    ) throws CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException, UnrecoverableEntryException {
+        Optional<PrivateKeyEntry> clientKey = loadPrivateKeyFromKeyStore(keyStoreLocation, keyStorePassword, keyStoreAlias);
         TrustManagerFactory trustManager = initTrustManager(trustStoreLocation, stringToCharArrayOrNull(trustStorePassword));
 
-        if (keyManager != null || trustManager != null) {
-            final SslContext sslContext = SslContextBuilder.forClient().keyManager(keyManager).trustManager(trustManager).build();
+        if (trustManager != null) {
+            SslContextBuilder sslContextBuilder = SslContextBuilder.forClient()
+                    .trustManager(trustManager);
+            clientKey.ifPresent(
+                    entry -> sslContextBuilder.keyManager(entry.getPrivateKey(), (X509Certificate) entry.getCertificate())
+            );
+            SslContext sslContext = sslContextBuilder.build();
             HttpClient httpClient = HttpClient.create()
                 .responseTimeout(Duration.ofMinutes(2))
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5_000)
@@ -49,9 +59,9 @@ public class PublishingServerClientConfig {
                 .secure(config -> config.sslContext(sslContext));
             builder.clientConnector(new ReactorClientHttpConnector(httpClient));
             builder.codecs(config -> config.defaultCodecs().maxInMemorySize(512 * 1024 * 1024));
-            log.info("Configured pub-server WebClient w/ mTLS");
+            log.info("Configured {} TLS for publication server WebClient", clientKey.map(x -> "mutual").orElse("one-way"));
         } else {
-            log.warn("Skipping mTLS configuration for pub-server WebClient");
+            log.warn("No trust store configured. Skipping TLS configuration for publication server WebClient");
         }
         return builder.build();
     }
@@ -69,17 +79,21 @@ public class PublishingServerClientConfig {
         return tmf;
     }
 
-    private KeyManagerFactory initKeyManager(String ksLocation, char[] ksPassword) throws CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException, UnrecoverableKeyException {
-        if (ksLocation == null || ksLocation.isEmpty()) return null;
+    private Optional<PrivateKeyEntry> loadPrivateKeyFromKeyStore(String file, String password, String alias) throws CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException, UnrecoverableEntryException {
+        if (file == null || file.isEmpty()) return Optional.empty();
 
-        KeyStore ksKeys = KeyStore.getInstance("JKS");
-        log.info("Loading client SSL certificate for pub server from '{}'", ksLocation);
-        ksKeys.load(new FileInputStream(ksLocation), ksPassword);
-
-        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-        kmf.init(ksKeys, ksPassword);
-        log.info("loaded {} keys (KeymanagerFactory). Configured {} KeyManagers {}/{}.", ksKeys.size(), kmf.getKeyManagers().length, kmf.getAlgorithm(), kmf.getProvider());
-        return kmf;
+        KeyStore ks = KeyStore.getInstance("JKS");
+        log.info("Loading publication server client SSL certificate '{}' from '{}'", alias, file);
+        try (InputStream in = new FileInputStream(file)) {
+            ks.load(in, stringToCharArrayOrNull(password));
+        }
+        Optional<PrivateKeyEntry> entry = Optional.ofNullable(
+                (PrivateKeyEntry) ks.getEntry(alias, new PasswordProtection(stringToCharArrayOrNull(password)))
+        );
+        if (!entry.isPresent()) {
+            log.warn("KeyStore {} does not have an alias {}. mTLS to publication server will be disabled.", file, alias);
+        }
+        return entry;
     }
 
     private char[] stringToCharArrayOrNull(String string) {

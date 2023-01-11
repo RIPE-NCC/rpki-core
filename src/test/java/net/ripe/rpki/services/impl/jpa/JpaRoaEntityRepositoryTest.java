@@ -1,9 +1,6 @@
 package net.ripe.rpki.services.impl.jpa;
 
-import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.TestObjects;
-import net.ripe.rpki.domain.roa.RoaEntityRepository;
+import net.ripe.rpki.domain.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,11 +17,18 @@ public class JpaRoaEntityRepositoryTest extends CertificationDomainTestCase {
     private JpaRoaEntityRepository subject;
 
     private KeyPairEntity keyPair;
+    private ManagedCertificateAuthority certificateAuthority;
 
     @Before
     public void setUp() {
-        keyPair = TestObjects.createTestKeyPair();
-        entityManager.persist(keyPair);
+        clearDatabase();
+        certificateAuthority = createInitializedAllResourcesAndProductionCertificateAuthority();
+        keyPair = certificateAuthority.getCurrentKeyPair();
+    }
+
+    @Test
+    public void findCurrentByCertificateAuthority() {
+        assertThat(subject.findCurrentByCertificateAuthority(certificateAuthority)).isEmpty();
     }
 
     @Test

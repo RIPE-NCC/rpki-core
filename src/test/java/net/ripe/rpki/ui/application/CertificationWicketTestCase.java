@@ -27,7 +27,8 @@ import java.util.UUID;
 import static net.ripe.rpki.server.api.dto.CertificateAuthorityType.ALL_RESOURCES;
 import static net.ripe.rpki.server.api.dto.CertificateAuthorityType.ROOT;
 import static net.ripe.rpki.services.impl.background.BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE;
-import static org.easymock.EasyMock.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public abstract class CertificationWicketTestCase {
 
@@ -35,7 +36,7 @@ public abstract class CertificationWicketTestCase {
 
     protected static final X500Principal ALL_RESOURCES_CA_NAME = new X500Principal("CN=All Resources CA,O=RIPE NCC,C=NL");
     protected static final X500Principal PRODUCTION_CA_NAME = new X500Principal("CN=RIPE NCC Resources,O=RIPE NCC,C=NL");
-    protected static final long PRODUCTION_CA_ID = 42l;
+    protected static final long PRODUCTION_CA_ID = 42L;
     protected static final VersionedId PRODUCTION_CA_VERSIONED_ID = new VersionedId(PRODUCTION_CA_ID, 3);
 
     protected static final CertificateAuthorityData ALL_RESOURCES_CA_DATA = new ManagedCertificateAuthorityData(
@@ -69,26 +70,26 @@ public abstract class CertificationWicketTestCase {
         // Clean up the current threadlocal variables
         AuthenticatedWebSession.unset();
 
-        caViewService = createMock(CertificateAuthorityViewService.class);
-        certViewService = createMock(ResourceCertificateViewService.class);
-        roaService = createMock(RoaViewService.class);
-        uiConfiguration = createMock(UiConfiguration.class);
-        repositoryConfiguration = createMock(RepositoryConfiguration.class);
-        roaAlertConfigurationViewService = createMock(RoaAlertConfigurationViewService.class);
-        bgpRisEntryRepository = createMock(BgpRisEntryViewService.class);
-        commandService = createMock(CommandService.class);
-        statsCollectorNames = createMock(RipeNccInternalNamePresenter.class);
-        allCertificateUpdateService = createMock(AllCaCertificateUpdateServiceBean.class);
-        activeNodeService = createMock(ActiveNodeService.class);
+        caViewService = mock(CertificateAuthorityViewService.class);
+        certViewService = mock(ResourceCertificateViewService.class);
+        roaService = mock(RoaViewService.class);
+        uiConfiguration = mock(UiConfiguration.class);
+        repositoryConfiguration = mock(RepositoryConfiguration.class);
+        roaAlertConfigurationViewService = mock(RoaAlertConfigurationViewService.class);
+        bgpRisEntryRepository = mock(BgpRisEntryViewService.class);
+        commandService = mock(CommandService.class);
+        statsCollectorNames = mock(RipeNccInternalNamePresenter.class);
+        allCertificateUpdateService = mock(AllCaCertificateUpdateServiceBean.class);
+        activeNodeService = mock(ActiveNodeService.class);
 
-        expect(activeNodeService.getCurrentNodeName()).andReturn("current-node").anyTimes();
-        expect(uiConfiguration.getDeploymentEnvironmentBannerImage()).andReturn("").anyTimes();
-        expect(uiConfiguration.showEnvironmentBanner()).andReturn(true).anyTimes();
-        expect(uiConfiguration.showEnvironmentStripe()).andReturn(false).anyTimes();
-        expect(repositoryConfiguration.getAllResourcesCaPrincipal()).andReturn(ALL_RESOURCES_CA_NAME).anyTimes();
-        expect(repositoryConfiguration.getProductionCaPrincipal()).andReturn(PRODUCTION_CA_NAME).anyTimes();
-        expect(caViewService.findCertificateAuthorityByName(ALL_RESOURCES_CA_NAME)).andReturn(ALL_RESOURCES_CA_DATA).anyTimes();
-        expect(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_NAME)).andReturn(PRODUCTION_CA_DATA).anyTimes();
+        when(activeNodeService.getCurrentNodeName()).thenReturn("current-node");
+        when(uiConfiguration.getDeploymentEnvironmentBannerImage()).thenReturn("");
+        when(uiConfiguration.showEnvironmentBanner()).thenReturn(true);
+        when(uiConfiguration.showEnvironmentStripe()).thenReturn(false);
+        when(repositoryConfiguration.getAllResourcesCaPrincipal()).thenReturn(ALL_RESOURCES_CA_NAME);
+        when(repositoryConfiguration.getProductionCaPrincipal()).thenReturn(PRODUCTION_CA_NAME);
+        when(caViewService.findCertificateAuthorityByName(ALL_RESOURCES_CA_NAME)).thenReturn(ALL_RESOURCES_CA_DATA);
+        when(caViewService.findCertificateAuthorityByName(PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_DATA);
 
         applicationContextMock = new ApplicationContextMock();
         applicationContextMock.putBean("caViewService", caViewService);
@@ -117,34 +118,5 @@ public abstract class CertificationWicketTestCase {
 
     protected void addBeanToContext(String name, Object bean) {
         applicationContextMock.putBean(name, bean);
-    }
-
-
-    protected void replayMocks() {
-        replay(caViewService);
-        replay(certViewService);
-        replay(roaService);
-        replay(uiConfiguration);
-        replay(repositoryConfiguration);
-        replay(roaAlertConfigurationViewService);
-        replay(bgpRisEntryRepository);
-        replay(commandService);
-        replay(statsCollectorNames);
-        replay(allCertificateUpdateService);
-        replay(activeNodeService);
-    }
-
-    protected void verifyMocks() {
-        verify(caViewService);
-        verify(certViewService);
-        verify(roaService);
-        verify(uiConfiguration);
-        verify(repositoryConfiguration);
-        verify(roaAlertConfigurationViewService);
-        verify(bgpRisEntryRepository);
-        verify(commandService);
-        verify(statsCollectorNames);
-        verify(allCertificateUpdateService);
-        verify(activeNodeService);
     }
 }

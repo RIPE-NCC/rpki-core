@@ -6,10 +6,12 @@ import net.ripe.ipresource.Asn;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCms;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCmsParser;
 import net.ripe.rpki.commons.crypto.cms.aspa.ProviderAS;
+import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.PublishedObject;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import net.ripe.rpki.server.api.dto.AspaAfiLimit;
+import net.ripe.rpki.server.api.services.command.UnparseableRpkiObjectException;
 import org.apache.commons.lang.Validate;
 
 import javax.persistence.CascadeType;
@@ -24,6 +26,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import java.net.URI;
+import java.util.List;
 import java.util.SortedMap;
 
 import static net.ripe.rpki.util.Streams.streamToSortedMap;
@@ -60,18 +63,22 @@ public class AspaEntity extends EntitySupport {
                 eeCertificate.getSigningKeyPair(), filename, aspaCms.getEncoded(), true, directory, aspaCms.getValidityPeriod());
     }
 
-    public static SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> entitiesToMaps(SortedMap<Asn, AspaEntity> entities) {
+    public static SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> entitiesToMaps(List<AspaEntity> entities) {
         return streamToSortedMap(
-            entities.values().stream(),
+            entities.stream(),
             AspaEntity::getCustomerAsn,
             AspaEntity::getProviders
         );
     }
 
-    public synchronized AspaCms getAspaCms() {
+    public AspaCms getAspaCms() {
         if (cms == null) {
             final AspaCmsParser parser = new AspaCmsParser();
-            parser.parse("asa", publishedObject.getContent());
+            ValidationResult validationResult = ValidationResult.withLocation("asa");
+            parser.parse(validationResult, publishedObject.getContent());
+            if (!parser.isSuccess()) {
+                throw new UnparseableRpkiObjectException(validationResult);
+            }
             cms = parser.getAspa();
         }
         return cms;

@@ -28,7 +28,9 @@ import java.net.URI;
 import java.net.UnknownHostException;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.*;
-import static org.easymock.EasyMock.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class SystemStatusPageTest extends CertificationWicketTestCase {
 
@@ -54,280 +56,179 @@ public class SystemStatusPageTest extends CertificationWicketTestCase {
 
     @Before
     public void setUp() {
-        backgroundServices = createMock(BackgroundServices.class);
+        backgroundServices = mock(BackgroundServices.class);
         addBeanToContext("backgroundServices", backgroundServices);
 
-        manifestCrlUpdateService = createMock(ManifestCrlUpdateServiceBean.class);
+        manifestCrlUpdateService = mock(ManifestCrlUpdateServiceBean.class);
         addBeanToContext(MANIFEST_CRL_UPDATE_SERVICE, manifestCrlUpdateService);
 
-        publicRepositoryPublicationService = createMock(PublicRepositoryPublicationServiceBean.class);
+        publicRepositoryPublicationService = mock(PublicRepositoryPublicationServiceBean.class);
         addBeanToContext(PUBLIC_REPOSITORY_PUBLICATION_SERVICE, publicRepositoryPublicationService);
 
-        publicRepositoryRsyncService = createMock(PublicRepositoryRsyncServiceBean.class);
+        publicRepositoryRsyncService = mock(PublicRepositoryRsyncServiceBean.class);
         addBeanToContext(PUBLIC_REPOSITORY_RSYNC_SERVICE, publicRepositoryRsyncService);
 
-        publicRepositoryRrdpService = createMock(PublicRepositoryRrdpServiceBean.class);
+        publicRepositoryRrdpService = mock(PublicRepositoryRrdpServiceBean.class);
         addBeanToContext(PUBLIC_REPOSITORY_RRDP_SERVICE, publicRepositoryRrdpService);
 
-        productionCaKeyRolloverManagementService = createMock(ProductionCaKeyRolloverManagementServiceBean.class);
+        productionCaKeyRolloverManagementService = mock(ProductionCaKeyRolloverManagementServiceBean.class);
         addBeanToContext(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE, productionCaKeyRolloverManagementService);
 
-        hostedCaKeyRolloverManagementService = createMock(HostedCaKeyRolloverManagementServiceBean.class);
+        hostedCaKeyRolloverManagementService = mock(HostedCaKeyRolloverManagementServiceBean.class);
         addBeanToContext(HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE, hostedCaKeyRolloverManagementService);
 
-        keyPairActivationManagementService = createMock(KeyPairActivationManagementServiceBean.class);
+        keyPairActivationManagementService = mock(KeyPairActivationManagementServiceBean.class);
         addBeanToContext(KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE, keyPairActivationManagementService);
 
-        keyPairRevocationManagementService = createMock(KeyPairRevocationManagementServiceBean.class);
+        keyPairRevocationManagementService = mock(KeyPairRevocationManagementServiceBean.class);
         addBeanToContext(KEY_PAIR_REVOCATION_MANAGEMENT_SERVICE, keyPairRevocationManagementService);
 
-        certificateExpirationService = createMock(CertificateExpirationServiceBean.class);
+        certificateExpirationService = mock(CertificateExpirationServiceBean.class);
         addBeanToContext(CERTIFICATE_EXPIRATION_SERVICE, certificateExpirationService);
 
-        risWhoisUpdateService = createMock(RisWhoisUpdateServiceBean.class);
+        risWhoisUpdateService = mock(RisWhoisUpdateServiceBean.class);
         addBeanToContext(RIS_WHOIS_UPDATE_SERVICE, risWhoisUpdateService);
 
-        roaAlertBackgroundServiceDaily = createMock(RoaAlertBackgroundServiceDailyBean.class);
+        roaAlertBackgroundServiceDaily = mock(RoaAlertBackgroundServiceDailyBean.class);
         addBeanToContext(ROA_ALERT_BACKGROUND_SERVICE, roaAlertBackgroundServiceDaily);
 
-        resourceCacheUpdateService = createMock(ResourceCacheUpdateServiceBean.class);
+        resourceCacheUpdateService = mock(ResourceCacheUpdateServiceBean.class);
         addBeanToContext(RESOURCE_CACHE_UPDATE_SERVICE, resourceCacheUpdateService);
 
-        publishedObjectCleanUpService = createMock(PublishedObjectCleanUpServiceBean.class);
+        publishedObjectCleanUpService = mock(PublishedObjectCleanUpServiceBean.class);
         addBeanToContext(PUBLISHED_OBJECT_CLEAN_UP_SERVICE, publishedObjectCleanUpService);
 
-        caCleanUpService = createMock(CaCleanUpServiceBean.class);
+        caCleanUpService = mock(CaCleanUpServiceBean.class);
         addBeanToContext(CA_CLEAN_UP_SERVICE, caCleanUpService);
 
-        publisherSyncService = createMock(PublisherSyncService.class);
+        publisherSyncService = mock(PublisherSyncService.class);
         addBeanToContext(PUBLISHER_SYNC_SERVICE, publisherSyncService);
 
-        expect(repositoryConfiguration.getLocalRepositoryDirectory()).andReturn(new File("/tmp")).anyTimes();
-        expect(repositoryConfiguration.getPublicRepositoryUri()).andReturn(URI.create("rsync://localhost:873/repo")).anyTimes();
+        when(repositoryConfiguration.getLocalRepositoryDirectory()).thenReturn(new File("/tmp"));
+        when(repositoryConfiguration.getPublicRepositoryUri()).thenReturn(URI.create("rsync://localhost:873/repo"));
 
-        expect(activeNodeService.getActiveNodeName()).andReturn(hostname).anyTimes();
+        when(activeNodeService.getActiveNodeName()).thenReturn(hostname);
 
-        expect(manifestCrlUpdateService.isActive()).andReturn(true).anyTimes();
-        expect(allCertificateUpdateService.isActive()).andReturn(true).anyTimes();
-        expect(publicRepositoryPublicationService.isActive()).andReturn(true).anyTimes();
-        expect(publicRepositoryRsyncService.isActive()).andReturn(true).anyTimes();
-        expect(publicRepositoryRrdpService.isActive()).andReturn(true).anyTimes();
-        expect(productionCaKeyRolloverManagementService.isActive()).andReturn(true).anyTimes();
-        expect(hostedCaKeyRolloverManagementService.isActive()).andReturn(true).anyTimes();
-        expect(keyPairActivationManagementService.isActive()).andReturn(true).anyTimes();
-        expect(keyPairRevocationManagementService.isActive()).andReturn(true).anyTimes();
-        expect(certificateExpirationService.isActive()).andReturn(true).anyTimes();
-        expect(risWhoisUpdateService.isActive()).andReturn(true).anyTimes();
-        expect(roaAlertBackgroundServiceDaily.isActive()).andReturn(true).anyTimes();
-        expect(resourceCacheUpdateService.isActive()).andReturn(true).anyTimes();
-        expect(publishedObjectCleanUpService.isActive()).andReturn(true).anyTimes();
-        expect(caCleanUpService.isActive()).andReturn(true).anyTimes();
-        expect(publisherSyncService.isActive()).andReturn(true).anyTimes();
+        when(manifestCrlUpdateService.isActive()).thenReturn(true);
+        when(allCertificateUpdateService.isActive()).thenReturn(true);
+        when(publicRepositoryPublicationService.isActive()).thenReturn(true);
+        when(publicRepositoryRsyncService.isActive()).thenReturn(true);
+        when(publicRepositoryRrdpService.isActive()).thenReturn(true);
+        when(productionCaKeyRolloverManagementService.isActive()).thenReturn(true);
+        when(hostedCaKeyRolloverManagementService.isActive()).thenReturn(true);
+        when(keyPairActivationManagementService.isActive()).thenReturn(true);
+        when(keyPairRevocationManagementService.isActive()).thenReturn(true);
+        when(certificateExpirationService.isActive()).thenReturn(true);
+        when(risWhoisUpdateService.isActive()).thenReturn(true);
+        when(roaAlertBackgroundServiceDaily.isActive()).thenReturn(true);
+        when(resourceCacheUpdateService.isActive()).thenReturn(true);
+        when(publishedObjectCleanUpService.isActive()).thenReturn(true);
+        when(caCleanUpService.isActive()).thenReturn(true);
+        when(publisherSyncService.isActive()).thenReturn(true);
 
-        expect(manifestCrlUpdateService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(allCertificateUpdateService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(publicRepositoryPublicationService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(publicRepositoryRsyncService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(publicRepositoryRrdpService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(productionCaKeyRolloverManagementService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(hostedCaKeyRolloverManagementService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(keyPairActivationManagementService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(keyPairRevocationManagementService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(certificateExpirationService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(risWhoisUpdateService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(roaAlertBackgroundServiceDaily.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(resourceCacheUpdateService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(publishedObjectCleanUpService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(caCleanUpService.isWaitingOrRunning()).andReturn(false).anyTimes();
-        expect(publisherSyncService.isWaitingOrRunning()).andReturn(false).anyTimes();
+        when(manifestCrlUpdateService.isWaitingOrRunning()).thenReturn(false);
+        when(allCertificateUpdateService.isWaitingOrRunning()).thenReturn(false);
+        when(publicRepositoryPublicationService.isWaitingOrRunning()).thenReturn(false);
+        when(publicRepositoryRsyncService.isWaitingOrRunning()).thenReturn(false);
+        when(publicRepositoryRrdpService.isWaitingOrRunning()).thenReturn(false);
+        when(productionCaKeyRolloverManagementService.isWaitingOrRunning()).thenReturn(false);
+        when(hostedCaKeyRolloverManagementService.isWaitingOrRunning()).thenReturn(false);
+        when(keyPairActivationManagementService.isWaitingOrRunning()).thenReturn(false);
+        when(keyPairRevocationManagementService.isWaitingOrRunning()).thenReturn(false);
+        when(certificateExpirationService.isWaitingOrRunning()).thenReturn(false);
+        when(risWhoisUpdateService.isWaitingOrRunning()).thenReturn(false);
+        when(roaAlertBackgroundServiceDaily.isWaitingOrRunning()).thenReturn(false);
+        when(resourceCacheUpdateService.isWaitingOrRunning()).thenReturn(false);
+        when(publishedObjectCleanUpService.isWaitingOrRunning()).thenReturn(false);
+        when(caCleanUpService.isWaitingOrRunning()).thenReturn(false);
+        when(publisherSyncService.isWaitingOrRunning()).thenReturn(false);
 
-        expect(manifestCrlUpdateService.getStatus()).andReturn("not running").anyTimes();
-        expect(allCertificateUpdateService.getStatus()).andReturn("not running").anyTimes();
-        expect(publicRepositoryPublicationService.getStatus()).andReturn("not running").anyTimes();
-        expect(publicRepositoryRsyncService.getStatus()).andReturn("not running").anyTimes();
-        expect(publicRepositoryRrdpService.getStatus()).andReturn("not running").anyTimes();
-        expect(productionCaKeyRolloverManagementService.getStatus()).andReturn("not running").anyTimes();
-        expect(hostedCaKeyRolloverManagementService.getStatus()).andReturn("not running").anyTimes();
-        expect(keyPairActivationManagementService.getStatus()).andReturn("not running").anyTimes();
-        expect(keyPairRevocationManagementService.getStatus()).andReturn("not running").anyTimes();
-        expect(certificateExpirationService.getStatus()).andReturn("not running").anyTimes();
-        expect(risWhoisUpdateService.getStatus()).andReturn("not running").anyTimes();
-        expect(roaAlertBackgroundServiceDaily.getStatus()).andReturn("not running").anyTimes();
-        expect(resourceCacheUpdateService.getStatus()).andReturn("not running").anyTimes();
-        expect(publishedObjectCleanUpService.getStatus()).andReturn("not running").anyTimes();
-        expect(caCleanUpService.getStatus()).andReturn("not running").anyTimes();
-        expect(publisherSyncService.getStatus()).andReturn("not running").anyTimes();
+        when(manifestCrlUpdateService.getStatus()).thenReturn("not running");
+        when(allCertificateUpdateService.getStatus()).thenReturn("not running");
+        when(publicRepositoryPublicationService.getStatus()).thenReturn("not running");
+        when(publicRepositoryRsyncService.getStatus()).thenReturn("not running");
+        when(publicRepositoryRrdpService.getStatus()).thenReturn("not running");
+        when(productionCaKeyRolloverManagementService.getStatus()).thenReturn("not running");
+        when(hostedCaKeyRolloverManagementService.getStatus()).thenReturn("not running");
+        when(keyPairActivationManagementService.getStatus()).thenReturn("not running");
+        when(keyPairRevocationManagementService.getStatus()).thenReturn("not running");
+        when(certificateExpirationService.getStatus()).thenReturn("not running");
+        when(risWhoisUpdateService.getStatus()).thenReturn("not running");
+        when(roaAlertBackgroundServiceDaily.getStatus()).thenReturn("not running");
+        when(resourceCacheUpdateService.getStatus()).thenReturn("not running");
+        when(publishedObjectCleanUpService.getStatus()).thenReturn("not running");
+        when(caCleanUpService.getStatus()).thenReturn("not running");
+        when(publisherSyncService.getStatus()).thenReturn("not running");
     }
 
     @Test
     public void shouldRender() {
-        replayMocks();
-
         tester.startPage(SystemStatusPage.class);
-        tester.assertRenderedPage(SystemStatusPage.class);
 
-        verifyMocks();
+        tester.assertRenderedPage(SystemStatusPage.class);
     }
 
     @Test
     public void shouldUpdateActiveNode() {
         activeNodeService.setActiveNodeName("foo.ripe.net");
-        replayMocks();
 
         tester.startPage(SystemStatusPage.class);
 
         FormTester formTester = tester.newFormTester("activeNodeForm");
         formTester.setValue("activeNode", "foo.ripe.net");
         formTester.submit();
-        tester.assertRenderedPage(SystemStatusPage.class);
 
-        verifyMocks();
+        tester.assertRenderedPage(SystemStatusPage.class);
     }
 
     @Test
     public void shouldUpdateCrlsAndManifests() {
-        backgroundServices.trigger(MANIFEST_CRL_UPDATE_SERVICE); expectLastCall();
-        expect(manifestCrlUpdateService.getName()).andReturn("name");
-        replayMocks();
-
-        tester.startPage(SystemStatusPage.class);
-        tester.clickLink("updateManifestLink");
-        tester.assertRenderedPage(SystemStatusPage.class);
-
-        verifyMocks();
+        assertThatServiceIsTriggered("updateManifestLink", manifestCrlUpdateService, MANIFEST_CRL_UPDATE_SERVICE);
     }
 
     @Test
     public void shouldUpdatePublishedObjects() {
-        backgroundServices.trigger(PUBLIC_REPOSITORY_PUBLICATION_SERVICE); expectLastCall();
-        expect(publicRepositoryPublicationService.getName()).andReturn("name");
-        replayMocks();
-
-        tester.startPage(SystemStatusPage.class);
-        tester.clickLink("updatePublicationStatusLink");
-        tester.assertRenderedPage(SystemStatusPage.class);
-
-        verifyMocks();
+        assertThatServiceIsTriggered("updatePublicationStatusLink", publicRepositoryPublicationService, PUBLIC_REPOSITORY_PUBLICATION_SERVICE);
     }
 
     @Test
     public void shouldUpdateRsyncRepository() {
-        backgroundServices.trigger(PUBLIC_REPOSITORY_RSYNC_SERVICE); expectLastCall();
-        expect(publicRepositoryRsyncService.getName()).andReturn("name");
-        replayMocks();
-
-        tester.startPage(SystemStatusPage.class);
-        tester.clickLink("updateRsyncLink");
-        tester.assertRenderedPage(SystemStatusPage.class);
-
-        verifyMocks();
+        assertThatServiceIsTriggered("updateRsyncLink", publicRepositoryRsyncService, PUBLIC_REPOSITORY_RSYNC_SERVICE);
     }
 
     @Test
     public void shouldUpdateRrdpRepository() {
-        backgroundServices.trigger(PUBLIC_REPOSITORY_RRDP_SERVICE); expectLastCall();
-        expect(publicRepositoryRrdpService.getName()).andReturn("name");
-        replayMocks();
-
-        tester.startPage(SystemStatusPage.class);
-        tester.clickLink("updateRrdpLink");
-        tester.assertRenderedPage(SystemStatusPage.class);
-
-        verifyMocks();
+        assertThatServiceIsTriggered("updateRrdpLink", publicRepositoryRrdpService, PUBLIC_REPOSITORY_RRDP_SERVICE);
     }
 
     @Test
     public void shouldActivatePendingKeyPairs() {
-        backgroundServices.trigger(KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE); expectLastCall();
-        expect(keyPairActivationManagementService.getName()).andReturn("name");
-        replayMocks();
-
-        tester.startPage(SystemStatusPage.class);
-        tester.clickLink("activatePendingKeyPairsLink");
-        tester.assertRenderedPage(SystemStatusPage.class);
-
-        verifyMocks();
+        assertThatServiceIsTriggered("activatePendingKeyPairsLink", keyPairActivationManagementService, KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE);
     }
 
     @Test
     public void shouldRollOverMemberKeyPairs() {
-        backgroundServices.trigger(HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE); expectLastCall();
-        expect(hostedCaKeyRolloverManagementService.getName()).andReturn("name");
-        replayMocks();
-
-        tester.startPage(SystemStatusPage.class);
-        tester.clickLink("hostedCaRollOverLink");
-        tester.assertRenderedPage(SystemStatusPage.class);
-
-        verifyMocks();
+        assertThatServiceIsTriggered("hostedCaRollOverLink", hostedCaKeyRolloverManagementService, HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE);
     }
 
     @Test
     public void shouldRollOverProductionCaKeyPairs() {
-        backgroundServices.trigger(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE); expectLastCall();
-        expect(productionCaKeyRolloverManagementService.getName()).andReturn("name");
-        replayMocks();
-
-        tester.startPage(SystemStatusPage.class);
-        tester.clickLink("productionCaRollOverLink");
-        tester.assertRenderedPage(SystemStatusPage.class);
-
-        verifyMocks();
+        assertThatServiceIsTriggered("productionCaRollOverLink", productionCaKeyRolloverManagementService, PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE);
     }
 
     @Test
     public void shouldUpdateAllIncomingCertificates() {
-        backgroundServices.trigger(ALL_CA_CERTIFICATE_UPDATE_SERVICE); expectLastCall();
-        expect(allCertificateUpdateService.getName()).andReturn("name");
-        replayMocks();
+        assertThatServiceIsTriggered("updateResourcesLink", allCertificateUpdateService, ALL_CA_CERTIFICATE_UPDATE_SERVICE);
+    }
+
+    private void assertThatServiceIsTriggered(String link, BackgroundService backgroundService, String backgroundServiceName) {
+        when(backgroundService.getName()).thenReturn("name");
 
         tester.startPage(SystemStatusPage.class);
-        tester.clickLink("updateResourcesLink");
+        tester.clickLink(link);
         tester.assertRenderedPage(SystemStatusPage.class);
 
-        verifyMocks();
-    }
-
-    @Override
-    protected void replayMocks() {
-        super.replayMocks();
-        replay(backgroundServices);
-        replay(manifestCrlUpdateService);
-        replay(publicRepositoryPublicationService);
-        replay(publicRepositoryRsyncService);
-        replay(publicRepositoryRrdpService);
-        replay(productionCaKeyRolloverManagementService);
-        replay(hostedCaKeyRolloverManagementService);
-        replay(keyPairActivationManagementService);
-        replay(keyPairRevocationManagementService);
-        replay(certificateExpirationService);
-        replay(risWhoisUpdateService);
-        replay(roaAlertBackgroundServiceDaily);
-        replay(resourceCacheUpdateService);
-        replay(publishedObjectCleanUpService);
-        replay(caCleanUpService);
-        replay(publisherSyncService);
-    }
-
-    @Override
-    protected void verifyMocks() {
-        super.verifyMocks();
-        verify(backgroundServices);
-        verify(manifestCrlUpdateService);
-        verify(publicRepositoryPublicationService);
-        verify(publicRepositoryRsyncService);
-        verify(publicRepositoryRrdpService);
-        verify(productionCaKeyRolloverManagementService);
-        verify(hostedCaKeyRolloverManagementService);
-        verify(keyPairActivationManagementService);
-        verify(keyPairRevocationManagementService);
-        verify(certificateExpirationService);
-        verify(risWhoisUpdateService);
-        verify(roaAlertBackgroundServiceDaily);
-        verify(resourceCacheUpdateService);
-        verify(publishedObjectCleanUpService);
-        verify(caCleanUpService);
-        verify(publisherSyncService);
+        verify(backgroundServices).trigger(backgroundServiceName);
     }
 
     private static String getHostName() {

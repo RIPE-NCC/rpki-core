@@ -86,7 +86,7 @@ public class AspaEntityServiceBeanTest {
         when(aspaConfigurationRepository.findByCertificateAuthority(certificateAuthority)).thenReturn(new TreeMap<>(Collections.singletonMap(CUSTOMER_ASN, aspaConfiguration)));
 
         aspaEntity = subject.createAspaEntity(certificateAuthority, new AspaConfiguration(certificateAuthority, CUSTOMER_ASN, Collections.singletonMap(ASN_1, AspaAfiLimit.ANY)));
-        when(aspaEntityRepository.findByCertificateSigningKeyPair(activeKeyPair)).thenReturn(Collections.singletonList(aspaEntity));
+        when(aspaEntityRepository.findCurrentByCertificateAuthority(certificateAuthority)).thenReturn(Collections.singletonList(aspaEntity));
     }
 
     @After
@@ -135,7 +135,6 @@ public class AspaEntityServiceBeanTest {
     @Test
     public void should_revoke_and_remove_aspa_entity_when_not_configured_for_customer_asn() {
         when(aspaConfigurationRepository.findByCertificateAuthority(certificateAuthority)).thenReturn(new TreeMap<>());
-        when(aspaEntityRepository.findByCertificateSigningKeyPair(activeKeyPair)).thenReturn(Collections.singletonList(aspaEntity));
 
         subject.updateAspaIfNeeded(certificateAuthority);
 
@@ -147,7 +146,6 @@ public class AspaEntityServiceBeanTest {
     public void should_revoke_and_remove_old_aspa_entity_and_create_new_aspa_entity_when_providers_changed() {
         AspaConfiguration aspaConfiguration = new AspaConfiguration(certificateAuthority, CUSTOMER_ASN, Collections.singletonMap(ASN_2, AspaAfiLimit.IPv4));
         when(aspaConfigurationRepository.findByCertificateAuthority(certificateAuthority)).thenReturn(new TreeMap<>(Collections.singletonMap(CUSTOMER_ASN, aspaConfiguration)));
-        when(aspaEntityRepository.findByCertificateSigningKeyPair(activeKeyPair)).thenReturn(Collections.singletonList(aspaEntity));
 
         subject.updateAspaIfNeeded(certificateAuthority);
 

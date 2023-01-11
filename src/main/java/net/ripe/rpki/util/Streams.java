@@ -11,6 +11,7 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -36,7 +37,11 @@ public final class Streams {
     }
 
     public static <T, K, V> SortedMap<K, V> streamToSortedMap(Stream<T> stream, Function<T, K> keyMapper, Function<T, V> valueMapper) {
-        return stream.collect(Collectors.toMap(keyMapper, valueMapper, throwingMerger(), TreeMap::new));
+        return stream.collect(toSortedMap(keyMapper, valueMapper));
+    }
+
+    public static <T, K, V> Collector<T, ?, TreeMap<K, V>> toSortedMap(Function<T, K> keyMapper, Function<T, V> valueMapper) {
+        return Collectors.toMap(keyMapper, valueMapper, throwingMerger(), TreeMap::new);
     }
 
     /** Copied from java.util.Collectors, where it is private */

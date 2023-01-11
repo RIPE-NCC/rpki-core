@@ -1,24 +1,26 @@
 package net.ripe.rpki.core.events;
 
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NonNull;
 import lombok.ToString;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.CommandContext;
-import org.apache.commons.lang.Validate;
 
 @EqualsAndHashCode
 @ToString
 public abstract class CertificateAuthorityEvent {
 
-    private final VersionedId certificateAuthorityId; // Maybe change name to certificationAuthorityVersionedId? If so, need to migrate existing serialised history
+    @Getter
+    @NonNull
+    private final VersionedId certificateAuthorityVersionedId;
 
-    public CertificateAuthorityEvent(VersionedId certificateAuthorityId) {
-        Validate.notNull(certificateAuthorityId, "certificateAuthorityId is required");
-        this.certificateAuthorityId = certificateAuthorityId;
+    protected CertificateAuthorityEvent(@NonNull VersionedId certificateAuthorityVersionedId) {
+        this.certificateAuthorityVersionedId = certificateAuthorityVersionedId;
     }
 
-    public VersionedId getCertificateAuthorityVersionedId() {
-        return certificateAuthorityId;
+    public long getCertificateAuthorityId() {
+        return certificateAuthorityVersionedId.getId();
     }
 
     public abstract void accept(CertificateAuthorityEventVisitor visitor, CommandContext recording);

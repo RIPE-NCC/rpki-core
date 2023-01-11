@@ -1,5 +1,6 @@
 package net.ripe.rpki.domain.roa;
 
+import lombok.Value;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResourceSet;
@@ -40,9 +41,6 @@ public class RoaEntityServiceBeanTest  {
 
     private ManagedCertificateAuthority ca;
 
-    private SingleUseEeCertificateFactory singleUseEeCertificateFactory
-        ;
-
     @Mock
     private ResourceCertificateRepository resourceCertificateRepository;
 
@@ -61,18 +59,14 @@ public class RoaEntityServiceBeanTest  {
 
     @Before
     public void setUp() {
-        singleUseEeCertificateFactory = TestServices.createSingleUseEeCertificateFactory();
         ca = TestObjects.createInitialisedProdCaWithRipeResources();
         configuration = new RoaConfiguration(ca, Arrays.asList(ROA_PREFIX_1, ROA_PREFIX_2));
+        when(roaConfigurationRepository.getOrCreateByCertificateAuthority(ca)).thenReturn(configuration);
 
-        createAndInitSubject();
-    }
-
-    private void createAndInitSubject() {
-        initMocks();
+        SingleUseEeCertificateFactory singleUseEeCertificateFactory = TestServices.createSingleUseEeCertificateFactory();
         subject = new RoaEntityServiceBean(certificateAuthorityRepository, roaConfigurationRepository, roaEntityRepository,
                 new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), singleUseEeCertificateFactory);
-    }
+   }
 
     @After
     public void tearDown() {
@@ -231,7 +225,7 @@ public class RoaEntityServiceBeanTest  {
         byte[] content = (byte[]) contentField.get(publishedObject);
         content[38] = 0x55;
 
-        when(roaEntityRepository.findByCertificateSigningKeyPair(isA(KeyPairEntity.class))).thenReturn(Collections.singletonList(roaEntity));
+        when(roaEntityRepository.findCurrentByCertificateAuthority(ca)).thenReturn(Collections.singletonList(roaEntity));
 
         subject.updateRoasIfNeeded(ca);
 
@@ -257,7 +251,7 @@ public class RoaEntityServiceBeanTest  {
 
     private RoaSpecificationChangeResult handleRoaSpecificationUpdatedEvent(RoaEntity existingRoa) {
         reset(roaEntityRepository);
-        when(roaEntityRepository.findByCertificateSigningKeyPair(isA(KeyPairEntity.class))).thenReturn(Arrays.asList(existingRoa));
+        when(roaEntityRepository.findCurrentByCertificateAuthority(ca)).thenReturn(Collections.singletonList(existingRoa));
 
         subject.updateRoasIfNeeded(ca);
 
@@ -272,7 +266,7 @@ public class RoaEntityServiceBeanTest  {
 
     private RoaSpecificationChangeResult updateAndRevokeRoas(RoaEntity existingRoa) {
         reset(roaEntityRepository);
-        when(roaEntityRepository.findByCertificateSigningKeyPair(isA(KeyPairEntity.class))).thenReturn(Arrays.asList(existingRoa));
+        when(roaEntityRepository.findCurrentByCertificateAuthority(ca)).thenReturn(Collections.singletonList(existingRoa));
 
         subject.updateRoasIfNeeded(ca);
 
@@ -284,25 +278,9 @@ public class RoaEntityServiceBeanTest  {
         return new RoaSpecificationChangeResult(added.getAllValues().isEmpty() ? null : added.getValue(), removed.getAllValues().isEmpty() ? null : removed.getValue());
     }
 
-    private void initMocks() {
-        when(roaConfigurationRepository.getOrCreateByCertificateAuthority(ca)).thenReturn(configuration);
-    }
-
-    private static final class RoaSpecificationChangeResult {
-        private RoaEntity addedRoa;
-        private RoaEntity removedRoa;
-
-        public RoaSpecificationChangeResult(RoaEntity addedRoa, RoaEntity removedRoa) {
-            this.addedRoa = addedRoa;
-            this.removedRoa = removedRoa;
-        }
-
-        public RoaEntity getAddedRoa() {
-            return addedRoa;
-        }
-
-        public RoaEntity getRemovedRoa() {
-            return removedRoa;
-        }
+    @Value
+    private static class RoaSpecificationChangeResult {
+        RoaEntity addedRoa;
+        RoaEntity removedRoa;
     }
 }

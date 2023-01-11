@@ -7,25 +7,24 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static org.easymock.EasyMock.*;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class FileUploadUtilsTest {
 
     @Test
     public void shouldConvertUploadedFileToString() throws IOException {
-        FileUpload fileUpload = createMock(FileUpload.class);
+        FileUpload fileUpload = mock(FileUpload.class);
 
         String expectedString = "this is a test string";
 
 
         InputStream mockedIs = new ByteArrayInputStream(expectedString.getBytes());
-        expect(fileUpload.getInputStream()).andReturn(mockedIs);
+        when(fileUpload.getInputStream()).thenReturn(mockedIs);
 
-        replay(fileUpload);
         String extractedString = FileUploadUtils.convertUploadedFileToString(fileUpload);
-        verify(fileUpload);
 
         assertEquals(expectedString, extractedString);
     }

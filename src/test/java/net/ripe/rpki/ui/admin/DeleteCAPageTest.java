@@ -17,10 +17,12 @@ import javax.security.auth.x500.X500Principal;
 import java.util.Collections;
 import java.util.UUID;
 
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.isA;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class DeleteCAPageTest extends CertificationWicketTestCase {
 
@@ -35,56 +37,47 @@ public class DeleteCAPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldSimplyRender() {
-        expect(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).andReturn(Collections.emptyList());
-        replayMocks();
+        when(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).thenReturn(Collections.emptyList());
 
         tester.startPage(DeleteCAPage.class);
-        tester.assertRenderedPage(DeleteCAPage.class);
 
-        verifyMocks();
+        tester.assertRenderedPage(DeleteCAPage.class);
     }
 
     @Test
     public void shouldShowTheRegIdFormIfNoCAGiven() {
-        expect(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).andReturn(Collections.emptyList());
-        replayMocks();
+        when(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).thenReturn(Collections.emptyList());
 
         tester.startPage(DeleteCAPage.class);
+
         tester.assertVisible("caNameForm");
         tester.assertInvisible("deleteForm");
-
-        verifyMocks();
     }
 
     @Test
     public void shouldShowEmptyRegIdFieldOnTheForm() {
-        expect(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).andReturn(Collections.emptyList());
-        replayMocks();
+        when(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).thenReturn(Collections.emptyList());
 
         tester.startPage(DeleteCAPage.class);
-        assertEquals("", tester.newFormTester("caNameForm").getTextComponentValue("caName"));
 
-        verifyMocks();
+        assertEquals("", tester.newFormTester("caNameForm").getTextComponentValue("caName"));
     }
 
     @Test
     public void shouldRegIdBeRequired() {
-        expect(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).andReturn(Collections.emptyList());
-        replayMocks();
+        when(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).thenReturn(Collections.emptyList());
 
         tester.startPage(DeleteCAPage.class);
-        tester.assertRequired("caNameForm:caName");
 
-        verifyMocks();
+        tester.assertRequired("caNameForm:caName");
     }
 
     @Test
     public void shouldSubmitRegIdForm() {
-        expect(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).andReturn(Collections.emptyList());
-        expect(caViewService.findCertificateAuthorityIdByName(new X500Principal("CN=zz.example"))).andReturn(12L);
-        expect(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).andReturn(hostedCA);
-        expect(caViewService.findMostRecentCommandsForCa(12L)).andReturn(Collections.emptyList());
-        replayMocks();
+        when(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).thenReturn(Collections.emptyList());
+        when(caViewService.findCertificateAuthorityIdByName(new X500Principal("CN=zz.example"))).thenReturn(12L);
+        when(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).thenReturn(hostedCA);
+        when(caViewService.findMostRecentCommandsForCa(12L)).thenReturn(Collections.emptyList());
 
         tester.startPage(DeleteCAPage.class);
         FormTester formTester = tester.newFormTester("caNameForm");
@@ -92,15 +85,13 @@ public class DeleteCAPageTest extends CertificationWicketTestCase {
         formTester.submit("findButton");
 
         tester.assertRenderedPage(DeleteCAPage.class);
-
-        verifyMocks();
+        verify(commandService, never()).execute(isA(DeleteCertificateAuthorityCommand.class));
     }
 
     @Test
     public void shouldShowErrorIfThereIsNoCaForTheGivenRegId() {
-        expect(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).andReturn(Collections.emptyList());
-        expect(caViewService.findCertificateAuthorityIdByName(new X500Principal("CN=zz.example"))).andReturn(null);
-        replayMocks();
+        when(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).thenReturn(Collections.emptyList());
+        when(caViewService.findCertificateAuthorityIdByName(new X500Principal("CN=zz.example"))).thenReturn(null);
 
         tester.startPage(DeleteCAPage.class);
         FormTester formTester = tester.newFormTester("caNameForm");
@@ -109,82 +100,69 @@ public class DeleteCAPageTest extends CertificationWicketTestCase {
 
         tester.assertRenderedPage(DeleteCAPage.class);
         tester.assertErrorMessages(new String[]{"Certificate Authority for this CA name does not exist."});
-
-        verifyMocks();
+        verify(commandService, never()).execute(isA(DeleteCertificateAuthorityCommand.class));
     }
 
     @Test
     public void shouldShowHistoryForRegId() {
-        expect(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).andReturn(hostedCA);
-        expect(caViewService.findMostRecentCommandsForCa(12L)).andReturn(Collections.emptyList());
-        replayMocks();
+        when(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).thenReturn(hostedCA);
+        when(caViewService.findMostRecentCommandsForCa(12L)).thenReturn(Collections.emptyList());
 
         tester.startPage(DeleteCAPage.class, pageParams());
-        tester.assertVisible("commandListPanel");
 
-        verifyMocks();
+        tester.assertVisible("commandListPanel");
     }
 
     @Test
     public void shouldHideTheRegIdFormIfCASpecified() {
-        expect(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).andReturn(hostedCA);
-        expect(caViewService.findMostRecentCommandsForCa(12L)).andReturn(Collections.emptyList());
-        replayMocks();
+        when(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).thenReturn(hostedCA);
+        when(caViewService.findMostRecentCommandsForCa(12L)).thenReturn(Collections.emptyList());
 
         tester.startPage(DeleteCAPage.class, pageParams());
 
         tester.assertVisible("deleteForm");
         tester.assertInvisible("caNameForm");
-
-        verifyMocks();
     }
 
     @Test
     public void shouldSubmitTheDeleteFormAndDeleteHostedCA() {
-        expect(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).andReturn(hostedCA);
-        expect(caViewService.findMostRecentCommandsForCa(12L)).andReturn(Collections.emptyList());
-        expect(commandService.execute(isA(DeleteCertificateAuthorityCommand.class))).andReturn(CommandStatus.create());
-        replayMocks();
+        when(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).thenReturn(hostedCA);
+        when(caViewService.findMostRecentCommandsForCa(12L)).thenReturn(Collections.emptyList());
+        when(commandService.execute(isA(DeleteCertificateAuthorityCommand.class))).thenReturn(CommandStatus.create());
 
         tester.startPage(DeleteCAPage.class, pageParams());
         FormTester formTester = tester.newFormTester("deleteForm");
         formTester.submit("deleteButton");
 
         tester.assertInfoMessages(new String[]{"Deleted CA " + "CN=zz.example"});
-
-        verifyMocks();
+        verify(commandService).execute(isA(DeleteCertificateAuthorityCommand.class));
     }
 
     @Test
     public void shouldShowErrorMessageIfCADeletionFails() {
-        expect(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).andReturn(hostedCA);
-        expect(caViewService.findMostRecentCommandsForCa(12L)).andReturn(Collections.emptyList());
-        commandService.execute(isA(DeleteCertificateAuthorityCommand.class));
-        expectLastCall().andThrow(new RuntimeException("Some error"));
-        replayMocks();
+        when(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).thenReturn(hostedCA);
+        when(caViewService.findMostRecentCommandsForCa(12L)).thenReturn(Collections.emptyList());
+        doThrow(new RuntimeException("Some error")).when(commandService).execute(isA(DeleteCertificateAuthorityCommand.class));
 
         tester.startPage(DeleteCAPage.class, pageParams());
         FormTester formTester = tester.newFormTester("deleteForm");
         formTester.submit("deleteButton");
 
         tester.assertErrorMessages(new String[]{"Some error"});
-
-        verifyMocks();
+        verify(commandService).execute(isA(DeleteCertificateAuthorityCommand.class));
     }
 
     @Test
     public void shouldGoBackWithoutSubmittingTheDeleteForm() {
-        expect(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).andReturn(hostedCA);
-        expect(caViewService.findMostRecentCommandsForCa(12L)).andReturn(Collections.emptyList());
-        // Parent page defaults to prodution CA ID - caused verifyMocks() to fail after EasyMock was updated.
-        expect(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).andReturn(Collections.emptyList());
-        replayMocks();
+        when(caViewService.findCertificateAuthorityByName(new X500Principal("CN=zz.example"))).thenReturn(hostedCA);
+        when(caViewService.findMostRecentCommandsForCa(12L)).thenReturn(Collections.emptyList());
+        when(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).thenReturn(Collections.emptyList());
 
         tester.startPage(DeleteCAPage.class, pageParams());
         FormTester formTester = tester.newFormTester("deleteForm");
         formTester.submit("backButton");
 
-        verifyMocks();
+        verify(commandService, never()).execute(isA(DeleteCertificateAuthorityCommand.class));
     }
 
     private PageParameters pageParams() {

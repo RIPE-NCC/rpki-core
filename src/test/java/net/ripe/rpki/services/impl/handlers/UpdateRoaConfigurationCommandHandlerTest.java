@@ -8,7 +8,6 @@ import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
-import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
@@ -33,15 +32,11 @@ public class UpdateRoaConfigurationCommandHandlerTest {
 
     private static final IpRange PREFIX = IpRange.parse("10.1/16");
 
-    private static final Long TEST_CA_ID = 2L;
-
     private ManagedCertificateAuthority certificateAuthority;
 
     private CertificateAuthorityRepository certificateAuthorityRepository;
 
     private RoaConfigurationRepository roaConfigurationRepository;
-
-    private RoaEntityService roaEntityService;
 
     private UpdateRoaConfigurationCommandHandler subject;
 
@@ -54,13 +49,12 @@ public class UpdateRoaConfigurationCommandHandlerTest {
         certificateAuthority = TestObjects.createInitialisedProdCaWithRipeResources();
         certificateAuthorityRepository = mock(CertificateAuthorityRepository.class);
         roaConfigurationRepository = mock(RoaConfigurationRepository.class);
-        roaEntityService = mock(RoaEntityService.class);
         roaMetricsService = mock(RoaMetricsService.class);
 
         when(certificateAuthorityRepository.findManagedCa(certificateAuthority.getId())).thenReturn(certificateAuthority);
 
         subject = new UpdateRoaConfigurationCommandHandler(certificateAuthorityRepository, roaConfigurationRepository
-                , roaEntityService, PRIVATE_ASNS, roaMetricsService);
+                , PRIVATE_ASNS, roaMetricsService);
         configuration = new RoaConfiguration(certificateAuthority);
 
         when(roaConfigurationRepository.getOrCreateByCertificateAuthority(certificateAuthority)).thenReturn(configuration);
@@ -88,11 +82,12 @@ public class UpdateRoaConfigurationCommandHandlerTest {
 
     @Test
     public void should_reject_uncertified_prefixes() {
-        assertThatThrownBy(() -> subject.handle(new UpdateRoaConfigurationCommand(
+        UpdateRoaConfigurationCommand command = new UpdateRoaConfigurationCommand(
             certificateAuthority.getVersionedId(),
             Collections.singletonList(new RoaConfigurationPrefixData(ASN, IpRange.parse("1.0.0.0/8"), null)),
             Collections.emptyList()
-        ))).isInstanceOf(NotHolderOfResourcesException.class);
+        );
+        assertThatThrownBy(() -> subject.handle(command)).isInstanceOf(NotHolderOfResourcesException.class);
     }
 
     @Test
@@ -105,6 +100,7 @@ public class UpdateRoaConfigurationCommandHandlerTest {
                 Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX, null))));
 
         assertEquals(Collections.emptySet(), configuration.getPrefixes());
+        verify(roaConfigurationRepository).logRoaPrefixDeletion(configuration, Collections.singleton(new RoaConfigurationPrefix(ASN, PREFIX, null)));
         verify(roaMetricsService).countDeleted(1);
     }
 

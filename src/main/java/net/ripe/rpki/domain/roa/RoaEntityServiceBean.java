@@ -1,14 +1,11 @@
 package net.ripe.rpki.domain.roa;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCms;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsBuilder;
-import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsParser;
 import net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
@@ -25,18 +22,16 @@ import net.ripe.rpki.domain.SingleUseKeyPairFactory;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.naming.RepositoryObjectNamingStrategy;
 import net.ripe.rpki.server.api.commands.CommandContext;
+import net.ripe.rpki.server.api.services.command.UnparseableRpkiObjectException;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.security.auth.x500.X500Principal;
-import javax.transaction.Transactional;
 import java.net.URI;
 import java.security.KeyPair;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service("roaEntityServiceBean")
 public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, RoaEntityService {
@@ -84,66 +79,73 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
                 .forEachOrdered(roa -> roa.revokeAndRemove(repository));
     }
 
+    /**
+     * Validates the current ROA entities against the ROA configuration and incoming resources.
+     *
+     * @return a pair with ROA entities that are no longer valid and ROA specifications that are not satisfied
+     * by the current resource certificate and configuration. When both lists are empty the ROA entities
+     * are fully up-to-date with the ROA configuration.
+     */
+    public Pair<List<RoaEntity>, List<RoaSpecification>> validateRoaConfiguration(ManagedCertificateAuthority ca) {
+        List<RoaEntity> roaEntities = repository.findCurrentByCertificateAuthority(ca);
+        Optional<IncomingResourceCertificate> maybeCurrentIncomingResourceCertificate = ca.findCurrentIncomingResourceCertificate();
+        if (!maybeCurrentIncomingResourceCertificate.isPresent()) {
+            // No current resource certificate, so all ROA entities are invalid and without resources there is
+            // no applicable configuration
+            return Pair.of(roaEntities, Collections.emptyList());
+        }
+
+        IncomingResourceCertificate incomingResourceCertificate = maybeCurrentIncomingResourceCertificate.get();
+
+        RoaConfiguration configuration = roaConfigurationRepository.getOrCreateByCertificateAuthority(ca);
+        Map<Asn, RoaSpecification> specifications = configuration.toRoaSpecifications(incomingResourceCertificate);
+        Map<Boolean, List<RoaEntity>> validatedRoas = roaEntities.stream()
+            .collect(Collectors.partitioningBy(roa -> isValidRoaEntity(incomingResourceCertificate, specifications, roa)));
+
+        return Pair.of(
+            validatedRoas.get(false),
+            getUnsatisfiedSpecifications(validatedRoas.get(true), specifications)
+        );
+    }
+
     @Override
     public void updateRoasIfNeeded(ManagedCertificateAuthority ca) {
-        final RoaConfiguration configuration = roaConfigurationRepository.getOrCreateByCertificateAuthority(ca);
-        ca.findCurrentKeyPair()
-            .ifPresent(currentKeyPair ->
-                currentKeyPair.findCurrentIncomingCertificate()
-                    .ifPresent(currentIncomingCertificate -> {
-                        Map<Asn, RoaSpecification> roaSpecifications = configuration.toRoaSpecifications(currentIncomingCertificate);
-
-                        List<RoaEntity> roas = new ArrayList<>(repository.findByCertificateSigningKeyPair(currentKeyPair));
-
-                        revokeAndRemoveUnparsableRoas(roas);
-                        roas.removeIf(roa -> !roa.getCertificate().isValid());
-                        revokeRoasIfParentCertificateLocationChanged(currentIncomingCertificate, roas);
-
-                        ListMultimap<Asn, RoaEntity> roasByAsn = groupRoasByAsn(roas);
-                        updateRoaEntitiesToMatchSpecifications(roaSpecifications, roasByAsn, currentKeyPair);
-                        revokeInvalidatedRoas(roaSpecifications, roasByAsn.asMap());
-                    }));
-    }
-
-    // TODO: WTF is this and why do we validate our own ROAs?
-    private void revokeAndRemoveUnparsableRoas(List<RoaEntity> roas) {
-        for (Iterator<RoaEntity> it = roas.iterator(); it.hasNext();) {
-            RoaEntity roa = it.next();
-            if (roa.getCertificate().isValid()) {
-                RoaCmsParser parser = new RoaCmsParser();
-                parser.parse("roa", roa.getPublishedObject().getContent());
-                if (!parser.isSuccess()) {
-                    roa.revokeAndRemove(repository);
-                    it.remove();
-                }
+        ca.findCurrentKeyPair().ifPresent(currentKeyPair -> {
+            Pair<List<RoaEntity>, List<RoaSpecification>> validationResult = validateRoaConfiguration(ca);
+            for (RoaEntity roaEntity : validationResult.getLeft()) {
+                roaEntity.revokeAndRemove(repository);
             }
-        }
-    }
-
-    private void revokeRoasIfParentCertificateLocationChanged(IncomingResourceCertificate incomingResourceCertificate, List<RoaEntity> roas) {
-        for (Iterator<RoaEntity> it = roas.iterator(); it.hasNext();) {
-            RoaEntity roa = it.next();
-            if (!incomingResourceCertificate.getPublicationUri().equals(roa.getRoaCms().getParentCertificateUri())) {
-                roa.revokeAndRemove(repository);
-                it.remove();
+            for (RoaSpecification specification : validationResult.getRight()) {
+                createRoaEntity(specification, currentKeyPair);
             }
+        });
+    }
+
+    private boolean isValidRoaEntity(IncomingResourceCertificate incomingResourceCertificate, Map<Asn, RoaSpecification> specifications, RoaEntity roa) {
+        try {
+            RoaCms roaCms = roa.getRoaCms();
+            RoaSpecification specification = specifications.get(roaCms.getAsn());
+
+            return roa.getCertificate().isValid()
+                && roa.getCertificate().getSigningKeyPair().isCurrent()
+                && Objects.equals(incomingResourceCertificate.getPublicationUri(), roaCms.getParentCertificateUri())
+                && specification != null
+                && specification.isSatisfiedBy(roaCms);
+        } catch (UnparseableRpkiObjectException e) {
+            return false;
         }
     }
 
-    private ListMultimap<Asn, RoaEntity> groupRoasByAsn(List<RoaEntity> roas) {
-        ListMultimap<Asn, RoaEntity> result = ArrayListMultimap.create();
-        for (RoaEntity roa : roas) {
-            result.get(roa.getAsn()).add(roa);
-        }
-        return result;
+    private List<RoaSpecification> getUnsatisfiedSpecifications(List<RoaEntity> validRoas, Map<Asn, RoaSpecification> specifications) {
+        Map<Asn, List<RoaEntity>> validRoasByAsn = validRoas.stream().collect(Collectors.groupingBy(RoaEntity::getAsn));
+        return specifications.values().stream()
+            .filter(specification -> isUnsatisfiedSpecification(validRoasByAsn, specification))
+            .collect(Collectors.toList());
     }
 
-
-    private void updateRoaEntitiesToMatchSpecifications(Map<Asn, RoaSpecification> roaSpecifications, ListMultimap<Asn, RoaEntity> roasByAsn, KeyPairEntity currentKeyPair) {
-        for (RoaSpecification specification : roaSpecifications.values()) {
-            List<RoaEntity> roasForAsn = roasByAsn.get(specification.getAsn());
-            updateRoasForAsn(specification, roasForAsn, currentKeyPair);
-        }
+    private boolean isUnsatisfiedSpecification(Map<Asn, List<RoaEntity>> validRoasByAsn, RoaSpecification specification) {
+        return validRoasByAsn.getOrDefault(specification.getAsn(), Collections.emptyList()).stream()
+            .noneMatch(roa -> specification.isSatisfiedBy(roa.getRoaCms()));
     }
 
     private void createRoaEntity(RoaSpecification specification, KeyPairEntity currentKeyPair) {
@@ -188,36 +190,5 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
         X509CertificateInformationAccessDescriptor[] sia = informationAccessStrategy.siaForSignedObjectCertificate(signingKeyPair,
                 RepositoryObjectNamingStrategy.ROA_FILE_EXTENSION, subject, eeKeyPair.getPublic());
         return new CertificateIssuanceRequest(resources, subject, eeKeyPair.getPublic(), sia);
-    }
-
-    private void updateRoasForAsn(RoaSpecification specification, List<RoaEntity> roasForAsn, KeyPairEntity currentKeyPair) {
-        if (!existsRoaThatSatisfiedSpecification(specification, roasForAsn)) {
-            for (RoaEntity roa : roasForAsn) {
-                roa.revokeAndRemove(repository);
-            }
-            createRoaEntity(specification, currentKeyPair);
-        }
-    }
-
-    private void revokeInvalidatedRoas(Map<Asn, RoaSpecification> roaSpecifications, Map<Asn, Collection<RoaEntity>> roasByAsn) {
-        roasByAsn.values().stream()
-                .flatMap(Collection::stream)
-                .forEachOrdered(roa -> {
-                    final RoaCms roaCms = roa.getRoaCms();
-                    final RoaSpecification specification = roaSpecifications.get(roaCms.getAsn());
-                    if (specification == null || !specification.allows(roaCms)) {
-                        roa.revokeAndRemove(repository);
-                    }
-                });
-    }
-
-    private boolean existsRoaThatSatisfiedSpecification(RoaSpecification specification, List<RoaEntity> roas) {
-        return roas.stream().anyMatch(roa -> specification.isSatisfiedBy(roa.getRoaCms()));
-    }
-
-    @Transactional
-    @Override
-    public void logRoaPrefixDeletion(RoaConfiguration configuration, Collection<? extends RoaConfigurationPrefix> deletedPrefixes) {
-        roaConfigurationRepository.logRoaPrefixDeletion(configuration, deletedPrefixes);
     }
 }

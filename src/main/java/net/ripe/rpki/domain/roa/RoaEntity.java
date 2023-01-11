@@ -4,10 +4,12 @@ import lombok.Getter;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCms;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsParser;
+import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.PublishedObject;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import net.ripe.rpki.server.api.dto.RoaEntityData;
+import net.ripe.rpki.server.api.services.command.UnparseableRpkiObjectException;
 import org.apache.commons.lang.Validate;
 
 import javax.persistence.CascadeType;
@@ -63,10 +65,14 @@ public class RoaEntity extends EntitySupport {
     @Transient
     private RoaCms cms;
 
-    public synchronized RoaCms getRoaCms() {
+    public RoaCms getRoaCms() {
         if (cms == null) {
             final RoaCmsParser parser = new RoaCmsParser();
-            parser.parse("roa", publishedObject.getContent());
+            ValidationResult validationResult = ValidationResult.withLocation("roa");
+            parser.parse(validationResult, publishedObject.getContent());
+            if (!parser.isSuccess()) {
+                throw new UnparseableRpkiObjectException(validationResult);
+            }
             cms = parser.getRoaCms();
         }
         return cms;

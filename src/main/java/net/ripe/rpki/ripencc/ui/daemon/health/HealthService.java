@@ -49,7 +49,7 @@ public class HealthService {
 
         HttpStatus httpStatus = Health.httpCode(statuses);
         if (httpStatus != HttpStatus.OK) {
-            log.warn("Health check servlet is called, result is {}", statuses);
+            log.warn("Health check servlet is called, result is {}", Health.toJson(statuses));
         }
 
         return ResponseEntity.status(httpStatus)
@@ -65,7 +65,7 @@ public class HealthService {
             updated = new AtomicLong(System.currentTimeMillis());
 
             Gauge.builder("rpkicore.healthcheck.status", status::get)
-                    .description("Status of health checks that have been evaluated")
+                    .description("Ordinal status of health checks that have been evaluated. 0 is OK, 1 is WARN, 2 is ERROR")
                     .tag("check", checkName)
                     .register(registry);
 

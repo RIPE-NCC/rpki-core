@@ -301,7 +301,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         subjectKeyPair.updateIncomingResourceCertificate(certificate, publicationURI);
 
         if (getKeyPairs().size() == 1 && subjectKeyPair.isPending()) {
-            activatePendingKey(subjectKeyPair, getVersionedId());
+            activatePendingKey(subjectKeyPair);
         }
 
         // status can change after activatePendingKey
@@ -310,11 +310,11 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         }
     }
 
-    private void activatePendingKey(KeyPairEntity newKeyPair, VersionedId versionedId) {
+    private void activatePendingKey(KeyPairEntity newKeyPair) {
         Optional<KeyPairEntity> currentKeyPair = findCurrentKeyPair();
         currentKeyPair.ifPresent(KeyPairEntity::deactivate);
         newKeyPair.activate();
-        ManagedCertificateAuthority.EVENTS.publish(this, new KeyPairActivatedEvent(versionedId, newKeyPair));
+        ManagedCertificateAuthority.EVENTS.publish(this, new KeyPairActivatedEvent(getVersionedId(), newKeyPair));
     }
 
     /**
@@ -334,16 +334,13 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
      * @return false if NO key was activated
      */
     public boolean activatePendingKeys(Duration minStagingTime) {
-        final AtomicBoolean anyKeysActivated = new AtomicBoolean(false);
-        findPendingKeyPair()
+        return findPendingKeyPair()
             .filter(pkp -> pkp.getStatusChangedAt(KeyPairStatus.PENDING).isBefore(new DateTime().minus(minStagingTime)))
-            .ifPresent(pkp -> {
-                findCurrentKeyPair().ifPresent(KeyPairEntity::deactivate);
-                pkp.activate();
-                EVENTS.publish(this, new KeyPairActivatedEvent(getVersionedId(), pkp));
-                anyKeysActivated.set(true);
-            });
-        return anyKeysActivated.get();
+            .map(pkp -> {
+                activatePendingKey(pkp);
+                return true;
+            })
+            .orElse(false);
     }
 
     /**

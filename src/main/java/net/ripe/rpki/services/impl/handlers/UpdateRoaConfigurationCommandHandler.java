@@ -9,7 +9,6 @@ import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
-import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
@@ -31,19 +30,16 @@ import java.util.stream.Collectors;
 public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAuthorityCommandHandler<UpdateRoaConfigurationCommand> {
 
     private final RoaConfigurationRepository roaConfigurationRepository;
-    private final RoaEntityService roaEntityService;
     private final ImmutableResourceSet privateAsnRanges;
     private final RoaMetricsService roaMetricsService;
 
     @Inject
     public UpdateRoaConfigurationCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
                                                 RoaConfigurationRepository roaConfigurationRepository,
-                                                RoaEntityService roaEntityService,
                                                 @Value("${private.asns.ranges}") String privateASNS,
                                                 RoaMetricsService roaMetricsService) {
         super(certificateAuthorityRepository);
         this.roaConfigurationRepository = roaConfigurationRepository;
-        this.roaEntityService = roaEntityService;
         this.roaMetricsService = roaMetricsService;
 
         this.privateAsnRanges = ImmutableResourceSet.parse(privateASNS);
@@ -80,7 +76,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
         if (!deletedPrefixes.isEmpty()) {
             final Set<? extends RoaConfigurationPrefix> actualDeletable =
                 deletedPrefixes.stream().filter(formerPrefixes::contains).collect(Collectors.toSet());
-            roaEntityService.logRoaPrefixDeletion(configuration, actualDeletable);
+            roaConfigurationRepository.logRoaPrefixDeletion(configuration, actualDeletable);
         }
         roaMetricsService.countAdded(command.getAdditions().size());
         roaMetricsService.countDeleted(command.getDeletions().size());

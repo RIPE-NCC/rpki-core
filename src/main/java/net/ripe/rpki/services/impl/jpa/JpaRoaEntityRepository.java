@@ -2,9 +2,11 @@ package net.ripe.rpki.services.impl.jpa;
 
 import lombok.NonNull;
 import net.ripe.rpki.domain.KeyPairEntity;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.roa.RoaEntity;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
 import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
+import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -15,6 +17,22 @@ public class JpaRoaEntityRepository extends JpaRepository<RoaEntity> implements 
     @Override
     protected Class<RoaEntity> getEntityClass() {
         return RoaEntity.class;
+    }
+
+    @Override
+    public List<RoaEntity> findCurrentByCertificateAuthority(ManagedCertificateAuthority certificateAuthority) {
+        return manager.createQuery(
+                "SELECT roa " +
+                    "  FROM ManagedCertificateAuthority ca JOIN ca.keyPairs kp," +
+                    "       RoaEntity roa" +
+                    " WHERE ca = :ca" +
+                    "   AND roa.certificate.signingKeyPair = kp" +
+                    "   AND roa.certificate.status = :current",
+                RoaEntity.class
+            )
+            .setParameter("ca", certificateAuthority)
+            .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
+            .getResultList();
     }
 
     @Override

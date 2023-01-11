@@ -16,27 +16,24 @@ import java.util.List;
 import java.util.UUID;
 
 import static net.ripe.rpki.ui.util.WicketUtils.caIdToPageParameters;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.isA;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.when;
 
 public class CertificateAuthorityHistoryPageTest extends CertificationWicketTestCase {
 
     @Test
     public void shouldRenderEmptyPage() {
-        expect(caViewService.findMostRecentMessagesForCa(isA(UUID.class))).andReturn(Collections.emptyList());
-        expect(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).andReturn(Collections.emptyList());
-        replayMocks();
+        when(caViewService.findMostRecentMessagesForCa(isA(UUID.class))).thenReturn(Collections.emptyList());
+        when(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).thenReturn(Collections.emptyList());
 
         tester.startPage(CertificateAuthorityHistoryPage.class, caIdToPageParameters(PRODUCTION_CA_ID));
         tester.assertRenderedPage(CertificateAuthorityHistoryPage.class);
-
-        verifyMocks();
     }
 
     @Test
     public void shouldRenderSummary() {
-        expect(caViewService.findMostRecentMessagesForCa(isA(UUID.class))).andReturn(Collections.emptyList());
+        when(caViewService.findMostRecentMessagesForCa(isA(UUID.class))).thenReturn(Collections.emptyList());
 
         List<CommandAuditData> commandList = auditLog(
                 new UpdateAllIncomingResourceCertificatesCommand(PRODUCTION_CA_VERSIONED_ID, Integer.MAX_VALUE),
@@ -46,16 +43,13 @@ public class CertificateAuthorityHistoryPageTest extends CertificationWicketTest
                 new GenerateOfflineCARepublishRequestCommand(PRODUCTION_CA_VERSIONED_ID)
                 );
 
-        expect(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).andReturn(commandList);
-        expect(statsCollectorNames.humanizeUserPrincipal("admin")).andReturn(null).anyTimes();
-        replayMocks();
+        when(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).thenReturn(commandList);
+        when(statsCollectorNames.humanizeUserPrincipal("admin")).thenReturn(null);
 
         tester.startPage(CertificateAuthorityHistoryPage.class, caIdToPageParameters(PRODUCTION_CA_ID));
 
         tester.assertRenderedPage(CertificateAuthorityHistoryPage.class);
         tester.assertComponent("commandListPanel:commandList:0:summary", MultiLineLabel.class);
-
-        verifyMocks();
     }
 
     @Test
@@ -65,15 +59,14 @@ public class CertificateAuthorityHistoryPageTest extends CertificationWicketTest
 
         List<CommandAuditData> commandList = new ArrayList<>(1);
         commandList.add(command);
-        expect(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).andReturn(commandList);
+        when(caViewService.findMostRecentCommandsForCa(PRODUCTION_CA_ID)).thenReturn(commandList);
 
         List<ProvisioningAuditData> messageList = new ArrayList<>(1);
         messageList.add(provisioningMessage);
-        expect(caViewService.findMostRecentMessagesForCa(PRODUCTION_CA_DATA.getUuid())).andReturn(messageList);
+        when(caViewService.findMostRecentMessagesForCa(PRODUCTION_CA_DATA.getUuid())).thenReturn(messageList);
 
-        expect(statsCollectorNames.humanizeUserPrincipal(command.getPrincipal())).andReturn(null);
-        expect(statsCollectorNames.humanizeUserPrincipal(provisioningMessage.getPrincipal())).andReturn(null);
-        replayMocks();
+        when(statsCollectorNames.humanizeUserPrincipal(command.getPrincipal())).thenReturn(null);
+        when(statsCollectorNames.humanizeUserPrincipal(provisioningMessage.getPrincipal())).thenReturn(null);
 
         tester.startPage(CertificateAuthorityHistoryPage.class, caIdToPageParameters(PRODUCTION_CA_ID));
 

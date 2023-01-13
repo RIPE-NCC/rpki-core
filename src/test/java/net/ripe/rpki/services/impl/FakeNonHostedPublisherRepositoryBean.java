@@ -8,13 +8,8 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
-import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Profile("test")
@@ -27,9 +22,9 @@ public class FakeNonHostedPublisherRepositoryBean implements NonHostedPublisherR
     }
 
     @Override
-    public RepositoryResponse provisionPublisher(UUID publisherHandle, PublisherRequest publisherRequest) {
+    public RepositoryResponse provisionPublisher(UUID publisherHandle, PublisherRequest publisherRequest) throws DuplicateRepositoryException {
         if (repositories.containsKey(publisherHandle)) {
-            throw new IllegalStateException("publisher_handle '" +  publisherHandle + "' is already present");
+            throw new DuplicateRepositoryException(publisherHandle);
         }
 
         RepositoryResponse repositoryResponse = new RepositoryResponse(
@@ -52,9 +47,8 @@ public class FakeNonHostedPublisherRepositoryBean implements NonHostedPublisherR
     }
 
     @Override
-    public Response deletePublisher(UUID publisherHandle) {
+    public void deletePublisher(UUID publisherHandle) {
         repositories.remove(publisherHandle);
-        return Response.ok().build();
     }
 
     @Override

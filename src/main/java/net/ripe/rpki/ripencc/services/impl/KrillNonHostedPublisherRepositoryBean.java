@@ -2,16 +2,14 @@ package net.ripe.rpki.ripencc.services.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.Getter;
-import lombok.SneakyThrows;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateParser;
 import net.ripe.rpki.commons.validation.ValidationResult;
+import net.ripe.rpki.domain.CertificateAuthorityException;
 import net.ripe.rpki.server.api.ports.NonHostedPublisherRepositoryService;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
@@ -19,6 +17,7 @@ import org.glassfish.jersey.logging.LoggingFeature;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
@@ -30,11 +29,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.util.Base64;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -70,8 +65,8 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
         final ClientConfig clientConfig = new ClientConfig();
         clientConfig.property(ClientProperties.CONNECT_TIMEOUT, 5 * 1000);
         clientConfig.property(ClientProperties.READ_TIMEOUT, 31 * 1000);
-        clientConfig.register(new LoggingFeature(Logger.getLogger(LoggingFeature.DEFAULT_LOGGER_NAME),
-            Level.INFO, LoggingFeature.Verbosity.PAYLOAD_ANY, 1024));
+
+
 
         publisherRepositoryClient = ClientBuilder.newBuilder()
             .withConfig(clientConfig)
@@ -95,14 +90,13 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
             // Unauthenticated endpoint which accepts requests with authorisation as well.
             return clientForTarget(MONITORING_TARGET).get().getStatus() == 200;
         } catch (Exception t) {
-            log.debug("Requesting repository publisher REST API failed: {}", t);
+            log.debug("Requesting repository publisher REST API failed: {}", t.toString());
             return false;
         }
     }
 
-
     @Override
-    public RepositoryResponse provisionPublisher(UUID publisherHandle, PublisherRequest publisherRequest) {
+    public RepositoryResponse provisionPublisher(UUID publisherHandle, PublisherRequest publisherRequest) throws DuplicateRepositoryException {
 
         PublisherRequest requestWithPublisherHandle = new PublisherRequest(Optional.empty(),
             publisherHandle.toString(), publisherRequest.getPublisherBpkiTa(), Optional.empty());
@@ -112,32 +106,64 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
                 requestWithPublisherHandle.getPublisherBpkiTa().getBase64String(),
                 requestWithPublisherHandle.getPublisherHandle());
 
-        Response post = clientForTarget(PUBD_PUBLISHERS).post(Entity.json(krillPublisherRequest));
-        RepositoryResponseDto repositoryResponseDto = post.readEntity(RepositoryResponseDto.class);
-        return repositoryResponseDto.toRepositoryResponse();
+        try (Response post = clientForTarget(PUBD_PUBLISHERS).post(Entity.json(krillPublisherRequest))) {
+            if (post.getStatus() == HttpStatus.OK.value() || post.getStatus() == HttpStatus.CREATED.value()) {
+                RepositoryResponseDto repositoryResponseDto = post.readEntity(RepositoryResponseDto.class);
+                return repositoryResponseDto.toRepositoryResponse();
+            } else if (post.getStatus() == HttpStatus.BAD_REQUEST.value()) {
+                KrillErrorData error = post.readEntity(KrillErrorData.class);
+                switch (error.label) {
+                    case "pub-duplicate":
+                        throw new DuplicateRepositoryException(publisherHandle);
+                    default:
+                        throw new CertificateAuthorityException(
+                            String.format("krill call failed with %d: %s: %s", post.getStatus(), post.getStatusInfo(), error)
+                        );
+                }
+            } else {
+                throw new CertificateAuthorityException(
+                    String.format("krill call failed with %d: %s", post.getStatus(), post.getStatusInfo())
+                );
+            }
+        }
     }
 
     @Override
     public Set<UUID> listPublishers() {
-        return clientForTarget(PUBD_PUBLISHERS).get().readEntity(PublishersDto.class).publishers.stream().flatMap(handle -> {
-            try {
-                return Stream.of(UUID.fromString(handle.handle));
-            } catch (IllegalArgumentException e) {
-                return Stream.empty();
+        try (Response response = clientForTarget(PUBD_PUBLISHERS).get()) {
+            if (HttpStatus.Series.resolve(response.getStatus()) != HttpStatus.Series.SUCCESSFUL) {
+                throw new CertificateAuthorityException(String.format("krill call failed with %d: %s", response.getStatus(), response.getStatusInfo()));
             }
-        }).collect(Collectors.toSet());
+            return response.readEntity(PublishersDto.class).publishers.stream().flatMap(handle -> {
+                try {
+                    return Stream.of(UUID.fromString(handle.handle));
+                } catch (IllegalArgumentException e) {
+                    return Stream.empty();
+                }
+            }).collect(Collectors.toSet());
+        }
     }
 
     @Override
-    public Response deletePublisher(UUID publisherHandle) {
-        return clientForTarget(PUBD_PUBLISHERS + "/" + publisherHandle).delete();
+    public void deletePublisher(UUID publisherHandle) {
+        try (Response response = clientForTarget(PUBD_PUBLISHERS + "/" + publisherHandle).delete()) {
+            HttpStatus.Series series = HttpStatus.Series.resolve(response.getStatus());
+            switch (series != null ? series : HttpStatus.Series.SERVER_ERROR) {
+                case INFORMATIONAL: case SUCCESSFUL: case REDIRECTION:
+                    break;
+                case CLIENT_ERROR:
+                    KrillErrorData error = response.readEntity(KrillErrorData.class);
+                    throw new CertificateAuthorityException(String.format("krill client error %d: %s: %s", response.getStatus(), response.getStatusInfo(), error));
+                case SERVER_ERROR:
+                    throw new CertificateAuthorityException(String.format("krill server error %d: %s", response.getStatus(), response.getStatusInfo()));
+            }
+        }
     }
 
 
     public boolean isInitialized() {
-        try {
-            Response response = clientForTarget(PUBD_PUBLISHERS).get();
-            return response.getStatus() == 200;
+        try (Response response = clientForTarget(PUBD_PUBLISHERS).get()) {
+            return HttpStatus.Series.resolve(response.getStatus()) == HttpStatus.Series.SUCCESSFUL;
         } catch (Exception t) {
             return false;
         }
@@ -153,20 +179,24 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
 
     // Krill JSON for request/response does not match exactly with XML
     // See: https://krill.docs.nlnetlabs.nl/en/stable/publication-server.html#add-a-publisher
+    @AllArgsConstructor
     static class PublisherRequestDto {
         @JsonProperty("id_cert")
         public String idCert;
         @JsonProperty("publisher_handle")
         public String publisherHandle;
+    }
 
-        public PublisherRequestDto(String idCert, String publisherHandle) {
-            this.idCert = idCert;
-            this.publisherHandle = publisherHandle;
-        }
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class KrillErrorData {
+        private String label;
+        private String msg;
+        private Map<String, String> args;
     }
 
 
-    @Getter
+    @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     static class RepositoryResponseDto {
 
@@ -181,12 +211,11 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
         @JsonProperty("repo_info")
         private RepositoryInfo repositoryInfo;
 
-        @SneakyThrows
         public RepositoryResponse toRepositoryResponse() {
             return new RepositoryResponse(Optional.of(tag == null ? "" : tag),
-                    new URI(serviceUri), publisherHandle,
-                    new URI(repositoryInfo.siaBase),
-                    Optional.of(new URI(repositoryInfo.rrdpNotificationUri)),
+                    URI.create(serviceUri), publisherHandle,
+                    URI.create(repositoryInfo.siaBase),
+                    Optional.of(URI.create(repositoryInfo.rrdpNotificationUri)),
                     getProvisioningIdentityCertificate(idCert));
         }
 

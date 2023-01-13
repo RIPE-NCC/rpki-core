@@ -8,11 +8,9 @@ import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.commands.DeleteNonHostedPublisherCommand;
-import net.ripe.rpki.server.api.ports.NonHostedPublisherRepositoryService;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.inject.Inject;
 import javax.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
@@ -32,9 +30,6 @@ public class DeleteNonHostedPublisherCommandHandlerTest extends CertificationDom
 
     private ProductionCertificateAuthority prodCa;
     private NonHostedCertificateAuthority nonHostedCertificateAuthority;
-
-    @Inject
-    private NonHostedPublisherRepositoryService nonHostedPublisherRepositoryService;
 
     private PublisherRequest publisherRequest =
             new PublisherRequest(ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT);
@@ -57,7 +52,7 @@ public class DeleteNonHostedPublisherCommandHandlerTest extends CertificationDom
         nonHostedCertificateAuthority.addNonHostedPublisherRepository(PUBLISHER_HANDLE, publisherRequest, repositoryResponse);
         certificateAuthorityRepository.add(nonHostedCertificateAuthority);
 
-        subject = new DeleteNonHostedPublisherCommandHandler(certificateAuthorityRepository, nonHostedPublisherRepositoryService);
+        subject = new DeleteNonHostedPublisherCommandHandler(certificateAuthorityRepository);
     }
 
     @Test

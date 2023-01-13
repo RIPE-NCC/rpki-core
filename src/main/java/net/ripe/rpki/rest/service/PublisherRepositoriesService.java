@@ -9,11 +9,13 @@ import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequestSerializer;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponseSerializer;
+import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.rest.exception.CaNotFoundException;
 import net.ripe.rpki.rest.exception.ObjectNotFoundException;
 import net.ripe.rpki.server.api.commands.DeleteNonHostedPublisherCommand;
 import net.ripe.rpki.server.api.commands.ProvisionNonHostedPublisherCommand;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.ports.NonHostedPublisherRepositoryService;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -48,6 +50,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.MediaType.TEXT_XML;
 
 @Slf4j
@@ -60,13 +63,16 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
 
     private final CertificateAuthorityViewService certificateAuthorityViewService;
     private final CommandService commandService;
+    private final NonHostedPublisherRepositoryService nonHostedPublisherRepositoryService;
 
 
     @Autowired
     public PublisherRepositoriesService(CertificateAuthorityViewService certificateAuthorityViewService,
-                                        CommandService commandService) {
+                                        CommandService commandService,
+                                        NonHostedPublisherRepositoryService nonHostedPublisherRepositoryService) {
         this.certificateAuthorityViewService = certificateAuthorityViewService;
         this.commandService = commandService;
+        this.nonHostedPublisherRepositoryService = nonHostedPublisherRepositoryService;
     }
 
     @GetMapping(path = "non-hosted/publisher-repositories")
@@ -95,12 +101,31 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         log.info("Publisher request for non-hosted CA: {}", caName);
 
         NonHostedCertificateAuthorityData ca = getCa(NonHostedCertificateAuthorityData.class, caName);
+        if (certificateAuthorityViewService.findNonHostedPublisherRepositories(ca.getName()).size() >= NonHostedCertificateAuthority.PUBLISHER_REPOSITORIES_LIMIT) {
+            return ResponseEntity.status(FORBIDDEN).body(of("error", "maximum number of publisher repositories limit exceeded"));
+        }
+
+        /*
+         * Generate our own publisher handle instead of using the publisher handle in the request, since we want to
+         * determine the handle to use, not the non-hosted CA. Using a random UUID will also avoid any conflicts
+         * between different CAs.
+         */
+        UUID publisherHandle = UUID.randomUUID();
         try {
             final InputStream uploadedInputStream = file.getInputStream();
             final String repositoryRequestBody = IOUtils.toString(uploadedInputStream, CHARSET);
             PublisherRequest publisherRequest = new PublisherRequestSerializer().deserialize(repositoryRequestBody);
-            UUID publisherHandle = UUID.randomUUID();
-            commandService.execute(new ProvisionNonHostedPublisherCommand(ca.getVersionedId(), publisherHandle, publisherRequest));
+
+            // Core commands must be idempotent (and are automatically retried on transient failures) and this does not
+            // work with Krill, since Krill is an external (non-transactional) system and provisioning is not idempotent.
+            // So create the repository in Krill before registering the result with core.
+            RepositoryResponse repositoryResponse = nonHostedPublisherRepositoryService.provisionPublisher(publisherHandle, publisherRequest);
+
+            Utils.cleanupOnError(
+                () -> commandService.execute(new ProvisionNonHostedPublisherCommand(ca.getVersionedId(), publisherHandle, publisherRequest, repositoryResponse)),
+                () -> nonHostedPublisherRepositoryService.deletePublisher(publisherHandle)
+            );
+
             return ResponseEntity.created(URI.create(request.getRequestURI() + "/").resolve(publisherHandle.toString()).normalize()).build();
         } catch (EntityNotFoundException e) {
             log.warn("Non-hosted CA was not found for '{}': {}", caName, e.getMessage(), e);
@@ -110,6 +135,9 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         } catch (IOException | IdentitySerializer.IdentitySerializerException | IllegalArgumentException e) {
             log.warn("Could not parse uploaded certificate: {}", e.getMessage(), e);
             return ResponseEntity.status(BAD_REQUEST).body(of("error", e.getMessage()));
+        } catch (NonHostedPublisherRepositoryService.DuplicateRepositoryException e) {
+            log.warn("Could not create repository: {}", e.getMessage(), e);
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(of("error", e.getMessage()));
         }
     }
 
@@ -147,6 +175,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         NonHostedCertificateAuthorityData ca = getCa(NonHostedCertificateAuthorityData.class, caName);
         try {
             commandService.execute(new DeleteNonHostedPublisherCommand(ca.getVersionedId(), publisherHandle));
+            nonHostedPublisherRepositoryService.deletePublisher(publisherHandle);
 
             return ResponseEntity.noContent().build();
         } catch (EntityNotFoundException e) {

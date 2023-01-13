@@ -8,10 +8,9 @@ import java.util.UUID;
 
 /**
  * <p>
- * Delete a non-hosted publisher. The non-hosted publisher must be a non-hosted CA in our system.
- * Every non-hosted CA can have multiple publishers (e.g. sub-groups in a single organisation).
+ * Delete the non-hosted publisher repository information from a CA. This must be a non-hosted CA in our system.
+ * The actual removal of the repository from Krill must be done separately, after this command succeeds.
  * </p>
- * <p>
  */
 @Getter
 public class DeleteNonHostedPublisherCommand extends CertificateAuthorityModificationCommand {

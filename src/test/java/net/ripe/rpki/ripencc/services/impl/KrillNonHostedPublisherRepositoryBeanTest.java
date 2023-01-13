@@ -6,13 +6,14 @@ import lombok.SneakyThrows;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequestSerializer;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
+import net.ripe.rpki.server.api.ports.NonHostedPublisherRepositoryService;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 
-import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +31,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.ripencc.services.impl.KrillNonHostedPublisherRepositoryBean.MONITORING_TARGET;
 import static net.ripe.rpki.ripencc.services.impl.KrillNonHostedPublisherRepositoryBean.PUBD_PUBLISHERS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -70,7 +72,7 @@ public class KrillNonHostedPublisherRepositoryBeanTest {
 
 
     @Test
-    public void shouldRegisterPublisherRequest() {
+    public void shouldRegisterPublisherRequest() throws Exception {
         stubFor(post(urlEqualTo(PUBD_PUBLISHERS))
                 .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer "+API_TOKEN))
                 .willReturn(aResponse()
@@ -105,6 +107,26 @@ public class KrillNonHostedPublisherRepositoryBeanTest {
         assertThat(repositoryResponse.getServiceUri()).hasScheme("https");
     }
 
+    @Test
+    public void should_handle_duplicate_publisher_repository() throws Exception {
+        UUID publisherHandle = UUID.fromString("3f2a1c5c-3271-47b2-bc68-41ab184738d9");
+        String requestXML = readFromFile("/repository-publisher/publisher_request.xml");
+        PublisherRequest publisherRequest = new PublisherRequestSerializer().deserialize(requestXML);
+
+        stubFor(post(urlEqualTo(PUBD_PUBLISHERS))
+            .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer " + API_TOKEN))
+            .willReturn(aResponse()
+                .withStatus(HttpStatus.BAD_REQUEST.value())
+                .withHeader("Content-Type", APPLICATION_JSON)
+                .withBody("{\"label\":\"pub-duplicate\",\"msg\":\"Duplicate publisher '3f2a1c5c-3271-47b2-bc68-41ab184738d9'\",\"args\":{\"publisher\":\"3f2a1c5c-3271-47b2-bc68-41ab184738d9\"}}")
+            )
+        );
+
+        assertThatThrownBy(() -> subject.provisionPublisher(publisherHandle, publisherRequest))
+            .isInstanceOfSatisfying(NonHostedPublisherRepositoryService.DuplicateRepositoryException.class, e -> {
+                assertThat(e.getPublisherHandle()).isEqualTo(publisherHandle);
+            });
+    }
 
     @Test
     public void shouldBeAvailable() {
@@ -122,8 +144,7 @@ public class KrillNonHostedPublisherRepositoryBeanTest {
     public void shouldDeleteRepositoryPublishers() {
         UUID publisherToRemove = UUID.randomUUID();
         stubForDeletePublishers(publisherToRemove);
-        Response response = subject.deletePublisher(publisherToRemove);
-        assertEquals(200, response.getStatus());
+        subject.deletePublisher(publisherToRemove);
     }
 
     private void stubForDeletePublishers(UUID publisherToRemove) {

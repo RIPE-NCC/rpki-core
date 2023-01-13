@@ -49,7 +49,7 @@ public class PublisherSyncDelegateBeanTest {
     }
 
     @Test
-    public void shouldReprovisionThoseOnlyOnCore() {
+    public void shouldReprovisionThoseOnlyOnCore() throws NonHostedPublisherRepositoryService.DuplicateRepositoryException {
         when(nonHostedPublisherRepositoryService.listPublishers()).thenReturn(Collections.emptySet());
         Map<UUID, PublisherRequest> corePublishers = new HashMap<>();
 

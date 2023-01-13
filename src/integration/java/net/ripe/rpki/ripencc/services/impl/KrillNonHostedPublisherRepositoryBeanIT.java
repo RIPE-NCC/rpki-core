@@ -39,34 +39,40 @@ public class KrillNonHostedPublisherRepositoryBeanIT {
     }
 
     @Test
-    public void shouldRegisterPublisher() {
-            UUID publisherHandle = UUID.randomUUID();
-            RepositoryResponse repositoryResponse = subject.provisionPublisher(publisherHandle, publisherRequest);
-            assertThat(publisherHandle.toString()).isEqualTo(repositoryResponse.getPublisherHandle());
+    public void shouldRegisterPublisher() throws NonHostedPublisherRepositoryService.DuplicateRepositoryException {
+        UUID publisherHandle = UUID.randomUUID();
+        RepositoryResponse repositoryResponse = subject.provisionPublisher(publisherHandle, publisherRequest);
+        assertThat(publisherHandle.toString()).isEqualTo(repositoryResponse.getPublisherHandle());
     }
 
     @Test
-    public void shouldListRegisteredPublishers() {
-            UUID publisherHandle = UUID.randomUUID();
-            subject.provisionPublisher(publisherHandle, publisherRequest);
-            
-            Set<UUID> publishers = subject.listPublishers();
-            assertThat(publishers.contains(publisherHandle)).isTrue();
+    public void shouldListRegisteredPublishers() throws NonHostedPublisherRepositoryService.DuplicateRepositoryException {
+        UUID publisherHandle = UUID.randomUUID();
+        subject.provisionPublisher(publisherHandle, publisherRequest);
+
+        Set<UUID> publishers = subject.listPublishers();
+        assertThat(publishers.contains(publisherHandle)).isTrue();
     }
 
     @Test
     public void shouldDeleteRegisteredPublisher() {
-            UUID[] uuids = new UUID[]{UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
-            Set<UUID> pubs = Stream.of(uuids).collect(Collectors.toSet());
-            pubs.forEach(uuid -> subject.provisionPublisher(uuid, publisherRequest));
+        UUID[] uuids = new UUID[]{UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
+        Set<UUID> pubs = Stream.of(uuids).collect(Collectors.toSet());
+        pubs.forEach(uuid -> {
+            try {
+                subject.provisionPublisher(uuid, publisherRequest);
+            } catch (NonHostedPublisherRepositoryService.DuplicateRepositoryException e) {
+                throw new RuntimeException(e);
+            }
+        });
 
-            Set<UUID> createdPublishers = subject.listPublishers();
-            assertThat(createdPublishers.containsAll(pubs)).isTrue();
+        Set<UUID> createdPublishers = subject.listPublishers();
+        assertThat(createdPublishers.containsAll(pubs)).isTrue();
 
-            pubs.forEach(uuid -> subject.deletePublisher(uuid));
+        pubs.forEach(uuid -> subject.deletePublisher(uuid));
 
-            Set<UUID> publishers = subject.listPublishers();
-            assertThat(publishers.stream().noneMatch(pubs::contains)).isTrue();
+        Set<UUID> publishers = subject.listPublishers();
+        assertThat(publishers.stream().noneMatch(pubs::contains)).isTrue();
     }
 
     @SneakyThrows

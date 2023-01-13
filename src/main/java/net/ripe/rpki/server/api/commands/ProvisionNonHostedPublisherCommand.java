@@ -1,7 +1,9 @@
 package net.ripe.rpki.server.api.commands;
 
 import lombok.Getter;
+import lombok.NonNull;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
+import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.commons.util.VersionedId;
 
 import java.util.Objects;
@@ -9,12 +11,8 @@ import java.util.UUID;
 
 /**
  * <p>
- * Create a repository for a non-hosted publisher. The non-hosted publisher must be a non-hosted CA in our system.
+ * Add the repository information of a provisioned Krill repository to the non-hosted CA.
  * Every non-hosted CA can have multiple publishers (e.g. sub-groups in a single organisation).
- * </p>
- * <p>
- * The provided publisher handle is used instead of the publisher handle in the request, since we want to
- * determine the handle to use, not the non-hosted CA.
  * </p>
  */
 @Getter
@@ -22,11 +20,13 @@ public class ProvisionNonHostedPublisherCommand extends CertificateAuthorityModi
 
     private final UUID publisherHandle;
     private final PublisherRequest publisherRequest;
+    private final RepositoryResponse repositoryResponse;
 
-    public ProvisionNonHostedPublisherCommand(VersionedId certificateAuthorityId, UUID publisherHandle, PublisherRequest publisherRequest) {
+    public ProvisionNonHostedPublisherCommand(@NonNull VersionedId certificateAuthorityId, @NonNull UUID publisherHandle, @NonNull PublisherRequest publisherRequest, @NonNull RepositoryResponse repositoryResponse) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
-        this.publisherHandle = Objects.requireNonNull(publisherHandle);
-        this.publisherRequest = Objects.requireNonNull(publisherRequest);
+        this.publisherHandle = publisherHandle;
+        this.publisherRequest = publisherRequest;
+        this.repositoryResponse = repositoryResponse;
     }
 
     @Override

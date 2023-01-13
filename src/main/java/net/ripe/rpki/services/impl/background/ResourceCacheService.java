@@ -196,9 +196,11 @@ public class ResourceCacheService {
             }
 
             log.info(
-                "Production CA delegations cache has been updated from {} entries to {}.",
+                "Production CA delegations cache has been updated from {} entries to {} (+{}/-{}).",
                 resourcesDiff.localResourceCount,
-                resourcesDiff.registrySizeResourceCount
+                resourcesDiff.registrySizeResourceCount,
+                resourcesDiff.totalAdded,
+                resourcesDiff.totalDeleted
             );
         };
 
@@ -238,13 +240,15 @@ public class ResourceCacheService {
             resourceStats.set(new ResourceStat(resourcesDiff, Instant.now()));
             resourceCache.populateCache(registryResources);
             resourceCacheServiceMetrics.onMemberCacheAccepted();
-            if (resourcesDiff.absoluteSizeDiff() == 0) {
+            if (resourcesDiff.totalMutations() == 0) {
                 log.info("Resource cache has no update; remaining at {} entries", resourcesDiff.localSize);
             } else {
                 log.info(
-                    "Resource cache has been updated from {} entries to {}\n{}",
+                    "Resource cache has been updated from {} entries to {} (+{}/-{})\n{}",
                     resourcesDiff.localSize,
                     resourcesDiff.registrySize,
+                    resourcesDiff.totalAdded,
+                    resourcesDiff.totalDeleted,
                     showDiffSummary(resourcesDiff)
                 );
             }
@@ -408,6 +412,10 @@ public class ResourceCacheService {
         private int totalDeleted;
         private Map<CaName, Changes> changesMap;
 
+        public int totalMutations() {
+            return totalAdded + totalDeleted;
+        }
+
         public int absoluteSizeDiff() {
             return Math.abs(localSize - registrySize);
         }
@@ -419,10 +427,10 @@ public class ResourceCacheService {
 
     @lombok.Value
     static class DelegationDiffStat {
-        private int localResourceCount;
-        private int registrySizeResourceCount;
-        private int totalAdded;
-        private int totalDeleted;
+        int localResourceCount;
+        int registrySizeResourceCount;
+        int totalAdded;
+        int totalDeleted;
 
         public DelegationDiffStat(int localResourceCount, int registrySizeResourceCount, int totalAdded, int totalDeleted) {
             Preconditions.checkArgument(localResourceCount >= 0);
@@ -443,8 +451,8 @@ public class ResourceCacheService {
 
     @lombok.Value
     static class Changes {
-        private int added;
-        private int deleted;
+        int added;
+        int deleted;
 
         public Changes(final int added, final int deleted) {
             Preconditions.checkArgument(added >= 0);
@@ -456,8 +464,8 @@ public class ResourceCacheService {
 
     @lombok.Value
     static class Rejection {
-        private String message;
-        private Optional<String> summary;
+        String message;
+        Optional<String> summary;
     }
 
     @lombok.Value

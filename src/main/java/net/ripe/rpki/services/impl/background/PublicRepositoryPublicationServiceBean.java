@@ -13,6 +13,9 @@ import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.domain.manifest.ManifestPublicationService;
+import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
+import net.ripe.rpki.server.api.services.command.CommandService;
+import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
@@ -24,6 +27,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityNotFoundException;
 import javax.persistence.LockModeType;
 import java.util.Comparator;
 import java.util.List;
@@ -43,11 +47,11 @@ import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_R
 public class PublicRepositoryPublicationServiceBean extends SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode {
 
     /**
-     * The maximum number of CAs to update the manifest and CRL for. If there are more than this number of CAs
-     * that need a check they will be picked up during the next run or processed by the
+     * The maximum number of CAs to update the manifest and CRL for during the publication transaction. If there are
+     * more than this number of CAs that need a check they will be picked up during the next run or processed by the
      * {@link ManifestCrlUpdateServiceBean}.
      */
-    public static final int MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE = 50;
+    public static final int MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE = 5;
 
     /**
      * The maximum time this service should lock certificate authorities while checking for manifest/CRL update.
@@ -56,6 +60,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
      */
     public static final Duration MAX_UPDATE_DURATION = Duration.standardSeconds(5);
 
+    private final CommandService commandService;
     private final CertificateAuthorityRepository certificateAuthorityRepository;
     private final ManifestPublicationService manifestPublicationService;
     private final PublishedObjectRepository publishedObjectRepository;
@@ -69,6 +74,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
     @Inject
     public PublicRepositoryPublicationServiceBean(
         BackgroundTaskRunner backgroundTaskRunner,
+        CommandService commandService,
         CertificateAuthorityRepository certificateAuthorityRepository,
         ManifestPublicationService manifestPublicationService,
         PublishedObjectRepository publishedObjectRepository,
@@ -77,6 +83,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         PlatformTransactionManager transactionManager,
         MeterRegistry meterRegistry) {
         super(backgroundTaskRunner);
+        this.commandService = commandService;
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.manifestPublicationService = manifestPublicationService;
         this.publishedObjectRepository = publishedObjectRepository;
@@ -103,8 +110,30 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
 
     @Override
     protected void runService(Map<String, String> parameters) {
+        DateTime manifestAndCrlValidityCutoff = UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_HARD_LIMIT);
+        preparePendingCertificateAuthorities(manifestAndCrlValidityCutoff);
+        publishPendingCertificateAuthorities(manifestAndCrlValidityCutoff);
+    }
+
+    private void preparePendingCertificateAuthorities(DateTime manifestAndCrlValidityCutoff) {
+        List<ManagedCertificateAuthority> pendingCertificateAuthorities = findPendingCertificateAuthorities(manifestAndCrlValidityCutoff, Integer.MAX_VALUE);
+        log.info("Updating {} CAs with outdated manifest or CRL before publication transaction", pendingCertificateAuthorities.size());
+
+        runParallel(pendingCertificateAuthorities.stream().map(ca -> task(
+            () -> commandService.execute(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId())),
+            ex -> {
+                if (ex instanceof EntityNotFoundException) {
+                    log.info("CA '{}' not found, probably deleted since initial query", ca.getName(), ex);
+                } else {
+                    log.error("Could not publish material for CA " + ca.getName(), ex);
+                }
+            }
+        )));
+    }
+
+    private void publishPendingCertificateAuthorities(DateTime manifestAndCrlValidityCutoff) {
         try {
-            transactionTemplate.executeWithoutResult((status) -> runTransaction());
+            transactionTemplate.executeWithoutResult(status -> runTransaction(manifestAndCrlValidityCutoff));
         } catch (TransientDataAccessException e) {
             // The transaction runs with repeatable read isolation level which may cause transient exceptions due
             // to data access ordering. See https://www.postgresql.org/docs/current/transaction-iso.html for
@@ -113,17 +142,11 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         }
     }
 
-    private void runTransaction() {
-        DateTime manifestAndCrlValidityCutoff = UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_HARD_LIMIT);
+    private void runTransaction(DateTime manifestAndCrlValidityCutoff) {
+        log.info("Started publication transaction");
 
-        // List of certificate authorities that may need a new manifest/CRL. Children are sorted before parents
-        // to ensure proper locking order (command handlers always lock the child CA before the parent CA). This
-        // reduces the chance of deadlock or a serializable transaction rollback error.
         List<ManagedCertificateAuthority> pendingCertificateAuthorities =
-            certificateAuthorityRepository.findAllWithOutdatedManifests(manifestAndCrlValidityCutoff, MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE)
-                .stream()
-                .sorted(Comparator.comparingInt(CertificateAuthority::depth).reversed())
-                .collect(Collectors.toList());
+            findPendingCertificateAuthorities(manifestAndCrlValidityCutoff, MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE);
 
         certificateAuthorityCounter.increment(pendingCertificateAuthorities.size());
 
@@ -145,10 +168,10 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
 
         }
 
-        if (!certificateAuthorityRepository.findAllWithOutdatedManifests(manifestAndCrlValidityCutoff, 1).isEmpty()) {
-            log.info("Not all certificate authorities are ready for publication, continuing during next run");
-            return;
-        }
+        Validate.isTrue(
+            certificateAuthorityRepository.findAllWithOutdatedManifests(manifestAndCrlValidityCutoff, 1).isEmpty(),
+            "invariant: all CAs should be ready for publication at this point"
+        );
 
         // Atomically mark the new set of objects that are publishable.
         int count = publishedObjectRepository.updatePublicationStatus();
@@ -166,5 +189,17 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         }
 
         publishedObjectCounter.increment(count);
+    }
+
+    /**
+     * List of certificate authorities that may need a new manifest/CRL. Children are sorted before parents
+     * to ensure proper locking order (command handlers always lock the child CA before the parent CA). This
+     * reduces the chance of deadlock or a serializable transaction rollback error.
+     */
+    private List<ManagedCertificateAuthority> findPendingCertificateAuthorities(DateTime manifestAndCrlValidityCutoff, int maxResults) {
+        return certificateAuthorityRepository.findAllWithOutdatedManifests(manifestAndCrlValidityCutoff, maxResults)
+            .stream()
+            .sorted(Comparator.comparingInt(CertificateAuthority::depth).reversed())
+            .collect(Collectors.toList());
     }
 }

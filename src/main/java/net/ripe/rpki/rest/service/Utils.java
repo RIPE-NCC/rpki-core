@@ -129,4 +129,20 @@ class Utils {
     public static List<String> toStringList(ImmutableResourceSet resources) {
         return resources.stream().map(Object::toString).collect(Collectors.toList());
     }
+
+    /**
+     * Invoke <code>runnable</code> and then <code>onError</code> if any exception occurred.
+     */
+    public static void cleanupOnError(Runnable runnable, Runnable onError) {
+        try {
+            runnable.run();
+        } catch (Exception e) {
+            try {
+                onError.run();
+            } catch (Exception suppressed) {
+                e.addSuppressed(suppressed);
+            }
+            throw e;
+        }
+    }
 }

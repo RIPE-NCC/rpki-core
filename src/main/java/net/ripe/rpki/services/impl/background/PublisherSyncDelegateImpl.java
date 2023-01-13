@@ -45,24 +45,30 @@ public class PublisherSyncDelegateImpl implements PublisherSyncDelegate {
 
     @Override
     public void runService() {
-            Map<UUID, PublisherRequest> corePublisherRequests = certificateAuthorityViewService.findAllPublisherRequestsFromNonHostedCAs();
+        Map<UUID, PublisherRequest> corePublisherRequests = certificateAuthorityViewService.findAllPublisherRequestsFromNonHostedCAs();
 
-            Set<UUID> corePublisherHandles = corePublisherRequests.keySet();
-            Set<UUID> krillPublisherHandles = nonHostedPublisherRepositoryService.listPublishers();
+        Set<UUID> corePublisherHandles = corePublisherRequests.keySet();
+        Set<UUID> krillPublisherHandles = nonHostedPublisherRepositoryService.listPublishers();
 
-            Set<UUID> onlyOnCore = Sets.difference(corePublisherHandles, krillPublisherHandles);
-            syncOnlyOnCoreCounter.increment(onlyOnCore.size());
-            for (UUID publisherHandle : onlyOnCore) {
-                PublisherRequest request = corePublisherRequests.get(publisherHandle);
-                log.info("Reprovisioning publisher handle only on Core: {}", publisherHandle);
+        Set<UUID> onlyOnCore = Sets.difference(corePublisherHandles, krillPublisherHandles);
+        syncOnlyOnCoreCounter.increment(onlyOnCore.size());
+        for (UUID publisherHandle : onlyOnCore) {
+            PublisherRequest request = corePublisherRequests.get(publisherHandle);
+            log.info("Reprovisioning publisher handle only on Core: {}", publisherHandle);
+            try {
                 nonHostedPublisherRepositoryService.provisionPublisher(publisherHandle, request);
+            } catch (NonHostedPublisherRepositoryService.DuplicateRepositoryException e) {
+                // should not happen since we only re-provision missing repositories, but ignore since we
+                // consider this an idem-potent operation.
+                log.warn("Duplicate repository '{}' while re-provisioning", publisherHandle);
             }
+        }
 
-            Set<UUID> onlyOnKrill = Sets.difference(krillPublisherHandles, corePublisherHandles);
-            syncOnlyOnKrillCounter.increment(onlyOnCore.size());
-            for (UUID publisherHandle : onlyOnKrill) {
-                log.info("Cleaning up publisher handle only on Krill: {}", publisherHandle);
-                nonHostedPublisherRepositoryService.deletePublisher(publisherHandle);
-            }
+        Set<UUID> onlyOnKrill = Sets.difference(krillPublisherHandles, corePublisherHandles);
+        syncOnlyOnKrillCounter.increment(onlyOnCore.size());
+        for (UUID publisherHandle : onlyOnKrill) {
+            log.info("Cleaning up publisher handle only on Krill: {}", publisherHandle);
+            nonHostedPublisherRepositoryService.deletePublisher(publisherHandle);
+        }
     }
 }

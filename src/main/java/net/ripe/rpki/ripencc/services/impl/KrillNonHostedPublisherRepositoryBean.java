@@ -41,7 +41,9 @@ import java.util.stream.Stream;
 @ConditionalOnProperty(prefix="non-hosted.publisher.repository", value="enabled", havingValue = "true")
 public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisherRepositoryService {
 
-    public static final String MONITORING_TARGET = "/stats/info";
+    // https://krill.docs.nlnetlabs.nl/en/stable/cli.html#krillc-health
+    public static final String MONITORING_TARGET = "/api/v1/authorized";
+
 
     //https://krill.docs.nlnetlabs.nl/en/stable/publication-server.html#add-a-publisher
     public static final String PUBD_INITIALIZE = "/api/v1/pubd/init";
@@ -76,7 +78,7 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
     }
 
     private Invocation.Builder clientForTarget(String pathTarget) {
-        log.info("API call of core -> krill {}/{}", publisherRepositoryURL, pathTarget);
+        log.debug("API call of core -> krill {}{}", publisherRepositoryURL, pathTarget);
         return publisherRepositoryClient.target(publisherRepositoryURL)
                 .path(pathTarget)
                 .request(MediaType.APPLICATION_JSON)

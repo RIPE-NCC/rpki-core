@@ -146,7 +146,11 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         log.info("Started publication transaction");
 
         List<ManagedCertificateAuthority> pendingCertificateAuthorities =
-            findPendingCertificateAuthorities(manifestAndCrlValidityCutoff, MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE);
+            findPendingCertificateAuthorities(manifestAndCrlValidityCutoff, MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE + 1);
+        if (pendingCertificateAuthorities.size() > MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE) {
+            log.info("More than {} CAs to update, aborting publication", MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE);
+            return;
+        }
 
         certificateAuthorityCounter.increment(pendingCertificateAuthorities.size());
 

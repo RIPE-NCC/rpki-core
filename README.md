@@ -4,7 +4,7 @@ RPKI - Core
 License
 -------
 
-Copyright (c) 2008-2022 RIPE NCC
+Copyright (c) 2008-2023 RIPE NCC
 All rights reserved.
 
 This software, including all its separate source codes, is licensed under the

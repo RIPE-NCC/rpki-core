@@ -7,6 +7,8 @@ keystore:
     provider: SUN
     type: JKS
 
+instance.name: local
+
 # local setup should not be able to deliver mail by default.
 mail:
     host: localhost

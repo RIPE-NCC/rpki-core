@@ -240,7 +240,7 @@ public class ResourceCacheService {
             resourceStats.set(new ResourceStat(resourcesDiff, Instant.now()));
             resourceCache.populateCache(registryResources);
             resourceCacheServiceMetrics.onMemberCacheAccepted();
-            if (resourcesDiff.totalMutations() == 0) {
+            if (resourcesDiff.totalPerCaMutations() == 0) {
                 log.info("Resource cache has no update; remaining at {} entries", resourcesDiff.localSize);
             } else {
                 log.info(
@@ -352,11 +352,11 @@ public class ResourceCacheService {
                 "old size is %d, new size is %d", relativeSizeDiff, diffStat.localSize, diffStat.registrySize), Optional.empty()));
         }
 
-        if (diffStat.totalAdded + diffStat.totalDeleted > MAX_PER_CA_CHANGE_ABSOLUTE_THRESHOLD) {
+        if (diffStat.totalPerCaMutations() > MAX_PER_CA_CHANGE_ABSOLUTE_THRESHOLD) {
             final String summary = showDiffSummary(diffStat);
             return Optional.of(new Rejection(
                     String.format(
-                            "The sum of the per-CA changes (%d) is too big, added %d prefixes, deleted %d prefixes",
+                            "The sum of all per-CA changes (%d) is too big, added %d prefixes, deleted %d prefixes",
                             diffStat.totalAdded + diffStat.totalDeleted,
                             diffStat.totalAdded, diffStat.totalDeleted
                     ),
@@ -412,7 +412,7 @@ public class ResourceCacheService {
         private int totalDeleted;
         private Map<CaName, Changes> changesMap;
 
-        public int totalMutations() {
+        public int totalPerCaMutations() {
             return totalAdded + totalDeleted;
         }
 

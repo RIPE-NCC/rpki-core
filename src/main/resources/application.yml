@@ -78,7 +78,9 @@ sentry:
     # whille the current setup is configured to not capture user data.
     #
     # This combination is not realistic on sentry.
-    traces-sample-rate: 0
+    #
+    # 2023-01-20: Having this property enables the sentry tracing filter in SentryAutoConfiguration
+    # traces-sample-rate: 0
     ignored-exceptions-for-type: net.ripe.rpki.rest.exception.CaNotFoundException
 
 background-services:

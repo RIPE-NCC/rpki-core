@@ -10,7 +10,5 @@ public interface RoaEntityRepository extends Repository<RoaEntity> {
 
     List<RoaEntity> findCurrentByCertificateAuthority(ManagedCertificateAuthority certificateAuthority);
 
-    List<RoaEntity> findByCertificateSigningKeyPair(KeyPairEntity certificateSigningKeyPair);
-
     int deleteByCertificateSigningKeyPair(KeyPairEntity certificateSigningKeyPair);
 }

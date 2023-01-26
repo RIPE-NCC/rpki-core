@@ -36,14 +36,6 @@ public class JpaAspaEntityRepository extends JpaRepository<AspaEntity> implement
     }
 
     @Override
-    public List<AspaEntity> findByCertificateSigningKeyPair(@NonNull KeyPairEntity certificateSigningKeyPair) {
-        return manager
-            .createQuery("FROM AspaEntity WHERE certificate.signingKeyPair = :cskp", AspaEntity.class)
-            .setParameter("cskp", certificateSigningKeyPair)
-            .getResultList();
-    }
-
-    @Override
     public int deleteByCertificateSigningKeyPair(KeyPairEntity certificateSigningKeyPair) {
         return manager
             .createQuery("DELETE FROM AspaEntity WHERE certificate_id IN (SELECT id FROM OutgoingResourceCertificate orc WHERE orc.signingKeyPair = :cskp)")

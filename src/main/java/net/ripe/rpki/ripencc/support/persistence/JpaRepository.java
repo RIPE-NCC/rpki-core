@@ -109,21 +109,13 @@ public abstract class JpaRepository<T extends Entity> implements Repository<T> {
     /**
      * Finds the first result from the query or null if no result was returned.
      */
-    public static Object findFirstResult(Query query) {
+    public static <T> T findFirstResult(TypedQuery<T> query) {
         return findUniqueResult(query.setMaxResults(1));
     }
 
     /**
      * Finds the first unique result from the query or null if no result was returned.
      */
-    public static Object findUniqueResult(Query query) {
-        try {
-            return query.getSingleResult();
-        } catch (NoResultException e) {
-            return null;
-        }
-    }
-
     public static <T> T findUniqueResult(TypedQuery<T> query) {
         try {
             return query.getSingleResult();

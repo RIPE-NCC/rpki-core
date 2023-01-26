@@ -81,7 +81,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
         roaMetricsService.countAdded(command.getAdditions().size());
         roaMetricsService.countDeleted(command.getDeletions().size());
 
-        ca.configurationUpdated();
+        ca.markConfigurationUpdated();
     }
 
     private void validateAddedPrefixes(ManagedCertificateAuthority ca, Collection<RoaConfigurationPrefix> addedPrefixes) {

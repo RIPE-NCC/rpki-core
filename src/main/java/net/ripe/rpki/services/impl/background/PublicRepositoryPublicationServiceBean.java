@@ -15,7 +15,6 @@ import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.domain.manifest.ManifestPublicationService;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.services.command.CommandService;
-import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
@@ -90,7 +89,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         this.trustAnchorPublishedObjectRepository = trustAnchorPublishedObjectRepository;
         this.entityManager = entityManager;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
-        // Repeatable read so we get a consistent snapshot of to-be-published objects
+        // Repeatable read, so we get a consistent snapshot of to-be-published objects
         this.transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
 
         this.certificateAuthorityCounter = Counter.builder("rpkicore.publication.certificate.authorities")
@@ -167,15 +166,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
 
             entityManager.lock(ca, LockModeType.PESSIMISTIC_WRITE);
             updateCountTotal += manifestPublicationService.updateManifestAndCrlIfNeeded(ca);
-            // The manifest and CRL are now up-to-date and the CA is locked, so we clear the check needed flag.
-            ca.manifestAndCrlCheckCompleted();
-
         }
-
-        Validate.isTrue(
-            certificateAuthorityRepository.findAllWithOutdatedManifests(manifestAndCrlValidityCutoff, 1).isEmpty(),
-            "invariant: all CAs should be ready for publication at this point"
-        );
 
         // Atomically mark the new set of objects that are publishable.
         int count = publishedObjectRepository.updatePublicationStatus();

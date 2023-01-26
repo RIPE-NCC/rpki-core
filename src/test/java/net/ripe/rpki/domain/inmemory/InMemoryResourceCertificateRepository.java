@@ -62,13 +62,14 @@ public class InMemoryResourceCertificateRepository extends InMemoryRepository<Re
         return false;
     }
 
+
     @Override
     public ImmutableResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName) {
         return ImmutableResourceSet.empty();
     }
 
     @Override
-    public ImmutableResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName) {
+    public ImmutableResourceSet findCurrentOutgoingResourceCertificateResources(X500Principal caName) {
         return ImmutableResourceSet.empty();
     }
 

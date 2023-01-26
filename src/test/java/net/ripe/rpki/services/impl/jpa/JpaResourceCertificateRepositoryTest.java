@@ -3,12 +3,7 @@ package net.ripe.rpki.services.impl.jpa;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpRange;
-import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.PublicationStatus;
-import net.ripe.rpki.domain.ResourceCertificateRepository;
-import net.ripe.rpki.domain.TestObjects;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
@@ -150,10 +145,10 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
 
     @Test
     @Transactional
-    public void findCurrentOutgoingNonChildCertificateResources() {
+    public void findCurrentOutgoingResourceCertificateResources() {
         ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
 
-        assertThat(subject.findCurrentOutgoingRpkiObjectCertificateResources(ca.getName())).isEqualTo(TestObjects.PRODUCTION_CA_RESOURCES);
+        assertThat(subject.findCurrentOutgoingResourceCertificateResources(ca.getName())).isEqualTo(TestObjects.PRODUCTION_CA_RESOURCES);
     }
 
     @Test

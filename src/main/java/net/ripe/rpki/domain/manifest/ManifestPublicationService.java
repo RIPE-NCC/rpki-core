@@ -4,11 +4,9 @@ import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.*;
-import net.ripe.rpki.domain.aspa.AspaEntityService;
 import net.ripe.rpki.domain.crl.CrlEntity;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
-import net.ripe.rpki.domain.roa.RoaEntityService;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
@@ -37,15 +35,11 @@ public class ManifestPublicationService {
 
     private final DistributionSummary manifestSizeDistribution;
     private final DistributionSummary crlSizeDistribution;
-    private final AspaEntityService aspaEntityService;
-    private final RoaEntityService roaEntityService;
 
     @Autowired
     public ManifestPublicationService(
         ResourceCertificateRepository resourceCertificateRepository,
         PublishedObjectRepository publishedObjectRepository,
-        AspaEntityService aspaEntityService,
-        RoaEntityService roaEntityService,
         CrlEntityRepository crlEntityRepository,
         ManifestEntityRepository manifestEntityRepository,
         SingleUseKeyPairFactory singleUseKeyPairFactory,
@@ -54,8 +48,6 @@ public class ManifestPublicationService {
     ) {
         this.resourceCertificateRepository = resourceCertificateRepository;
         this.publishedObjectRepository = publishedObjectRepository;
-        this.aspaEntityService = aspaEntityService;
-        this.roaEntityService = roaEntityService;
         this.crlEntityRepository = crlEntityRepository;
         this.manifestEntityRepository = manifestEntityRepository;
         this.singleUseKeyPairFactory = singleUseKeyPairFactory;
@@ -84,9 +76,6 @@ public class ManifestPublicationService {
      * Emit corresponding event, so that an update is sent to the publication server.
      */
     public long updateManifestAndCrlIfNeeded(ManagedCertificateAuthority certificateAuthority) {
-        aspaEntityService.updateAspaIfNeeded(certificateAuthority);
-        roaEntityService.updateRoasIfNeeded(certificateAuthority);
-
         return certificateAuthority.getKeyPairs()
             .stream()
             .filter(KeyPairEntity::isPublishable)

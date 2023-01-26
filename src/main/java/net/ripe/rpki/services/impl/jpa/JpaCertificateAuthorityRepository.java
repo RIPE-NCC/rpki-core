@@ -242,6 +242,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
                 "  FROM " + ManagedCertificateAuthority.class.getSimpleName() + " ca" +
                 // Certificate authority configuration was updated since last check, so publish might be needed
                 " WHERE ca.manifestAndCrlCheckNeeded = TRUE" +
+                "    OR ca.configurationUpdatedAt > ca.configurationAppliedAt" +
                 "    OR EXISTS (SELECT kp" +
                 "                 FROM ca.keyPairs kp" +
                 "                 JOIN kp.incomingResourceCertificate incoming" +

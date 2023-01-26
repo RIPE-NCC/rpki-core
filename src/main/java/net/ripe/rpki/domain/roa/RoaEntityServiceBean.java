@@ -1,5 +1,6 @@
 package net.ripe.rpki.domain.roa;
 
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
@@ -10,6 +11,8 @@ import net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
+import net.ripe.rpki.core.events.IncomingCertificateRevokedEvent;
+import net.ripe.rpki.core.events.IncomingCertificateUpdatedEvent;
 import net.ripe.rpki.core.events.KeyPairActivatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
@@ -34,6 +37,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service("roaEntityServiceBean")
+@Slf4j
 public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, RoaEntityService {
 
     private final RoaConfigurationRepository roaConfigurationRepository;
@@ -63,20 +67,19 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
 
     @Override
     public void visitKeyPairActivatedEvent(KeyPairActivatedEvent event, CommandContext context) {
-        ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(event.getCertificateAuthorityVersionedId().getId());
-        if (ca == null) {
-            return;
-        }
-
-        revokeRoasSignedByOldKeys(ca);
+        ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(event.getCertificateAuthorityId());
+        updateRoasIfNeeded(ca);
     }
 
-    private void revokeRoasSignedByOldKeys(ManagedCertificateAuthority ca) {
-        ca.getKeyPairs().stream()
-                .filter(KeyPairEntity::isOld)
-                .flatMap(keyPair -> repository.findByCertificateSigningKeyPair(keyPair).stream())
-                .filter(roa -> !roa.isRevoked())
-                .forEachOrdered(roa -> roa.revokeAndRemove(repository));
+    @Override
+    public void visitIncomingCertificateUpdatedEvent(IncomingCertificateUpdatedEvent event, CommandContext context) {
+        ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(event.getCertificateAuthorityId());
+        updateRoasIfNeeded(ca);
+    }
+
+    @Override
+    public void visitIncomingCertificateRevokedEvent(IncomingCertificateRevokedEvent event, CommandContext context) {
+        // All ROA entities are already revoked and removed by the key pair deletion service in this case.
     }
 
     /**
@@ -110,15 +113,17 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
 
     @Override
     public void updateRoasIfNeeded(ManagedCertificateAuthority ca) {
-        ca.findCurrentKeyPair().ifPresent(currentKeyPair -> {
-            Pair<List<RoaEntity>, List<RoaSpecification>> validationResult = validateRoaConfiguration(ca);
-            for (RoaEntity roaEntity : validationResult.getLeft()) {
-                roaEntity.revokeAndRemove(repository);
-            }
-            for (RoaSpecification specification : validationResult.getRight()) {
-                createRoaEntity(specification, currentKeyPair);
-            }
-        });
+        Pair<List<RoaEntity>, List<RoaSpecification>> validated = validateRoaConfiguration(ca);
+        if (!validated.getLeft().isEmpty() || !validated.getRight().isEmpty()) {
+            log.debug("revoking {} and issuing {} ROA entities", validated.getLeft().size(), validated.getRight().size());
+        }
+
+        for (RoaEntity roaEntity : validated.getLeft()) {
+            roaEntity.revokeAndRemove(repository);
+        }
+        for (RoaSpecification specification : validated.getRight()) {
+            createRoaEntity(ca, specification);
+        }
     }
 
     private boolean isValidRoaEntity(IncomingResourceCertificate incomingResourceCertificate, Map<Asn, RoaSpecification> specifications, RoaEntity roa) {
@@ -148,7 +153,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
             .noneMatch(roa -> specification.isSatisfiedBy(roa.getRoaCms()));
     }
 
-    private void createRoaEntity(RoaSpecification specification, KeyPairEntity currentKeyPair) {
+    private void createRoaEntity(ManagedCertificateAuthority ca, RoaSpecification specification) {
         if (!specification.hasResources()) {
             return;
         }
@@ -159,11 +164,11 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
         }
 
         KeyPair eeKeyPair = singleUseKeyPairFactory.get();
-        OutgoingResourceCertificate endEntityCertificate = createEndEntityCertificateForRoa(specification, roaValidityPeriod, eeKeyPair, currentKeyPair);
+        OutgoingResourceCertificate endEntityCertificate = createEndEntityCertificateForRoa(specification, roaValidityPeriod, eeKeyPair, ca.getCurrentKeyPair());
 
         RoaCms roaCms = generateRoaCms(specification, eeKeyPair, endEntityCertificate.getCertificate());
         URI publicationDirectory = CertificateInformationAccessUtil.extractPublicationDirectory(
-                currentKeyPair.getCurrentIncomingCertificate().getSia());
+                ca.getCurrentIncomingCertificate().getSia());
         RoaEntity roaEntity = new RoaEntity(endEntityCertificate, roaCms,
                 informationAccessStrategy.roaFilename(endEntityCertificate), publicationDirectory);
         repository.add(roaEntity);

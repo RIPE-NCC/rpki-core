@@ -32,11 +32,6 @@ public class JpaRoaEntityRepositoryTest extends CertificationDomainTestCase {
     }
 
     @Test
-    public void findByCertificateSigningKeyPair() {
-        assertThat(subject.findByCertificateSigningKeyPair(keyPair)).isEmpty();
-    }
-
-    @Test
     public void deleteByCertificateSigningKeyPair() {
         assertThat(subject.deleteByCertificateSigningKeyPair(keyPair)).isZero();
     }

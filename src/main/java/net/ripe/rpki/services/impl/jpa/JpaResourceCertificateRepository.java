@@ -17,11 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 import javax.security.auth.x500.X500Principal;
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings("java:S1192")
@@ -36,32 +36,34 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
 
     @Override
     public OutgoingResourceCertificate findLatestOutgoingCertificate(PublicKey subjectPublicKey, KeyPairEntity signingKeyPair) {
-        Query query = createQuery("from OutgoingResourceCertificate rc where rc.status = :current and rc.signingKeyPair.id = :signingKeyPair and rc.encodedSubjectPublicKey = :subjectPublicKey ");
-        query.setParameter("current", OutgoingResourceCertificateStatus.CURRENT);
-        query.setParameter("signingKeyPair", signingKeyPair.getId());
-        query.setParameter("subjectPublicKey", subjectPublicKey.getEncoded());
-        return (OutgoingResourceCertificate) findUniqueResult(query);
+        TypedQuery<OutgoingResourceCertificate> query = manager.createQuery("from OutgoingResourceCertificate rc where rc.status = :current and rc.signingKeyPair.id = :signingKeyPair and rc.encodedSubjectPublicKey = :subjectPublicKey", OutgoingResourceCertificate.class)
+            .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
+            .setParameter("signingKeyPair", signingKeyPair.getId())
+            .setParameter("subjectPublicKey", subjectPublicKey.getEncoded());
+        return findUniqueResult(query);
     }
 
     @Override
     public int countNonExpiredOutgoingCertificates(PublicKey subjectPublicKey, KeyPairEntity signingKeyPair) {
-        Object count = createQuery("SELECT COUNT(*) FROM OutgoingResourceCertificate rc WHERE rc.status <> :expired AND rc.signingKeyPair = :signingKeyPair AND rc.encodedSubjectPublicKey = :subjectPublicKey")
+        return manager.createQuery(
+            "SELECT COUNT(*) FROM OutgoingResourceCertificate rc WHERE rc.status <> :expired AND rc.signingKeyPair = :signingKeyPair AND rc.encodedSubjectPublicKey = :subjectPublicKey",
+                Number.class
+            )
             .setParameter("expired", OutgoingResourceCertificateStatus.EXPIRED)
             .setParameter("signingKeyPair", signingKeyPair)
             .setParameter("subjectPublicKey", subjectPublicKey.getEncoded())
-            .getSingleResult();
-        return ((Number) count).intValue();
+            .getSingleResult()
+            .intValue();
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Collection<OutgoingResourceCertificate> findAllBySigningKeyPair(KeyPairEntity signingKeyPair) {
-        Query query = createQuery("from OutgoingResourceCertificate rc where rc.signingKeyPair.id = :signingKeyPair");
-        query.setParameter("signingKeyPair", signingKeyPair.getId());
-        return (List<OutgoingResourceCertificate>) query.getResultList();
+        return manager
+            .createQuery("from OutgoingResourceCertificate rc where rc.signingKeyPair.id = :signingKeyPair", OutgoingResourceCertificate.class)
+            .setParameter("signingKeyPair", signingKeyPair.getId())
+            .getResultList();
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Optional<IncomingResourceCertificate> findIncomingResourceCertificateBySubjectKeyPair(KeyPairEntity subjectKeyPair) {
         try {
@@ -74,18 +76,18 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Collection<OutgoingResourceCertificate> findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(KeyPairEntity signingKeyPair, DateTime now) {
         Validate.notNull(signingKeyPair, "signingKeyPair is required");
-        Query query = createQuery("from OutgoingResourceCertificate rc " +
-                "where rc.status = :revoked " +
-                "and rc.signingKeyPair.id = :signingKeyPair " +
-                "and rc.validityPeriod.notValidAfter > :now");
-        query.setParameter("revoked", OutgoingResourceCertificateStatus.REVOKED);
-        query.setParameter("now", now);
-        query.setParameter("signingKeyPair", signingKeyPair.getId());
-        return query.getResultList();
+        return manager.createQuery("from OutgoingResourceCertificate rc " +
+                    "where rc.status = :revoked " +
+                    "and rc.signingKeyPair.id = :signingKeyPair " +
+                    "and rc.validityPeriod.notValidAfter > :now",
+                OutgoingResourceCertificate.class)
+            .setParameter("revoked", OutgoingResourceCertificateStatus.REVOKED)
+            .setParameter("now", now)
+            .setParameter("signingKeyPair", signingKeyPair.getId())
+            .getResultList();
     }
 
     @Override
@@ -153,14 +155,13 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
                 .executeUpdate();
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Collection<OutgoingResourceCertificate> findCurrentCertificatesBySubjectPublicKey(PublicKey subjectPublicKey) {
         Validate.notNull(subjectPublicKey, "subjectPublicKey is required");
-        Query query = createQuery("from OutgoingResourceCertificate rc where rc.encodedSubjectPublicKey = :encodedSubjectPublicKey AND rc.status = :current");
-        query.setParameter("encodedSubjectPublicKey", subjectPublicKey.getEncoded());
-        query.setParameter("current", OutgoingResourceCertificateStatus.CURRENT);
-        return query.getResultList();
+        return manager.createQuery("from OutgoingResourceCertificate rc where rc.encodedSubjectPublicKey = :encodedSubjectPublicKey AND rc.status = :current", OutgoingResourceCertificate.class)
+            .setParameter("encodedSubjectPublicKey", subjectPublicKey.getEncoded())
+            .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
+            .getResultList();
     }
 
     @Override
@@ -181,7 +182,7 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
                 "  FROM OutgoingResourceCertificate rc " +
                 " WHERE rc.signingKeyPair = :signingKeyPair " +
                 "   AND rc.status = :current " +
-                "   AND rc.subject <> rc.issuer " + // Self signed certificates used in tests should be excluded
+                "   AND rc.subject <> rc.issuer " + // Self-signed certificates used in tests should be excluded
                 "   AND NOT EXISTS (FROM ManifestEntity mft WHERE mft.certificate = rc)")
             .setParameter("signingKeyPair", signingKeyPair)
             .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
@@ -206,14 +207,13 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
     }
 
     @Override
-    public ImmutableResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName) {
+    public ImmutableResourceSet findCurrentOutgoingResourceCertificateResources(X500Principal caName) {
         return manager.createQuery(
                 "SELECT rc.resources " +
                     "  FROM ManagedCertificateAuthority ca JOIN ca.keyPairs kp," +
                     "       OutgoingResourceCertificate rc " +
                     " WHERE rc.status = :current " +
                     "   AND upper(ca.name) = upper(:name) " +
-                    "   AND rc.requestingCertificateAuthority IS NULL " +
                     "   AND rc.signingKeyPair = kp",
                 ImmutableResourceSet.class)
             .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)

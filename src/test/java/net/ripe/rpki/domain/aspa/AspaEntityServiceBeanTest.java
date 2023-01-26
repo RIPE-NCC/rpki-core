@@ -63,7 +63,6 @@ public class AspaEntityServiceBeanTest {
     private AspaConfigurationRepository aspaConfigurationRepository;
 
     private ManagedCertificateAuthority certificateAuthority;
-    private KeyPairEntity oldKeyPair;
     private KeyPairEntity activeKeyPair;
     private AspaEntity aspaEntity;
     private AspaEntityServiceBean subject;
@@ -74,9 +73,6 @@ public class AspaEntityServiceBeanTest {
         subject = new AspaEntityServiceBean(certificateAuthorityRepository, aspaConfigurationRepository, aspaEntityRepository, new SingleUseKeyPairFactory(), TestServices.createSingleUseEeCertificateFactory());
 
         certificateAuthority = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, UUID.randomUUID(), null);
-        oldKeyPair = TestObjects.createActiveKeyPair("OLD");
-        certificateAuthority.addKeyPair(oldKeyPair);
-        oldKeyPair.deactivate();
         activeKeyPair = TestObjects.createActiveKeyPair("ACTIVE");
         certificateAuthority.addKeyPair(activeKeyPair);
 
@@ -96,10 +92,12 @@ public class AspaEntityServiceBeanTest {
 
     @Test
     public void should_remove_aspa_entities_signed_by_old_key_on_activation_of_new_key() {
-        when(aspaEntityRepository.findByCertificateSigningKeyPair(oldKeyPair)).thenReturn(Collections.singletonList(aspaEntity));
+        KeyPairEntity newKeyPair = TestObjects.createActiveKeyPair("OLD");
+        certificateAuthority.addKeyPair(newKeyPair);
+        activeKeyPair.deactivate();
 
         subject.visitKeyPairActivatedEvent(
-            new KeyPairActivatedEvent(certificateAuthority.getVersionedId(), activeKeyPair),
+            new KeyPairActivatedEvent(certificateAuthority.getVersionedId(), newKeyPair),
             new CommandContext(KeyManagementActivatePendingKeysCommand.manualActivationCommand(certificateAuthority.getVersionedId()), mock(CommandAudit.class))
         );
 

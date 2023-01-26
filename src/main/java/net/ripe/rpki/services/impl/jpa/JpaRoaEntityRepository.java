@@ -1,6 +1,5 @@
 package net.ripe.rpki.services.impl.jpa;
 
-import lombok.NonNull;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.roa.RoaEntity;
@@ -32,14 +31,6 @@ public class JpaRoaEntityRepository extends JpaRepository<RoaEntity> implements 
             )
             .setParameter("ca", certificateAuthority)
             .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
-            .getResultList();
-    }
-
-    @Override
-    public List<RoaEntity> findByCertificateSigningKeyPair(@NonNull KeyPairEntity certificateSigningKeyPair) {
-        return manager
-            .createQuery("FROM RoaEntity WHERE certificate.signingKeyPair = :cskp", RoaEntity.class)
-            .setParameter("cskp", certificateSigningKeyPair)
             .getResultList();
     }
 

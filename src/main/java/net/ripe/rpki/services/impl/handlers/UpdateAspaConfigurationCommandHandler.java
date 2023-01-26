@@ -80,7 +80,7 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
             entities.get(updated.getKey()).setProviders(updated.getValue().rightValue());
         }
 
-        ca.configurationUpdated();
+        ca.markConfigurationUpdated();
     }
 
     private SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> parseUpdatedConfiguration(ManagedCertificateAuthority ca, UpdateAspaConfigurationCommand command) {

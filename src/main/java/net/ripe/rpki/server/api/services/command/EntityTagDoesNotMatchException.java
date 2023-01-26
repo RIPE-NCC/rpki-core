@@ -2,7 +2,7 @@
 package net.ripe.rpki.server.api.services.command;
 
 /**
- * This exception indicates that a roa config update commands is trying to add private ASNs.
+ * This exception indicates that the to-be-updated entity was modified in-between by another command.
  */
 public class EntityTagDoesNotMatchException extends CertificationException {
 

@@ -83,6 +83,8 @@ build-image:
     - apt-get update
     - apt-get install --yes --no-install-recommends docker.io
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - mkdir -p ~/.config/google-cloud-tools-java/jib/
+    - cp jib.config.json ~/.config/google-cloud-tools-java/jib/config.json
   script:
     - ./gradlew jib --image $CI_REGISTRY_IMAGE/ci:ci-step-$BUILD_NUMBER
   rules:

@@ -87,13 +87,8 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
     private void checkCertificateAuthorityInvariants(ManagedCertificateAuthority ca) {
         ImmutableResourceSet incomingResources = determineIncomingResources(ca);
 
-        checkOutgoingChildResourcesInvariant(ca, incomingResources);
-
-        if (!ca.isManifestAndCrlCheckNeeded()) {
-            // Manifest and CRL are up-to-date, so all outgoing RPKI object certificates should be contained in
-            // incoming resources.
-            checkOutgoingRpkiObjectResourcesInvariant(ca, incomingResources);
-        }
+        // All active certificates must have resources that are contained in the certified resources of this CA.
+        checkOutgoingResourceCertificatesInvariant(ca, incomingResources);
     }
 
     private ImmutableResourceSet determineIncomingResources(ManagedCertificateAuthority ca) {
@@ -115,26 +110,14 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
         }
     }
 
-    private void checkOutgoingChildResourcesInvariant(ManagedCertificateAuthority ca, ImmutableResourceSet incomingResources) {
-        ImmutableResourceSet currentOutgoingChildCertificateResources = resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(ca.getName());
+    private void checkOutgoingResourceCertificatesInvariant(ManagedCertificateAuthority ca, ImmutableResourceSet incomingResources) {
+        ImmutableResourceSet currentOutgoingChildCertificateResources = resourceCertificateRepository.findCurrentOutgoingResourceCertificateResources(ca.getName());
         if (!incomingResources.contains(currentOutgoingChildCertificateResources)) {
             throw new CertificateAuthorityInvariantViolationException(String.format(
-                "CA %s: with current resources %s does not contain issued child resources %s",
+                "CA %s: with current resources %s does not contain issued resources %s",
                 ca,
                 incomingResources,
                 currentOutgoingChildCertificateResources.difference(incomingResources)
-            ));
-        }
-    }
-
-    private void checkOutgoingRpkiObjectResourcesInvariant(ManagedCertificateAuthority ca, ImmutableResourceSet incomingResources) {
-        ImmutableResourceSet currentOutgoingResources = resourceCertificateRepository.findCurrentOutgoingRpkiObjectCertificateResources(ca.getName());
-        if (!incomingResources.contains(currentOutgoingResources)) {
-            throw new CertificateAuthorityInvariantViolationException(String.format(
-                "CA %s: with current resources %s does not contain issued non-child resources %s",
-                ca,
-                incomingResources,
-                currentOutgoingResources.difference(incomingResources)
             ));
         }
     }

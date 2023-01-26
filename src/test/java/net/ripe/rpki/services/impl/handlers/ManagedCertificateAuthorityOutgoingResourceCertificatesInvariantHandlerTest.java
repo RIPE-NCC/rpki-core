@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,8 +54,7 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
         when(currentKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
         when(certificateAuthority.getKeyPairs()).thenReturn(Arrays.asList(oldKeyPair, currentKeyPair));
 
-        when(resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(certificateAuthority.getName())).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
-        when(resourceCertificateRepository.findCurrentOutgoingRpkiObjectCertificateResources(certificateAuthority.getName())).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
+        when(resourceCertificateRepository.findCurrentOutgoingResourceCertificateResources(certificateAuthority.getName())).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
     }
 
     @Test
@@ -74,40 +72,16 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
     }
 
     @Test
-    public void should_check_outgoing_child_resource_consistency() {
+    public void should_check_outgoing_resource_certificate_consistency() {
         // Outgoing child resources should always be contained in incoming resources
-        when(resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(certificateAuthority.getName())).thenReturn(ImmutableResourceSet.parse("192.168.0.0/16"));
+        when(resourceCertificateRepository.findCurrentOutgoingResourceCertificateResources(certificateAuthority.getName())).thenReturn(ImmutableResourceSet.parse("192.168.0.0/16"));
 
         // so an CertificateAuthorityInvariantViolationException is thrown when they do not match
         assertThatThrownBy(
             () -> subject.handleInternal(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CA_ID), Integer.MAX_VALUE))
         ).isInstanceOfSatisfying(CertificateAuthorityInvariantViolationException.class, (e) -> {
-            assertThat(e.getMessage()).isEqualTo("CA certificateAuthority: with current resources 10.0.0.0/8 does not contain issued child resources 192.168.0.0/16");
+            assertThat(e.getMessage()).isEqualTo("CA certificateAuthority: with current resources 10.0.0.0/8 does not contain issued resources 192.168.0.0/16");
         });
-    }
-
-    @Test
-    public void should_check_outgoing_rpki_object_resource_consistency_when_manifest_is_uptodate() {
-        // Outgoing RPKI object resources should be contained in incoming resources when manifest/CRL are up-to-date
-        when(certificateAuthority.isManifestAndCrlCheckNeeded()).thenReturn(false);
-        when(resourceCertificateRepository.findCurrentOutgoingRpkiObjectCertificateResources(certificateAuthority.getName())).thenReturn(ImmutableResourceSet.parse("192.168.0.0/16"));
-
-        // so an CertificateAuthorityInvariantViolationException is thrown when they do not match
-        assertThatThrownBy(
-            () -> subject.handleInternal(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CA_ID), Integer.MAX_VALUE))
-        ).isInstanceOfSatisfying(CertificateAuthorityInvariantViolationException.class, (e) -> {
-            assertThat(e.getMessage()).isEqualTo("CA certificateAuthority: with current resources 10.0.0.0/8 does not contain issued non-child resources 192.168.0.0/16");
-        });
-    }
-
-    @Test
-    public void should_not_check_outgoing_rpki_object_resource_consistency_when_manifest_is_outdated() {
-        // Outgoing RPKI object resources should be contained in incoming resources when manifest/CRL are up-to-date
-        when(certificateAuthority.isManifestAndCrlCheckNeeded()).thenReturn(true);
-
-        subject.handle(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(CA_ID), Integer.MAX_VALUE), new CommandStatus());
-
-        verify(resourceCertificateRepository, never()).findCurrentOutgoingRpkiObjectCertificateResources(certificateAuthority.getName());
     }
 
     @Test

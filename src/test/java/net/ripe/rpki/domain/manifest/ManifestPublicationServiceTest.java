@@ -10,17 +10,9 @@ import net.ripe.rpki.commons.crypto.crl.X509Crl;
 import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.*;
-import net.ripe.rpki.domain.aspa.AspaConfiguration;
-import net.ripe.rpki.domain.aspa.AspaConfigurationRepository;
-import net.ripe.rpki.domain.aspa.AspaEntity;
-import net.ripe.rpki.domain.aspa.AspaEntityRepository;
 import net.ripe.rpki.domain.crl.CrlEntity;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
-import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
-import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
-import net.ripe.rpki.domain.roa.RoaEntity;
-import net.ripe.rpki.domain.roa.RoaEntityRepository;
-import net.ripe.rpki.server.api.dto.AspaAfiLimit;
+import net.ripe.rpki.domain.roa.*;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Before;
@@ -53,14 +45,11 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
     private ManifestPublicationService subject;
 
     @Autowired
-    private AspaConfigurationRepository aspaConfigurationRepository;
-    @Autowired
-    private AspaEntityRepository aspaEntityRepository;
-
-    @Autowired
     private RoaConfigurationRepository roaConfigurationRepository;
     @Autowired
     private RoaEntityRepository roaEntityRepository;
+    @Autowired
+    protected RoaEntityService roaEntityService;
 
     @Before
     public void setUp() {
@@ -105,7 +94,7 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
             assertThat(summary.max()).isEqualTo(crl.getEncoded().length);
         });
 
-        assertThat(subject.updateManifestAndCrlIfNeeded(ca)).describedAs("no update needed").isEqualTo(0);
+        assertThat(subject.updateManifestAndCrlIfNeeded(ca)).describedAs("no update needed").isZero();
     }
 
     @Test
@@ -160,9 +149,11 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
         entityManager.flush();
 
         roaConfigurationRepository.getOrCreateByCertificateAuthority(ca).addPrefix(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"))));
+        roaEntityService.updateRoasIfNeeded(ca);
+
         subject.updateManifestAndCrlIfNeeded(ca);
 
-        List<RoaEntity> roas = roaEntityRepository.findByCertificateSigningKeyPair(currentKeyPair);
+        List<RoaEntity> roas = roaEntityRepository.findCurrentByCertificateAuthority(ca);
         assertEquals("single roa issued", 1, roas.size());
         RoaEntity roaEntity = roas.get(0);
 
@@ -180,37 +171,5 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
 
         assertEquals("updated crl next update time matches updated manifest", updatedCrl.getNextUpdateTime(), updatedManifest.getNextUpdateTime());
         assertEquals("updated manifest next update time matches certificate not valid after", updatedManifest.getNextUpdateTime(), updatedManifest.getCertificate().getValidityPeriod().getNotValidAfter());
-    }
-
-    @Test
-    public void should_update_roa_entities() {
-        roaConfigurationRepository.getOrCreateByCertificateAuthority(ca).addPrefix(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"))));
-
-        assertThat(roaEntityRepository.findByCertificateSigningKeyPair(currentKeyPair)).describedAs("current ROA entities").isEmpty();
-
-        subject.updateManifestAndCrlIfNeeded(ca);
-
-        List<RoaEntity> roas = roaEntityRepository.findByCertificateSigningKeyPair(currentKeyPair);
-        assertThat(roas).describedAs("updated ROA entities").hasSize(1);
-
-        ManifestCms updatedManifest = manifestEntityRepository.findByKeyPairEntity(currentKeyPair).getManifestCms();
-        PublishedObject roa = roas.get(0).getPublishedObject();
-        assertThat(updatedManifest.verifyFileContents(roa.getFilename(), roa.getContent())).isTrue();
-    }
-
-    @Test
-    public void should_update_aspa_entities() {
-        aspaConfigurationRepository.add(new AspaConfiguration(ca, Asn.parse("AS64512"), Collections.singletonMap(Asn.parse("AS1"), AspaAfiLimit.ANY)));
-
-        assertThat(aspaEntityRepository.findByCertificateSigningKeyPair(currentKeyPair)).describedAs("current ASPA entities").isEmpty();
-
-        subject.updateManifestAndCrlIfNeeded(ca);
-
-        List<AspaEntity> aspas = aspaEntityRepository.findByCertificateSigningKeyPair(currentKeyPair);
-        assertThat(aspas).describedAs("updated ASPA entities").hasSize(1);
-
-        ManifestCms updatedManifest = manifestEntityRepository.findByKeyPairEntity(currentKeyPair).getManifestCms();
-        PublishedObject aspa = aspas.get(0).getPublishedObject();
-        assertThat(updatedManifest.verifyFileContents(aspa.getFilename(), aspa.getContent())).isTrue();
     }
 }

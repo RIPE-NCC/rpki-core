@@ -59,7 +59,7 @@ public class RoaServiceBeanTest {
         RoaEntity roa2 = RoaEntityTest.createEeSignedRoaEntity(certificateAuthority,
             certificateAuthority.getCurrentKeyPair().getPublicKey(), new ValidityPeriod(now, now.plusYears(1)));
         when(caRepository.findManagedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
-        when(roaEntityRepository.findByCertificateSigningKeyPair(isA(KeyPairEntity.class))).thenReturn(Arrays.asList(roa1, roa2));
+        when(roaEntityRepository.findCurrentByCertificateAuthority(certificateAuthority)).thenReturn(Arrays.asList(roa1, roa2));
 
         List<RoaEntityData> result = subject.findAllRoasForCa(TEST_CA_ID);
 

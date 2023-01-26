@@ -36,10 +36,7 @@ public class RoaServiceBean implements RoaViewService {
     }
 
     private Collection<RoaEntity> findAllRoas(ManagedCertificateAuthority ca) {
-        return ca.getKeyPairs()
-            .stream()
-            .flatMap(kp -> roaEntityRepository.findByCertificateSigningKeyPair(kp).stream())
-            .collect(Collectors.toList());
+        return roaEntityRepository.findCurrentByCertificateAuthority(ca);
     }
 
     @Override

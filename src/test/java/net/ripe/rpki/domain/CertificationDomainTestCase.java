@@ -4,13 +4,11 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
-import net.ripe.rpki.domain.aspa.AspaEntityService;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.manifest.ManifestEntityRepository;
 import net.ripe.rpki.domain.manifest.ManifestPublicationService;
-import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.configuration.Environment;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -66,10 +64,6 @@ public abstract class CertificationDomainTestCase {
     protected EntityManager entityManager;
 
     @Autowired
-    protected AspaEntityService aspaEntityService;
-    @Autowired
-    protected RoaEntityService roaEntityService;
-    @Autowired
     protected CrlEntityRepository crlEntityRepository;
 
     @Autowired
@@ -94,8 +88,6 @@ public abstract class CertificationDomainTestCase {
         manifestPublicationService = new ManifestPublicationService(
             resourceCertificateRepository,
             publishedObjectRepository,
-            aspaEntityService,
-            roaEntityService,
             crlEntityRepository,
             manifestEntityRepository,
             singleUseKeyPairFactory,

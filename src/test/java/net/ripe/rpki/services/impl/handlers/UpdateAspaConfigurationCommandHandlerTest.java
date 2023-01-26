@@ -67,7 +67,7 @@ public class UpdateAspaConfigurationCommandHandlerTest {
         ArgumentCaptor<AspaConfiguration> aspaConfigurationArgumentCaptor = ArgumentCaptor.forClass(AspaConfiguration.class);
         verify(aspaConfigurationRepository).add(aspaConfigurationArgumentCaptor.capture());
         assertThat(aspaConfigurationArgumentCaptor.getValue().getProviders()).isEqualTo(Collections.singletonMap(Asn.parse("AS3"), AspaAfiLimit.IPv4));
-        verify(managedCertificateAuthority).configurationUpdated();
+        verify(managedCertificateAuthority).markConfigurationUpdated();
     }
 
     @Test
@@ -85,7 +85,7 @@ public class UpdateAspaConfigurationCommandHandlerTest {
         subject.handle(command);
 
         assertThat(aspa_as1234.getProviders()).isEqualTo(Collections.singletonMap(Asn.parse("AS3"), AspaAfiLimit.IPv4));
-        verify(managedCertificateAuthority).configurationUpdated();
+        verify(managedCertificateAuthority).markConfigurationUpdated();
     }
 
     @Test
@@ -100,7 +100,7 @@ public class UpdateAspaConfigurationCommandHandlerTest {
         subject.handle(command);
 
         verify(aspaConfigurationRepository).remove(aspa_as1234);
-        verify(managedCertificateAuthority).configurationUpdated();
+        verify(managedCertificateAuthority).markConfigurationUpdated();
     }
 
     @Test
@@ -116,7 +116,7 @@ public class UpdateAspaConfigurationCommandHandlerTest {
         )));
 
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOf(CommandWithoutEffectException.class);
-        verify(managedCertificateAuthority, never()).configurationUpdated();
+        verify(managedCertificateAuthority, never()).markConfigurationUpdated();
     }
 
     @Test

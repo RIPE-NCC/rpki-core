@@ -76,7 +76,7 @@ public class AspaConfigurationMaintenanceServiceBean implements CertificateAutho
         );
 
         toBeRemoved.forEach(aspaConfigurationRepository::remove);
-        ca.configurationUpdated();
+        ca.markConfigurationUpdated();
     }
 
     @Value

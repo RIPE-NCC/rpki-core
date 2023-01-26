@@ -15,6 +15,8 @@ import net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
+import net.ripe.rpki.core.events.IncomingCertificateRevokedEvent;
+import net.ripe.rpki.core.events.IncomingCertificateUpdatedEvent;
 import net.ripe.rpki.core.events.KeyPairActivatedEvent;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
@@ -72,11 +74,18 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
     @Override
     public void visitKeyPairActivatedEvent(KeyPairActivatedEvent event, CommandContext context) {
         ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(event.getCertificateAuthorityVersionedId().getId());
-        if (ca == null) {
-            return;
-        }
+        updateAspaIfNeeded(ca);
+    }
 
-        revokeAspasSignedByOldKeys(ca);
+    @Override
+    public void visitIncomingCertificateUpdatedEvent(IncomingCertificateUpdatedEvent event, CommandContext context) {
+        ManagedCertificateAuthority ca = certificateAuthorityRepository.findManagedCa(event.getCertificateAuthorityId());
+        updateAspaIfNeeded(ca);
+    }
+
+    @Override
+    public void visitIncomingCertificateRevokedEvent(IncomingCertificateRevokedEvent event, CommandContext context) {
+        // All ASPA entities are already revoked and removed by the key pair deletion service in this case.
     }
 
     /**
@@ -135,22 +144,17 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
     @Override
     public void updateAspaIfNeeded(ManagedCertificateAuthority ca) {
         Pair<Collection<AspaEntity>, SortedMap<Asn, AspaConfiguration>> validated = validateAspaConfiguration(ca);
-        log.debug("removing {} and issuing {} ASPA entities", validated.getLeft().size(), validated.getRight().size());
+        if (!validated.getLeft().isEmpty() || !validated.getRight().isEmpty()) {
+            log.debug("revoking {} and issuing {} ASPA entities", validated.getLeft().size(), validated.getRight().size());
+        }
 
-        validated.getLeft().forEach(aspa -> aspa.revokeAndRemove(aspaEntityRepository));
-
-        validated.getRight().values().forEach(aspaConfiguration -> {
+        for (AspaEntity aspaEntity : validated.getLeft()) {
+            aspaEntity.revokeAndRemove(aspaEntityRepository);
+        }
+        for (AspaConfiguration aspaConfiguration : validated.getRight().values()) {
             AspaEntity aspaEntity = createAspaEntity(ca, aspaConfiguration);
             aspaEntityRepository.add(aspaEntity);
-        });
-    }
-
-    private void revokeAspasSignedByOldKeys(ManagedCertificateAuthority ca) {
-        ca.getKeyPairs().stream()
-            .filter(KeyPairEntity::isOld)
-            .flatMap(kp -> aspaEntityRepository.findByCertificateSigningKeyPair(kp).stream())
-            .filter(aspaEntity ->  !aspaEntity.isRevoked())
-            .forEach(aspaEntity -> aspaEntity.revokeAndRemove(aspaEntityRepository));
+        }
     }
 
     private static boolean isValidAspaEntity(IncomingResourceCertificate incomingResourceCertificate, AspaEntity aspa) {

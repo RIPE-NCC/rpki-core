@@ -10,7 +10,5 @@ public interface AspaEntityRepository extends Repository<AspaEntity> {
 
     List<AspaEntity> findCurrentByCertificateAuthority(ManagedCertificateAuthority certificateAuthority);
 
-    List<AspaEntity> findByCertificateSigningKeyPair(KeyPairEntity certificateSigningKeyPair);
-
     int deleteByCertificateSigningKeyPair(KeyPairEntity certificateSigningKeyPair);
 }

@@ -1,0 +1,13 @@
+{
+  "disableUpdateCheck": false,
+  "registryMirrors": [
+    {
+      "registry": "registry-1.docker.io",
+      "mirrors": ["docker-hub.nexus.ripe.net", "mirror.gcr.io"]
+    },
+    {
+      "registry": "mirror.gcr.io",
+      "mirrors": ["docker-gcr.nexus.ripe.net"]
+    }
+  ]
+}

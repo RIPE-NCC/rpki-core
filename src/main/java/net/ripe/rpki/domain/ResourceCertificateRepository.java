@@ -53,15 +53,15 @@ public interface ResourceCertificateRepository extends Repository<ResourceCertif
     boolean existsCurrentOutgoingCertificatesExceptForManifest(KeyPairEntity signingKeyPair);
 
     /**
-     * @return find the union of the resources of _all_ current child certificates of the CA with given name.
+     * @return find the union of the resources of _all_ current outgoing resource certificates of the CA with given name.
      */
     ImmutableResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName);
 
     /**
-     * @return find the union of the resources of _all_ current outgoing RPKI object (ROA, Manifest, etc.) certificates
+     * @return find the union of the resources of _all_ current outgoing resource certificates
      * of the CA with given name.
      */
-    ImmutableResourceSet findCurrentOutgoingRpkiObjectCertificateResources(X500Principal caName);
+    ImmutableResourceSet findCurrentOutgoingResourceCertificateResources(X500Principal caName);
 
     @Value
     class ExpireOutgoingResourceCertificatesResult {

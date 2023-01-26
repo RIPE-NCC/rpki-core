@@ -9,7 +9,7 @@ import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
-import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.commons.util.UTC;
 import net.ripe.rpki.core.events.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
@@ -28,31 +28,18 @@ import net.ripe.rpki.server.api.dto.KeyPairStatus;
 import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.util.SerialNumberSupplier;
-import org.apache.commons.lang.Validate;
-import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.commons.lang.builder.ToStringStyle;
+import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToMany;
+import javax.annotation.Nullable;
+import javax.persistence.*;
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
 import java.security.PublicKey;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -90,13 +77,23 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
      */
     @Getter
     @Column(name = "manifest_and_crl_check_needed")
-    private boolean manifestAndCrlCheckNeeded;
+    private boolean manifestAndCrlCheckNeeded; // Will be removed once configurationUpdatedAt is deployed everywhere
+
+    @Column(name = "configuration_updated_at")
+    @Nullable
+    private DateTime configurationUpdatedAt;
+
+    @Column(name = "configuration_applied_at")
+    @Nullable
+    private DateTime configurationAppliedAt;
 
     protected ManagedCertificateAuthority() {
     }
 
     protected ManagedCertificateAuthority(long id, X500Principal name, UUID uuid, ParentCertificateAuthority parent) {
         super(id, name, uuid, parent);
+        this.configurationUpdatedAt = UTC.dateTime();
+        this.configurationAppliedAt = this.configurationUpdatedAt.plusMillis(1);
     }
 
     public UpStreamCARequestEntity getUpStreamCARequestEntity() {
@@ -174,13 +171,31 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         }
     }
 
-
-    public void configurationUpdated() {
-        this.manifestAndCrlCheckNeeded = true;
+    public boolean isConfigurationCheckNeeded() {
+        return this.manifestAndCrlCheckNeeded
+            || this.configurationAppliedAt == null
+            || this.configurationUpdatedAt == null
+            || this.configurationUpdatedAt.isAfter(this.configurationAppliedAt);
     }
 
-    public void manifestAndCrlCheckCompleted() {
-        this.manifestAndCrlCheckNeeded = false;
+    public void markConfigurationUpdated() {
+        this.manifestAndCrlCheckNeeded = true; // Temporary until database+code migration completed
+        this.configurationUpdatedAt = UTC.dateTime();
+        if (this.configurationAppliedAt != null && !this.configurationUpdatedAt.isAfter(this.configurationAppliedAt)) {
+            // Clock skew? Ensure updated_at is always after applied_at.
+            this.configurationUpdatedAt = this.configurationAppliedAt.plusMillis(1);
+        }
+        Validate.isTrue(this.configurationAppliedAt == null || this.configurationUpdatedAt.isAfter(this.configurationAppliedAt), "post-condition");
+    }
+
+    public void markConfigurationChecked() {
+        this.manifestAndCrlCheckNeeded = false; // Temporary until database+code migration completed
+        this.configurationAppliedAt = UTC.dateTime();
+        if (this.configurationUpdatedAt != null && !this.configurationAppliedAt.isAfter(this.configurationUpdatedAt)) {
+            // Clock skew? Ensure applied_at is always after updated_at.
+            this.configurationAppliedAt = this.configurationUpdatedAt.plusMillis(1);
+        }
+        Validate.isTrue(this.configurationUpdatedAt == null || this.configurationAppliedAt.isAfter(this.configurationUpdatedAt), "post-condition");
     }
 
     @Override

@@ -58,7 +58,7 @@ public class IssueUpdatedManifestAndCrlCommandHandlerTest extends CertificationD
     }
 
     @Test
-    public void should_have_no_affect_when_update_is_not_needed() {
+    public void should_have_no_effect_when_update_is_not_needed() {
         subject.handle(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId()));
 
         assertThrows(
@@ -68,12 +68,25 @@ public class IssueUpdatedManifestAndCrlCommandHandlerTest extends CertificationD
     }
 
     @Test
+    public void should_clear_configuration_check_needed_even_if_configuration_change_had_no_effect() {
+        subject.handle(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId()));
+        ca.markConfigurationUpdated();
+
+        subject.handle(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId()));
+
+        assertThat(ca.isConfigurationCheckNeeded()).isFalse();
+    }
+
+    @Test
     public void should_update_roa_entities() {
         roaConfigurationRepository.getOrCreateByCertificateAuthority(ca).addPrefix(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"))));
+        ca.markConfigurationUpdated();
 
         assertThat(roaEntityRepository.findCurrentByCertificateAuthority(ca)).describedAs("current ROA entities").isEmpty();
 
         subject.handle(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId()));
+
+        assertThat(ca.isConfigurationCheckNeeded()).isFalse();
 
         List<RoaEntity> roas = roaEntityRepository.findCurrentByCertificateAuthority(ca);
         assertThat(roas).describedAs("updated ROA entities").hasSize(1);
@@ -86,10 +99,13 @@ public class IssueUpdatedManifestAndCrlCommandHandlerTest extends CertificationD
     @Test
     public void should_update_aspa_entities() {
         aspaConfigurationRepository.add(new AspaConfiguration(ca, Asn.parse("AS64512"), Collections.singletonMap(Asn.parse("AS1"), AspaAfiLimit.ANY)));
+        ca.markConfigurationUpdated();
 
         assertThat(aspaEntityRepository.findCurrentByCertificateAuthority(ca)).describedAs("current ASPA entities").isEmpty();
 
         subject.handle(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId()));
+
+        assertThat(ca.isConfigurationCheckNeeded()).isFalse();
 
         List<AspaEntity> aspas = aspaEntityRepository.findCurrentByCertificateAuthority(ca);
         assertThat(aspas).describedAs("updated ASPA entities").hasSize(1);

@@ -35,7 +35,7 @@ public interface CertificateAuthorityRepository extends Repository<CertificateAu
 
     List<ManagedCertificateAuthority> findAllWithManifestsExpiringBefore(DateTime notValidAfterCutoff, int maxResult);
 
-    Collection<ManagedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff, int maxResults);
+    Collection<ManagedCertificateAuthority> findAllWithOutdatedManifests(boolean includeUpdatedConfiguration, DateTime nextUpdateCutoff, int maxResults);
 
     int deleteNonHostedPublicKeysWithoutSigningCertificates();
 

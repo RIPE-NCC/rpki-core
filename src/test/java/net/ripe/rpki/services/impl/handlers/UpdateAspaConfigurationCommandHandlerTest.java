@@ -120,6 +120,15 @@ public class UpdateAspaConfigurationCommandHandlerTest {
     }
 
     @Test
+    public void should_notify_aspa_entity_service_on_configuration_change() {
+        subject.handle(new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, singletonList(new AspaConfigurationData(
+            Asn.parse("AS1234"),
+            singletonList(new AspaProviderData(Asn.parse("AS1"), AspaAfiLimit.ANY))
+        ))));
+
+        verify(managedCertificateAuthority).markConfigurationUpdated();
+    }
+    @Test
     public void should_reject_customer_asn_if_not_certified() {
         UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, singletonList(new AspaConfigurationData(
             Asn.parse("AS9000"),

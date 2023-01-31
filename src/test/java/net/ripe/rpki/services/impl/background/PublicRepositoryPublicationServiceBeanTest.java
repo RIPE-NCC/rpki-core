@@ -7,6 +7,7 @@ import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
+import net.ripe.rpki.util.JdbcDBComponent;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.context.annotation.Bean;
@@ -52,7 +53,7 @@ public class PublicRepositoryPublicationServiceBeanTest extends CertificationDom
             manifestPublicationService,
             publishedObjectRepository,
             trustAnchorPublishedObjectRepository,
-            entityManager,
+            new JdbcDBComponent(entityManager),
             transactionManager,
             simpleMeterRegistry
         );
@@ -93,7 +94,7 @@ public class PublicRepositoryPublicationServiceBeanTest extends CertificationDom
     }
 
     private Collection<ManagedCertificateAuthority> outdatedCertificateAuthorities() {
-        return certificateAuthorityRepository.findAllWithOutdatedManifests(UTC.dateTime(), Integer.MAX_VALUE);
+        return certificateAuthorityRepository.findAllWithOutdatedManifests(true, UTC.dateTime(), Integer.MAX_VALUE);
     }
 
     private List<PublishedObjectEntry> pendingObjects() {

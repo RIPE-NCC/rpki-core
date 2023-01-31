@@ -1,7 +1,7 @@
 package net.ripe.rpki.domain;
 
 import com.google.common.annotations.VisibleForTesting;
-import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
@@ -34,7 +34,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 
-import javax.annotation.Nullable;
 import javax.persistence.*;
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
@@ -68,32 +67,24 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     private Set<KeyPairEntity> keyPairs = new HashSet<>();
 
     /**
-     * Flag to indicate that the incoming certificate was updated and the manifest and CRL may need to be re-issued.
-     *
-     * Set whenever a new incoming resource certificate is received ({@link ParentCertificateAuthority#processCertificateIssuanceRequest}),
-     * cleared once the manifest and CRL have been checked (and re-issued if needed), see
-     * {@link net.ripe.rpki.services.impl.handlers.IssueUpdatedManifestAndCrlCommandHandler IssueUpdatedManifestAndCrlCommandHandler} and
-     * {@link net.ripe.rpki.services.impl.background.PublicRepositoryPublicationServiceBean PublicRepositoryPublicationServiceBean}.
+     * The last time the ASPA or ROA configuration was updated. This can bever be equal to {@link #configurationAppliedAt}.
      */
-    @Getter
-    @Column(name = "manifest_and_crl_check_needed")
-    private boolean manifestAndCrlCheckNeeded; // Will be removed once configurationUpdatedAt is deployed everywhere
-
     @Column(name = "configuration_updated_at")
-    @Nullable
-    private DateTime configurationUpdatedAt;
+    @NonNull
+    private DateTime configurationUpdatedAt = UTC.dateTime();
 
+    /**
+     * The last time the ASPA and ROA configuration were applied. This can never be equal to {@link #configurationUpdatedAt}.
+     */
     @Column(name = "configuration_applied_at")
-    @Nullable
-    private DateTime configurationAppliedAt;
+    @NonNull
+    private DateTime configurationAppliedAt = this.configurationUpdatedAt.plusMillis(1);
 
     protected ManagedCertificateAuthority() {
     }
 
     protected ManagedCertificateAuthority(long id, X500Principal name, UUID uuid, ParentCertificateAuthority parent) {
         super(id, name, uuid, parent);
-        this.configurationUpdatedAt = UTC.dateTime();
-        this.configurationAppliedAt = this.configurationUpdatedAt.plusMillis(1);
     }
 
     public UpStreamCARequestEntity getUpStreamCARequestEntity() {
@@ -172,30 +163,25 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     }
 
     public boolean isConfigurationCheckNeeded() {
-        return this.manifestAndCrlCheckNeeded
-            || this.configurationAppliedAt == null
-            || this.configurationUpdatedAt == null
-            || this.configurationUpdatedAt.isAfter(this.configurationAppliedAt);
+        return this.configurationUpdatedAt.isAfter(this.configurationAppliedAt);
     }
 
     public void markConfigurationUpdated() {
-        this.manifestAndCrlCheckNeeded = true; // Temporary until database+code migration completed
         this.configurationUpdatedAt = UTC.dateTime();
-        if (this.configurationAppliedAt != null && !this.configurationUpdatedAt.isAfter(this.configurationAppliedAt)) {
+        if (!this.configurationUpdatedAt.isAfter(this.configurationAppliedAt)) {
             // Clock skew? Ensure updated_at is always after applied_at.
             this.configurationUpdatedAt = this.configurationAppliedAt.plusMillis(1);
         }
-        Validate.isTrue(this.configurationAppliedAt == null || this.configurationUpdatedAt.isAfter(this.configurationAppliedAt), "post-condition");
+        Validate.isTrue(this.configurationUpdatedAt.isAfter(this.configurationAppliedAt), "post-condition");
     }
 
-    public void markConfigurationChecked() {
-        this.manifestAndCrlCheckNeeded = false; // Temporary until database+code migration completed
+    public void markConfigurationApplied() {
         this.configurationAppliedAt = UTC.dateTime();
-        if (this.configurationUpdatedAt != null && !this.configurationAppliedAt.isAfter(this.configurationUpdatedAt)) {
+        if (!this.configurationAppliedAt.isAfter(this.configurationUpdatedAt)) {
             // Clock skew? Ensure applied_at is always after updated_at.
             this.configurationAppliedAt = this.configurationUpdatedAt.plusMillis(1);
         }
-        Validate.isTrue(this.configurationUpdatedAt == null || this.configurationAppliedAt.isAfter(this.configurationUpdatedAt), "post-condition");
+        Validate.isTrue(this.configurationAppliedAt.isAfter(this.configurationUpdatedAt), "post-condition");
     }
 
     @Override
@@ -397,8 +383,6 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
             keyPair.revoke(publishedObjectRepository);
 
             keyPairDeletionService.deleteRevokedKeysFromResponses(this, Collections.singletonList(response));
-
-            this.manifestAndCrlCheckNeeded = true;
         });
     }
 

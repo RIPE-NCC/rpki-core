@@ -41,13 +41,15 @@ public class IssueUpdatedManifestAndCrlCommandHandler extends AbstractCertificat
     public void handle(IssueUpdatedManifestAndCrlCommand command, CommandStatus commandStatus) {
         ManagedCertificateAuthority certificateAuthority = lookupManagedCa(command.getCertificateAuthorityId());
 
-        aspaEntityService.updateAspaIfNeeded(certificateAuthority);
-        roaEntityService.updateRoasIfNeeded(certificateAuthority);
+        boolean configurationCheckNeeded = certificateAuthority.isConfigurationCheckNeeded();
+        if (configurationCheckNeeded) {
+            aspaEntityService.updateAspaIfNeeded(certificateAuthority);
+            roaEntityService.updateRoasIfNeeded(certificateAuthority);
+            certificateAuthority.markConfigurationApplied();
+        }
 
         long updateCount = manifestPublicationService.updateManifestAndCrlIfNeeded(certificateAuthority);
-        if (certificateAuthority.isConfigurationCheckNeeded()) {
-            certificateAuthority.markConfigurationChecked();
-        } else if (updateCount == 0) {
+        if (!configurationCheckNeeded && updateCount == 0) {
             throw new CommandWithoutEffectException(command);
         }
     }

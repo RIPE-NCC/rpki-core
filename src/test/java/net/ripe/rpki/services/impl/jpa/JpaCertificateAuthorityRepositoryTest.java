@@ -31,6 +31,12 @@ public class JpaCertificateAuthorityRepositoryTest extends CertificationDomainTe
     @Test
     public void findAllWithOutdatedManifests() {
         assertThat(certificateAuthorityRepository.findAllWithOutdatedManifests(
+            false,
+            UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT),
+            Integer.MAX_VALUE
+        )).isEmpty();
+        assertThat(certificateAuthorityRepository.findAllWithOutdatedManifests(
+            true,
             UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT),
             Integer.MAX_VALUE
         )).isEmpty();

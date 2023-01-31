@@ -236,13 +236,12 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     }
 
     @Override
-    public Collection<ManagedCertificateAuthority> findAllWithOutdatedManifests(DateTime nextUpdateCutoff, int maxResults) {
+    public Collection<ManagedCertificateAuthority> findAllWithOutdatedManifests(boolean includeUpdatedConfiguration, DateTime nextUpdateCutoff, int maxResults) {
         return manager.createQuery(
             "SELECT ca" +
                 "  FROM " + ManagedCertificateAuthority.class.getSimpleName() + " ca" +
-                // Certificate authority configuration was updated since last check, so publish might be needed
-                " WHERE ca.manifestAndCrlCheckNeeded = TRUE" +
-                "    OR ca.configurationUpdatedAt > ca.configurationAppliedAt" +
+                // Certificate authority configuration was updated since the last time it as applied, so publish might be needed
+                " WHERE (:includeUpdatedConfiguration = TRUE AND ca.configurationUpdatedAt > ca.configurationAppliedAt)" +
                 "    OR EXISTS (SELECT kp" +
                 "                 FROM ca.keyPairs kp" +
                 "                 JOIN kp.incomingResourceCertificate incoming" +
@@ -276,6 +275,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
             .setParameter("active", PublicationStatus.ACTIVE_STATUSES)
             .setParameter("inactive", EnumSet.complementOf(PublicationStatus.ACTIVE_STATUSES))
             .setParameter("nextUpdateCutoff", nextUpdateCutoff)
+            .setParameter("includeUpdatedConfiguration", includeUpdatedConfiguration)
             .setMaxResults(maxResults)
             .getResultList();
     }

@@ -52,6 +52,7 @@ public class ManifestCrlUpdateServiceBean extends SequentialBackgroundServiceWit
     protected void runService(Map<String, String> parameters) {
         // Process all CAs with pending publications and a next update time within the hard limit "time to next update"
         Collection<ManagedCertificateAuthority> mustCheckForUpdatesCAs = certificateAuthorityRepository.findAllWithOutdatedManifests(
+            true,
             UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_HARD_LIMIT),
             Integer.MAX_VALUE
         );

@@ -106,14 +106,14 @@ public class UpdateRoaConfigurationCommandHandlerTest {
 
     @Test
     public void should_notify_roa_entity_service_on_configuration_change() {
-        certificateAuthority.markConfigurationChecked();
-        assertThat(certificateAuthority.isManifestAndCrlCheckNeeded()).isFalse();
+        certificateAuthority.markConfigurationApplied();
+        assertThat(certificateAuthority.isConfigurationCheckNeeded()).isFalse();
 
         subject.handle(new UpdateRoaConfigurationCommand(
                 certificateAuthority.getVersionedId(),
                 Collections.emptyList(),
                 Collections.emptyList()));
 
-        assertThat(certificateAuthority.isManifestAndCrlCheckNeeded()).isTrue();
+        assertThat(certificateAuthority.isConfigurationCheckNeeded()).isTrue();
     }
 }

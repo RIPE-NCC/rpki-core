@@ -20,6 +20,7 @@ import java.util.List;
 import static net.ripe.rpki.core.services.background.BackgroundTaskRunner.MAX_ALLOWED_EXCEPTIONS;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.isA;
@@ -57,7 +58,7 @@ public class ManifestCrlUpdateServiceBeanTest {
         VersionedId memberCaId = new VersionedId(43L);
         when(memberCa.getVersionedId()).thenReturn(memberCaId);
 
-        when(certificateAuthorityRepository.findAllWithOutdatedManifests(any(), anyInt()))
+        when(certificateAuthorityRepository.findAllWithOutdatedManifests(anyBoolean(), any(), anyInt()))
             .thenReturn(Arrays.asList(prodCa, memberCa))
             .thenReturn(Collections.emptyList());
 
@@ -72,7 +73,7 @@ public class ManifestCrlUpdateServiceBeanTest {
     public void should_throw_exception_when_too_many_exceptions_are_encountered() {
         doThrow(new RuntimeException()).when(commandService).execute(isA(IssueUpdatedManifestAndCrlCommand.class));
         List<ManagedCertificateAuthority> caData = createCertificateAuthorityDataMocks(MAX_ALLOWED_EXCEPTIONS + 1);
-        when(certificateAuthorityRepository.findAllWithOutdatedManifests(any(), anyInt())).thenReturn(caData);
+        when(certificateAuthorityRepository.findAllWithOutdatedManifests(anyBoolean(), any(), anyInt())).thenReturn(caData);
 
         BackgroundServiceExecutionResult result = subject.execute(Collections.emptyMap());
 

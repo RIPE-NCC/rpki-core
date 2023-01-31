@@ -15,6 +15,8 @@ import net.ripe.rpki.domain.manifest.ManifestEntity;
 import net.ripe.rpki.domain.manifest.ManifestPublicationService;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.services.command.CommandService;
+import net.ripe.rpki.util.DBComponent;
+import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
@@ -64,7 +66,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
     private final ManifestPublicationService manifestPublicationService;
     private final PublishedObjectRepository publishedObjectRepository;
     private final TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository;
-    private final EntityManager entityManager;
+    private final DBComponent dbComponent;
     private final TransactionTemplate transactionTemplate;
 
     private final Counter certificateAuthorityCounter;
@@ -78,7 +80,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         ManifestPublicationService manifestPublicationService,
         PublishedObjectRepository publishedObjectRepository,
         TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository,
-        EntityManager entityManager,
+        DBComponent dbComponent,
         PlatformTransactionManager transactionManager,
         MeterRegistry meterRegistry) {
         super(backgroundTaskRunner);
@@ -87,7 +89,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         this.manifestPublicationService = manifestPublicationService;
         this.publishedObjectRepository = publishedObjectRepository;
         this.trustAnchorPublishedObjectRepository = trustAnchorPublishedObjectRepository;
-        this.entityManager = entityManager;
+        this.dbComponent = dbComponent;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         // Repeatable read, so we get a consistent snapshot of to-be-published objects
         this.transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
@@ -115,8 +117,8 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
     }
 
     private void preparePendingCertificateAuthorities(DateTime manifestAndCrlValidityCutoff) {
-        List<ManagedCertificateAuthority> pendingCertificateAuthorities = findPendingCertificateAuthorities(manifestAndCrlValidityCutoff, Integer.MAX_VALUE);
-        log.info("Updating {} CAs with outdated manifest or CRL before publication transaction", pendingCertificateAuthorities.size());
+        List<ManagedCertificateAuthority> pendingCertificateAuthorities = findPendingCertificateAuthorities(true, manifestAndCrlValidityCutoff, Integer.MAX_VALUE);
+        log.info("Updating {} CAs with updated configuration or outdated manifest/CRL before publication transaction", pendingCertificateAuthorities.size());
 
         runParallel(pendingCertificateAuthorities.stream().map(ca -> task(
             () -> commandService.execute(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId())),
@@ -145,7 +147,7 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
         log.info("Started publication transaction");
 
         List<ManagedCertificateAuthority> pendingCertificateAuthorities =
-            findPendingCertificateAuthorities(manifestAndCrlValidityCutoff, MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE + 1);
+            findPendingCertificateAuthorities(false, manifestAndCrlValidityCutoff, MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE + 1);
         if (pendingCertificateAuthorities.size() > MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE) {
             log.info("More than {} CAs to update, aborting publication", MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE);
             return;
@@ -164,9 +166,14 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
                 return;
             }
 
-            entityManager.lock(ca, LockModeType.PESSIMISTIC_WRITE);
+            dbComponent.lockCertificateAuthorityForSharing(ca.getId());
             updateCountTotal += manifestPublicationService.updateManifestAndCrlIfNeeded(ca);
         }
+
+        Validate.isTrue(
+            findPendingCertificateAuthorities(false, manifestAndCrlValidityCutoff,1).isEmpty(),
+            "post-condition: all CAs should be ready for publication at this point"
+        );
 
         // Atomically mark the new set of objects that are publishable.
         int count = publishedObjectRepository.updatePublicationStatus();
@@ -191,10 +198,10 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
      * to ensure proper locking order (command handlers always lock the child CA before the parent CA). This
      * reduces the chance of deadlock or a serializable transaction rollback error.
      */
-    private List<ManagedCertificateAuthority> findPendingCertificateAuthorities(DateTime manifestAndCrlValidityCutoff, int maxResults) {
-        return certificateAuthorityRepository.findAllWithOutdatedManifests(manifestAndCrlValidityCutoff, maxResults)
+    private List<ManagedCertificateAuthority> findPendingCertificateAuthorities(boolean includeWithUpdatedConfiguration, DateTime manifestAndCrlValidityCutoff, int maxResults) {
+        return certificateAuthorityRepository.findAllWithOutdatedManifests(includeWithUpdatedConfiguration, manifestAndCrlValidityCutoff, maxResults)
             .stream()
-            .sorted(Comparator.comparingInt(CertificateAuthority::depth).reversed())
+            .sorted(Comparator.comparingInt(CertificateAuthority::depth).reversed().thenComparing(CertificateAuthority::getId))
             .collect(Collectors.toList());
     }
 }

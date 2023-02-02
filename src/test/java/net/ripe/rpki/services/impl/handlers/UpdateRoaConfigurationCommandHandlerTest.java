@@ -10,6 +10,7 @@ import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
+import net.ripe.rpki.server.api.services.command.EntityTagDoesNotMatchException;
 import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
 import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import net.ripe.rpki.services.impl.background.RoaMetricsService;
@@ -17,11 +18,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 public class UpdateRoaConfigurationCommandHandlerTest {
 
@@ -63,20 +67,32 @@ public class UpdateRoaConfigurationCommandHandlerTest {
     @Test
     public void should_add_new_additions() {
         subject.handle(new UpdateRoaConfigurationCommand(
-                certificateAuthority.getVersionedId(),
-                Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX, null)),
-                Collections.emptyList()));
+            certificateAuthority.getVersionedId(),
+            Optional.of(configuration.convertToData().entityTag()),
+            Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX, null)),
+            Collections.emptyList()));
 
-        assertEquals(Collections.singleton(new RoaConfigurationPrefix(ASN, PREFIX, null)), configuration.getPrefixes());
+        assertThat(configuration.getPrefixes()).isEqualTo(Collections.singleton(new RoaConfigurationPrefix(ASN, PREFIX, null)));
         verify(roaMetricsService).countAdded(1);
+    }
+
+    @Test
+    public void should_reject_if_etag_does_not_match_current_configuration() {
+        assertThatThrownBy(() -> subject.handle(new UpdateRoaConfigurationCommand(
+            certificateAuthority.getVersionedId(),
+            Optional.of("bad-etag"),
+            Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX, null)),
+            Collections.emptyList()
+        ))).isInstanceOf(EntityTagDoesNotMatchException.class);
     }
 
     @Test(expected = PrivateAsnsUsedException.class)
     public void should_reject_new_additions_of_private_ASN() {
         subject.handle(new UpdateRoaConfigurationCommand(
-                certificateAuthority.getVersionedId(),
-                Collections.singletonList(new RoaConfigurationPrefixData(PRIVATE_ASN, PREFIX, null)),
-                Collections.emptyList()));
+            certificateAuthority.getVersionedId(),
+        Optional.empty(),
+            Collections.singletonList(new RoaConfigurationPrefixData(PRIVATE_ASN, PREFIX, null)),
+            Collections.emptyList()));
         verifyNoMoreInteractions(roaMetricsService);
     }
 
@@ -84,6 +100,7 @@ public class UpdateRoaConfigurationCommandHandlerTest {
     public void should_reject_uncertified_prefixes() {
         UpdateRoaConfigurationCommand command = new UpdateRoaConfigurationCommand(
             certificateAuthority.getVersionedId(),
+            Optional.empty(),
             Collections.singletonList(new RoaConfigurationPrefixData(ASN, IpRange.parse("1.0.0.0/8"), null)),
             Collections.emptyList()
         );
@@ -95,11 +112,12 @@ public class UpdateRoaConfigurationCommandHandlerTest {
         configuration.addPrefix(Collections.singleton(new RoaConfigurationPrefix(ASN, PREFIX, null)));
 
         subject.handle(new UpdateRoaConfigurationCommand(
-                certificateAuthority.getVersionedId(),
-                Collections.emptyList(),
-                Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX, null))));
+            certificateAuthority.getVersionedId(),
+            Optional.empty(),
+            Collections.emptyList(),
+            Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX, null))));
 
-        assertEquals(Collections.emptySet(), configuration.getPrefixes());
+        assertThat(configuration.getPrefixes()).isEmpty();
         verify(roaConfigurationRepository).logRoaPrefixDeletion(configuration, Collections.singleton(new RoaConfigurationPrefix(ASN, PREFIX, null)));
         verify(roaMetricsService).countDeleted(1);
     }
@@ -110,9 +128,10 @@ public class UpdateRoaConfigurationCommandHandlerTest {
         assertThat(certificateAuthority.isConfigurationCheckNeeded()).isFalse();
 
         subject.handle(new UpdateRoaConfigurationCommand(
-                certificateAuthority.getVersionedId(),
-                Collections.emptyList(),
-                Collections.emptyList()));
+            certificateAuthority.getVersionedId(),
+            Optional.empty(),
+            Collections.emptyList(),
+            Collections.emptyList()));
 
         assertThat(certificateAuthority.isConfigurationCheckNeeded()).isTrue();
     }

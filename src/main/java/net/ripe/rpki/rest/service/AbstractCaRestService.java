@@ -2,8 +2,8 @@ package net.ripe.rpki.rest.service;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.rest.exception.CaNameInvalidException;
 import net.ripe.rpki.rest.exception.CaNotFoundException;
 import net.ripe.rpki.rest.exception.UserIdRequiredException;
@@ -26,10 +26,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.Produces;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.security.ApiKeySecurity.USER_ID_HEADER;
@@ -130,6 +127,15 @@ public class AbstractCaRestService {
 
     protected <T> ResponseEntity<T> noContent() {
         return ResponseEntity.noContent().build();
+    }
+
+    @NonNull
+    protected ResponseEntity<Object> badRequest(String error) {
+        return ResponseEntity.badRequest().body(bodyForError(error));
+    }
+
+    protected Map<String, String> bodyForError(String error) {
+        return Collections.singletonMap("error", error);
     }
 
     enum PrefixValidationResult {

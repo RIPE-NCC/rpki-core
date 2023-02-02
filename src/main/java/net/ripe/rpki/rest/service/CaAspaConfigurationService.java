@@ -69,13 +69,16 @@ public class CaAspaConfigurationService extends AbstractCaRestService {
 
     @PutMapping
     @Operation(summary = "Update the ASPA configuration for CA")
-    public ResponseEntity<Void> put(
+    public ResponseEntity<?> put(
         @PathVariable("caName") CaName caName,
         @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatchHeader,
         @RequestBody @Valid AspaConfigurationRequest body
     ) {
         log.info("REST call: Update ASPA configuration belonging to CA: {}", caName);
 
+        if (ifMatchHeader != null && body.ifMatch != null && !ifMatchHeader.equals(body.ifMatch)) {
+            return badRequest("`If-Match` header and `ifMatch` field do not match");
+        }
         String ifMatch = StringUtils.defaultIfEmpty(ifMatchHeader, body.ifMatch);
         if (StringUtils.isBlank(ifMatch)) {
             throw new PreconditionRequiredException("'If-Match' header or 'ifMatch' field required for updating the ASPA configuration");

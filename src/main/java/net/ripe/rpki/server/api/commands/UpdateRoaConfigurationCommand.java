@@ -1,23 +1,29 @@
 package net.ripe.rpki.server.api.commands;
 
+import lombok.Getter;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import org.apache.commons.lang.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 
 public class UpdateRoaConfigurationCommand extends CertificateAuthorityModificationCommand {
+
+    /**
+     * For backwards compatibility with the older client the use of the <code>If-Match</code> header is optional.
+     * If this field is not provided the last writer wins.
+     */
+    @Getter
+    private final Optional<String> ifMatch;
 
     private final List<RoaConfigurationPrefixData> additions;
 
     private final List<RoaConfigurationPrefixData> deletions;
 
-    public UpdateRoaConfigurationCommand(VersionedId certificateAuthorityId, Collection<RoaConfigurationPrefixData> added, Collection<RoaConfigurationPrefixData> deleted) {
+    public UpdateRoaConfigurationCommand(VersionedId certificateAuthorityId, Optional<String> ifMatch, Collection<RoaConfigurationPrefixData> added, Collection<RoaConfigurationPrefixData> deleted) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
+        this.ifMatch = ifMatch;
         this.additions = new ArrayList<>(added);
         this.additions.sort(RoaConfigurationPrefixData.COMPARATOR);
         this.deletions = new ArrayList<>(deleted);

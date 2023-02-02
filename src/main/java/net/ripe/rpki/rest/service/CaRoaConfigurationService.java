@@ -27,16 +27,13 @@ import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -132,7 +129,10 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
                 }
                 roas.add(new ROAExtended(allowedRoute.getAsn().toString(), allowedRoute.getPrefix().toString(), allowedRoute.getMaximumLength(), valids, invalids));
             });
-        return ok(roas);
+        return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_JSON)
+            .eTag(roaConfiguration.entityTag())
+            .body(roas);
     }
 
     @PostMapping(path = "affecting")
@@ -228,14 +228,23 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
                 }
             }
         }
-        return ok(result);
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_JSON)
+            .eTag(currentRoaConfiguration.entityTag())
+            .body(result);
     }
 
     @PostMapping(path = "publish")
     @Operation(summary = "Publish ROA changes for the given CA")
     public ResponseEntity<?> publishROAs(@PathVariable("caName") final CaName caName,
+                                         @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatchHeader,
                                          @RequestBody final PublishSet publishSet) {
         log.info("REST call: Publish changes in ROAs for CA: {}", caName);
+
+        if (publishSet.getAdded().isEmpty() && publishSet.getDeleted().isEmpty()) {
+            return noContent();
+        }
 
         final Optional<String> addedRoasErrorMessage = Utils.errorsInUserInputRoas(publishSet.getAdded());
         if (addedRoasErrorMessage.isPresent()) {
@@ -257,13 +266,20 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
             }
         }
 
+        if (ifMatchHeader != null && publishSet.getIfMatch() != null && !ifMatchHeader.equals(publishSet.getIfMatch())) {
+            return badRequest("`If-Match` header and `ifMatch` field do not match");
+        }
+        String ifMatch = StringUtils.defaultIfEmpty(ifMatchHeader, publishSet.getIfMatch());
+
         try {
-            commandService.execute(new UpdateRoaConfigurationCommand(ca.getVersionedId(),
-                    getRoaConfigurationPrefixDatas(publishSet.getAdded()),
-                    getRoaConfigurationPrefixDatas(publishSet.getDeleted())));
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            commandService.execute(new UpdateRoaConfigurationCommand(
+                ca.getVersionedId(),
+                Optional.ofNullable(ifMatch),
+                getRoaConfigurationPrefixDatas(publishSet.getAdded()),
+                getRoaConfigurationPrefixDatas(publishSet.getDeleted())
+            ));
+            return noContent();
         } catch (Exception e) {
-            log.error("", e);
             return ResponseEntity.status(BAD_REQUEST).body(of(ERROR, e.getMessage()));
         }
     }

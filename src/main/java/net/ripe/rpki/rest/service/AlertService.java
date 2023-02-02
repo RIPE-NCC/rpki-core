@@ -23,25 +23,13 @@ import net.ripe.rpki.server.api.support.objects.CaName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.google.common.collect.ImmutableMap.of;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Slf4j
 @Scope("prototype")
@@ -82,10 +70,10 @@ public class AlertService extends AbstractCaRestService {
 
     @PostMapping(consumes = {APPLICATION_JSON})
     @Operation(summary = "Subscribe/Unsubscribe for alerts about invalid or unknown announcements")
-    public ResponseEntity<Map<String, String>> subscribe(@PathVariable("caName") final CaName caName, @RequestBody final Subscriptions newSubscription) {
+    public ResponseEntity<?> subscribe(@PathVariable("caName") final CaName caName, @RequestBody final Subscriptions newSubscription) {
         log.info("Subscribing to alerts about invalid or unknown announcement caName[{}], subscription {}", caName, newSubscription);
         if (newSubscription == null) {
-            return ResponseEntity.status(BAD_REQUEST).body(of("error", "No valid subscription provided"));
+            return badRequest("No valid subscription provided");
         }
 
         final Set<RouteValidityState> newValidityStates = newSubscription.getRouteValidityStates().stream()

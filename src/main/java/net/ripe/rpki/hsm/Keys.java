@@ -49,7 +49,7 @@ public class Keys {
 
     public KeyPair getKeyPairFromKeyStore(byte[] keyStore, String keyStoreProvider, String keyStoreType) {
         return isDbProvider(keyStoreProvider) ?
-            KeyStoreUtil.getKeyPairFromKeyStore(keyStore, keyStoreProvider, keyStoreType, this  ::loadHsmDatabaseKeyStore) :
+            KeyStoreUtil.getKeyPairFromKeyStore(keyStore, keyStoreProvider, keyStoreType, this::loadHsmDatabaseKeyStore) :
             KeyStoreUtil.getKeyPairFromKeyStore(keyStore, keyStoreProvider, keyStoreType);
     }
 

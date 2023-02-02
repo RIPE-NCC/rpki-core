@@ -29,6 +29,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import javax.security.auth.x500.X500Principal;
+import javax.ws.rs.core.HttpHeaders;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.assertj.core.api.BDDAssertions.thenThrownBy;
 import static org.junit.Assert.assertEquals;
@@ -44,6 +46,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -82,9 +85,9 @@ public class CaRoaConfigurationServiceTest {
 
     @Test
     public void shouldPostROAtoStageNoRealChange() throws Exception {
-
-        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Collections.singletonList(
-                new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("192.168.0.0/16"), 16))));
+        RoaConfigurationData roaConfigurationData = new RoaConfigurationData(Collections.singletonList(
+            new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("192.168.0.0/16"), 16)));
+        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(roaConfigurationData);
 
         ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1, ::1");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
@@ -100,6 +103,7 @@ public class CaRoaConfigurationServiceTest {
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/stage")
                 .content("[{\"asn\" : \"AS10\", \"prefix\" : \"192.168.0.0/16\", \"maximalLength\" : \"16\"}]"))
                 .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ETAG, roaConfigurationData.entityTag()))
                 .andExpect(jsonPath("$.length()").value("1"))
                 .andExpect(jsonPath("$.[0].asn").value("AS10"))
                 .andExpect(jsonPath("$.[0].prefix").value("192.168.0.0/16"))
@@ -339,18 +343,10 @@ public class CaRoaConfigurationServiceTest {
 
     @Test
     public void shouldReturnAffectingROAsAllTogether() throws Exception {
-
         when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Arrays.asList(
                 new RoaConfigurationPrefixData(new Asn(11), IpRange.parse("192.168.0.0/16"), 16),
                 new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("192.168.0.0/15"), 15),
                 new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("192.168.0.0/16"), 16))));
-//
-//        baseRequest().request()
-//                .contentType(APPLICATION_JSON)
-//                .body("{\"asn\" : \"AS10\", \"prefix\" : \"192.168.0.0/16\"}")
-//                .then().expect().statusCode(200).and()
-//                .body("size()", equalTo(3))
-//                .when().post(BASE_PATH + "/ca/123/roas/affecting");
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/affecting")
                 .content("{\"asn\" : \"AS10\", \"prefix\" : \"192.168.0.0/16\"}"))
@@ -369,6 +365,7 @@ public class CaRoaConfigurationServiceTest {
         ArgumentCaptor<UpdateRoaConfigurationCommand> argument = ArgumentCaptor.forClass(UpdateRoaConfigurationCommand.class);
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/publish")
+                .header(HttpHeaders.IF_MATCH, "\"etag-value\"")
                 .content("{ " +
                         "\"added\" : [{\"asn\" : \"AS10\", \"prefix\" : \"193.0.24.0/21\", \"maximalLength\" : \"21\"}], " +
                         "\"deleted\" : [{\"asn\" : \"AS11\", \"prefix\" : \"2001:67c:64::/48\", \"maximalLength\" : \"48\"}] " +
@@ -377,6 +374,7 @@ public class CaRoaConfigurationServiceTest {
 
         verify(commandService).execute(argument.capture());
 
+        assertThat(argument.getValue().getIfMatch()).hasValue("\"etag-value\"");
         RoaConfigurationPrefixData added = argument.getValue().getAdditions().get(0);
         RoaConfigurationPrefixData deleted = argument.getValue().getDeletions().get(0);
 
@@ -387,6 +385,43 @@ public class CaRoaConfigurationServiceTest {
         assertEquals("AS11", deleted.getAsn().toString());
         assertEquals("2001:67c:64::/48", deleted.getPrefix().toString());
         assertEquals(48, deleted.getMaximumLength());
+    }
+
+    @Test
+    public void should_use_ifMatch_field_when_header_not_provider() throws Exception {
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("193.0.24.0/21, 2001:67c:64::/48");
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getVersionedId()).thenReturn(VersionedId.parse("1"));
+        ArgumentCaptor<UpdateRoaConfigurationCommand> argument = ArgumentCaptor.forClass(UpdateRoaConfigurationCommand.class);
+
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/publish")
+                .content("{ " +
+                    "\"ifMatch\" : \"\\\"if-match-value\\\"\"," +
+                    "\"added\" : [{\"asn\" : \"AS10\", \"prefix\" : \"193.0.24.0/21\", \"maximalLength\" : \"21\"}], " +
+                    "\"deleted\" : [{\"asn\" : \"AS11\", \"prefix\" : \"2001:67c:64::/48\", \"maximalLength\" : \"48\"}] " +
+                    "}"))
+            .andExpect(status().is(204));
+
+        verify(commandService).execute(argument.capture());
+
+        assertThat(argument.getValue().getIfMatch()).hasValue("\"if-match-value\"");
+    }
+
+    @Test
+    public void shouldFailWhenIfMatchHeaderAndFieldDoNotMatch() throws Exception {
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("193.0.24.0/21, 2001:67c:64::/48");
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getVersionedId()).thenReturn(VersionedId.parse("1"));
+
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/publish")
+                .header(org.springframework.http.HttpHeaders.IF_MATCH, "header-value")
+                .content("{ " +
+                    "\"ifMatch\" : \"\\\"field-value\\\"\"," +
+                    "\"added\" : [{\"asn\" : \"AS10\", \"prefix\" : \"193.0.24.0/21\", \"maximalLength\" : \"21\"}], " +
+                    "\"deleted\" : [{\"asn\" : \"AS11\", \"prefix\" : \"2001:67c:64::/48\", \"maximalLength\" : \"48\"}] " +
+                    "}")
+            )
+            .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -408,12 +443,6 @@ public class CaRoaConfigurationServiceTest {
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/publish")
                 .content("{ \"added\" : [{\"asn\" : \"AS10\", \"prefix\" : \"211111.168.0.0/16\", \"maximalLength\" : \"16\"}] }"))
                 .andExpect(status().is(400));
-
-//        baseRequest().request()
-//                .contentType(APPLICATION_JSON)
-//                .body("{ \"added\" : [{\"asn\" : \"AS10\", \"prefix\" : \"211111.168.0.0/16\", \"maximalLength\" : \"16\"}] }")
-//                .then().expect().statusCode(400)
-//                .when().post(BASE_PATH + "/ca/123/roas/publish");
     }
 
     @Test
@@ -494,14 +523,16 @@ public class CaRoaConfigurationServiceTest {
     @Test
     public void shouldReturnOneValidROAs() throws Exception {
 
-        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Collections.singletonList(
-                new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("192.168.0.0/16"), 16))));
+        RoaConfigurationData roaConfigurationData = new RoaConfigurationData(Collections.singletonList(
+            new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("192.168.0.0/16"), 16)));
+        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(roaConfigurationData);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 25);
         when(bgpRisEntryViewService.findMostSpecificOverlapping(ImmutableResourceSet.parse("192.168.0.0/16"))).thenReturn(Collections.singletonList(e1));
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/roas"))
                 .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ETAG, roaConfigurationData.entityTag()))
                 .andExpect(jsonPath("$.length()").value("1"))
                 .andExpect(jsonPath("$.[0]._numberOfValidsCaused").value("1"))
                 .andExpect(jsonPath("$.[0].asn").value("AS10"))

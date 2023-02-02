@@ -102,7 +102,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
 
         NonHostedCertificateAuthorityData ca = getCa(NonHostedCertificateAuthorityData.class, caName);
         if (certificateAuthorityViewService.findNonHostedPublisherRepositories(ca.getName()).size() >= NonHostedCertificateAuthority.PUBLISHER_REPOSITORIES_LIMIT) {
-            return ResponseEntity.status(FORBIDDEN).body(of("error", "maximum number of publisher repositories limit exceeded"));
+            return ResponseEntity.status(FORBIDDEN).body(bodyForError("maximum number of publisher repositories limit exceeded"));
         }
 
         /*
@@ -131,13 +131,13 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
             log.warn("Non-hosted CA was not found for '{}': {}", caName, e.getMessage(), e);
             throw new CaNotFoundException(e.getMessage());
         } catch (CertificationResourceLimitExceededException e) {
-            return ResponseEntity.status(FORBIDDEN).body(of("error", e.getMessage()));
+            return ResponseEntity.status(FORBIDDEN).body(bodyForError(e.getMessage()));
         } catch (IOException | IdentitySerializer.IdentitySerializerException | IllegalArgumentException e) {
             log.warn("Could not parse uploaded certificate: {}", e.getMessage(), e);
-            return ResponseEntity.status(BAD_REQUEST).body(of("error", e.getMessage()));
+            return badRequest(e.getMessage());
         } catch (NonHostedPublisherRepositoryService.DuplicateRepositoryException e) {
             log.warn("Could not create repository: {}", e.getMessage(), e);
-            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(of("error", e.getMessage()));
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(bodyForError(e.getMessage()));
         }
     }
 

@@ -18,6 +18,7 @@ import org.junit.Test;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 import java.util.Collections;
+import java.util.Optional;
 
 import static net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest.TEST_KEY_PAIR;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,6 +52,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
         ManagedCertificateAuthority ca = withTx(() -> createInitialisedProdCaWithRipeResources());
         commandService.execute(new UpdateRoaConfigurationCommand(
             ca.getVersionedId(),
+            Optional.empty(),
             Collections.singleton(new RoaConfigurationPrefixData(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"), null)),
             Collections.emptyList()));
         commandService.execute(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId()));

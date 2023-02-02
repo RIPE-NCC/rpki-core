@@ -8,7 +8,7 @@ public class EntityTagDoesNotMatchException extends CertificationException {
 
     private static final long serialVersionUID = 1L;
 
-    public EntityTagDoesNotMatchException(String expectedEntitytag, String actualEntityTag) {
-        super("specified entity tag " + actualEntityTag + " does not match expected entity tag " + expectedEntitytag);
+    public EntityTagDoesNotMatchException(String expectedEntityTag, String actualEntityTag) {
+        super("specified entity tag " + actualEntityTag + " does not match expected entity tag " + expectedEntityTag);
     }
 }

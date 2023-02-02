@@ -10,6 +10,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 
@@ -20,7 +21,7 @@ public class UpdateRoaConfigurationCommandTest {
     @Before
     public void setUp() {
         List<RoaConfigurationPrefixData> added = Arrays.asList(new RoaConfigurationPrefixData(Asn.parse("123"), IpRange.parse("10.64.0.0/12"), 24), new RoaConfigurationPrefixData(Asn.parse("123"), IpRange.parse("10.32.0.0/12"), null));
-        subject = new UpdateRoaConfigurationCommand(new VersionedId(1), added, Collections.emptyList());
+        subject = new UpdateRoaConfigurationCommand(new VersionedId(1), Optional.empty(), added, Collections.emptyList());
     }
 
     @Test

@@ -82,10 +82,6 @@ public class CaService extends AbstractCaRestService {
                 .body(bodyForError(String.format("CA '%s' already exists.", caName)));
     }
 
-    private Map<String, String> bodyForError(String error) {
-        return of("error", error);
-    }
-
     @PostMapping(path = "hosted")
     @Operation(summary = "Create hosted CA")
     public ResponseEntity<?> createHosted(@PathVariable("caName") final CaName caName) {
@@ -94,9 +90,7 @@ public class CaService extends AbstractCaRestService {
             certificateAuthorityCreateService.createHostedCertificateAuthority(caName.getPrincipal());
             return created();
         } catch (IllegalArgumentException e) {
-            return ResponseEntity
-                    .status(BAD_REQUEST)
-                    .body(bodyForError(e.getMessage()));
+            return badRequest(e.getMessage());
         } catch (CertificateAuthorityNameNotUniqueException e) {
             log.warn("CA was already provisioned for '{}': {}", caName, e.getMessage());
             return responseForCaNameNotUniqueException(caName);
@@ -119,7 +113,7 @@ public class CaService extends AbstractCaRestService {
             return responseForCaNameNotUniqueException(caName);
         } catch (IdentitySerializer.IdentitySerializerException | IOException | IllegalArgumentException e) {
             log.warn("Could not parse uploaded certificate: {}", e.getMessage(), e);
-            return ResponseEntity.status(BAD_REQUEST).body(bodyForError(e.getMessage()));
+            return badRequest(e.getMessage());
         }
     }
 
@@ -134,7 +128,7 @@ public class CaService extends AbstractCaRestService {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (Exception e) {
             log.error("Error while revoking non-hosted CA", e);
-            return ResponseEntity.status(BAD_REQUEST).body(bodyForError(e.getMessage()));
+            return badRequest(e.getMessage());
         }
     }
 

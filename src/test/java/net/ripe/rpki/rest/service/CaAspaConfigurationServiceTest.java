@@ -10,7 +10,6 @@ import net.ripe.rpki.server.api.dto.AspaConfigurationData;
 import net.ripe.rpki.server.api.dto.AspaProviderData;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.server.api.services.command.DuplicateResourceException;
 import net.ripe.rpki.server.api.services.command.EntityTagDoesNotMatchException;
 import net.ripe.rpki.server.api.services.read.AspaViewService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -132,6 +131,15 @@ public class CaAspaConfigurationServiceTest {
                 .content("{\"aspaConfigurations\":[]}")
             )
             .andExpect(status().isPreconditionRequired());
+    }
+
+    @Test
+    public void shouldFailWhenIfMatchHeaderAndFieldDoNotMatch() throws Exception {
+        mockMvc.perform(Rest.put(API_URL_PREFIX + "/123/aspa")
+                .header(HttpHeaders.IF_MATCH, "header-value")
+                .content("{\"ifMatch\":\"field-value\",\"aspaConfigurations\":[]}")
+            )
+            .andExpect(status().isBadRequest());
     }
 
     @Test

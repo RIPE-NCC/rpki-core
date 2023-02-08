@@ -13,8 +13,8 @@ import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.*;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
-import org.apache.wicket.authentication.AuthenticatedWebApplication;
 import org.apache.wicket.authentication.AuthenticatedWebSession;
+import org.apache.wicket.protocol.http.WebApplication;
 import org.apache.wicket.util.tester.WicketTester;
 import org.junit.After;
 import org.junit.Before;
@@ -98,7 +98,7 @@ public abstract class AbstractCertificationWicketTest {
         tester = new WicketTester(getApplicationStub());
     }
 
-    protected AuthenticatedWebApplication getApplicationStub() {
+    protected WebApplication getApplicationStub() {
         return new CertificationAdminWicketApplicationStub(applicationContextMock);
     }
 

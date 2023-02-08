@@ -1,18 +1,19 @@
 package net.ripe.rpki.ui.commons;
 
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.ui.admin.UpstreamCaManagementPage;
-import net.ripe.rpki.ui.application.CertificationAdminWebSession;
-import net.ripe.rpki.ui.application.CertificationAdminWicketApplication;
 import net.ripe.rpki.ui.ca.CreateProductionCaPage;
 import org.apache.wicket.PageParameters;
 import org.apache.wicket.RequestCycle;
-import org.apache.wicket.authentication.AuthenticatedWebSession;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 
+@Slf4j
 public abstract class AdminCertificationBasePage extends MinimalRPKIBasePage {
 
     private static final long serialVersionUID = 1L;
@@ -35,11 +36,8 @@ public abstract class AdminCertificationBasePage extends MinimalRPKIBasePage {
         super(parameters);
         this.pageTitle = pageTitle;
 
-        //if user is not signed in, redirect to sign in page
-        CertificationAdminWicketApplication app = CertificationAdminWicketApplication.get();
-        if (!AuthenticatedWebSession.get().isSignedIn()) {
-            app.onUnauthorizedInstantiation(this);
-        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        log.debug("authentication {}", authentication);
 
         if (interceptNoCA) {
             if (!allResourceCaExists()) {
@@ -50,11 +48,6 @@ public abstract class AdminCertificationBasePage extends MinimalRPKIBasePage {
         }
 
         setCurrentCertificateAuthority(getCaViewService().findCertificateAuthorityByName(getRepositoryConfiguration().getProductionCaPrincipal()));
-    }
-
-    @Override
-    public CertificationAdminWebSession getSession() {
-        return CertificationAdminWebSession.get();
     }
 
     protected CertificateAuthorityData getCurrentCertificateAuthority() {

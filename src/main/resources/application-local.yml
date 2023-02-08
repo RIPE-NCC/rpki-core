@@ -40,8 +40,7 @@ resource.services:
 #
 # Application specific settings
 #
-# bcrypt.using(rounds=14).hash("admin")
-admin.password.hash: "$2b$14$Hk8XIauymTBC.kmwdPDy7O0GJcKPnECiZyxCYQQo3ahuiwwXXJJX6"
+authorization.admin.role: ROLE_ANONYMOUS
 api-keys.properties: "classpath:/test-api-keys.properties"
 
 autokeyrollover:

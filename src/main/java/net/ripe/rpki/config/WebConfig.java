@@ -1,6 +1,5 @@
 package net.ripe.rpki.config;
 
-import lombok.Setter;
 import net.ripe.rpki.rest.security.SpringAuthInterceptor;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningMetricsService;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningService;
@@ -23,7 +22,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.VersionResourceResolver;
 
 
-@Setter
 @Configuration
 @Profile("!test")
 public class WebConfig implements WebMvcConfigurer {

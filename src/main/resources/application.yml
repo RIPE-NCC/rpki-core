@@ -9,10 +9,18 @@
 #    - finally application settings.
 #
 server:
+    # Use X-Forwarded-* headers to determine correct redirect URI for OAuth2 authentication
+    forward-headers-strategy: NATIVE
     servlet:
         session.tracking-modes: cookie
         context-path: /certification
     shutdown: graceful
+
+# The role required for the administration web UI. Use
+# `ROLE_ANONYMOUS` if no authorization is required (development),
+# otherwise use ROLE_USER. Ensure the RPKI application is assigned to
+# the user/group so in the Oauth2 provider.
+authorization.admin.role: ROLE_USER
 
 spring:
     main.banner-mode: 'off'

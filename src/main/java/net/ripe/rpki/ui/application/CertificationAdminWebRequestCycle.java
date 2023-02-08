@@ -2,7 +2,6 @@ package net.ripe.rpki.ui.application;
 
 import net.ripe.rpki.ui.admin.ErrorPage;
 import org.apache.wicket.Page;
-import org.apache.wicket.WicketRuntimeException;
 import org.apache.wicket.protocol.http.PageExpiredException;
 import org.apache.wicket.protocol.http.WebApplication;
 import org.apache.wicket.protocol.http.WebRequest;

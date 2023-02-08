@@ -1,13 +1,10 @@
 package net.ripe.rpki.server.api.configuration;
 
-import com.google.common.base.Verify;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.util.ConfigurationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.security.auth.x500.X500Principal;
@@ -20,10 +17,6 @@ import java.nio.file.Files;
 @Primary
 @Slf4j
 public class RepositoryConfigurationBean implements RepositoryConfiguration {
-    private static final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(14); // 14 rounds
-
-    private static String adminPasswordHash;
-
     private final URI notificationUri;
     private final URI publicRepositoryUri;
     private final URI taRepositoryUri;
@@ -40,8 +33,7 @@ public class RepositoryConfigurationBean implements RepositoryConfiguration {
             @Value("${" + RepositoryConfiguration.TA_REPOSITORY_BASE_URI + "}") String taRepositoryUriString,
             @Value("${" + RepositoryConfiguration.TA_REPOSITORY_BASE_DIRECTORY + "}") String localTrustAnchorRepositoryDirectoryString,
             @Value("${" + RepositoryConfiguration.PRODUCTION_CA_NAME + "}") String productionCaName,
-            @Value("${" + RepositoryConfiguration.ALL_RESOURCES_CA_NAME + "}") String allResourcesCaName,
-            @Value("${admin.password.hash}") String adminPasswordHash) {
+            @Value("${" + RepositoryConfiguration.ALL_RESOURCES_CA_NAME + "}") String allResourcesCaName) {
         this.productionCaName = productionCaName;
         this.allResourcesCaName = allResourcesCaName;
         this.localRepositoryDirectory = validateLocalRepositoryDirectory(ConfigurationUtil.interpolate(localRepositoryDirectoryString));
@@ -49,11 +41,6 @@ public class RepositoryConfigurationBean implements RepositoryConfiguration {
         this.taRepositoryUri = makeUri(slashIt(taRepositoryUriString));
         this.localTrustAnchorRepositoryDirectory = validateLocalRepositoryDirectory(ConfigurationUtil.interpolate(localTrustAnchorRepositoryDirectoryString));
         this.publicRepositoryUri = makeUri(slashIt(publicRepositoryUriString));
-
-        RepositoryConfigurationBean.adminPasswordHash = adminPasswordHash;
-        Verify.verifyNotNull(adminPasswordHash, "Administrator password hash can not be null.");
-        // password hash needs to be of the current type and correct number of rounds.
-        Verify.verify(!passwordEncoder.upgradeEncoding(adminPasswordHash));
     }
 
     private File validateLocalRepositoryDirectory(String localRepositoryDirectoryString) {
@@ -119,11 +106,6 @@ public class RepositoryConfigurationBean implements RepositoryConfiguration {
     @Override
     public X500Principal getAllResourcesCaPrincipal() {
         return new X500Principal(allResourcesCaName);
-    }
-
-    public static boolean checkAdminPassword(String password) {
-        Verify.verifyNotNull(adminPasswordHash);
-        return passwordEncoder.matches(password, adminPasswordHash);
     }
 
 }

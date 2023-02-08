@@ -197,6 +197,33 @@ __CA names__
 To humanize CA names RPKI core tries to lookup the name in RIPEs member database. When this service is unavailable,
 the membership ID is used for CA name.
 
+### OAuth2 authentication
+
+To enable OAuth2 authentication in your local setup you need add a new
+application in an Okta developer account and/or Github and add the
+following to `application-local.yml`:
+
+```yaml
+spring.security.oauth2.client:
+    provider.okta.issuer-uri: '<okta-provider-uri, e.g. https://dev-<DEVID>.okta.com/oauth2/default'
+    registration:
+        okta:
+            client-id: '<okta-client-id>'
+            client-secret: '<okta-client-secret>'
+            scope:
+                - openid
+                - profile
+                - email
+        github:
+            client-id: '<github-client-id>'
+            client-secret: '<github-client-secret>'
+```
+
+Also change the `authorization.admin.role` to `ROLE_USER`.
+
+Make sure you do not check in your secrets!
+
+
 ### Start the certification application
 
 * Via command line:

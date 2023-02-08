@@ -11,21 +11,14 @@ import org.apache.wicket.PageParameters;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.panel.FeedbackPanel;
 import org.apache.wicket.model.CompoundPropertyModel;
-import org.apache.wicket.spring.injection.annot.SpringBean;
 
 
 public class UpstreamCaManagementPage extends AdminCertificationBasePage {
 
-    @SpringBean
-    private ActiveNodeService activeNodeService;
-
-    @SpringBean
-    private CommandService commandService;
-
     public UpstreamCaManagementPage(PageParameters parameters) {
         super("Requests", parameters, false);
 
-        final CertificateAuthorityData allResourcesCA = caViewService.findCertificateAuthorityByName(repositoryConfiguration.getAllResourcesCaPrincipal());
+        final CertificateAuthorityData allResourcesCA = getCaViewService().findCertificateAuthorityByName(getRepositoryConfiguration().getAllResourcesCaPrincipal());
 
         add(new FeedbackPanel("feedback").setOutputMarkupPlaceholderTag(true));
 
@@ -53,7 +46,9 @@ public class UpstreamCaManagementPage extends AdminCertificationBasePage {
         @Override
         protected void onSubmit() {
             try {
-                commandService.execute(new CreateAllResourcesCertificateAuthorityCommand(commandService.getNextId(), repositoryConfiguration.getAllResourcesCaPrincipal()));
+                ActiveNodeService activeNodeService = getBean(ActiveNodeService.class);
+                CommandService commandService = getBean(CommandService.class);
+                commandService.execute(new CreateAllResourcesCertificateAuthorityCommand(commandService.getNextId(), getRepositoryConfiguration().getAllResourcesCaPrincipal()));
                 activeNodeService.activateCurrentNode();
                 setResponsePage(UpstreamCaManagementPage.class);
             } catch (CertificateAuthorityNameNotUniqueException ex) {

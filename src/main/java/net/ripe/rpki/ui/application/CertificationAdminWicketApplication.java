@@ -1,5 +1,11 @@
 package net.ripe.rpki.ui.application;
 
+import lombok.NonNull;
+import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
+import net.ripe.rpki.server.api.services.background.BackgroundService;
+import net.ripe.rpki.server.api.services.command.CommandService;
+import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import net.ripe.rpki.services.impl.background.AllCaCertificateUpdateServiceBean;
 import net.ripe.rpki.ui.admin.AdminLoginPage;
 import net.ripe.rpki.ui.admin.DeleteCAPage;
 import net.ripe.rpki.ui.admin.ProvisioningIdentityDetailsPage;
@@ -10,33 +16,49 @@ import org.apache.wicket.Application;
 import org.apache.wicket.Request;
 import org.apache.wicket.RequestCycle;
 import org.apache.wicket.Response;
-import org.apache.wicket.application.IComponentInstantiationListener;
 import org.apache.wicket.authentication.AuthenticatedWebApplication;
 import org.apache.wicket.authentication.AuthenticatedWebSession;
-import org.apache.wicket.injection.web.InjectorHolder;
 import org.apache.wicket.markup.html.WebPage;
 import org.apache.wicket.protocol.http.WebRequest;
 import org.apache.wicket.protocol.http.WebResponse;
 import org.apache.wicket.protocol.http.WebSession;
-import org.apache.wicket.spring.injection.annot.SpringComponentInjector;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 
 public class CertificationAdminWicketApplication extends AuthenticatedWebApplication {
 
     private String configurationType = Application.DEPLOYMENT;
 
-    private SpringComponentInjector springComponentInjector;
+    public static RepositoryConfiguration getRepositoryConfiguration() {
+        return getBean(RepositoryConfiguration.class);
+    }
+
+    public static CertificateAuthorityViewService getCaViewService() {
+        return getBean(CertificateAuthorityViewService.class);
+    }
+
+    public static CommandService getCommandService() {
+        return getBean(CommandService.class);
+    }
+
+    public static BackgroundService getAllCertificateUpdateService() {
+        return getBean(AllCaCertificateUpdateServiceBean.class);
+    }
+
+    @NonNull
+    public static <T> T getBean(Class<T> requiredType) {
+        return get().getApplicationContext().getBean(requiredType);
+    }
+
+    @NonNull
+    public static <T> T getBean(String name, Class<T> requiredType) {
+        return get().getApplicationContext().getBean(name, requiredType);
+    }
 
     @Override
     protected void init() {
         super.init();
-
-        // setup injection first
-        IComponentInstantiationListener componentInstantiationListener = getComponentInstantiationListener();
-        if (componentInstantiationListener != null) {
-            addComponentInstantiationListener(getComponentInstantiationListener());
-            InjectorHolder.getInjector().inject(this);
-        }
 
         mountBookmarkablePage("/History", CertificateAuthorityHistoryPage.class);
         mountBookmarkablePage("/SystemStatusPage", SystemStatusPage.class);
@@ -80,15 +102,8 @@ public class CertificationAdminWicketApplication extends AuthenticatedWebApplica
         return new CertificationAdminWebSession(request);
     }
 
-    protected IComponentInstantiationListener getComponentInstantiationListener() {
-        if (springComponentInjector == null) {
-            springComponentInjector = new SpringComponentInjector(this);
-        }
-        return springComponentInjector;
-    }
-
-    public void setSpringComponentInjector(SpringComponentInjector springComponentInjector) {
-        this.springComponentInjector = springComponentInjector;
+    public ApplicationContext getApplicationContext() {
+        return WebApplicationContextUtils.getRequiredWebApplicationContext(this.getServletContext());
     }
 
     @Override

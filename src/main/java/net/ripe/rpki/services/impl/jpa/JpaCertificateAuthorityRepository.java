@@ -157,6 +157,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
                 "FROM certificateauthority ca " +
                 "LEFT JOIN roaconfiguration r ON r.certificateauthority_id = ca.id " +
                 "LEFT JOIN roaconfiguration_prefixes rp ON rp.roaconfiguration_id = r.id " +
+                "WHERE ca.type NOT IN ('ALL_RESOURCES', 'ROOT') " +
                 "GROUP BY ca.name, ca.created_at"
         ).getResultStream();
 

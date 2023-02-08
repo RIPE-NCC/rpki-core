@@ -19,33 +19,18 @@ public class CertificationAdminWebRequestCycle extends WebRequestCycle {
 
     @Override
     public Page onRuntimeException(Page page, RuntimeException e) {
-        Throwable cause = unwrapCause(e);
-
         if (e instanceof PageExpiredException) {
             return getPageExpiredErrorPage(e);
         }
         return new ErrorPage(e);
     }
 
-    private Throwable unwrapCause(RuntimeException e) {
-        Throwable cause = e;
-        if (cause instanceof WicketRuntimeException) {
-            cause = cause.getCause();
-        }
-        if (cause instanceof InvocationTargetException) {
-            cause = cause.getCause();
-        }
-        return cause;
-    }
-
     private Page getPageExpiredErrorPage(final RuntimeException exception) {
         Class<? extends Page> pageClass = getApplication().getApplicationSettings().getPageExpiredErrorPage();
         if (pageClass != null) {
             try {
-                return pageClass.newInstance();
-            } catch (InstantiationException e) {
-                // do nothing
-            } catch (IllegalAccessException e) {
+                return pageClass.getDeclaredConstructor().newInstance();
+            } catch (InstantiationException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
                 // do nothing
             }
         }

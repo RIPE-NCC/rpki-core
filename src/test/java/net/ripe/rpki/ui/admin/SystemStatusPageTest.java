@@ -1,26 +1,12 @@
 package net.ripe.rpki.ui.admin;
 
 import net.ripe.rpki.server.api.services.background.BackgroundService;
-import net.ripe.rpki.services.impl.background.BackgroundServices;
-import net.ripe.rpki.services.impl.background.CaCleanUpServiceBean;
-import net.ripe.rpki.services.impl.background.CertificateExpirationServiceBean;
-import net.ripe.rpki.services.impl.background.KeyPairActivationManagementServiceBean;
-import net.ripe.rpki.services.impl.background.KeyPairRevocationManagementServiceBean;
-import net.ripe.rpki.services.impl.background.ManifestCrlUpdateServiceBean;
-import net.ripe.rpki.services.impl.background.HostedCaKeyRolloverManagementServiceBean;
-import net.ripe.rpki.services.impl.background.ProductionCaKeyRolloverManagementServiceBean;
-import net.ripe.rpki.services.impl.background.PublicRepositoryPublicationServiceBean;
-import net.ripe.rpki.services.impl.background.PublicRepositoryRrdpServiceBean;
-import net.ripe.rpki.services.impl.background.PublicRepositoryRsyncServiceBean;
-import net.ripe.rpki.services.impl.background.PublishedObjectCleanUpServiceBean;
-import net.ripe.rpki.services.impl.background.PublisherSyncService;
-import net.ripe.rpki.services.impl.background.ResourceCacheUpdateServiceBean;
-import net.ripe.rpki.services.impl.background.RisWhoisUpdateServiceBean;
-import net.ripe.rpki.services.impl.background.RoaAlertBackgroundServiceDailyBean;
+import net.ripe.rpki.services.impl.background.*;
 import net.ripe.rpki.ui.application.CertificationWicketTestCase;
 import org.apache.wicket.util.tester.FormTester;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.io.File;
 import java.net.InetAddress;
@@ -28,82 +14,51 @@ import java.net.URI;
 import java.net.UnknownHostException;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.*;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class SystemStatusPageTest extends CertificationWicketTestCase {
 
+    @MockBean
     private BackgroundServices backgroundServices;
-    private BackgroundService manifestCrlUpdateService;
-    private BackgroundService publicRepositoryPublicationService;
-    private BackgroundService publicRepositoryRsyncService;
-    private BackgroundService publicRepositoryRrdpService;
-    private BackgroundService productionCaKeyRolloverManagementService;
-    private BackgroundService hostedCaKeyRolloverManagementService;
-    private BackgroundService keyPairActivationManagementService;
-    private BackgroundService keyPairRevocationManagementService;
-    private BackgroundService certificateExpirationService;
-    private BackgroundService risWhoisUpdateService;
-    private BackgroundService roaAlertBackgroundServiceDaily;
-    private BackgroundService resourceCacheUpdateService;
-    private BackgroundService publishedObjectCleanUpService;
-    private BackgroundService caCleanUpService;
+    @MockBean(name = MANIFEST_CRL_UPDATE_SERVICE)
+    private ManifestCrlUpdateServiceBean manifestCrlUpdateService;
+    @MockBean(name = ALL_CA_CERTIFICATE_UPDATE_SERVICE)
+    private BackgroundService allCertificateUpdateService;
+    @MockBean(name = PUBLIC_REPOSITORY_PUBLICATION_SERVICE)
+    private PublicRepositoryPublicationServiceBean publicRepositoryPublicationService;
+    @MockBean(name = PUBLIC_REPOSITORY_RSYNC_SERVICE)
+    private PublicRepositoryRsyncServiceBean publicRepositoryRsyncService;
+    @MockBean(name = PUBLIC_REPOSITORY_RRDP_SERVICE)
+    private PublicRepositoryRrdpServiceBean publicRepositoryRrdpService;
+    @MockBean(name = PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE)
+    private ProductionCaKeyRolloverManagementServiceBean productionCaKeyRolloverManagementService;
+    @MockBean(name = HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE)
+    private HostedCaKeyRolloverManagementServiceBean hostedCaKeyRolloverManagementService;
+    @MockBean(name = KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE)
+    private KeyPairActivationManagementServiceBean keyPairActivationManagementService;
+    @MockBean(name = "keyPairRevocationManagementService")
+    private KeyPairRevocationManagementServiceBean keyPairRevocationManagementService;
+    @MockBean(name = "certificateExpirationService")
+    private CertificateExpirationServiceBean certificateExpirationService;
+    @MockBean(name = RIS_WHOIS_UPDATE_SERVICE)
+    private RisWhoisUpdateServiceBean risWhoisUpdateService;
+    @MockBean(name = "roaAlertBackgroundServiceDaily")
+    private RoaAlertBackgroundServiceDailyBean roaAlertBackgroundServiceDaily;
+    @MockBean(name = "resourceCacheUpdateService")
+    private ResourceCacheUpdateServiceBean resourceCacheUpdateService;
+    @MockBean(name = PUBLISHED_OBJECT_CLEAN_UP_SERVICE)
+    private PublishedObjectCleanUpServiceBean publishedObjectCleanUpService;
+    @MockBean(name = CA_CLEAN_UP_SERVICE)
+    private CaCleanUpServiceBean caCleanUpService;
 
-    private BackgroundService publisherSyncService;
+    @MockBean(name = PUBLISHER_SYNC_SERVICE)
+    private PublisherSyncService publisherSyncService;
 
     private static final String hostname = getHostName();
 
     @Before
     public void setUp() {
-        backgroundServices = mock(BackgroundServices.class);
-        addBeanToContext("backgroundServices", backgroundServices);
-
-        manifestCrlUpdateService = mock(ManifestCrlUpdateServiceBean.class);
-        addBeanToContext(MANIFEST_CRL_UPDATE_SERVICE, manifestCrlUpdateService);
-
-        publicRepositoryPublicationService = mock(PublicRepositoryPublicationServiceBean.class);
-        addBeanToContext(PUBLIC_REPOSITORY_PUBLICATION_SERVICE, publicRepositoryPublicationService);
-
-        publicRepositoryRsyncService = mock(PublicRepositoryRsyncServiceBean.class);
-        addBeanToContext(PUBLIC_REPOSITORY_RSYNC_SERVICE, publicRepositoryRsyncService);
-
-        publicRepositoryRrdpService = mock(PublicRepositoryRrdpServiceBean.class);
-        addBeanToContext(PUBLIC_REPOSITORY_RRDP_SERVICE, publicRepositoryRrdpService);
-
-        productionCaKeyRolloverManagementService = mock(ProductionCaKeyRolloverManagementServiceBean.class);
-        addBeanToContext(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE, productionCaKeyRolloverManagementService);
-
-        hostedCaKeyRolloverManagementService = mock(HostedCaKeyRolloverManagementServiceBean.class);
-        addBeanToContext(HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE, hostedCaKeyRolloverManagementService);
-
-        keyPairActivationManagementService = mock(KeyPairActivationManagementServiceBean.class);
-        addBeanToContext(KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE, keyPairActivationManagementService);
-
-        keyPairRevocationManagementService = mock(KeyPairRevocationManagementServiceBean.class);
-        addBeanToContext(KEY_PAIR_REVOCATION_MANAGEMENT_SERVICE, keyPairRevocationManagementService);
-
-        certificateExpirationService = mock(CertificateExpirationServiceBean.class);
-        addBeanToContext(CERTIFICATE_EXPIRATION_SERVICE, certificateExpirationService);
-
-        risWhoisUpdateService = mock(RisWhoisUpdateServiceBean.class);
-        addBeanToContext(RIS_WHOIS_UPDATE_SERVICE, risWhoisUpdateService);
-
-        roaAlertBackgroundServiceDaily = mock(RoaAlertBackgroundServiceDailyBean.class);
-        addBeanToContext(ROA_ALERT_BACKGROUND_SERVICE, roaAlertBackgroundServiceDaily);
-
-        resourceCacheUpdateService = mock(ResourceCacheUpdateServiceBean.class);
-        addBeanToContext(RESOURCE_CACHE_UPDATE_SERVICE, resourceCacheUpdateService);
-
-        publishedObjectCleanUpService = mock(PublishedObjectCleanUpServiceBean.class);
-        addBeanToContext(PUBLISHED_OBJECT_CLEAN_UP_SERVICE, publishedObjectCleanUpService);
-
-        caCleanUpService = mock(CaCleanUpServiceBean.class);
-        addBeanToContext(CA_CLEAN_UP_SERVICE, caCleanUpService);
-
-        publisherSyncService = mock(PublisherSyncService.class);
-        addBeanToContext(PUBLISHER_SYNC_SERVICE, publisherSyncService);
-
         when(repositoryConfiguration.getLocalRepositoryDirectory()).thenReturn(new File("/tmp"));
         when(repositoryConfiguration.getPublicRepositoryUri()).thenReturn(URI.create("rsync://localhost:873/repo"));
 

@@ -1,13 +1,12 @@
 package net.ripe.rpki.ui.commons;
 
+import net.ripe.rpki.ui.application.CertificationAdminWicketApplication;
 import net.ripe.rpki.ui.commons.menu.NavigationMenuPanel;
 import org.apache.commons.lang.StringUtils;
 import org.apache.wicket.PageParameters;
 import org.apache.wicket.markup.html.WebPage;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.model.Model;
-import org.apache.wicket.spring.injection.annot.SpringBean;
-import org.springframework.core.env.Environment;
 
 public abstract class MinimalRPKIBasePage extends WebPage {
 
@@ -36,15 +35,16 @@ public abstract class MinimalRPKIBasePage extends WebPage {
 
     protected abstract String getPageTitle();
 
-    @SpringBean
-    private Environment environment;
+    protected <T> T getBean(Class<T> type) {
+        return CertificationAdminWicketApplication.getBean(type);
+    }
+
+    protected <T> T getBean(String name, Class<T> type) {
+        return CertificationAdminWicketApplication.getBean(name, type);
+    }
 
     protected String pageGAUrl() {
         return null;
-    }
-
-    public void setEnvironment(Environment environment) {
-        this.environment = environment;
     }
 
     @Override

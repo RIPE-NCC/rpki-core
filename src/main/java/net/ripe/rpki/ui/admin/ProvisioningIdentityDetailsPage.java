@@ -5,7 +5,6 @@ import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
 import net.ripe.rpki.ui.commons.AdminCertificationBasePage;
 import org.apache.wicket.PageParameters;
 import org.apache.wicket.markup.html.WebMarkupContainer;
-import org.apache.wicket.spring.injection.annot.SpringBean;
 
 public class ProvisioningIdentityDetailsPage extends AdminCertificationBasePage {
 
@@ -14,13 +13,10 @@ public class ProvisioningIdentityDetailsPage extends AdminCertificationBasePage 
 
     private static final String TITLE = "Provisioning Details";
 
-    @SpringBean
-    private ProvisioningIdentityViewService delegationCaProvisioningService;
-
     public ProvisioningIdentityDetailsPage(PageParameters parameters) {
         super(TITLE, parameters);
 
-        ProvisioningIdentityCertificate identityMaterial = delegationCaProvisioningService.findProvisioningIdentityMaterial();
+        ProvisioningIdentityCertificate identityMaterial = getBean(ProvisioningIdentityViewService.class).findProvisioningIdentityMaterial();
 
         if (identityMaterial == null) {
             showInitialiseProvisioningPanelOnly();

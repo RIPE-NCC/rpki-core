@@ -36,8 +36,6 @@ publication:
         truststore: /cert/shared/clientTrustStore.ks
     server.url: https://localhost:7766/
 
-static.image.deployment.environment: static/images/cert_sandbox.png
-
 ta.repository:
     directory: /cert/repository/ta
     uri: rsync://localcert.ripe.net/ta/

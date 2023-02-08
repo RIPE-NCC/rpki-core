@@ -7,11 +7,12 @@ import org.apache.wicket.markup.html.basic.MultiLineLabel;
 import org.apache.wicket.markup.html.list.ListItem;
 import org.apache.wicket.markup.html.list.ListView;
 import org.apache.wicket.markup.html.panel.Panel;
-import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
 
 import java.util.List;
+
+import static net.ripe.rpki.ui.application.CertificationAdminWicketApplication.getBean;
 
 
 @SuppressWarnings("deprecation")
@@ -27,13 +28,9 @@ public class CommandListPanel extends Panel {
             .appendLiteral(':').appendSecondOfMinute(2)
             .toFormatter();
 
-    @SpringBean
-    private InternalNamePresenter statsCollectorNames;
-
     public CommandListPanel(String id, List<? extends CertificateAuthorityHistoryItem> commands) {
         super(id);
 
-        final InternalNamePresenter resolver = statsCollectorNames;
 
         ListView<CertificateAuthorityHistoryItem> listView = new ListView<CertificateAuthorityHistoryItem>("commandList", commands) {
 
@@ -45,6 +42,7 @@ public class CommandListPanel extends Panel {
                 item.add(new Label("executionTime", executionTimeFormat.print(command.getExecutionTime())));
                 item.add(new Label("executionTimestamp", String.valueOf(command.getExecutionTime().getMillis())));
 
+                final InternalNamePresenter resolver = getBean(InternalNamePresenter.class);
                 String usernameFromSSO = resolver.humanizeUserPrincipal(command.getPrincipal());
                 String username = usernameFromSSO == null ? command.getPrincipal() : usernameFromSSO;
                 item.add(new Label("principal", username));

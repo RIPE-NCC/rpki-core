@@ -48,7 +48,7 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-ui:1.6.13'
 
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-    implementation 'org.postgresql:postgresql:42.5.2'
+    implementation 'org.postgresql:postgresql:42.5.3'
     runtimeOnly 'org.springframework.boot:spring-boot-starter-tomcat'
 
     implementation 'com.google.code.gson:gson:2.10.1'
@@ -62,7 +62,6 @@ dependencies {
     // wicket/admin pages
     implementation 'org.apache.velocity:velocity:1.7'
     implementation 'org.apache.wicket:wicket-auth-roles:1.4.23'
-    implementation 'org.apache.wicket:wicket-spring:1.4.23'
 
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'

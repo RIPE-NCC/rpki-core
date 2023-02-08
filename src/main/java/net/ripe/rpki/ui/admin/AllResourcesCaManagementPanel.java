@@ -5,44 +5,27 @@ import net.ripe.rpki.server.api.commands.GenerateOfflineCARepublishRequestComman
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementRevokeOldKeysCommand;
-import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.KeyPairData;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
-import net.ripe.rpki.server.api.ports.ResourceLookupService;
-import net.ripe.rpki.server.api.services.background.BackgroundService;
-import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.services.impl.background.BackgroundServices;
+import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.link.Link;
 import org.apache.wicket.markup.html.panel.Panel;
-import org.apache.wicket.spring.injection.annot.SpringBean;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
 import java.util.Collections;
 
+import static net.ripe.rpki.ui.application.CertificationAdminWicketApplication.getAllCertificateUpdateService;
+import static net.ripe.rpki.ui.application.CertificationAdminWicketApplication.getCaViewService;
+import static net.ripe.rpki.ui.application.CertificationAdminWicketApplication.getCommandService;
+import static net.ripe.rpki.ui.application.CertificationAdminWicketApplication.getRepositoryConfiguration;
+
 @Slf4j
 public class AllResourcesCaManagementPanel extends Panel {
 
     private static final long serialVersionUID = 1L;
-
-    @SpringBean
-    private RepositoryConfiguration repositoryConfiguration;
-
-    @SpringBean
-    private CertificateAuthorityViewService caViewService;
-
-    @SpringBean
-    private ResourceLookupService resourceLookupService;
-
-    @SpringBean
-    private CommandService commandService;
-
-    @SpringBean(name = BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE)
-    private BackgroundService allCertificateUpdateService;
 
     public AllResourcesCaManagementPanel(String id, ManagedCertificateAuthorityData allResourcesCA) {
         super(id);
@@ -77,11 +60,11 @@ public class AllResourcesCaManagementPanel extends Panel {
 
             @Override
             public void onClick() {
-                X500Principal allResourcesCaName = repositoryConfiguration.getAllResourcesCaPrincipal();
-                ManagedCertificateAuthorityData allResourcesCaData = (ManagedCertificateAuthorityData) caViewService.findCertificateAuthorityByName(allResourcesCaName);
+                X500Principal allResourcesCaName = getRepositoryConfiguration().getAllResourcesCaPrincipal();
+                ManagedCertificateAuthorityData allResourcesCaData = (ManagedCertificateAuthorityData) getCaViewService().findCertificateAuthorityByName(allResourcesCaName);
 
                 GenerateOfflineCARepublishRequestCommand republishCommand = new GenerateOfflineCARepublishRequestCommand(allResourcesCaData.getVersionedId());
-                commandService.execute(republishCommand);
+                getCommandService().execute(republishCommand);
 
                 setResponsePage(UpstreamCaManagementPage.class);
             }
@@ -123,7 +106,7 @@ public class AllResourcesCaManagementPanel extends Panel {
 
                 @Override
                 public void onClick() {
-                    commandService.execute(new KeyManagementRevokeOldKeysCommand(allResourcesCA.getVersionedId()));
+                    getCommandService().execute(new KeyManagementRevokeOldKeysCommand(allResourcesCA.getVersionedId()));
                     setResponsePage(UpstreamCaManagementPage.class);
                 }
             });
@@ -142,7 +125,7 @@ public class AllResourcesCaManagementPanel extends Panel {
 
                 @Override
                 public void onClick() {
-                    commandService.execute(KeyManagementActivatePendingKeysCommand.manualActivationCommand(allResourcesCA.getVersionedId()));
+                    getCommandService().execute(KeyManagementActivatePendingKeysCommand.manualActivationCommand(allResourcesCA.getVersionedId()));
                     updateProductionCaCertificates();
                     setResponsePage(UpstreamCaManagementPage.class);
                 }
@@ -150,11 +133,11 @@ public class AllResourcesCaManagementPanel extends Panel {
         }
 
         private void updateProductionCaCertificates() {
-            X500Principal productionCaName = repositoryConfiguration.getProductionCaPrincipal();
-            CertificateAuthorityData productionCa = caViewService.findCertificateAuthorityByName(productionCaName);
+            X500Principal productionCaName = getRepositoryConfiguration().getProductionCaPrincipal();
+            CertificateAuthorityData productionCa = getCaViewService().findCertificateAuthorityByName(productionCaName);
 
             try {
-                allCertificateUpdateService.execute(Collections.emptyMap());
+                getAllCertificateUpdateService().execute(Collections.emptyMap());
             } catch (RuntimeException e) {
                 log.error("Error for CA '" + productionCa.getName() + "': " + e.getMessage(), e);
             }
@@ -173,7 +156,7 @@ public class AllResourcesCaManagementPanel extends Panel {
 
                 @Override
                 public void onClick() {
-                    commandService.execute(new KeyManagementInitiateRollCommand(allResourcesCA.getVersionedId(), 0));
+                    getCommandService().execute(new KeyManagementInitiateRollCommand(allResourcesCA.getVersionedId(), 0));
                     setResponsePage(UpstreamCaManagementPage.class);
                 }
             });

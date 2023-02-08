@@ -8,12 +8,9 @@ import net.ripe.rpki.ui.admin.UpstreamCaManagementPage;
 import net.ripe.rpki.ui.application.CertificationAdminWebSession;
 import net.ripe.rpki.ui.application.CertificationAdminWicketApplication;
 import net.ripe.rpki.ui.ca.CreateProductionCaPage;
-import net.ripe.rpki.ui.configuration.UiConfiguration;
 import org.apache.wicket.PageParameters;
 import org.apache.wicket.RequestCycle;
 import org.apache.wicket.authentication.AuthenticatedWebSession;
-import org.apache.wicket.markup.html.basic.Label;
-import org.apache.wicket.spring.injection.annot.SpringBean;
 
 
 public abstract class AdminCertificationBasePage extends MinimalRPKIBasePage {
@@ -21,14 +18,6 @@ public abstract class AdminCertificationBasePage extends MinimalRPKIBasePage {
     private static final long serialVersionUID = 1L;
 
     protected static final String TITLE_PREFIX = "Resource Certification - ";
-
-    @SpringBean
-    protected CertificateAuthorityViewService caViewService;
-
-    @SpringBean
-    protected RepositoryConfiguration repositoryConfiguration;
-    @SpringBean
-    protected UiConfiguration uiConfiguration;
 
     private CertificateAuthorityData currentCertificateAuthority;
 
@@ -60,25 +49,12 @@ public abstract class AdminCertificationBasePage extends MinimalRPKIBasePage {
             }
         }
 
-        setCurrentCertificateAuthority(caViewService.findCertificateAuthorityByName(repositoryConfiguration.getProductionCaPrincipal()));
-
-        addDeploymentEnvironmentBanner();
+        setCurrentCertificateAuthority(getCaViewService().findCertificateAuthorityByName(getRepositoryConfiguration().getProductionCaPrincipal()));
     }
 
     @Override
     public CertificationAdminWebSession getSession() {
         return CertificationAdminWebSession.get();
-    }
-
-    private void addDeploymentEnvironmentBanner() {
-        String deploymentEnvironmentBannerImage = uiConfiguration.getDeploymentEnvironmentBannerImage();
-//        ContextImage image = new ContextImage("envBanner", deploymentEnvironmentBannerImage);
-        Label stripe = new Label("envStripe");
-//        add(image);
-        add(stripe);
-
-//        image.setVisible(certificationConfiguration.showEnvironmentBanner());
-        stripe.setVisible(uiConfiguration.showEnvironmentStripe());
     }
 
     protected CertificateAuthorityData getCurrentCertificateAuthority() {
@@ -110,11 +86,11 @@ public abstract class AdminCertificationBasePage extends MinimalRPKIBasePage {
     }
 
     private boolean allResourceCaExists() {
-        return caViewService.findCertificateAuthorityByName(repositoryConfiguration.getAllResourcesCaPrincipal()) != null;
+        return getCaViewService().findCertificateAuthorityByName(getRepositoryConfiguration().getAllResourcesCaPrincipal()) != null;
     }
 
     private boolean productionCaExists() {
-        return caViewService.findCertificateAuthorityByName(repositoryConfiguration.getProductionCaPrincipal()) != null;
+        return getCaViewService().findCertificateAuthorityByName(getRepositoryConfiguration().getProductionCaPrincipal()) != null;
     }
 
     @Override
@@ -127,4 +103,11 @@ public abstract class AdminCertificationBasePage extends MinimalRPKIBasePage {
         return RequestCycle.get().getRequest().getPath();
     }
 
+    public CertificateAuthorityViewService getCaViewService() {
+        return getBean(CertificateAuthorityViewService.class);
+    }
+
+    public RepositoryConfiguration getRepositoryConfiguration() {
+        return getBean(RepositoryConfiguration.class);
+    }
 }

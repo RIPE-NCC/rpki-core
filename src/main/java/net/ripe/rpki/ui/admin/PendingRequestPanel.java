@@ -5,13 +5,8 @@ import net.ripe.rpki.commons.ta.domain.response.TaResponse;
 import net.ripe.rpki.commons.ta.domain.response.TrustAnchorResponse;
 import net.ripe.rpki.commons.ta.serializers.TrustAnchorResponseSerializer;
 import net.ripe.rpki.server.api.commands.ProcessTrustAnchorResponseCommand;
-import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.services.background.BackgroundService;
-import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.OfflineResponseProcessorException;
-import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.services.impl.background.BackgroundServices;
 import net.ripe.rpki.ui.commons.FileUploadUtils;
 import org.apache.wicket.markup.html.WebResource;
 import org.apache.wicket.markup.html.basic.Label;
@@ -20,12 +15,16 @@ import org.apache.wicket.markup.html.form.upload.FileUpload;
 import org.apache.wicket.markup.html.form.upload.FileUploadField;
 import org.apache.wicket.markup.html.link.ResourceLink;
 import org.apache.wicket.markup.html.panel.Panel;
-import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Collections;
+
+import static net.ripe.rpki.ui.application.CertificationAdminWicketApplication.getAllCertificateUpdateService;
+import static net.ripe.rpki.ui.application.CertificationAdminWicketApplication.getCaViewService;
+import static net.ripe.rpki.ui.application.CertificationAdminWicketApplication.getCommandService;
+import static net.ripe.rpki.ui.application.CertificationAdminWicketApplication.getRepositoryConfiguration;
 
 public class PendingRequestPanel extends Panel {
 
@@ -66,17 +65,6 @@ public class PendingRequestPanel extends Panel {
         private static final long serialVersionUID = 1L;
         private static final Logger LOG = LoggerFactory.getLogger(OfflineResponseUploadForm.class);
 
-        @SpringBean
-        private RepositoryConfiguration repositoryConfiguration;
-        @SpringBean
-        private CertificateAuthorityViewService caViewService;
-
-        @SpringBean
-        private CommandService commandService;
-
-        @SpringBean(name = BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE)
-        private BackgroundService allCertificateUpdateService;
-
         private FileUploadField fileUploadField;
 
         public OfflineResponseUploadForm(String id) {
@@ -93,9 +81,9 @@ public class PendingRequestPanel extends Panel {
                 if (fileUpload != null) {
                     String content = FileUploadUtils.convertUploadedFileToString(fileUpload);
                     TrustAnchorResponse responseObject = new TrustAnchorResponseSerializer().deserialize(content);
-                    commandService.execute(createCommand(responseObject));
+                    getCommandService().execute(createCommand(responseObject));
 
-                    allCertificateUpdateService.execute(Collections.emptyMap());
+                    getAllCertificateUpdateService().execute(Collections.emptyMap());
 
                     setResponsePage(UpstreamCaManagementPage.class);
                 }
@@ -109,10 +97,11 @@ public class PendingRequestPanel extends Panel {
         }
 
         private ProcessTrustAnchorResponseCommand createCommand(TrustAnchorResponse response) {
-            X500Principal allResourcesCaName = repositoryConfiguration.getAllResourcesCaPrincipal();
-            CertificateAuthorityData allResourcesCa = caViewService.findCertificateAuthorityByName(allResourcesCaName);
+            X500Principal allResourcesCaName = getRepositoryConfiguration().getAllResourcesCaPrincipal();
+            CertificateAuthorityData allResourcesCa = getCaViewService().findCertificateAuthorityByName(allResourcesCaName);
             return new ProcessTrustAnchorResponseCommand(allResourcesCa.getVersionedId(), response);
         }
+
     }
 
 }

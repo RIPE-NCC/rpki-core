@@ -13,9 +13,7 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.services.impl.background.BackgroundServices;
 import org.apache.commons.io.IOUtils;
-import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.ResponseEntity;
@@ -46,7 +44,6 @@ public class UpstreamCaService {
     private final CommandService commandService;
     private final CertificateAuthorityViewService caViewService;
 
-    @SpringBean(name = BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE)
     private final BackgroundService allCertificateUpdateService;
 
     @Autowired

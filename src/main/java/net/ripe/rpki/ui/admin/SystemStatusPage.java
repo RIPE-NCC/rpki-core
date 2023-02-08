@@ -5,7 +5,6 @@ import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.services.impl.background.BackgroundServices;
 import net.ripe.rpki.ui.commons.AdminCertificationBasePage;
 import net.ripe.rpki.ui.util.WicketUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.wicket.PageParameters;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.Form;
@@ -14,11 +13,8 @@ import org.apache.wicket.markup.html.link.Link;
 import org.apache.wicket.markup.html.panel.FeedbackPanel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
-import org.apache.wicket.proxy.ILazyInitProxy;
-import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -29,60 +25,6 @@ public class SystemStatusPage extends AdminCertificationBasePage {
     private static final String INFO_PARAM_KEY = "info";
 
     private static final Logger LOG = LoggerFactory.getLogger(SystemStatusPage.class);
-
-    @SpringBean(name = "backgroundServices")
-    private BackgroundServices backgroundServices;
-
-    @SpringBean(name = "manifestCrlUpdateService")
-    private BackgroundService manifestCrlUpdateService;
-
-    @SpringBean(name = "publicRepositoryPublicationService")
-    private BackgroundService publicRepositoryPublicationService;
-
-    @SpringBean(name = "publicRepositoryRsyncService")
-    private BackgroundService publicRepositoryRsyncService;
-
-    @SpringBean(name = "publicRepositoryRrdpService")
-    private BackgroundService publicRepositoryRrdpService;
-
-    @SpringBean(name = "allCertificateUpdateService")
-    private BackgroundService allCertificateUpdateService;
-
-    @SpringBean(name = "productionCaKeyRolloverManagementService")
-    private BackgroundService productionCaKeyRolloverManagementService;
-
-    @SpringBean(name = BackgroundServices.HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE)
-    private BackgroundService hostedCaKeyRolloverManagementService;
-
-    @SpringBean(name = "keyPairActivationManagementService")
-    private BackgroundService keyPairActivationManagementService;
-
-    @SpringBean(name = "keyPairRevocationManagementService")
-    private BackgroundService keyPairRevocationManagementService;
-
-    @SpringBean(name = "certificateExpirationService")
-    private BackgroundService certificateExpirationService;
-
-    @SpringBean(name = "risWhoisUpdateService")
-    private BackgroundService risWhoisUpdateService;
-
-    @SpringBean(name = "roaAlertBackgroundServiceDaily")
-    private BackgroundService roaAlertBackgroundService;
-
-    @SpringBean(name = "resourceCacheUpdateService")
-    private BackgroundService resourceCacheUpdateService;
-
-    @SpringBean(name = "publishedObjectCleanUpService")
-    private BackgroundService publishedObjectCleanUpService;
-
-    @SpringBean(name = "caCleanUpService")
-    private BackgroundService caCleanUpService;
-
-    @SpringBean(name = "publisherSyncService")
-    private BackgroundService publisherSyncService;
-
-    @SpringBean
-    private ActiveNodeService activeNodeService;
 
     public SystemStatusPage(PageParameters parameters) {
         super("System Status", parameters);
@@ -111,14 +53,86 @@ public class SystemStatusPage extends AdminCertificationBasePage {
     }
 
     private void addConfigParamBits() {
-        add(new Label("localRepositoryDirectory", repositoryConfiguration.getLocalRepositoryDirectory().getAbsolutePath()));
-        add(new Label("publicRepositoryUri", repositoryConfiguration.getPublicRepositoryUri().toASCIIString()));
+        add(new Label("localRepositoryDirectory", getRepositoryConfiguration().getLocalRepositoryDirectory().getAbsolutePath()));
+        add(new Label("publicRepositoryUri", getRepositoryConfiguration().getPublicRepositoryUri().toASCIIString()));
 
-        String instanceName = activeNodeService.getCurrentNodeName();
+        String instanceName = getActiveNodeService().getCurrentNodeName();
         add(new Label("instancename", instanceName));
-        add(WicketUtils.getStatusImage("activeNodeImage", instanceName.equals(activeNodeService.getActiveNodeName())));
+        add(WicketUtils.getStatusImage("activeNodeImage", instanceName.equals(getActiveNodeService().getActiveNodeName())));
 
         add(new ActiveNodeForm("activeNodeForm", getActiveNodeModel()));
+    }
+
+    public BackgroundServices getBackgroundServices() {
+        return getBean(BackgroundServices.class);
+    }
+
+    public BackgroundService getManifestCrlUpdateService() {
+        return getBean("manifestCrlUpdateService", BackgroundService.class);
+    }
+
+    public BackgroundService getPublicRepositoryPublicationService() {
+        return getBean("publicRepositoryPublicationService", BackgroundService.class);
+    }
+
+    public BackgroundService getPublicRepositoryRsyncService() {
+        return getBean("publicRepositoryRsyncService", BackgroundService.class);
+    }
+
+    public BackgroundService getPublicRepositoryRrdpService() {
+        return getBean("publicRepositoryRrdpService", BackgroundService.class);
+    }
+
+    public BackgroundService getAllCertificateUpdateService() {
+        return getBean("allCertificateUpdateService", BackgroundService.class);
+    }
+
+    public BackgroundService getProductionCaKeyRolloverManagementService() {
+        return getBean("productionCaKeyRolloverManagementService", BackgroundService.class);
+    }
+
+    public BackgroundService getHostedCaKeyRolloverManagementService() {
+        return getBean(BackgroundServices.HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE, BackgroundService.class);
+    }
+
+    public BackgroundService getKeyPairActivationManagementService() {
+        return getBean("keyPairActivationManagementService", BackgroundService.class);
+    }
+
+    public BackgroundService getKeyPairRevocationManagementService() {
+        return getBean("keyPairRevocationManagementService", BackgroundService.class);
+    }
+
+    public BackgroundService getCertificateExpirationService() {
+        return getBean("certificateExpirationService", BackgroundService.class);
+    }
+
+    public BackgroundService getRisWhoisUpdateService() {
+        return getBean("risWhoisUpdateService", BackgroundService.class);
+    }
+
+    public BackgroundService getRoaAlertBackgroundService() {
+        return getBean("roaAlertBackgroundServiceDaily", BackgroundService.class);
+    }
+
+    public BackgroundService getResourceCacheUpdateService() {
+        return getBean("resourceCacheUpdateService", BackgroundService.class);
+    }
+
+    public BackgroundService getPublishedObjectCleanUpService() {
+        return getBean("publishedObjectCleanUpService", BackgroundService.class);
+    }
+
+    public BackgroundService getCaCleanUpService() {
+        return getBean("caCleanUpService", BackgroundService.class);
+    }
+
+    public BackgroundService getPublisherSyncService() {
+        return getBean("publisherSyncService", BackgroundService.class);
+    }
+
+    public ActiveNodeService getActiveNodeService() {
+        return getBean(ActiveNodeService.class);
     }
 
     private class ActiveNodeForm extends Form<String> {
@@ -152,50 +166,50 @@ public class SystemStatusPage extends AdminCertificationBasePage {
 
             @Override
             public String getObject() {
-                return activeNodeService.getActiveNodeName();
+                return getActiveNodeService().getActiveNodeName();
             }
 
             @Override
             public void setObject(String value) {
-                activeNodeService.setActiveNodeName(value);
+                getActiveNodeService().setActiveNodeName(value);
             }
         };
     }
 
     private void addBackgroundServicesBits() {
-        add(new Label("repositoryServiceStatus", serviceLabel(manifestCrlUpdateService)));
-        add(new Label("repositoryPublicationStatus", serviceLabel(publicRepositoryPublicationService)));
-        add(new Label("repositoryRsyncStatus", serviceLabel(publicRepositoryRsyncService)));
-        add(new Label("repositoryRrdpStatus", serviceLabel(publicRepositoryRrdpService)));
-        add(new Label("allCertificateUpdateServiceStatus", serviceLabel(allCertificateUpdateService)));
-        add(new Label("productionKeyRolloverServiceStatus", serviceLabel(productionCaKeyRolloverManagementService)));
-        add(new Label("hostedCaKeyRolloverServiceStatus", serviceLabel(hostedCaKeyRolloverManagementService)));
-        add(new Label("keyPairActivationServiceStatus", serviceLabel(keyPairActivationManagementService)));
-        add(new Label("keyPairRevocationServiceStatus", serviceLabel(keyPairRevocationManagementService)));
-        add(new Label("certificateExpirationServiceStatus", serviceLabel(certificateExpirationService)));
-        add(new Label("bgpRisUpdateServiceStatus", serviceLabel(risWhoisUpdateService)));
-        add(new Label("roaAlertBackgroundServiceStatus", serviceLabel(roaAlertBackgroundService)));
-        add(new Label("resourceCacheUpdateServiceStatus", serviceLabel(resourceCacheUpdateService)));
-        add(new Label("publishedObjectCleanUpServiceStatus", serviceLabel(publishedObjectCleanUpService)));
-        add(new Label("caCleanUpServiceStatus", serviceLabel(caCleanUpService)));
-        add(new Label("publisherSyncServiceStatus", serviceLabel(publisherSyncService)));
+        add(new Label("repositoryServiceStatus", serviceLabel(getManifestCrlUpdateService())));
+        add(new Label("repositoryPublicationStatus", serviceLabel(getPublicRepositoryPublicationService())));
+        add(new Label("repositoryRsyncStatus", serviceLabel(getPublicRepositoryRsyncService())));
+        add(new Label("repositoryRrdpStatus", serviceLabel(getPublicRepositoryRrdpService())));
+        add(new Label("allCertificateUpdateServiceStatus", serviceLabel(getAllCertificateUpdateService())));
+        add(new Label("productionKeyRolloverServiceStatus", serviceLabel(getProductionCaKeyRolloverManagementService())));
+        add(new Label("hostedCaKeyRolloverServiceStatus", serviceLabel(getHostedCaKeyRolloverManagementService())));
+        add(new Label("keyPairActivationServiceStatus", serviceLabel(getKeyPairActivationManagementService())));
+        add(new Label("keyPairRevocationServiceStatus", serviceLabel(getKeyPairRevocationManagementService())));
+        add(new Label("certificateExpirationServiceStatus", serviceLabel(getCertificateExpirationService())));
+        add(new Label("bgpRisUpdateServiceStatus", serviceLabel(getRisWhoisUpdateService())));
+        add(new Label("roaAlertBackgroundServiceStatus", serviceLabel(getRoaAlertBackgroundService())));
+        add(new Label("resourceCacheUpdateServiceStatus", serviceLabel(getResourceCacheUpdateService())));
+        add(new Label("publishedObjectCleanUpServiceStatus", serviceLabel(getPublishedObjectCleanUpService())));
+        add(new Label("caCleanUpServiceStatus", serviceLabel(getCaCleanUpService())));
+        add(new Label("publisherSyncServiceStatus", serviceLabel(getPublisherSyncService())));
 
-        addBackgroundServiceExecuteLink("updateManifestLink", manifestCrlUpdateService);
-        addBackgroundServiceExecuteLink("updatePublicationStatusLink", publicRepositoryPublicationService);
-        addBackgroundServiceExecuteLink("updateRsyncLink", publicRepositoryRsyncService);
-        addBackgroundServiceExecuteLink("updateRrdpLink", publicRepositoryRrdpService);
-        addBackgroundServiceExecuteLink("activatePendingKeyPairsLink", keyPairActivationManagementService);
-        addBackgroundServiceExecuteLink("revokeOldKeyPairsLink", keyPairRevocationManagementService);
-        addBackgroundServiceExecuteLink("certificateExpirationServiceLink", certificateExpirationService);
-        addBackgroundServiceExecuteLink("productionCaRollOverLink", productionCaKeyRolloverManagementService);
-        addBackgroundServiceExecuteLink("hostedCaRollOverLink", hostedCaKeyRolloverManagementService);
-        addBackgroundServiceExecuteLink("bgpRisUpdateLink", risWhoisUpdateService);
-        addBackgroundServiceExecuteLink("roaAlertBackgroundServiceLink", roaAlertBackgroundService);
-        addBackgroundServiceExecuteLink("resourceCacheUpdateServiceLink", resourceCacheUpdateService);
-        addBackgroundServiceExecuteLink("updateResourcesLink", allCertificateUpdateService);
-        addBackgroundServiceExecuteLink("publishedObjectCleanUpServiceLink", publishedObjectCleanUpService);
-        addBackgroundServiceExecuteLink("caCleanUpServiceLink", caCleanUpService);
-        addBackgroundServiceExecuteLink("publisherSyncServiceLink", publisherSyncService);
+        addBackgroundServiceExecuteLink("updateManifestLink", "manifestCrlUpdateService");
+        addBackgroundServiceExecuteLink("updatePublicationStatusLink", "publicRepositoryPublicationService");
+        addBackgroundServiceExecuteLink("updateRsyncLink", "publicRepositoryRsyncService");
+        addBackgroundServiceExecuteLink("updateRrdpLink", "publicRepositoryRrdpService");
+        addBackgroundServiceExecuteLink("activatePendingKeyPairsLink", "keyPairActivationManagementService");
+        addBackgroundServiceExecuteLink("revokeOldKeyPairsLink", "keyPairRevocationManagementService");
+        addBackgroundServiceExecuteLink("certificateExpirationServiceLink", "certificateExpirationService");
+        addBackgroundServiceExecuteLink("productionCaRollOverLink", "productionCaKeyRolloverManagementService");
+        addBackgroundServiceExecuteLink("hostedCaRollOverLink", BackgroundServices.HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE);
+        addBackgroundServiceExecuteLink("bgpRisUpdateLink", "risWhoisUpdateService");
+        addBackgroundServiceExecuteLink("roaAlertBackgroundServiceLink", "roaAlertBackgroundServiceDaily");
+        addBackgroundServiceExecuteLink("resourceCacheUpdateServiceLink", "resourceCacheUpdateService");
+        addBackgroundServiceExecuteLink("updateResourcesLink", "allCertificateUpdateService");
+        addBackgroundServiceExecuteLink("publishedObjectCleanUpServiceLink", "publishedObjectCleanUpService");
+        addBackgroundServiceExecuteLink("caCleanUpServiceLink", "caCleanUpService");
+        addBackgroundServiceExecuteLink("publisherSyncServiceLink", "publisherSyncService");
     }
 
     private String serviceLabel(BackgroundService service) {
@@ -205,17 +219,15 @@ public class SystemStatusPage extends AdminCertificationBasePage {
         return "Inactive";
     }
 
-    private void addBackgroundServiceExecuteLink(String id, final BackgroundService backgroundService) {
+    private void addBackgroundServiceExecuteLink(String id, final String serviceName) {
         final Link<Object> link = new Link<Object>(id) {
             private static final long serialVersionUID = 1L;
 
             @Override
             public void onClick() {
+                BackgroundService backgroundService = getBean(serviceName, BackgroundService.class);
                 try {
-                    // Find the service name from the annotation so that we can trigger the correct job
-                    Object actualBackgroundService = ((ILazyInitProxy) backgroundService).getObjectLocator().locateProxyTarget();
-                    String serviceName = findServiceName(actualBackgroundService.getClass());
-                    backgroundServices.trigger(serviceName);
+                    getBackgroundServices().trigger(serviceName);
                     logAndDisplayMessage(backgroundService.getName() + " has been triggered manually");
                     setResponsePage(SystemStatusPage.class);
                 } catch (Exception e) {
@@ -225,22 +237,9 @@ public class SystemStatusPage extends AdminCertificationBasePage {
                 }
             }
         };
+        BackgroundService backgroundService = getBean(serviceName, BackgroundService.class);
         link.setVisibilityAllowed(!backgroundService.isWaitingOrRunning() && backgroundService.isActive());
         add(link);
-    }
-
-    private static String findServiceName(Class<?> type) {
-        for (Class<?> clazz = type; clazz != null; clazz = clazz.getSuperclass()) {
-            Service annotation = clazz.getAnnotation(Service.class);
-            if (annotation != null) {
-                if (!annotation.value().isEmpty()) {
-                    return annotation.value();
-                } else {
-                    return StringUtils.uncapitalize(clazz.getSimpleName());
-                }
-            }
-        }
-        throw new IllegalStateException("service " + type + " does not have an @Service annotation");
     }
 
     private void logAndDisplayMessage(String message) {

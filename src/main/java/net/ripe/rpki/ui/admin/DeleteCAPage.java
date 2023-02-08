@@ -4,7 +4,6 @@ import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.CommandAuditData;
-import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import net.ripe.rpki.ui.audit.CommandListPanel;
 import net.ripe.rpki.ui.commons.AdminCertificationBasePage;
@@ -19,16 +18,14 @@ import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.RequiredTextField;
 import org.apache.wicket.markup.html.panel.FeedbackPanel;
 import org.apache.wicket.model.Model;
-import org.apache.wicket.spring.injection.annot.SpringBean;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Collections;
 import java.util.List;
 
-public class DeleteCAPage extends AdminCertificationBasePage {
-    @SpringBean
-    private CommandService commandService;
+import static net.ripe.rpki.ui.application.CertificationAdminWicketApplication.getCommandService;
 
+public class DeleteCAPage extends AdminCertificationBasePage {
     public DeleteCAPage(PageParameters parameters) {
         super("Delete Certificate Authority", parameters);
         replaceCurrentCertificateAuthority(parameters);
@@ -58,7 +55,7 @@ public class DeleteCAPage extends AdminCertificationBasePage {
     private void replaceCurrentCertificateAuthority(PageParameters parameters) {
         if (parameters != null && parameters.containsKey("caName")) {
             final X500Principal caName = adjustName(String.valueOf(parameters.get("caName")));
-            setCurrentCertificateAuthority(caViewService.findCertificateAuthorityByName(caName));
+            setCurrentCertificateAuthority(getCaViewService().findCertificateAuthorityByName(caName));
         }
     }
 
@@ -91,7 +88,7 @@ public class DeleteCAPage extends AdminCertificationBasePage {
         if (ca == null) {
             return Collections.emptyList();
         }
-        return caViewService.findMostRecentCommandsForCa(ca.getId());
+        return getCaViewService().findMostRecentCommandsForCa(ca.getId());
     }
 
     private class CaNameForm extends Form<Void> {
@@ -107,7 +104,7 @@ public class DeleteCAPage extends AdminCertificationBasePage {
 
         @Override
         protected void onSubmit() {
-            Long caId = caViewService.findCertificateAuthorityIdByName(adjustName(textField.getValue()));
+            Long caId = getCaViewService().findCertificateAuthorityIdByName(adjustName(textField.getValue()));
             if (caId != null) {
                 PageParameters caNameField = new PageParameters();
                 caNameField.add("caName", textField.getValue());
@@ -170,7 +167,7 @@ public class DeleteCAPage extends AdminCertificationBasePage {
                 CertificateAuthorityData certificateAuthority = getCurrentCertificateAuthority();
                 Validate.isTrue(certificateAuthority.getType() != CertificateAuthorityType.ROOT, "Root CA removal attempt!");
                 Validate.isTrue(certificateAuthority.getType() != CertificateAuthorityType.ALL_RESOURCES, "All Resources CA removal attempt!");
-                commandService.execute(new DeleteCertificateAuthorityCommand(certificateAuthority.getVersionedId(), certificateAuthority.getName()));
+                getCommandService().execute(new DeleteCertificateAuthorityCommand(certificateAuthority.getVersionedId(), certificateAuthority.getName()));
                 info("Deleted CA " + certificateAuthority.getName());
             } catch (Exception ex) {
                 error("" + ex.getMessage());

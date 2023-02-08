@@ -1,25 +1,15 @@
 package net.ripe.rpki.ui.admin;
 
-import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.apache.wicket.authentication.AuthenticatedWebSession;
 import org.apache.wicket.markup.html.WebPage;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.PasswordTextField;
 import org.apache.wicket.markup.html.panel.FeedbackPanel;
 import org.apache.wicket.model.PropertyModel;
-import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.apache.wicket.util.value.ValueMap;
 
 
 public class AdminLoginPage extends WebPage {
-
-    @SpringBean
-    private CertificateAuthorityViewService caViewService;
-
-    @SpringBean
-    private CommandService commandService;
-
 
     public AdminLoginPage()
     {

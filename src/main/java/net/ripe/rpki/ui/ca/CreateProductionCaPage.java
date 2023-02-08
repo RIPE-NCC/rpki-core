@@ -3,7 +3,6 @@ package net.ripe.rpki.ui.ca;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.CreateRootCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
-import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.ui.admin.UpstreamCaManagementPage;
 import net.ripe.rpki.ui.commons.AdminCertificationBasePage;
@@ -11,15 +10,10 @@ import org.apache.wicket.PageParameters;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.panel.FeedbackPanel;
 import org.apache.wicket.model.CompoundPropertyModel;
-import org.apache.wicket.spring.injection.annot.SpringBean;
+
+import static net.ripe.rpki.ui.application.CertificationAdminWicketApplication.getCommandService;
 
 public class CreateProductionCaPage extends AdminCertificationBasePage {
-
-    @SpringBean
-    private CommandService commandService;
-
-    @SpringBean
-    private ActiveNodeService activeNodeService;
 
     public CreateProductionCaPage(PageParameters parameters) {
         super("Create Production Certification Authority", parameters, false);
@@ -46,9 +40,9 @@ public class CreateProductionCaPage extends AdminCertificationBasePage {
         @Override
         protected void onSubmit() {
             try {
-                VersionedId caId = commandService.getNextId();
-                commandService.execute(new CreateRootCertificateAuthorityCommand(caId, repositoryConfiguration.getProductionCaPrincipal()));
-                activeNodeService.activateCurrentNode();
+                VersionedId caId = getCommandService().getNextId();
+                getCommandService().execute(new CreateRootCertificateAuthorityCommand(caId, getRepositoryConfiguration().getProductionCaPrincipal()));
+                getBean(ActiveNodeService.class).activateCurrentNode();
                 setResponsePage(UpstreamCaManagementPage.class);
             } catch (CertificateAuthorityNameNotUniqueException ex) {
                 error(getString("certificateAuthority.name.notUnique"));

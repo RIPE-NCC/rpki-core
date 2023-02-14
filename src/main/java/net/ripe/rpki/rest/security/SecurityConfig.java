@@ -72,6 +72,7 @@ public class SecurityConfig {
             .authorizeRequests(r -> r
                 .antMatchers(
                     "/login",
+                    "/actuator/active-node/",
                     "/actuator/prometheus",
                     "/monitoring/healthcheck",
                     "/portal-theme/**",

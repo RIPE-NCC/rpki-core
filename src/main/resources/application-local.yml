@@ -14,10 +14,13 @@ mail:
     host: localhost
     port: 1025
 
-spring.datasource:
-    password: certdb
-    url: jdbc:postgresql://localhost:5432/certdb
-spring.devtools.livereload.enabled: false
+spring:
+    main:
+        lazy-initialization: true
+    datasource:
+        password: certdb
+        url: jdbc:postgresql://localhost:5432/certdb
+    devtools.livereload.enabled: false
 
 background-services:
     schedule.enable: false

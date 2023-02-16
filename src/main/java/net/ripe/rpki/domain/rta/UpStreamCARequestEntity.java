@@ -15,7 +15,6 @@ import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import java.util.Collections;
 
 
 @Entity
@@ -53,9 +52,7 @@ public class UpStreamCARequestEntity {
         return XStreamXmlSerializerBuilder.newForgivingXmlSerializerBuilder(TrustAnchorRequest.class)
                 .withAllowedType(TrustAnchorRequest.class)
                 .withAllowedTypeHierarchy(TaRequest.class)
-                .withAllowedTypeHierarchy(Collections.emptyList().getClass())
                 .build();
-
     }
 
     /**

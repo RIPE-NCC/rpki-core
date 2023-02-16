@@ -21,6 +21,7 @@ spring:
         password: certdb
         url: jdbc:postgresql://localhost:5432/certdb
     devtools.livereload.enabled: false
+    thymeleaf.prefix: file:src/main/resources/WEB-INF/templates/
 
 background-services:
     schedule.enable: false

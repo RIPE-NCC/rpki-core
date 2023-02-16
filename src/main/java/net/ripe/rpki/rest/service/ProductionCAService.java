@@ -36,7 +36,7 @@ import static javax.ws.rs.core.Response.Status.NO_CONTENT;
 @Path("/prod/ca")
 @Tag(name = "/prod/ca", description = "Operations on Production CA")
 @Scope("prototype")
-public class ProductionCAService {
+public class ProductionCAService extends RestService {
     @Autowired
     private ActiveNodeService activeNodeService;
 
@@ -56,6 +56,7 @@ public class ProductionCAService {
     @Path("create")
     @Operation(summary = "Create Production CA certificate")
     public Response create() {
+        log.info("Creating production CA");
         try {
             VersionedId caId = commandService.getNextId();
             commandService.execute(new CreateRootCertificateAuthorityCommand(caId, certificationConfiguration.getProductionCaPrincipal()));
@@ -63,7 +64,7 @@ public class ProductionCAService {
 
             return Response.status(NO_CONTENT).build();
         } catch (Exception e) {
-            log.error("", e);
+            log.error("Failed to create production CA", e);
             return Response.status(BAD_REQUEST).entity(of("error", e.getMessage())).build();
         }
     }
@@ -72,6 +73,7 @@ public class ProductionCAService {
     @Path("generate-all-resources-sign-request")
     @Operation(summary = "Generate Sign Request for New resources")
     public Response generateAllResourcesSignRequest() {
+        log.info("Creating all resources CA");
         try {
             final X500Principal productionCaName = certificationConfiguration.getProductionCaPrincipal();
             final CertificateAuthorityData productionCaData = certificateAuthorityViewService.findCertificateAuthorityByName(productionCaName);
@@ -79,7 +81,7 @@ public class ProductionCAService {
             commandService.execute(new AllResourcesCaResourcesCommand(productionCaData.getVersionedId()));
             return Response.status(NO_CONTENT).build();
         } catch (Exception e) {
-            log.error("", e);
+            log.error("Failed to create all resources CA", e);
             return Response.status(BAD_REQUEST).entity(of("error", e.getMessage())).build();
         }
     }

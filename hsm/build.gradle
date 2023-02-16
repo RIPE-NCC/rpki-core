@@ -33,9 +33,8 @@ dependencies {
     thalesImplementation "net.ripe.rpki:rpki-commons:$rpki_commons_version"
     thalesImplementation 'com.thales.esecurity.asg.ripe.db-jceprovider:DBProvider:1.2'
     // **When using JDK 11** make sure the matching version of nCipherKM is on classpath because DBProvider depends on it.
-    // thalesImplementation 'com.ncipher.nfast:nCipherKM:12.40.2'
-    // thalesImplementation 'com.ncipher.nfast:nCipherKM:12.60'
-    // thalesImplementation 'com.ncipher.nfast:nCipherKM:12.80.4'
+    thalesImplementation 'com.ncipher.nfast:nCipherKM:12.81.2'
+
     thalesImplementation 'org.springframework:spring-context:5.3.24'
     // used in spring-context, but not exported.
     thalesImplementation 'javax.annotation:javax.annotation-api:1.3.2'

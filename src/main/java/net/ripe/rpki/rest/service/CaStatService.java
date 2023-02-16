@@ -49,7 +49,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @RestController
 @RequestMapping(path = "/api/ca-stat", produces = MediaType.APPLICATION_JSON)
 @Tag(name = "/api/ca-stat", description = "Statistics on CAs")
-public class CaStatService {
+public class CaStatService extends RestService {
     private final ResourceCertificateViewService resourceCertificateViewService;
     private final BgpRisEntryViewService bgpRisEntryViewService;
     private final RoaViewService roaViewService;
@@ -156,16 +156,18 @@ public class CaStatService {
     }
 
     @GetMapping(path = "all")
-   @Operation(summary = "Return all CAs")
+    @Operation(summary = "Return all CAs")
     public ResponseEntity<Collection<CaStat>> allCAs() {
+        log.info("Getting stats for all CAs");
         return ResponseEntity.ok()
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .body(certificateAuthorityViewService.getCaStats());
     }
 
     @GetMapping(path = "events")
-   @Operation(summary = "Return all CAs")
+    @Operation(summary = "Return all CAs")
     public ResponseEntity<Collection<? extends CaStatEvent>> events() {
+        log.info("Getting all events for all CAs");
         return ResponseEntity.ok()
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .body(certificateAuthorityViewService.getCaStatEvents());

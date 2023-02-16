@@ -24,7 +24,7 @@ import java.util.Map;
 @RestController
 @RequestMapping(path = "/api/public/system-status", produces = MediaType.APPLICATION_JSON)
 @Tag(name = "/api/public/system-status", description = "System status")
-public class SystemStatusService {
+public class SystemStatusService extends RestService {
 
     private final RepositoryConfiguration repositoryConfiguration;
     private final ActiveNodeService activeNodeService;
@@ -42,6 +42,7 @@ public class SystemStatusService {
     @GetMapping
     @Operation(summary = "Return generic system status")
     public ResponseEntity<SystemStatus> status() {
+        log.debug("Returning generic system status");
         return ResponseEntity.ok()
             .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
             .body(getSystemStatus());

@@ -13,6 +13,7 @@ import net.ripe.rpki.ui.admin.SystemStatusPage;
 import net.ripe.rpki.ui.admin.UpstreamCaManagementPage;
 import net.ripe.rpki.ui.audit.CertificateAuthorityHistoryPage;
 import org.apache.wicket.*;
+import org.apache.wicket.markup.html.pages.RedirectPage;
 import org.apache.wicket.protocol.http.WebApplication;
 import org.apache.wicket.protocol.http.WebRequest;
 import org.apache.wicket.protocol.http.WebResponse;
@@ -81,8 +82,8 @@ public class CertificationAdminWicketApplication extends WebApplication {
     }
 
     @Override
-    public Class<SystemStatusPage> getHomePage() {
-        return SystemStatusPage.class;
+    public Class<? extends Page> getHomePage() {
+        return RedirectToNewAdminPage.class;
     }
 
     public ApplicationContext getApplicationContext() {
@@ -92,5 +93,11 @@ public class CertificationAdminWicketApplication extends WebApplication {
     @Override
     public RequestCycle newRequestCycle(final Request request, final Response response) {
         return new CertificationAdminWebRequestCycle(this, (WebRequest) request, (WebResponse) response);
+    }
+
+    public static class RedirectToNewAdminPage extends RedirectPage {
+        public RedirectToNewAdminPage() {
+            super("/certification/admin");
+        }
     }
 }

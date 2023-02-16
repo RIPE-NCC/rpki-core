@@ -37,10 +37,10 @@ spring:
         open-in-view: false
         properties.hibernate.jdbc.lob.non_contextual_creation: true
         show-sql: false
-
-
     lifecycle.timeout-per-shutdown-phase: 5s
     resources.static-locations: "classpath:/static/,classpath:/portal-theme:server"
+    thymeleaf:
+        prefix: classpath:/WEB-INF/templates/
 
 # Mail settings (SMTP)
 mail:

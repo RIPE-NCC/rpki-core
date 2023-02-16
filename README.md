@@ -240,6 +240,11 @@ Notes:
 - In the development environment the background services are disabled by default. They can be enabled explicitly by activating the `activeBackgroundServices` spring profile.
 - If you want to check for up to date dependencies: `gradle dependencyUpdate`
 
+In development you might want to enable continuous compilation with
+gradle using `gradle build --continuous -xtest`. The `gradle bootRun`
+task with automatically restart the application after recompilation is
+complete. Note that both commands must run concurrently.
+
 
 ### Set up the all resources and production CAs
 

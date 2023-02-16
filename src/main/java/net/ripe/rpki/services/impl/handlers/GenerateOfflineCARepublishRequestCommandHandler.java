@@ -11,7 +11,7 @@ import net.ripe.rpki.server.api.services.command.CommandStatus;
 import org.apache.commons.lang.Validate;
 
 import javax.inject.Inject;
-import java.util.Collections;
+import java.util.ArrayList;
 
 @Handler
 public class GenerateOfflineCARepublishRequestCommandHandler extends AbstractCertificateAuthorityCommandHandler<GenerateOfflineCARepublishRequestCommand> {
@@ -35,7 +35,7 @@ public class GenerateOfflineCARepublishRequestCommandHandler extends AbstractCer
         ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityId());
         Validate.isTrue(ca.isAllResourcesCa(), "Only All Resources CA can request Offline CA to republish");
 
-        TrustAnchorRequest trustAnchorRequest = requestCreationService.createTrustAnchorRequest(Collections.emptyList());
+        TrustAnchorRequest trustAnchorRequest = requestCreationService.createTrustAnchorRequest(new ArrayList<>());
 
         UpStreamCARequestEntity upStreamCARequest = new UpStreamCARequestEntity(ca, trustAnchorRequest);
 

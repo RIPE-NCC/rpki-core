@@ -22,7 +22,7 @@ public class FakeNonHostedPublisherRepositoryBean implements NonHostedPublisherR
     }
 
     @Override
-    public RepositoryResponse provisionPublisher(UUID publisherHandle, PublisherRequest publisherRequest) throws DuplicateRepositoryException {
+    public RepositoryResponse provisionPublisher(UUID publisherHandle, PublisherRequest publisherRequest, String requestId) throws DuplicateRepositoryException {
         if (repositories.containsKey(publisherHandle)) {
             throw new DuplicateRepositoryException(publisherHandle);
         }
@@ -47,7 +47,7 @@ public class FakeNonHostedPublisherRepositoryBean implements NonHostedPublisherR
     }
 
     @Override
-    public void deletePublisher(UUID publisherHandle) {
+    public void deletePublisher(UUID publisherHandle, String requestId) {
         repositories.remove(publisherHandle);
     }
 

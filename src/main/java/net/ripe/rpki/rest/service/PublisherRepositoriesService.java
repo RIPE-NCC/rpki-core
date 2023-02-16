@@ -78,6 +78,8 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
     @GetMapping(path = "non-hosted/publisher-repositories")
     @Operation(summary = "lists all active publisher repositories for this non-hosted CA")
     public ResponseEntity<?> listNonHostedPublicationRepositories(@PathVariable("caName") final CaName caName) {
+        log.debug("List all publishers for CA: {}", caName);
+
         try {
             Map<UUID, RepositoryResponseDto> repositories = certificateAuthorityViewService
                 .findNonHostedPublisherRepositories(caName.getPrincipal())
@@ -119,10 +121,11 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
             // Core commands must be idempotent (and are automatically retried on transient failures) and this does not
             // work with Krill, since Krill is an external (non-transactional) system and provisioning is not idempotent.
             // So create the repository in Krill before registering the result with core.
-            RepositoryResponse repositoryResponse = nonHostedPublisherRepositoryService.provisionPublisher(publisherHandle, publisherRequest);
+            RepositoryResponse repositoryResponse = nonHostedPublisherRepositoryService.provisionPublisher(publisherHandle, publisherRequest, getRequestId());
 
             Utils.cleanupOnError(
-                () -> commandService.execute(new ProvisionNonHostedPublisherCommand(ca.getVersionedId(), publisherHandle, publisherRequest, repositoryResponse)),
+                () -> commandService.execute(new ProvisionNonHostedPublisherCommand(
+                        ca.getVersionedId(), publisherHandle, publisherRequest, repositoryResponse)),
                 () -> nonHostedPublisherRepositoryService.deletePublisher(publisherHandle)
             );
 
@@ -147,6 +150,8 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         @PathVariable("caName") final CaName caName,
         @PathVariable("publisherHandle") UUID publisherHandle
     ) {
+        log.info("Download repository non-hosted publication response for CA: {}", caName);
+
         try {
             RepositoryResponse repositoryResponse = certificateAuthorityViewService
                 .findNonHostedPublisherRepositories(caName.getPrincipal())
@@ -172,10 +177,12 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
             @PathVariable("caName") final CaName caName,
             @PathVariable("publisherHandle") UUID publisherHandle
     ) {
+        log.info("Delete non-hosted publication repository for CA: {}", caName);
+
         NonHostedCertificateAuthorityData ca = getCa(NonHostedCertificateAuthorityData.class, caName);
         try {
             commandService.execute(new DeleteNonHostedPublisherCommand(ca.getVersionedId(), publisherHandle));
-            nonHostedPublisherRepositoryService.deletePublisher(publisherHandle);
+            nonHostedPublisherRepositoryService.deletePublisher(publisherHandle, getRequestId());
 
             return ResponseEntity.noContent().build();
         } catch (EntityNotFoundException e) {

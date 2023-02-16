@@ -63,7 +63,6 @@ public class ResourceService extends AbstractCaRestService {
                                                    @PathVariable("address") final String address,
                                                    @PathVariable("length") final String length) {
         final String prefix = address + "/" + length;
-        log.info("Validating prefix[{}] for caName[{}]", prefix, caName);
         return validatePrefix(caName, prefix);
     }
 }

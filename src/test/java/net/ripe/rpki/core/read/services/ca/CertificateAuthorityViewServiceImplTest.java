@@ -1,6 +1,5 @@
 package net.ripe.rpki.core.read.services.ca;
 
-import lombok.var;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.domain.*;

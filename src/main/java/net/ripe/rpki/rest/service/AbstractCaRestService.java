@@ -18,8 +18,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
@@ -35,9 +33,7 @@ import static net.ripe.rpki.rest.security.SpringAuthInterceptor.USER_ID_REQ_ATTR
 @Slf4j
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
-public class AbstractCaRestService {
-
-    static final String API_URL_PREFIX = "/api/ca";
+public class AbstractCaRestService extends RestService {
 
     @Autowired
     private CertificateAuthorityViewService certificateAuthorityViewService;
@@ -68,10 +64,6 @@ public class AbstractCaRestService {
 
     protected <T extends CertificateAuthorityData> T getCa(Class<T> type, CaName caName) {
         return findCa(type, caName).orElseThrow(() -> new CaNotFoundException("certificate authority '" + caName + "' not found"));
-    }
-
-    protected HttpServletRequest getRequest() {
-        return ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
     }
 
     PrefixValidationResult validatePrefix(String prefix, ImmutableResourceSet certifiedResources) {

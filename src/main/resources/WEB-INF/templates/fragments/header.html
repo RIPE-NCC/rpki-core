@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+</head>
+    <body>
+        <div class="header-full" data-th-fragment="header">
+            <div class="header">
+                <h1 class="h1-header">RPKI Admin UI</h1>
+                <i onclick="onClick()" class="drop-icon bi-person-circle"></i>
+            </div>
+
+            <div class="dropdown">
+                <div id="user-dropdown" class="dropdown-content">
+                    <ul>
+                        <li>
+                            <div class="bold list-item" data-th-if="${currentUser.name}" data-th-text="${currentUser.name}">unknown</div>
+                        </li>
+                        <li>
+                            <div class="list-item" data-th-if="${currentUser.email}" data-th-text="${currentUser.email}">someone@example.com</div>
+                        </li>
+                        <li class="divider"></li>
+                        <li>
+                            <a class="list-item" data-th-href="@{/logout}">Sign out</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <script>
+                function onClick() {
+                  document.getElementById("user-dropdown").classList.toggle("show");
+                }
+
+                // Close the dropdown if the user clicks outside of it
+                window.onclick = function(event) {
+                  if (!event.target.matches('.drop-icon')) {
+                    var dropdowns = document.getElementsByClassName("dropdown-content");
+                    var i;
+                    for (i = 0; i < dropdowns.length; i++) {
+                      var openDropdown = dropdowns[i];
+                      if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                      }
+                    }
+                  }
+                }
+            </script>
+        </div>
+    </body>
+</html>

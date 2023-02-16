@@ -10,12 +10,20 @@ import java.util.UUID;
 public interface NonHostedPublisherRepositoryService {
     boolean isAvailable();
 
-    RepositoryResponse provisionPublisher(UUID publisherHandle, PublisherRequest publisherRequest)
+    RepositoryResponse provisionPublisher(UUID publisherHandle, PublisherRequest publisherRequest, String requestId)
         throws DuplicateRepositoryException;
+
+    default RepositoryResponse provisionPublisher(UUID publisherHandle, PublisherRequest publisherRequest) throws DuplicateRepositoryException {
+        return provisionPublisher(publisherHandle, publisherRequest, null);
+    }
 
     Set<UUID> listPublishers();
 
-    void deletePublisher(UUID publisherHandle);
+    void deletePublisher(UUID publisherHandle, String requestId);
+
+    default void deletePublisher(UUID publisherHandle) {
+        deletePublisher(publisherHandle, null);
+    }
 
     boolean isInitialized();
 

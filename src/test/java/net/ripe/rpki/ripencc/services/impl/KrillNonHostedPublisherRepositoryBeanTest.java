@@ -15,7 +15,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;

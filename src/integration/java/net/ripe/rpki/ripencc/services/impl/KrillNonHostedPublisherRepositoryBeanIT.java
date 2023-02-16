@@ -56,11 +56,20 @@ public class KrillNonHostedPublisherRepositoryBeanIT {
 
     @Test
     public void shouldDeleteRegisteredPublisher() {
+        provisionAndDeletePublishers(null);
+    }
+
+    @Test
+    public void shouldDeleteRegisteredPublisherWithRequestId() {
+        provisionAndDeletePublishers(UUID.randomUUID().toString());
+    }
+
+    private void provisionAndDeletePublishers(String requestId) {
         UUID[] uuids = new UUID[]{UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
         Set<UUID> pubs = Stream.of(uuids).collect(Collectors.toSet());
         pubs.forEach(uuid -> {
             try {
-                subject.provisionPublisher(uuid, publisherRequest);
+                subject.provisionPublisher(uuid, publisherRequest, requestId);
             } catch (NonHostedPublisherRepositoryService.DuplicateRepositoryException e) {
                 throw new RuntimeException(e);
             }
@@ -69,7 +78,7 @@ public class KrillNonHostedPublisherRepositoryBeanIT {
         Set<UUID> createdPublishers = subject.listPublishers();
         assertThat(createdPublishers.containsAll(pubs)).isTrue();
 
-        pubs.forEach(uuid -> subject.deletePublisher(uuid));
+        pubs.forEach(uuid -> subject.deletePublisher(uuid, requestId));
 
         Set<UUID> publishers = subject.listPublishers();
         assertThat(publishers.stream().noneMatch(pubs::contains)).isTrue();

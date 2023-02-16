@@ -38,7 +38,7 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 @RestController
 @RequestMapping(path = "/api/upstream", produces = {APPLICATION_JSON})
 @Tag(name = "/api/upstream", description = "Operations on TA")
-public class UpstreamCaService {
+public class UpstreamCaService extends RestService{
     private final RepositoryConfiguration configuration;
 
     private final CommandService commandService;
@@ -85,13 +85,13 @@ public class UpstreamCaService {
                 .body("Uploaded successfully and processing");
 
         } catch (Exception e) {
-            log.error("Could not parse or apply uploaded TA response: " + e.getMessage(), e);
+            log.error("Could not parse or apply uploaded TA response {}", e.getMessage(), e);
             return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(of("error", e.getMessage()));
         }
     }
 
     @PostMapping(path = "request")
-    @Operation(summary = "Download TA response")
+    @Operation(summary = "Download TA request")
     public ResponseEntity<?> createTaRequest() {
         log.info("Returning TA response");
         try {
@@ -112,7 +112,7 @@ public class UpstreamCaService {
                 .body(request);
 
         } catch (Exception e) {
-            log.error("Could not parse or apply uploaded TA response: " + e.getMessage(), e);
+            log.error("Could not create TA request {}", e.getMessage(), e);
             return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(of("error", e.getMessage()));
         }
     }

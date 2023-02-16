@@ -135,7 +135,7 @@ public class CaService extends AbstractCaRestService {
     @DeleteMapping(path = "hosted")
     @Operation(summary = "Revoke hosted CA")
     public ResponseEntity<RevokeHostedResult> revokeHosted(@PathVariable("caName") final CaName caName) {
-        log.info("Revocation attempt for hosted CA '{}'", caName);
+        log.info("Revocation attempt for hosted CA {}", caName);
         final ManagedCertificateAuthorityData certificateAuthority = getCa(ManagedCertificateAuthorityData.class, caName);
 
         if (certificateAuthority.getType() != CertificateAuthorityType.HOSTED) {

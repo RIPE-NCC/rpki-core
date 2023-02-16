@@ -30,7 +30,7 @@ import static org.springframework.http.HttpStatus.PRECONDITION_FAILED;
 @RestController
 @RequestMapping(path = "/api/background/service/{serviceName}", produces = { APPLICATION_JSON })
 @Tag(name = "/api/background/service/{serviceName}", description = "Rest Endpoint for background service")
-public class BackgroundExecutorService {
+public class BackgroundExecutorService extends RestService {
     private static final Set<String> ALLOWED_BACKGROUND_JOB_PARAMETERS = Sets.newHashSet("batchSize");
 
     private final BackgroundServices backgroundServices;
@@ -43,7 +43,7 @@ public class BackgroundExecutorService {
     @GetMapping
     @Operation(summary = "Provides status of Service - 'running', 'blocked since ...', or 'not running'.")
     public ResponseEntity<String> getBackgroundServiceStatus(@PathVariable("serviceName") String service) {
-        log.info("Background service status requested for " + service);
+        log.info("Background service status requested for {}", service);
         try {
             if (isNotValid(service)) {
                 return logAndReturnResponse(BAD_REQUEST, "service missing or invalid - " + service);
@@ -58,7 +58,7 @@ public class BackgroundExecutorService {
     @PostMapping
     @Operation(summary = "Schedules the background service for execution")
     public ResponseEntity<String> executeInBackground(@PathVariable("serviceName") String serviceName, @RequestParam Map<String, String> parameters) {
-        log.info("Background service execution requested for " + serviceName);
+        log.info("Background service execution requested for {}", serviceName);
         try {
             if (isNotValid(serviceName)) {
                 return logAndReturnResponse(BAD_REQUEST, "service missing or invalid - " + serviceName);

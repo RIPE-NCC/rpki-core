@@ -1,6 +1,7 @@
 package net.ripe.rpki.hsm.thales;
 
 import com.google.common.base.Verify;
+import com.ncipher.provider.km.nCipherKM;
 import com.thales.esecurity.asg.ripe.dbjce.DBProvider;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.hsm.api.KeyStorage;
@@ -31,6 +32,12 @@ public class ThalesBeans {
             Security.addProvider(new DBProvider());
             // Provider should now be present.
             Verify.verify(Security.getProvider("DBProvider") != null);
+        }
+        if (Security.getProvider("nCipherKM") == null) {
+            log.info("Adding nCipherKM security provider which requires a connection to hardserver in a healthy state on localhost TCP/9004.");
+            Security.addProvider(new nCipherKM());
+            // Provider should now be present.
+            Verify.verify(Security.getProvider("nCipherKM") != null);
         }
     }
 

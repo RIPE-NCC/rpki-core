@@ -1,6 +1,5 @@
 package net.ripe.rpki.ncc.core.services.activation;
 
-import lombok.var;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateParser;

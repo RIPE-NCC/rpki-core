@@ -1,28 +1,29 @@
 package net.ripe.rpki.util;
 
-import com.pholser.junit.quickcheck.Property;
-import com.pholser.junit.quickcheck.runner.JUnitQuickcheck;
-import org.junit.runner.RunWith;
+import net.jqwik.api.ForAll;
+import net.jqwik.api.Property;
+import net.jqwik.api.constraints.Positive;
+import net.jqwik.api.constraints.Size;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.number.OrderingComparison.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 
-@RunWith(JUnitQuickcheck.class)
 public class StreamsTest {
 
     @Property
-    public void shouldGroup(List<Integer> s, int chunk) {
-        assumeThat(chunk, greaterThan(0));
+    public void shouldGroup(@ForAll @Size(min= 3) List<Integer> s, @ForAll @Positive int chunk) {
         final Collection<List<Integer>> grouped = Streams.grouped(s, chunk);
-        grouped.forEach(g -> assertTrue(g.size() <= chunk));
-        final List<Integer> r = grouped.stream().flatMap(Collection::stream).collect(Collectors.toList());
-        assertEquals(r, s);
+
+        assertThat(grouped).hasSize((int) Math.ceil(s.size() / (double)chunk));
+
+        grouped.stream().limit(grouped.size() - 1).forEach(g -> assertThat(g).hasSize(chunk));
+        assertThat(grouped).last().satisfies(last -> assertThat(last.size()).isLessThanOrEqualTo(chunk));
+
+        final List<Integer> concatenated = grouped.stream().flatMap(Collection::stream).collect(Collectors.toList());
+        assertThat(s).isEqualTo(concatenated);
     }
 }

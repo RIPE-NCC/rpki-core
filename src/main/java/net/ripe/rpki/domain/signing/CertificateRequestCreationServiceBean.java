@@ -139,7 +139,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
 
         return new TrustAnchorRequest(
             configuration.getTrustAnchorRepositoryUri(),
-            descriptors.toArray(new X509CertificateInformationAccessDescriptor[0]),
+            descriptors.toArray(X509CertificateInformationAccessDescriptor[]::new),
             signingRequests);
     }
 
@@ -217,7 +217,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
                         X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST,
                         publicationDirectory.resolve(kp.getManifestFilename())));
 
-        return sias.values().toArray(new X509CertificateInformationAccessDescriptor[0]);
+        return sias.values().toArray(X509CertificateInformationAccessDescriptor[]::new);
     }
 
     private X500Principal deriveSubjectDN(PublicKey publicKey, X509ResourceCertificate existingCertificate) {

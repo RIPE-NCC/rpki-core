@@ -36,7 +36,7 @@ public abstract class AbstractKeyRolloverManagementServiceBean extends Sequentia
     protected void runKeyRoll(Class<? extends ManagedCertificateAuthority> type, Map<String, String> parameters) {
         Optional<Integer> actualBatchSize;
         try {
-            actualBatchSize = parseBatchSizeParameter(parameters, this.batchSize);
+            actualBatchSize = parseBatchSizeParameter(parameters).or(() -> this.batchSize);
         } catch (IllegalArgumentException e) {
             log.warn("error parsing batch size parameter: {}", e.getMessage());
             return;

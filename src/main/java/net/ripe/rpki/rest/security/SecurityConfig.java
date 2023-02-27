@@ -67,7 +67,7 @@ public class SecurityConfig {
         @Value("${authorization.admin.role}") String adminRole
     ) throws Exception {
         http.requestMatcher(WEB_REQUEST_MATCHER)
-            .csrf(c -> c.ignoringAntMatchers(CertificationAdminWicketApplication.BOOKMARKABLE_PAGES.keySet().toArray(new String[0])))
+            .csrf(c -> c.ignoringAntMatchers(CertificationAdminWicketApplication.BOOKMARKABLE_PAGES.keySet().toArray(String[]::new)))
             // If there are multiple matchers, the order is important. First match wins!
             .authorizeRequests(r -> r
                 .antMatchers(

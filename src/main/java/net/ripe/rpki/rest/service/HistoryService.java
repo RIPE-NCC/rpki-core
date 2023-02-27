@@ -7,7 +7,7 @@ import net.ripe.rpki.rest.pojo.HistoryItem;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityHistoryItem;
 import net.ripe.rpki.server.api.ports.InternalNamePresenter;
-import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import net.ripe.rpki.server.api.services.system.CaHistoryService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,13 +30,13 @@ import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 @Tag(name = "/ca/{caName}/history", description = "View command and up-down exchange history of the CA")
 public class HistoryService extends AbstractCaRestService {
     private final InternalNamePresenter statsCollectorNames;
-    private final CertificateAuthorityViewService certificateAuthorityViewService;
+    private final CaHistoryService caHistoryService;
 
     @Autowired
     public HistoryService(InternalNamePresenter statsCollectorNames,
-                          CertificateAuthorityViewService certificateAuthorityViewService) {
+                          CaHistoryService caHistoryService) {
         this.statsCollectorNames = statsCollectorNames;
-        this.certificateAuthorityViewService = certificateAuthorityViewService;
+        this.caHistoryService = caHistoryService;
     }
 
     @GetMapping
@@ -45,7 +44,7 @@ public class HistoryService extends AbstractCaRestService {
     public ResponseEntity<List<HistoryItem>> getHistoryForCa(@PathVariable("caName") final CaName caName) {
         log.info("Getting history for CA: {}", caName);
 
-        final List<HistoryItem> items = getHistoryItems(caName).stream()
+        final List<HistoryItem> items = caHistoryService.getHistoryItems(getCa(CertificateAuthorityData.class, caName)).stream()
                 .map(caHistoryItem -> {
                     final String humanizedUserPrincipal = getHumanizedUserPrincipal(caHistoryItem);
                     return new HistoryItem(humanizedUserPrincipal, caHistoryItem);
@@ -58,15 +57,4 @@ public class HistoryService extends AbstractCaRestService {
         String humanizedUserPrincipal = statsCollectorNames.humanizeUserPrincipal(historyItem.getPrincipal());
         return humanizedUserPrincipal != null ? humanizedUserPrincipal : historyItem.getPrincipal();
     }
-
-    private List<CertificateAuthorityHistoryItem> getHistoryItems(CaName caName) {
-        final CertificateAuthorityData certificateAuthority = getCa(CertificateAuthorityData.class, caName);
-        List<CertificateAuthorityHistoryItem> historyItems = new ArrayList<>();
-        historyItems.addAll(certificateAuthorityViewService.findMostRecentCommandsForCa(certificateAuthority.getId()));
-        historyItems.addAll(certificateAuthorityViewService.findMostRecentMessagesForCa(certificateAuthority.getUuid()));
-
-        historyItems.sort((object1, object2) -> object2.getExecutionTime().compareTo(object1.getExecutionTime()));
-        return historyItems;
-    }
-
 }

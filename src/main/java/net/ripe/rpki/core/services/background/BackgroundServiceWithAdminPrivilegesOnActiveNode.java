@@ -186,19 +186,17 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
         return backgroundTaskRunner.task(task, onError);
     }
 
-    protected Optional<Integer> parseBatchSizeParameter(Map<String, String> parameters, Optional<Integer> defaultValue)
+    protected Optional<Integer> parseBatchSizeParameter(Map<String, String> parameters)
         throws IllegalArgumentException
     {
-        String batchSizeParameterValue = parameters.get("batchSize");
-        if (batchSizeParameterValue == null) {
-            return defaultValue;
-        } else {
-            Optional<Integer> actualBatchSize = Optional.of(Integer.parseUnsignedInt(batchSizeParameterValue));
-            if (actualBatchSize.get() <= 0) {
-                throw new IllegalArgumentException("batch size must be greater than 0");
-            }
-            return actualBatchSize;
-        }
+        return Optional.ofNullable(parameters.get("batchSize"))
+            .map(s -> {
+                var value = Integer.parseUnsignedInt(s);
+                if (value <= 0) {
+                    throw new IllegalArgumentException("batch size must be greater than 0");
+                }
+                return value;
+            });
     }
 
     protected abstract void runService(Map<String, String> parameters);

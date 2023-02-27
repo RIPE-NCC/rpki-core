@@ -22,6 +22,7 @@ import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import net.ripe.rpki.util.JdbcDBComponent;
+import org.joda.time.DateTime;
 import org.joda.time.Instant;
 import org.joda.time.base.AbstractInstant;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +65,9 @@ public class ResourceCacheService {
     @Getter(AccessLevel.PACKAGE)
     private volatile boolean acceptOneRejectedResourceCacheUpdate;
 
+    @Getter
+    private volatile Instant lastUpdateAttemptedAt;
+
     private final AtomicReference<ResourceStat> resourceStats;
     private final ResourceCacheServiceMetrics resourceCacheServiceMetrics;
 
@@ -105,6 +109,10 @@ public class ResourceCacheService {
         return delegationsCache.getDelegationsCache();
     }
 
+    public DateTime getLastUpdatedAt() {
+        return resourceCache.lastUpdateTime();
+    }
+
     public void updateFullResourceCache() {
         ResourceServicesClient.TotalResources allResources;
         try {
@@ -114,6 +122,10 @@ public class ResourceCacheService {
             resourceCacheServiceMetrics.onMemberCacheException();
             resourceCacheServiceMetrics.onDelegationsUpdateException();
             return;
+        } finally {
+            // Update this field after the attempt was completed (successfully or not) so that a WARN situation
+            // does not temporarily turn into an ERROR situation (see ResourceCacheUpToDateHealthCheck).
+            this.lastUpdateAttemptedAt = Instant.now();
         }
 
         transactionTemplate.executeWithoutResult(status -> {

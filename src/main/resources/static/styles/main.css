@@ -33,6 +33,34 @@ body table tr:hover {
     background-color: #ddd;
 }
 
+.history-table {
+    width: 100%;
+    overflow: scroll;
+}
+
+.history-table .col-1 {
+    width: 20%;
+}
+
+.history-table .col-2 {
+    width: 15%;
+}
+
+.history-table .col-3 {
+    width: 65%;
+    overflow: scroll;
+}
+
+.history-table td {
+    vertical-align: top;
+}
+
+.history-table-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
 body button {
     min-width: 80px;
 }
@@ -59,6 +87,10 @@ body button {
     display: flex;
     flex-direction: row;
     height: 100%;
+}
+
+.table-navigation {
+    float: right;
 }
 
 .sidebar {
@@ -189,4 +221,37 @@ ul {
 
 .message-banner i {
     font-size: 24px;
+}
+
+.summary-content {
+    display: grid;
+    grid-template-columns: auto 16px;
+    align-items: start;
+}
+
+.expand-icon {
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.summary-title {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+#searchInput {
+    float: right;
+}
+
+.hidden, .hidden-for-pagination {
+    display: none;
+}
+
+.transform {
+    transform: rotate(0.5turn);
+}
+
+.orange {
+    color: #ff9600;
 }

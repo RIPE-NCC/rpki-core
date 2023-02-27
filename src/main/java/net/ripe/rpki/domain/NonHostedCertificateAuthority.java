@@ -31,7 +31,6 @@ import javax.validation.constraints.NotNull;
 import java.security.PublicKey;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Entity
 @DiscriminatorValue(value = "NONHOSTED")
@@ -181,18 +180,18 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     @Override
     public List<? extends CertificateProvisioningMessage> processResourceClassListResponse(ResourceClassListResponse response, CertificateRequestCreationService certificateRequestCreationService) {
         return publicKeys.stream()
-            .flatMap(pk -> {
+            .map(pk -> {
                 ImmutableResourceSet certifiableResources = response.getCertifiableResources();
                 ImmutableResourceSet certificateResources = pk.getRequestedResourceSets().calculateEffectiveResources(certifiableResources);
                 if (pk.isRevoked() || certificateResources.isEmpty()) {
-                    return Stream.of(new CertificateRevocationRequest(pk.getPublicKey()));
+                    return new CertificateRevocationRequest(pk.getPublicKey());
                 }
 
-                return Stream.of(new CertificateIssuanceRequest(
+                return new CertificateIssuanceRequest(
                     certificateResources,
                     pk.getSubjectForCertificateRequest(),
                     pk.getPublicKey(),
-                    pk.getRequestedSia().toArray(new X509CertificateInformationAccessDescriptor[0]))
+                    pk.getRequestedSia().toArray(X509CertificateInformationAccessDescriptor[]::new)
                 );
             })
             .collect(Collectors.toList());

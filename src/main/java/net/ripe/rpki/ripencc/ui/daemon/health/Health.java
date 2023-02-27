@@ -33,6 +33,11 @@ public class Health {
         public boolean isHealthy() {
             return status == Code.OK;
         }
+
+        @JsonIgnore
+        public boolean isWarning() {
+            return status == Code.WARNING;
+        }
     }
 
     public static abstract class Check {

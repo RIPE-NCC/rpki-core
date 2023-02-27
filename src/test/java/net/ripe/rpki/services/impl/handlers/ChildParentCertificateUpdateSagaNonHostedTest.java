@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static net.ripe.ipresource.ImmutableResourceSet.parse;
 import static net.ripe.rpki.domain.NonHostedCertificateAuthority.INCOMING_RESOURCE_CERTIFICATES_PER_PUBLIC_KEY_LIMIT;
@@ -287,7 +286,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
             .collect(Collectors.toList());
         Collection<OutgoingResourceCertificate> incomingResourceCertificates = child.getPublicKeyEntities().stream()
             .filter(x -> !x.isRevoked())
-            .flatMap(x -> x.findCurrentOutgoingResourceCertificate().map(Stream::of).orElse(Stream.empty()))
+            .flatMap(x -> x.findCurrentOutgoingResourceCertificate().stream())
             .collect(Collectors.toList());
 
         // Not all non-hosted public keys will have a certificate after a certificate revocation request,

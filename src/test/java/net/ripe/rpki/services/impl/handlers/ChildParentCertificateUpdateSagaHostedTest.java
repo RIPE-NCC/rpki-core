@@ -28,7 +28,6 @@ import java.net.URI;
 import java.security.PublicKey;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -361,7 +360,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
             .collect(Collectors.toList());
         Collection<IncomingResourceCertificate> incomingResourceCertificates = child.getKeyPairs().stream()
             .filter(KeyPairEntity::isPublishable)
-            .flatMap(kp -> kp.findCurrentIncomingCertificate().map(Stream::of).orElse(Stream.empty()))
+            .flatMap(kp -> kp.findCurrentIncomingCertificate().stream())
             .collect(Collectors.toList());
 
         assertThat(childPublicKeys).hasSize(outgoingResourceCertificates.size());

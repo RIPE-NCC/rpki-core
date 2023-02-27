@@ -3,6 +3,7 @@ package net.ripe.rpki.services.impl.background;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.Getter;
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.FixedDateRule;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.core.services.background.SequentialBackgroundQueuedTaskRunner;
 import net.ripe.rpki.server.api.dto.CaIdentity;
@@ -12,8 +13,10 @@ import net.ripe.rpki.server.api.ports.ResourceServicesClient;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient.*;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.joda.time.DateTime;
+import org.joda.time.Instant;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -44,6 +47,9 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ResourceCacheServiceTest {
+    @Rule
+    public FixedDateRule rule = new FixedDateRule(new DateTime());
+
     private final TransactionOperationsSpy transactionTemplate = new TransactionOperationsSpy();
 
     private final ResourceCache resourceCache = new InMemoryResourceCache(CaName.parse("CN=RIPE NCC Resources,O=RIPE NCC,C=NL"));
@@ -68,6 +74,17 @@ public class ResourceCacheServiceTest {
     @After
     public void tearDown() {
         TransactionSynchronizationManager.clearSynchronization();
+    }
+
+    @Test
+    public void shouldTrackLastUpdateAttempt() {
+        when(resourceServicesClient.fetchAllResources()).thenReturn(DataSamples.totalResources());
+
+        assertThat(subject.getLastUpdateAttemptedAt()).isNull();
+
+        subject.updateFullResourceCache();
+
+        assertThat(subject.getLastUpdateAttemptedAt()).isEqualTo(Instant.now());
     }
 
     @Test
@@ -176,7 +193,7 @@ public class ResourceCacheServiceTest {
     }
 
     @Test
-    public void shouldFailIfInternetResourceServicesIsNotAvailable() throws Exception {
+    public void shouldFailIfInternetResourceServicesIsNotAvailable() {
         when(resourceServicesClient.fetchAllResources()).thenThrow(new RuntimeException("test"));
         subject.updateFullResourceCache();
         assertThat(resourceCache.lastUpdateTime().getMillis()).isZero();
@@ -184,7 +201,7 @@ public class ResourceCacheServiceTest {
     }
 
     @Test
-    public void shouldProcessExceptions() throws Exception {
+    public void shouldProcessExceptions() {
         when(resourceServicesClient.fetchAllResources()).thenThrow(new RuntimeException("RSNG BRKN"));
         subject.updateFullResourceCache();
         assertThat(resourceCache.lastUpdateTime().getMillis()).isZero();
@@ -193,7 +210,7 @@ public class ResourceCacheServiceTest {
     }
 
     @Test
-    public void shouldCalculateProperDiff() throws Exception {
+    public void shouldCalculateProperDiff() {
         final Map<CaName, ImmutableResourceSet> registryResources = new HashMap<>();
         registryResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
         registryResources.put(CaName.fromMembershipId(2), ImmutableResourceSet.parse("20.20.0.0/16, AS123"));
@@ -226,7 +243,7 @@ public class ResourceCacheServiceTest {
     }
 
     @Test
-    public void shouldCalculateProperDiffWhenPrefixesAreNotExact() throws Exception {
+    public void shouldCalculateProperDiffWhenPrefixesAreNotExact() {
         final Map<CaName, ImmutableResourceSet> registryResources = new HashMap<>();
         registryResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/8, 12.0.0.0/8"));
 
@@ -243,7 +260,7 @@ public class ResourceCacheServiceTest {
     }
 
     @Test
-    public void shouldCalculateProperDiffWhenPrefixesAreNotExactTheOtherWay() throws Exception {
+    public void shouldCalculateProperDiffWhenPrefixesAreNotExactTheOtherWay() {
         final Map<CaName, ImmutableResourceSet> registryResources = new HashMap<>();
         registryResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/16, 12.0.0.0/16"));
 
@@ -260,7 +277,7 @@ public class ResourceCacheServiceTest {
     }
 
     @Test
-    public void shouldCalculateProperDiffWhenPrefixesAreNotExactReverse() throws Exception {
+    public void shouldCalculateProperDiffWhenPrefixesAreNotExactReverse() {
         final Map<CaName, ImmutableResourceSet> registryResources = new HashMap<>();
         registryResources.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/16, 12.0.0.0/16"));
 

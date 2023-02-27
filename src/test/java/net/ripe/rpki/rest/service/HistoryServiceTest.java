@@ -4,9 +4,11 @@ import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.CertificateAuthorityHistoryItem;
 import net.ripe.rpki.server.api.dto.CommandAuditData;
 import net.ripe.rpki.server.api.dto.ProvisioningAuditData;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import net.ripe.rpki.server.api.services.system.CaHistoryService;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,10 +23,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import javax.security.auth.x500.X500Principal;
-import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
+import static java.util.Arrays.asList;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,12 +42,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureWebMvc
 @SpringBootTest(classes = TestRpkiBootApplication.class)
 public class HistoryServiceTest {
-
-    private static final long CA_ID = 456L;
-
+    @MockBean
+    private CaHistoryService caHistoryService;
     @MockBean
     private CertificateAuthorityViewService certificateAuthorityViewService;
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -58,26 +57,26 @@ public class HistoryServiceTest {
     @Test
     public void shouldGetResources() throws Exception {
         CertificateAuthorityData ca = mock(CertificateAuthorityData.class);
-        when(ca.getId()).thenReturn(CA_ID);
-
         when(certificateAuthorityViewService.findCertificateAuthorityByName(any(X500Principal.class))).thenReturn(ca);
 
-        UUID uuid = UUID.randomUUID();
-        when(ca.getUuid()).thenReturn(uuid);
-        when(certificateAuthorityViewService.findCertificateAuthority(CA_ID)).thenReturn(ca);
+        List<CertificateAuthorityHistoryItem> history = asList(
+                new ProvisioningAuditData(
+                        DateTime.parse("2013-04-24T11:43:07.789Z"),
+                        "principal 2",
+                        "Some message"
+                ),
+                new CommandAuditData(
+                        DateTime.parse("2012-11-12T23:59:21.123Z"),
+                        new VersionedId(1L),
+                        "principal 1",
+                        "Some command type",
+                        CertificateAuthorityCommandGroup.USER,
+                        "Some cool command",
+                        ""
+                )
+        );
 
-        List<CommandAuditData> commandHistory = Collections.singletonList(new CommandAuditData(
-                DateTime.parse("2012-11-12T23:59:21.123Z"),
-                new VersionedId(1L), "principal 1", "Some command type",
-                CertificateAuthorityCommandGroup.USER, "Some cool command",
-            ""));
-
-        List<ProvisioningAuditData> messageHistory = Collections.singletonList(new ProvisioningAuditData(
-                DateTime.parse("2013-04-24T11:43:07.789Z"), "principal 2", "Some message"
-        ));
-
-        when(certificateAuthorityViewService.findMostRecentCommandsForCa(CA_ID)).thenReturn(commandHistory);
-        when(certificateAuthorityViewService.findMostRecentMessagesForCa(uuid)).thenReturn(messageHistory);
+        when(caHistoryService.getHistoryItems(ca)).thenReturn(history);
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/history"))
                 .andExpect(status().isOk())

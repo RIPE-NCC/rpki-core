@@ -42,7 +42,7 @@ public class HealthService {
     }
 
     @GetMapping
-    public ResponseEntity<Map<String, Health.Status>> getHealthchecks() {
+    public ResponseEntity<Map<String, Health.Status>> getHealthChecks() {
         final Map<String, Health.Status> statuses = Health.statuses(healthchecks);
 
         statuses.forEach(this::trackStatus);

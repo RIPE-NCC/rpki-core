@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" >
+  <head data-th-insert="~{fragments/includes :: includes}"></head>
+  <body>
+    <div data-th-replace="~{fragments/header :: header}"></div>
+    <div class="main-flex">
+      <div data-th-insert="~{fragments/sidebar :: sidebar}"></div>
+      <div class="main">
+        <div class="message-banner" data-th-if="${success}">
+          <i class="bi bi-check-circle"></i>
+          <span data-th-text="${success}">success messages</span>
+        </div>
+        <div class="message-banner" data-th-if="${error}">
+          <i class="bi bi-x-circle"></i>
+          <span data-th-text="${error}">error messages</span>
+        </div>
+
+        <table id="history-table" class="history-table">
+          <thead>
+            <tr>
+              <th colspan="3" class="search-row">
+                <input type="text" id="searchInput" onkeyup="searchSummary()" placeholder="Search summary..">
+              </th>
+            </tr>
+          </thead>
+          <thead>
+          <tr>
+            <th class="col-1"><div class="history-table-header">Date and Time (UTC)<i class="bi bi-sort-down-alt" onclick="sortTable(0)"></i></div></th>
+            <th class="col-2"><div class="history-table-header">User<i class="bi bi-sort-down-alt" onclick="sortTable(1)"></i></div></th>
+            <th class="col-3">
+                <div class="history-table-header">
+                  Summary
+                  <i class="bi bi-sort-down-alt" onclick="sortTable(2)"></i>
+                </div>
+            </th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr data-th-each="history: ${historySummary}">
+            <td data-th-text="${#temporals.format(history.time,'yyyy-MM-dd HH:mm:ss:SS')}">Some time</td>
+            <td data-th-text="${history.principal}">system</td>
+            <td>
+              <div class="summary-content">
+                <div id="summary-short" class="summary-short">Summary short</div>
+                <div id="summary-full" class="summary-full" data-th-text="${history.summary}">
+                  Summary full
+                </div>
+                <i id="expand-icon" data-th-onclick="'javascript:handleExtend(' + ${historyStat.index} + ')'" class="expand-icon bi bi-chevron-down"></i>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+          <tr id="no-results">
+            <td colspan="3">No results found</td>
+          </tr>
+        </table>
+
+        <div class="table-navigation">
+          <button onclick="prevPage()" id="btn_prev">Prev</button>
+          <span id="page"></span>
+          <button onclick="nextPage()" id="btn_next">Next</button>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript" data-th-src="@{/js/history-table-scripts.js}"></script>
+  </body>
+</html>

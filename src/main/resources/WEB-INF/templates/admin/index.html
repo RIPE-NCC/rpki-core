@@ -67,7 +67,15 @@
                                     data-th-if="${service.active && !service.waitingOrRunning}"
                                     data-th-action="@{admin/services/{id}(id=${service.id})}"
                                 >
-                                    <button type="submit">Run</button>
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm(this.getAttribute('data-onconfirm-message'))"
+                                        data-th-attr="data-onconfirm-message=${'Are you sure you want to run the ' + service.name + ' service?'}"
+                                    >
+                                        Run
+                                    </button>
+                                    <label data-th-if="${service.supportedParameters.containsKey('forceUpdate')}">Force update: <input type="checkbox" name="forceUpdate"></label>
+                                    <label data-th-if="${service.supportedParameters.containsKey('batchSize')}">Batch size: <input type="number" name="batchSize" min="1" data-th-value="${service.supportedParameters.batchSize}"></label>
                                 </form>
                             </td>
                         </tr>

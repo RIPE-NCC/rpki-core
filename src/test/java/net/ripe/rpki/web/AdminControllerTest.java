@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -87,10 +88,15 @@ public class AdminControllerTest extends SpringWebControllerTestCase {
 
     @Test
     public void should_run_background_service() throws Exception {
-        MvcResult result = mockMvc.perform(post(AdminController.ADMIN_HOME + "/services/{id}", "backgroundService")).andReturn();
+        MvcResult result = mockMvc.perform(post(AdminController.ADMIN_HOME + "/services/{id}?batchSize=42&forceUpdate=true", "backgroundService")).andReturn();
 
         assertThat((Map<String, Object>) result.getFlashMap()).containsEntry("success", "Scheduled service 'mock background service' for execution");
-        verify(backgroundServices).trigger("backgroundService");
+        ArgumentCaptor<Map<String, String>> parametersCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(backgroundServices).trigger(eq("backgroundService"), parametersCaptor.capture());
+        assertThat(parametersCaptor.getValue())
+            .hasSize(2)
+            .containsEntry("batchSize", "42")
+            .containsEntry("forceUpdate", "true");
     }
 
     @Test

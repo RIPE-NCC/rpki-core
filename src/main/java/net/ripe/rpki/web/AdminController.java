@@ -18,6 +18,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.view.RedirectView;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -25,7 +26,11 @@ import javax.validation.constraints.Pattern;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
+
+import static net.ripe.rpki.server.api.services.background.BackgroundService.BATCH_SIZE_PARAMETER;
+import static net.ripe.rpki.server.api.services.background.BackgroundService.FORCE_UPDATE_PARAMETER;
 
 @Controller
 @RequestMapping(AdminController.ADMIN_HOME)
@@ -97,12 +102,26 @@ public class AdminController {
     }
 
     @PostMapping({"/services/{serviceId}"})
-    public RedirectView runBackgroundService(@PathVariable("serviceId") String serviceId, RedirectAttributes redirectAttributes) {
+    public RedirectView runBackgroundService(
+        @PathVariable("serviceId") String serviceId,
+        @Nullable @RequestParam(value = BATCH_SIZE_PARAMETER, required = false) Integer batchSize,
+        @Nullable @RequestParam(value = FORCE_UPDATE_PARAMETER, required = false) Boolean forceUpdate,
+        RedirectAttributes redirectAttributes
+    ) {
         BackgroundService service = backgroundServiceMap.get(serviceId);
         if (service == null) {
             redirectAttributes.addFlashAttribute("error", "Service not found");
         } else {
-            backgroundServices.trigger(serviceId);
+            Map<String, String> parameters = new TreeMap<>();
+            if (batchSize != null) {
+                parameters.put(BATCH_SIZE_PARAMETER, batchSize.toString());
+            }
+            if (forceUpdate != null) {
+                parameters.put(FORCE_UPDATE_PARAMETER, forceUpdate.toString());
+            }
+
+            backgroundServices.trigger(serviceId, parameters);
+
             redirectAttributes.addFlashAttribute("success", String.format("Scheduled service '%s' for execution", service.getName()));
         }
         return redirectToIndex();
@@ -137,6 +156,7 @@ public class AdminController {
         String status;
         boolean active;
         boolean waitingOrRunning;
+        Map<String, String> supportedParameters;
 
         BackgroundServiceData(String id, BackgroundService backgroundService) {
             this.id = id;
@@ -144,6 +164,7 @@ public class AdminController {
             this.status = backgroundService.getStatus();
             this.active = backgroundService.isActive();
             this.waitingOrRunning = backgroundService.isWaitingOrRunning();
+            this.supportedParameters = backgroundService.supportedParameters();
         }
     }
 

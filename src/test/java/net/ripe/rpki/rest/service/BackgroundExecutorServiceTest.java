@@ -6,6 +6,7 @@ import net.ripe.rpki.services.impl.background.BackgroundServices;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
@@ -17,12 +18,16 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import javax.servlet.http.Cookie;
 import javax.ws.rs.core.MediaType;
+import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.security.ApiKeySecurity.API_KEY_HEADER;
 import static net.ripe.rpki.rest.security.ApiKeySecurity.USER_ID_HEADER;
 import static net.ripe.rpki.rest.service.Rest.TESTING_API_KEY;
+import static net.ripe.rpki.server.api.services.background.BackgroundService.BATCH_SIZE_PARAMETER;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -55,6 +60,7 @@ public class BackgroundExecutorServiceTest {
         when(backgroundServices.getByName(BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE)).thenReturn(backgroundService);
         when(backgroundService.getName()).thenReturn("dummyService");
         when(backgroundService.getStatus()).thenReturn("not running");
+        when(backgroundService.supportedParameters()).thenReturn(Collections.singletonMap(BATCH_SIZE_PARAMETER, "1000"));
     }
 
     @Test
@@ -93,7 +99,7 @@ public class BackgroundExecutorServiceTest {
 
     @Test
     public void postExecutesTheService() throws Exception {
-        mockMvc.perform(post("/api/background/service/allCertificateUpdateService")
+        mockMvc.perform(post("/api/background/service/allCertificateUpdateService?batchSize=100")
                 .header(API_KEY_HEADER, TESTING_API_KEY)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .cookie(new Cookie(USER_ID_HEADER, UUID.randomUUID().toString()))
@@ -101,7 +107,11 @@ public class BackgroundExecutorServiceTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(startsWith("dummyService has been triggered through REST API")));
 
-        verify(backgroundServices).trigger(eq(BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE), anyMap());
+        ArgumentCaptor<Map<String, String>> parametersCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(backgroundServices).trigger(eq(BackgroundServices.ALL_CA_CERTIFICATE_UPDATE_SERVICE), parametersCaptor.capture());
+        assertThat(parametersCaptor.getValue())
+            .hasSize(1)
+            .containsEntry(BATCH_SIZE_PARAMETER, "100");
     }
 
     @Test

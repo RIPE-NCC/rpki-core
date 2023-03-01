@@ -1,6 +1,5 @@
 package net.ripe.rpki.services.impl.background;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
@@ -8,7 +7,6 @@ import com.google.common.util.concurrent.AtomicDouble;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -61,10 +59,6 @@ public class ResourceCacheService {
     @Getter
     private final CaName allResourcesCaName;
 
-    @VisibleForTesting
-    @Getter(AccessLevel.PACKAGE)
-    private volatile boolean acceptOneRejectedResourceCacheUpdate;
-
     @Getter
     private volatile Instant lastUpdateAttemptedAt;
 
@@ -94,8 +88,6 @@ public class ResourceCacheService {
         this.productionCaName = CaName.of(productionCaName);
         this.allResourcesCaName = CaName.of(allResourcesCaName);
 
-        this.acceptOneRejectedResourceCacheUpdate = acceptOneRejectedResourceCacheUpdate;
-
         final Instant lastUpdateTimeFromDatabase = Optional
             .ofNullable(resourceCache.lastUpdateTime())
             .map(AbstractInstant::toInstant)
@@ -114,6 +106,10 @@ public class ResourceCacheService {
     }
 
     public void updateFullResourceCache() {
+        updateFullResourceCache(false);
+    }
+
+    public void updateFullResourceCache(boolean forceUpdate) {
         ResourceServicesClient.TotalResources allResources;
         try {
             allResources = resourceServicesClient.fetchAllResources();
@@ -135,21 +131,22 @@ public class ResourceCacheService {
             final List<Update> updates = ImmutableList.of(productionUpdate, membersUpdate);
             final List<Update> rejected = updates.stream().filter(Update::isRejected).collect(Collectors.toList());
 
-            if (acceptOneRejectedResourceCacheUpdate && !rejected.isEmpty()) {
-                log.error("One-time overriding rejection for reason(s): {}", rejected.stream().map(Update::getRejectionMessage).filter(Optional::isPresent).collect(Collectors.toList()));
+            if (forceUpdate && !rejected.isEmpty()) {
+                log.error(
+                    "Forced overriding rejection for reason(s): {}",
+                    rejected.stream()
+                        .flatMap(x -> x.getRejectionMessage().stream())
+                        .collect(Collectors.joining("; ", "", "."))
+                );
             }
 
-            interpretUpdate(productionUpdate, acceptOneRejectedResourceCacheUpdate);
-            interpretUpdate(membersUpdate, acceptOneRejectedResourceCacheUpdate);
+            interpretUpdate(productionUpdate, forceUpdate);
+            interpretUpdate(membersUpdate, forceUpdate);
 
-            if (!rejected.isEmpty()) {
-                if (acceptOneRejectedResourceCacheUpdate) {
-                    acceptOneRejectedResourceCacheUpdate = false;
-                } else {
-                    // Rollback transactions after interpreting updates so that metrics get adjusted correctly,
-                    // otherwise we could just return early before interpreting the updates.
-                    status.setRollbackOnly();
-                }
+            if (!forceUpdate && !rejected.isEmpty()) {
+                // Rollback transactions after interpreting updates so that metrics get adjusted correctly,
+                // otherwise we could just return early before interpreting the updates.
+                status.setRollbackOnly();
             }
 
             scheduleResourceCertificateUpdateForChangedCas(updates);

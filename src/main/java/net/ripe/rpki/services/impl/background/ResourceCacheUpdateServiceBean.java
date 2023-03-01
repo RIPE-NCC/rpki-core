@@ -6,6 +6,7 @@ import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdm
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.Map;
 
 @Slf4j
@@ -28,6 +29,11 @@ public class ResourceCacheUpdateServiceBean extends ConcurrentBackgroundServiceW
 
     @Override
     protected void runService(Map<String, String> parameters) {
-        resourceCacheService.updateFullResourceCache();
+        resourceCacheService.updateFullResourceCache(parseForceUpdateParameter(parameters));
+    }
+
+    @Override
+    public Map<String, String> supportedParameters() {
+        return Collections.singletonMap(FORCE_UPDATE_PARAMETER, "false");
     }
 }

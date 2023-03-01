@@ -164,7 +164,7 @@ public class ResourceCacheServiceTest {
     }
 
     @Test
-    public void shouldAllowOneTimeOverrideOfRejections() {
+    public void shouldAllowForcingOfRejectedUpdate() {
         final MemberResources memberResources = DataSamples.memberResources();
         final RipeNccDelegations ripeNccDelegations = DataSamples.ripeNccDelegations(memberResources);
 
@@ -176,13 +176,7 @@ public class ResourceCacheServiceTest {
         when(resourceServicesClient.fetchAllResources()).thenReturn(
             new TotalResources(resourcesToReject, DataSamples.ripeNccDelegations(resourcesToReject)));
 
-        subject = new ResourceCacheService(transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
-            sequentialBackgroundQueuedTaskRunner, allCaCertificateUpdateServiceBean, new X500Principal("CN=666"), new X500Principal("CN=123"), true, new SimpleMeterRegistry());
-        // override is set
-        assertThat(subject.isAcceptOneRejectedResourceCacheUpdate()).isTrue();
-        subject.updateFullResourceCache();
-        // The one time override was "used"
-        assertThat(subject.isAcceptOneRejectedResourceCacheUpdate()).isFalse();
+        subject.updateFullResourceCache(true);
 
         final ImmutableResourceSet expectedValue = DataSamples.ripeNccDelegations(resourcesToReject).allDelegationResources();
         assertThat(delegationsCache.getDelegationsCache()).hasValue(expectedValue);

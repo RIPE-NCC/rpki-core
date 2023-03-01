@@ -1,7 +1,6 @@
 package net.ripe.rpki.rest.service;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Sets;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +30,6 @@ import static org.springframework.http.HttpStatus.PRECONDITION_FAILED;
 @RequestMapping(path = "/api/background/service/{serviceName}", produces = { APPLICATION_JSON })
 @Tag(name = "/api/background/service/{serviceName}", description = "Rest Endpoint for background service")
 public class BackgroundExecutorService extends RestService {
-    private static final Set<String> ALLOWED_BACKGROUND_JOB_PARAMETERS = Sets.newHashSet("batchSize");
 
     private final BackgroundServices backgroundServices;
 
@@ -68,11 +66,14 @@ public class BackgroundExecutorService extends RestService {
                 return logAndReturnResponse(BAD_REQUEST, "too many job parameters");
             }
 
+            final BackgroundService backgroundService = backgroundServices.getByName(serviceName);
+            Set<String> supportedParameters = backgroundService.supportedParameters().keySet();
+
             // Restrict parameter names to known values and parameter values to short, simple strings to avoid
             // potential injection attacks.
             List<Map.Entry<String, String>> badParameters = parameters.entrySet().stream()
                 .filter(entry ->
-                    !ALLOWED_BACKGROUND_JOB_PARAMETERS.contains(entry.getKey())
+                    !supportedParameters.contains(entry.getKey())
                         || entry.getValue().length() > 100
                         || !entry.getValue().matches("[0-9a-zA-Z_:-]*")
                 )
@@ -81,7 +82,6 @@ public class BackgroundExecutorService extends RestService {
                 return logAndReturnResponse(BAD_REQUEST, "incorrect job parameter(s) - " + badParameters);
             }
 
-            final BackgroundService backgroundService = backgroundServices.getByName(serviceName);
             if (backgroundService.isWaitingOrRunning()) {
                 return logAndReturnResponse(PRECONDITION_FAILED, serviceName + " is already waiting or running");
             }

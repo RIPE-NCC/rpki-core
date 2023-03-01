@@ -186,10 +186,14 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
         return backgroundTaskRunner.task(task, onError);
     }
 
+    protected boolean parseForceUpdateParameter(Map<String, String> parameters) {
+        return Boolean.parseBoolean(parameters.getOrDefault(FORCE_UPDATE_PARAMETER, "false"));
+    }
+
     protected Optional<Integer> parseBatchSizeParameter(Map<String, String> parameters)
         throws IllegalArgumentException
     {
-        return Optional.ofNullable(parameters.get("batchSize"))
+        return Optional.ofNullable(parameters.get(BATCH_SIZE_PARAMETER))
             .map(s -> {
                 var value = Integer.parseUnsignedInt(s);
                 if (value <= 0) {

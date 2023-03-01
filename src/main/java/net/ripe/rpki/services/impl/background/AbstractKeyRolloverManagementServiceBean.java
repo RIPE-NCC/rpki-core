@@ -10,6 +10,7 @@ import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
@@ -19,24 +20,24 @@ public abstract class AbstractKeyRolloverManagementServiceBean extends Sequentia
     private final CertificateAuthorityViewService caViewService;
     private final CommandService commandService;
 
-    private final Optional<Integer> batchSize;
+    private final Optional<Integer> defaultBatchSize;
 
     protected AbstractKeyRolloverManagementServiceBean(BackgroundTaskRunner backgroundTaskRunner,
                                                        CertificationConfiguration certificationConfiguration,
                                                        CertificateAuthorityViewService certificationService,
                                                        CommandService commandService,
-                                                       Optional<Integer> batchSize) {
+                                                       Optional<Integer> defaultBatchSize) {
         super(backgroundTaskRunner);
         this.certificationConfiguration = certificationConfiguration;
         this.caViewService = certificationService;
         this.commandService = commandService;
-        this.batchSize = batchSize;
+        this.defaultBatchSize = defaultBatchSize;
     }
 
     protected void runKeyRoll(Class<? extends ManagedCertificateAuthority> type, Map<String, String> parameters) {
         Optional<Integer> actualBatchSize;
         try {
-            actualBatchSize = parseBatchSizeParameter(parameters).or(() -> this.batchSize);
+            actualBatchSize = parseBatchSizeParameter(parameters).or(() -> this.defaultBatchSize);
         } catch (IllegalArgumentException e) {
             log.warn("error parsing batch size parameter: {}", e.getMessage());
             return;
@@ -54,4 +55,10 @@ public abstract class AbstractKeyRolloverManagementServiceBean extends Sequentia
             )));
     }
 
+    @Override
+    public Map<String, String> supportedParameters() {
+        return defaultBatchSize
+            .map(x -> Collections.singletonMap(BATCH_SIZE_PARAMETER, x.toString()))
+            .orElse(Collections.emptyMap());
+    }
 }

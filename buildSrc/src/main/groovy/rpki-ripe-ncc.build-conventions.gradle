@@ -35,6 +35,7 @@ tasks.withType(JavaCompile) {
     options.compilerArgs << '-Xlint:all'
                          << '-Xlint:-processing'
                          << '-Xlint:-serial'
+                         << '-Werror'
 }
 
 tasks.named('test', Test) {

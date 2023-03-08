@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" >
-  <head data-th-insert="~{fragments/includes :: includes}"></head>
+  <head>
+    <div data-th-replace="~{fragments/includes :: includes}"></div>
+    <script rel="preload" data-th-src="@{/js/history-table-scripts.js}"></script>
+  </head>
+
   <body>
     <div data-th-replace="~{fragments/header :: header}"></div>
     <div class="main-flex">
@@ -41,8 +45,8 @@
             <td data-th-text="${history.principal}">system</td>
             <td>
               <div class="summary-content">
-                <div id="summary-short" class="summary-short">Summary short</div>
-                <div id="summary-full" class="summary-full" data-th-text="${history.summary}">
+                <div id="summary-short" class="summary-short"></div>
+                <div id="summary-full" class="summary-full hidden" data-th-text="${history.summary}">
                   Summary full
                 </div>
                 <i id="expand-icon" data-th-onclick="'javascript:handleExtend(' + ${historyStat.index} + ')'" class="expand-icon bi bi-chevron-down"></i>
@@ -50,18 +54,17 @@
             </td>
           </tr>
           </tbody>
-          <tr id="no-results">
+          <tr id="no-results" class="hidden">
             <td colspan="3">No results found</td>
           </tr>
         </table>
 
         <div class="table-navigation">
-          <button onclick="prevPage()" id="btn_prev">Prev</button>
+          <button class="hidden" onclick="prevPage()" id="btn_prev">Prev</button>
           <span id="page"></span>
-          <button onclick="nextPage()" id="btn_next">Next</button>
+          <button class="hidden" onclick="nextPage()" id="btn_next">Next</button>
         </div>
       </div>
     </div>
-    <script type="text/javascript" data-th-src="@{/js/history-table-scripts.js}"></script>
   </body>
 </html>

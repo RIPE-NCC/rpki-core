@@ -64,17 +64,17 @@ public class CaService extends AbstractCaRestService {
     private final CertificateAuthorityCreateService certificateAuthorityCreateService;
     private final ResourceLookupService resourceCache;
     private final CommandService commandService;
-    private final ProvisioningIdentityViewService delegationCaProvisioningService;
+    private final ProvisioningIdentityViewService provisioningIdentityViewService;
 
     @Autowired
     public CaService(CertificateAuthorityCreateService certificateAuthorityCreateService,
                      ResourceLookupService resourceCache,
                      CommandService commandService,
-                     ProvisioningIdentityViewService delegationCaProvisioningService) {
+                     ProvisioningIdentityViewService provisioningIdentityViewService) {
         this.certificateAuthorityCreateService = certificateAuthorityCreateService;
         this.resourceCache = resourceCache;
         this.commandService = commandService;
-        this.delegationCaProvisioningService = delegationCaProvisioningService;
+        this.provisioningIdentityViewService = provisioningIdentityViewService;
     }
 
     private ResponseEntity<Map<String,String>> responseForCaNameNotUniqueException(CaName caName) {
@@ -204,7 +204,7 @@ public class CaService extends AbstractCaRestService {
         log.info("Downloading identity certificate for CA: {}", caName);
 
         final X500Principal principal = caName.getPrincipal();
-        final ParentIdentity parentId = delegationCaProvisioningService.getParentIdentityForNonHostedCa(principal);
+        final ParentIdentity parentId = provisioningIdentityViewService.getParentIdentityForNonHostedCa(principal);
 
         if (parentId != null) {
             final String xml = new ParentIdentitySerializer().serialize(parentId);

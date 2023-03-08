@@ -1,11 +1,13 @@
 package net.ripe.rpki.web;
 
 import lombok.NonNull;
+import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
+import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
+import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.services.impl.background.BackgroundServices;
-import net.ripe.rpki.web.AdminController.ActiveNodeForm;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,7 +25,11 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -39,12 +45,14 @@ public class AdminControllerTest extends SpringWebControllerTestCase {
     private BackgroundService backgroundService;
     @Mock
     private BackgroundServices backgroundServices;
+    @Mock
+    private ProvisioningIdentityViewService provisioningIdentityViewService;
 
     @NonNull
     @Override
     protected AdminController createSubjectController() {
         Map<String, BackgroundService> backgroundServiceMap = Collections.singletonMap("backgroundService", backgroundService);
-        return new AdminController(repositoryConfiguration, activeNodeService, backgroundServiceMap, backgroundServices);
+        return new AdminController(repositoryConfiguration, activeNodeService, backgroundServiceMap, backgroundServices, provisioningIdentityViewService);
     }
 
     @Before
@@ -56,23 +64,26 @@ public class AdminControllerTest extends SpringWebControllerTestCase {
 
     @Test
     public void should_show_index() throws Exception {
-        MvcResult result = mockMvc.perform(get(AdminController.ADMIN_HOME)).andReturn();
+        when(provisioningIdentityViewService.findProvisioningIdentityMaterial()).thenReturn(ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT );
+
+        MvcResult result = mockMvc.perform(get(BaseController.ADMIN_HOME)).andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
         assertThat(result.getModelAndView()).isNotNull();
         Map<String, Object> model = result.getModelAndView().getModel();
         assertThat(model).extractingByKey("activeNodeForm").isInstanceOfSatisfying(
-            ActiveNodeForm.class,
+            BaseController.ActiveNodeForm.class,
             form -> assertThat(form.name).isEqualTo("active-node")
         );
         assertThat(result.getResponse().getContentAsString())
             .contains("<input type=\"text\" required name=\"name\" value=\"active-node\"/>")
-            .contains("<td>mock background service</td>");
+            .contains("<td>mock background service</td>")
+            .contains("(created at").contains("valid until");  // Provisioning identity certificate
     }
 
     @Test
     public void should_activate_node() throws Exception {
-        MvcResult result = mockMvc.perform(post(AdminController.ADMIN_HOME + "/activate-node").param("name", "updated-node")).andReturn();
+        MvcResult result = mockMvc.perform(post(BaseController.ADMIN_HOME + "/activate-node").param("name", "updated-node")).andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.FOUND.value());
         verify(activeNodeService).setActiveNodeName("updated-node");
@@ -80,15 +91,16 @@ public class AdminControllerTest extends SpringWebControllerTestCase {
 
     @Test
     public void should_fail_to_activate_node_with_invalid_node_name() throws Exception {
-        MvcResult result = mockMvc.perform(post(AdminController.ADMIN_HOME + "/activate-node").param("name", "@@invalid-node-name@@")).andReturn();
+        MvcResult result = mockMvc.perform(post(BaseController.ADMIN_HOME + "/activate-node").param("name", "@@invalid-node-name@@")).andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         verify(activeNodeService, never()).setActiveNodeName(any());
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void should_run_background_service() throws Exception {
-        MvcResult result = mockMvc.perform(post(AdminController.ADMIN_HOME + "/services/{id}?batchSize=42&forceUpdate=true", "backgroundService")).andReturn();
+        MvcResult result = mockMvc.perform(post(BaseController.ADMIN_HOME + "/services/{id}?batchSize=42&forceUpdate=true", "backgroundService")).andReturn();
 
         assertThat((Map<String, Object>) result.getFlashMap()).containsEntry("success", "Scheduled service 'mock background service' for execution");
         ArgumentCaptor<Map<String, String>> parametersCaptor = ArgumentCaptor.forClass(Map.class);
@@ -101,9 +113,28 @@ public class AdminControllerTest extends SpringWebControllerTestCase {
 
     @Test
     public void should_fail_to_run_unknown_background_service() throws Exception {
-        MvcResult result = mockMvc.perform(post(AdminController.ADMIN_HOME + "/services/{id}", "foo")).andReturn();
+        MvcResult result = mockMvc.perform(post(BaseController.ADMIN_HOME + "/services/{id}", "foo")).andReturn();
 
         assertThat((Map<String, Object>) result.getFlashMap()).containsEntry("error", "Service not found");
         verifyNoInteractions(backgroundServices);
+    }
+
+    @Test
+    public void should_download_provisioning_identity_certificate() throws Exception {
+        ProvisioningIdentityCertificate testIdentityCert = ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT;
+        when(provisioningIdentityViewService.findProvisioningIdentityMaterial()).thenReturn(testIdentityCert);
+
+        MvcResult result = mockMvc.perform(get(BaseController.ADMIN_HOME + "/provisioning-identity-certificate.cer")).andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
+        assertThat(result.getResponse().getContentAsByteArray()).isEqualTo(testIdentityCert.getEncoded());
+        assertThat(result.getResponse().getContentType()).isEqualTo("application/pkix-cert");
+    }
+
+    @Test
+    public void should_return_not_found_without_provisioning_identity_certificate() throws Exception {
+        MvcResult result = mockMvc.perform(get(BaseController.ADMIN_HOME + "/provisioning-identity-certificate.cer")).andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
     }
 }

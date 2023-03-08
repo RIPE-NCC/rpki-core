@@ -1,15 +1,16 @@
 package net.ripe.rpki.web;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
+import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.services.impl.background.BackgroundServices;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -21,58 +22,44 @@ import org.springframework.web.servlet.view.RedirectView;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import static net.ripe.rpki.server.api.services.background.BackgroundService.BATCH_SIZE_PARAMETER;
 import static net.ripe.rpki.server.api.services.background.BackgroundService.FORCE_UPDATE_PARAMETER;
 
 @Controller
-@RequestMapping(AdminController.ADMIN_HOME)
-public class AdminController {
+@RequestMapping(BaseController.ADMIN_HOME)
+@Slf4j
+public class AdminController extends BaseController {
 
-    public static final String ADMIN_HOME = "/admin";
-
-    private final RepositoryConfiguration repositoryConfiguration;
-    private final ActiveNodeService activeNodeService;
     private final Map<String, BackgroundService> backgroundServiceMap;
     private final BackgroundServices backgroundServices;
+    private final ProvisioningIdentityViewService provisioningIdentityViewService;
 
     @Inject
-    public AdminController(RepositoryConfiguration repositoryConfiguration, ActiveNodeService activeNodeService, Map<String, BackgroundService> backgroundServiceMap, BackgroundServices backgroundServices) {
-        this.repositoryConfiguration = repositoryConfiguration;
-        this.activeNodeService = activeNodeService;
+    public AdminController(
+        RepositoryConfiguration repositoryConfiguration,
+        ActiveNodeService activeNodeService,
+        Map<String, BackgroundService> backgroundServiceMap,
+        BackgroundServices backgroundServices,
+        ProvisioningIdentityViewService provisioningIdentityViewService
+    ) {
+        super(repositoryConfiguration, activeNodeService);
         this.backgroundServiceMap = backgroundServiceMap;
         this.backgroundServices = backgroundServices;
-    }
-
-    @ModelAttribute(name = "currentUser", binding = false)
-    public UserData currentUser(@AuthenticationPrincipal Object user) {
-        if (user instanceof OAuth2User) {
-            OAuth2User oAuth2User = (OAuth2User) user;
-            return new UserData(oAuth2User.getName(), oAuth2User.getAttribute("name"), oAuth2User.getAttribute("email"));
-        } else {
-            String id = String.valueOf(user);
-            return new UserData(id, id, null);
-        }
-    }
-
-    @ModelAttribute(name = "coreConfiguration", binding = false)
-    public CoreConfigurationData coreConfigurationData() {
-        return new CoreConfigurationData(repositoryConfiguration, activeNodeService);
+        this.provisioningIdentityViewService = provisioningIdentityViewService;
     }
 
     @ModelAttribute(name = "backgroundServices", binding = false)
     public List<BackgroundServiceData> backgroundServices() {
-        return backgroundServiceMap.entrySet().stream()
-            .map(entry -> new BackgroundServiceData(entry.getKey(), entry.getValue()))
-            .sorted(Comparator.comparing(s -> s.name))
-            .collect(Collectors.toList());
+        return BackgroundServiceData.fromBackgroundServices(backgroundServiceMap);
+    }
+
+    @ModelAttribute(name = "provisioningIdentityCertificate", binding = false)
+    public ProvisioningIdentityCertificate provisioningIdentityCertificate() {
+        return provisioningIdentityViewService.findProvisioningIdentityMaterial();
     }
 
     @GetMapping
@@ -87,7 +74,7 @@ public class AdminController {
     }
 
     @PostMapping({"/activate-node"})
-    public ModelAndView activateNode(@Valid AdminController.ActiveNodeForm node, BindingResult result, RedirectAttributes redirectAttributes) {
+    public ModelAndView activateNode(@Valid ActiveNodeForm node, BindingResult result, RedirectAttributes redirectAttributes) {
         FieldError nameError = result.getFieldError("name");
         if (nameError != null) {
             return new ModelAndView("admin/index", HttpStatus.BAD_REQUEST)
@@ -127,55 +114,19 @@ public class AdminController {
         return redirectToIndex();
     }
 
-    @Value
-    public static class UserData {
-        String id;
-        String name;
-        String email;
-    }
-
-    @Value @AllArgsConstructor
-    public static class CoreConfigurationData {
-        String localRepositoryDirectory;
-        String publicRepositoryUri;
-        String activeNodeName;
-        String currentNodeName;
-
-        CoreConfigurationData(RepositoryConfiguration repositoryConfiguration, ActiveNodeService activeNodeService) {
-            this.localRepositoryDirectory = repositoryConfiguration.getLocalRepositoryDirectory().getAbsolutePath();
-            this.publicRepositoryUri = repositoryConfiguration.getPublicRepositoryUri().toASCIIString();
-            this.activeNodeName = activeNodeService.getActiveNodeName();
-            this.currentNodeName = activeNodeService.getCurrentNodeName();
+    @GetMapping(
+        path = {"/provisioning-identity-certificate.cer"},
+        produces = "application/pkix-cert"
+    )
+    public ResponseEntity<byte[]> getProvisioningIdentityCertificate() {
+        ProvisioningIdentityCertificate provisioningIdentityMaterial = provisioningIdentityViewService.findProvisioningIdentityMaterial();
+        if (provisioningIdentityMaterial == null) {
+            return ResponseEntity.notFound().build();
         }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline().filename("provisioning-identity-certificate.cer").build().toString())
+                .body(provisioningIdentityMaterial.getEncoded());
     }
 
-    @Value @AllArgsConstructor
-    public static class BackgroundServiceData {
-        String id;
-        String name;
-        String status;
-        boolean active;
-        boolean waitingOrRunning;
-        Map<String, String> supportedParameters;
-
-        BackgroundServiceData(String id, BackgroundService backgroundService) {
-            this.id = id;
-            this.name = backgroundService.getName();
-            this.status = backgroundService.getStatus();
-            this.active = backgroundService.isActive();
-            this.waitingOrRunning = backgroundService.isWaitingOrRunning();
-            this.supportedParameters = backgroundService.supportedParameters();
-        }
-    }
-
-    @Data @AllArgsConstructor
-    public static class ActiveNodeForm {
-        @NotBlank
-        // Regex taken from https://stackoverflow.com/a/106223
-        @Pattern(
-            regexp = "\\s*(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\s*",
-            message = "must be a valid hostname"
-        )
-        String name;
-    }
 }

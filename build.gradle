@@ -67,9 +67,8 @@ dependencies {
     implementation 'ch.qos.logback.contrib:logback-jackson:0.1.5'
     implementation 'net.logstash.logback:logstash-logback-encoder:7.3'
 
-    // wicket/admin pages
+    // for email templates
     implementation 'org.apache.velocity:velocity:1.7'
-    implementation 'org.apache.wicket:wicket-auth-roles:1.4.23'
 
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
@@ -135,6 +134,12 @@ task integrationTest(type: Test) {
      classpath = sourceSets.integration.runtimeClasspath
      mustRunAfter test
 }
+
+// run integration tests as part of `check`
+tasks.named('check') {
+    dependsOn tasks.named('integrationTest')
+}
+
 
 bootRun {
     systemProperty 'spring.profiles.active', 'local'

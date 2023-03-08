@@ -98,6 +98,7 @@ public class BackgroundExecutorServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void postExecutesTheService() throws Exception {
         mockMvc.perform(post("/api/background/service/allCertificateUpdateService?batchSize=100")
                 .header(API_KEY_HEADER, TESTING_API_KEY)

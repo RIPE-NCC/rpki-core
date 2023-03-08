@@ -1,4 +1,0 @@
-This directory should contain the latest version of the RIPE NCC validator tool.
-
-This binary is not under version control here.. just build it from certification-validator,
-or parent.. and copy it over!

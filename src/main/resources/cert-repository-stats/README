@@ -1,5 +1,0 @@
-This script is used to get stats on the number of certificates, ROAs etc
-for the known RPKI Trust Anchors and archive the validated results daily,
-and sync the summaries so that they are visible here:
-
-https://lirportal.ripe.net/certification/content/static/statistics/

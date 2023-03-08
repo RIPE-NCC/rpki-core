@@ -59,6 +59,19 @@ public class ProvisioningIdentityViewServiceBean implements ProvisioningIdentity
         }));
     }
 
+    @Override
+    public ProvisioningIdentityCertificate findProvisioningIdentityMaterial() {
+        ProductionCertificateAuthority productionCa = findProductionCa();
+        if (productionCa == null) {
+            return null;
+        }
+        DownStreamProvisioningCommunicator downStreamCommunicator = productionCa.getMyDownStreamProvisioningCommunicator();
+        if (downStreamCommunicator == null) {
+            return null;
+        }
+        return downStreamCommunicator.getProvisioningIdentityCertificate();
+    }
+
     private ProductionCertificateAuthority findProductionCa() {
         try {
             X500Principal productionCa = repositoryConfiguration.getProductionCaPrincipal();
@@ -66,12 +79,6 @@ public class ProvisioningIdentityViewServiceBean implements ProvisioningIdentity
         } catch (ClassCastException e) {
             throw new NotImplementedException("Only implemented for ProductionCertificateAuthority", e);
         }
-    }
-
-    @Override
-    public ProvisioningIdentityCertificate findProvisioningIdentityMaterial() {
-        DownStreamProvisioningCommunicator downStreamCommunicator = findProductionCa().getMyDownStreamProvisioningCommunicator();
-        return downStreamCommunicator != null ? downStreamCommunicator.getProvisioningIdentityCertificate() : null;
     }
 
 }

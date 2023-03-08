@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" >
-<head data-th-insert="~{fragments/includes :: includes}"></head>
+    <head><div data-th-replace="~{fragments/includes :: includes}"></div></head>
 
     <body>
         <div data-th-replace="~{fragments/header :: header}"></div>
@@ -28,6 +28,18 @@
                     <tr>
                         <td>Public repository URI</td>
                         <td data-th-text="${coreConfiguration.publicRepositoryUri}">rsync://example.com/rpki/repository</td>
+                    </tr>
+                    <tr>
+                        <td>Provisioning Identity Certificate</td>
+                        <td data-th-if="${provisioningIdentityCertificate != null}" data-th-object="${provisioningIdentityCertificate}">
+                            <a data-th-href="@{admin/provisioning-identity-certificate.cer}" data-th-text="*{subject}">Subject</a>
+                            (created at <span data-th-text="*{validityPeriod.notValidBefore}">not valid before</span> and
+                            valid until <span data-th-text="*{validityPeriod.notValidAfter}">not valid after</span>)
+                        </td>
+                        <td data-th-if="${provisioningIdentityCertificate == null}">
+                            No provisioning identity certificate has been generated yet, run the "Create necessary
+                            CAs: All Resources CAs and Production CA and up-down key material" service to generate it.
+                        </td>
                     </tr>
                     <tr>
                         <td>Current node</td>

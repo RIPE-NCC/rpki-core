@@ -1,7 +1,6 @@
 package net.ripe.rpki.rest.security;
 
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.rpki.ui.application.CertificationAdminWicketApplication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -67,7 +66,6 @@ public class SecurityConfig {
         @Value("${authorization.admin.role}") String adminRole
     ) throws Exception {
         http.requestMatcher(WEB_REQUEST_MATCHER)
-            .csrf(c -> c.ignoringAntMatchers(CertificationAdminWicketApplication.BOOKMARKABLE_PAGES.keySet().toArray(String[]::new)))
             // If there are multiple matchers, the order is important. First match wins!
             .authorizeRequests(r -> r
                 .antMatchers(
@@ -75,7 +73,6 @@ public class SecurityConfig {
                     "/actuator/active-node/",
                     "/actuator/prometheus",
                     "/monitoring/healthcheck",
-                    "/portal-theme/**",
                     "/static/**"
                     ).permitAll()
                 .anyRequest().hasAuthority(adminRole)

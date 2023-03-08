@@ -36,8 +36,8 @@ resource.services:
     url: https://rsng.prepdev.ripe.net/resource-services
     apiKey: BAD-TEST-D2Shtf2n5Bwh02P7
 
-riswhoisdump:
-    base.url: http://localhost:8080/certification/static/dev-ris
+# Prevent requests during test
+riswhoisdump.base.url: http://localhost:8080/certification/static/riswhois/
 
 #
 # Application specific settings

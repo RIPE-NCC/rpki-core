@@ -31,7 +31,7 @@ public class RisWhoisFetcherTest {
             public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
                 response.setContentType("application/x-gzip");
                 response.setStatus(HttpServletResponse.SC_OK);
-                IOUtils.copy(RisWhoisFetcherTest.class.getResourceAsStream("/bgpris/riswhois/riswhoisdump-head-1000.IPv4.gz"), response.getOutputStream());
+                IOUtils.copy(RisWhoisFetcherTest.class.getResourceAsStream("/static/riswhois/riswhoisdump-head-1000.IPv4.gz"), response.getOutputStream());
                 ((Request) request).setHandled(true);
             }
         };

@@ -120,6 +120,7 @@ function hideFullSummary() {
 
       summaryShortDivs.item(i).innerHTML = shortSummaryString;
       summaryFullDivs.item(i).classList.add('hidden');
+      summaryShortDivs.item(i).classList.remove('hidden');
 
       if(shortSummaryString == longSummaryString) {
         expandIcons.item(i).classList.add('hidden');

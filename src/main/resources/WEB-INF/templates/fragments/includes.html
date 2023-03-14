@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-th-fragment="includes" data-th-remove="tag">
+<head data-th-fragment="includes" data-th-with="title=${title} ?: 'RPKI Admin UI'" data-th-remove="tag">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width"/>
     <base data-th-href="@{/}"/>
@@ -8,8 +8,12 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
 
     <link rel="stylesheet" type="text/css" data-th-href="@{/styles/main.css}"/>
+    <link rel="stylesheet" type="text/css" data-th-href="@{/styles/sidebar.css}"/>
+    <link rel="stylesheet" type="text/css" data-th-href="@{/styles/header.css}"/>
+
+    <script data-th-src="@{/js/sidebar-scripts.js}"></script>
     
-    <title>RPKI Admin UI</title>
+    <title data-th-text="${title}">RPKI Admin UI</title>
 </head>
 <body>
 

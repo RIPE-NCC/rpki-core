@@ -1,0 +1,78 @@
+.header-full {
+    position: sticky;
+    top: 0px;
+}
+
+.header {
+    border-bottom-style: solid;
+    border-color: #ff9600;
+    border-width: 1px;
+    color: #080037;
+    width:  100%;
+    display: flex;
+    max-height: 72px;
+    flex-direction: row;
+    justify-content: space-between;
+    background-color: #fff;
+}
+
+.header-inner {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.header i {
+    font-size: 32px;
+    margin: 16px;
+    color: #080037;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.header-environment-tag {
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+.tag-local {
+    color: #fff;
+    background-color: #080037;
+}
+
+.tag-prepdev {
+    color: #ff9600;
+    background-color: #080037;
+}
+
+.tag-production {
+    color: #080037;
+    background-color: #ff9600;
+}
+
+.header i:hover, .header i:focus {
+    color: #ff9600;
+}
+
+.h1-header {
+    margin: 16px 8px;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    min-width: 200px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    margin: 0px 16px 16px;
+    border-radius: 4px;
+    background-color: #fff;
+}
+
+.dropdown-content div {
+    padding-bottom: 4px;
+}

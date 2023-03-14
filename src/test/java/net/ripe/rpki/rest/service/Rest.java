@@ -15,7 +15,7 @@ import static net.ripe.rpki.rest.security.ApiKeySecurity.USER_ID_HEADER;
 @ActiveProfiles("test")
 @Component
 public class Rest {
-
+    // This API KEY is not a secret and is intentionally included in this (public) repository.
     public static final String TESTING_API_KEY = "BAD-TEST-D2Shtf2n5Bwh02P7";
 
     static MockHttpServletRequestBuilder post(String url, String content) {

@@ -4,10 +4,23 @@
     <meta charset="UTF-8">
 </head>
     <body>
-        <div class="header-full" data-th-fragment="header">
+        <div class="header-full" data-th-fragment="header" data-th-with="title=${title} ?: 'RPKI Admin UI'">
             <div class="header">
-                <h1 class="h1-header">RPKI Admin UI</h1>
-                <i onclick="onClick()" class="drop-icon bi-person-circle"></i>
+                <div class="header-inner">
+                    <div id="sidebar-space" class="sidebar-space collapsed"></div>
+                    <h1 id="h1-header" class="h1-header collapsed" data-th-text="${title}">RPKI Admin UI</h1>
+                </div>
+                <div class="header-inner">
+                    <div 
+                        class="header-environment-tag"
+                        data-th-classappend="'tag-' + ${coreConfiguration.environment}" 
+                        data-th-text="${coreConfiguration.environment}"
+                        title="Environment"
+                    >
+                        environment
+                    </div>
+                    <i onclick="onClick()" class="drop-icon bi-person-circle"></i>
+                </div>
             </div>
 
             <div class="dropdown">

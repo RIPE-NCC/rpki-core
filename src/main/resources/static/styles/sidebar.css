@@ -1,0 +1,95 @@
+.sidebar {
+    position: sticky;
+    top: 72px;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 72px);
+    width: 300px;
+    transition: all .2s ease-in-out;
+    border-right-style: solid;
+    border-width: 1px;
+    border-color: #ff9600;
+    background-color: #080037;
+    white-space: nowrap;
+}
+
+.sidebar a {
+    padding: 16px;
+    text-decoration: none;
+    font-size: 16px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+}
+
+.sidebar a:hover {
+    background-color: #ff9600;
+    color: #080037;
+}
+
+.sidebar i {
+    font-size: 32px;
+    margin: 4px;
+    cursor: pointer;
+    padding-right: 12px;
+    align-items: center;
+}
+
+a.active {
+    background-color: #ff9600;
+    color: #080037;
+}
+
+.sidebar-menu-icon {
+    display: flex;
+}
+
+.footer {
+    margin-top: auto;
+    padding: 16px;
+    color: #fff;
+}
+
+.footer i:hover {
+    color: #ff9600;
+}
+
+.sidebar.collapsed {
+    width: 72px;
+    overflow: hidden;
+    transition: width .2s;
+}
+
+.sidebar span {
+    inline-size: 256px;
+    overflow: hidden;
+
+}
+
+.collapsed span {
+    display: none;
+}
+
+.collapsed i {
+    padding: 0px;
+}
+
+.sidebar-space {
+    width: 300px;
+    transition: all .2s ease-in-out;
+}
+
+.sidebar-space.collapsed {
+    width: 72px;
+    transition: width .2s;
+}
+
+.footer i::before {
+    transition: transform .1s linear;
+    transform: rotate(0deg);
+}
+
+.footer i.rotate::before {
+    transform: rotate(-180deg);
+    transition: transform .1s linear;
+}

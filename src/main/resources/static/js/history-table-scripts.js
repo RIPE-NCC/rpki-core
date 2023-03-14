@@ -95,34 +95,18 @@ function searchSummary() {
 
 function handleExtend(index) {
     const summaryFullDivs = document.getElementsByClassName("summary-full");
-    const summaryShortDivs = document.getElementsByClassName("summary-short");
     const expandIcons = document.getElementsByClassName("expand-icon");
 
-    if (summaryFullDivs.item(index).classList.contains("hidden")) {
-      summaryFullDivs.item(index).classList.remove("hidden");
-      summaryShortDivs.item(index).classList.add("hidden");
-      expandIcons.item(index).classList.add("transform");
-    } else {
-      summaryFullDivs.item(index).classList.add("hidden");
-      summaryShortDivs.item(index).classList.remove("hidden");
-      expandIcons.item(index).classList.remove("transform");
-    }
+    summaryFullDivs.item(index).classList.toggle("hide-text-more-than-one-line");
+    expandIcons.item(index).classList.toggle("transform");
 }
 
-function hideFullSummary() {
+function hideExpandIconsIfNeeded() {
     const summaryFullDivs = document.getElementsByClassName("summary-full");
-    const summaryShortDivs = document.getElementsByClassName("summary-short");
     const expandIcons = document.getElementsByClassName("expand-icon");
 
     for (let i = 0; i < summaryFullDivs.length; i++) {
-      const longSummaryString =  summaryFullDivs.item(i).innerHTML;
-      const shortSummaryString = longSummaryString.split(".", 1)[0] + ".";
-
-      summaryShortDivs.item(i).innerHTML = shortSummaryString;
-      summaryFullDivs.item(i).classList.add('hidden');
-      summaryShortDivs.item(i).classList.remove('hidden');
-
-      if(shortSummaryString == longSummaryString) {
+      if (summaryFullDivs.item(i).scrollWidth <= summaryFullDivs.item(i).clientWidth ) {
         expandIcons.item(i).classList.add('hidden');
       }
     }
@@ -180,7 +164,7 @@ function changePage(page) {
     btn_next.classList.remove("hidden");
   }
 
-  hideFullSummary();
+  hideExpandIconsIfNeeded();
 }
 
 function numPages() {

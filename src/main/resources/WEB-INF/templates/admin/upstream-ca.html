@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head><div data-th-replace="~{fragments/includes :: includes}"></div></head>
+    <head><div data-th-replace="~{fragments/includes :: includes(title='RPKI Admin UI | Management')}"></div></head>
 
 <body>
-<div data-th-replace="~{fragments/header :: header}"></div>
+<div data-th-replace="~{fragments/header :: header(title='Upstream CA Management')}"></div>
 <div class="main-flex">
     <div data-th-insert="~{fragments/sidebar :: sidebar}"></div>
     <div class="main">
@@ -17,7 +17,7 @@
         </div>
         <!-- Upstream sign request flow -->
         <div data-th-switch="${pageType}">
-            <table data-th-case="'create-request'">
+            <table class="ca-management-table"  data-th-case="'create-request'">
                 <tr>
                     <td>Generate signing request</td>
                     <td>
@@ -27,7 +27,7 @@
                     </td>
                 </tr>
             </table>
-            <table data-th-case="'download-request'">
+            <table  class="ca-management-table" data-th-case="'download-request'">
                 <tr>
                     <td>Download signing request: <code><span data-th-text="${requestFileName}"></span></code></td>
                     <td>
@@ -48,41 +48,37 @@
         </div>
 
         <!-- All resource CA key management -->
-        <div>
-            <div data-th-switch="${acaKeyStatus}">
-                <div>
-                    <table data-th-case="'old'">
-                        <tr>
-                            <td>Revoke old all resource CA key:</td>
-                            <td>
-                                <form method="POST" data-th-action="@{admin/revoke-old-aca-key}">
-                                    <button type="submit" class="btn btn-primary">Run</button>
-                                </form>
-                            </td>
-                        </tr>
-                    </table>
-                    <table data-th-case="'pending'">
-                        <tr>
-                            <td>Activate pending All resource CA key:</td>
-                            <td>
-                                <form method="POST" data-th-action="@{admin/activate-pending-aca-key}">
-                                    <button type="submit" class="btn btn-primary">Run</button>
-                                </form>
-                            </td>
-                        </tr>
-                    </table>
-                    <table data-th-case="'current'">
-                        <tr>
-                            <td>Initiate key roll-over for All resource CA:</td>
-                            <td>
-                                <form method="POST" data-th-action="@{admin/initiate-rolling-aca-key}">
-                                    <button type="submit" class="btn btn-primary">Run</button>
-                                </form>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
+        <div data-th-switch="${acaKeyStatus}">
+            <table class="ca-management-table" data-th-case="'old'">
+                <tr>
+                    <td>Revoke old all resource CA key:</td>
+                    <td>
+                        <form method="POST" data-th-action="@{admin/revoke-old-aca-key}">
+                            <button type="submit" class="btn btn-primary">Run</button>
+                        </form>
+                    </td>
+                </tr>
+            </table>
+            <table class="ca-management-table" data-th-case="'pending'">
+                <tr>
+                    <td>Activate pending All resource CA key:</td>
+                    <td>
+                        <form method="POST" data-th-action="@{admin/activate-pending-aca-key}">
+                            <button type="submit" class="btn btn-primary">Run</button>
+                        </form>
+                    </td>
+                </tr>
+            </table>
+            <table class="ca-management-table" data-th-case="'current'">
+                <tr>
+                    <td>Initiate key roll-over for All resource CA:</td>
+                    <td>
+                        <form method="POST" data-th-action="@{admin/initiate-rolling-aca-key}">
+                            <button type="submit" class="btn btn-primary">Run</button>
+                        </form>
+                    </td>
+                </tr>
+            </table>
         </div>
 
     </div>

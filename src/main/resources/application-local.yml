@@ -33,20 +33,27 @@ background-services:
 #
 auth.service:
     url: https://ba-apps.prepdev.ripe.net/authorisation-service
+    # wlog: the api.key values in this file are not secrets and are intentionally included
+    # in this (public) repository.
+    #
+    # @see https://www.youtube.com/watch?v=dQw4w9WgXcQ
     api.key: BAD-TEST-D2Shtf2n5Bwh02P7
 
 customer.service:
     url: https://ba-apps.prepdev.ripe.net/customer-service
+    # intentionally included/not a secret
     api.key: BAD-TEST-D2Shtf2n5Bwh02P7
 
 resource.services:
-    apiKey: BAD-TEST-D2Shtf2n5Bwh02P7
     url: https://rsng.prepdev.ripe.net/resource-services
+    # intentionally included/not a secret
+    apiKey: BAD-TEST-D2Shtf2n5Bwh02P7
 
 #
 # Application specific settings
 #
 authorization.admin.role: ROLE_ANONYMOUS
+# We externalise application secrets in a file outside the application on the classpath.
 api-keys.properties: "classpath:/test-api-keys.properties"
 
 autokeyrollover:

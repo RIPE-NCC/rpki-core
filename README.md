@@ -278,6 +278,7 @@ complete. Note that both commands must run concurrently.
 5. Upload the response using curl (the upload function on 'Upstream CA Management' does not seem to work):
 
 ```
+# The testing API key below is included intentionally and not a secret.
 curl -i -X POST -F "file=@response.xml" \
     -H 'ncc-internal-api-key: BAD-TEST-D2Shtf2n5Bwh02P7' \
     "http://localhost:8080/certification/api/upstream/upload/"

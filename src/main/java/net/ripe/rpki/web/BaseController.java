@@ -3,6 +3,7 @@ package net.ripe.rpki.web;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Value;
+import net.ripe.rpki.server.api.configuration.Environment;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
@@ -58,12 +59,14 @@ public class BaseController {
         String publicRepositoryUri;
         String activeNodeName;
         String currentNodeName;
+        String environment;
 
         CoreConfigurationData(RepositoryConfiguration repositoryConfiguration, ActiveNodeService activeNodeService) {
             this.localRepositoryDirectory = repositoryConfiguration.getLocalRepositoryDirectory().getAbsolutePath();
             this.publicRepositoryUri = repositoryConfiguration.getPublicRepositoryUri().toASCIIString();
             this.activeNodeName = activeNodeService.getActiveNodeName();
             this.currentNodeName = activeNodeService.getCurrentNodeName();
+            this.environment = Environment.getEnvironmentName();
         }
     }
 

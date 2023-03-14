@@ -93,89 +93,6 @@ body button {
     float: right;
 }
 
-.sidebar {
-    position: sticky;
-    top: 72px;
-    display: flex;
-    flex-direction: column;
-    min-height: calc(100vh - 72px);
-    max-width: 160px;
-    border-right-style: solid;
-    border-width: 1px;
-    border-color: #ff9600;
-    background-color: #080037;
-    color: #fff;
-}
-
-.sidebar a {
-    padding: 16px;
-    text-decoration: none;
-    font-size: 16px;
-    color: #fff;
-    display: flex;
-}
-
-.sidebar a:hover {
-    background-color: #ff9600;
-    color: #080037;
-}
-
-.footer {
-    margin-top: auto;
-    padding: 8px 16px 8px 16px;
-    font-size: 12px;
-}
-
-.header-full {
-    position: sticky;
-    top: 0px;
-}
-
-.header {
-    border-bottom-style: solid;
-    border-color: #ff9600;
-    border-width: 1px;
-    color: #080037;
-    width:  100%;
-    display: flex;
-    max-height: 72px;
-    flex-direction: row;
-    justify-content: space-between;
-    background-color: #fff;
-}
-
-.header i {
-    font-size: 2rem;
-    margin: 16px;
-    color: #080037;
-    cursor: pointer;
-}
-
-.header i:hover, .header i:focus {
-    color: #ff9600;
-}
-
-.h1-header {
-    padding-left: 160px;
-    margin: 16px 8px;
-}
-
-.dropdown-content {
-    display: none;
-    position: absolute;
-    right: 0;
-    min-width: 200px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 1;
-    margin: 0px 16px 16px;
-    border-radius: 4px;
-    background-color: #fff;
-}
-
-.dropdown-content div {
-    padding-bottom: 4px;
-}
-
 ul {
     list-style-type: none;
     padding: 0;
@@ -240,6 +157,17 @@ ul {
     justify-content: space-between;
 }
 
+.summary-full {
+    padding: 2px;
+}
+
+.hide-text-more-than-one-line {
+    height: 1em;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
 #searchInput {
     float: right;
 }
@@ -254,4 +182,39 @@ ul {
 
 .orange {
     color: #ff9600;
+}
+
+.ca-management-table td:first-child {
+    width: 60%;
+}
+
+.ca-management-table {
+    margin-bottom: 8px;
+}
+
+.tag {
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+.tag-warning {
+    background-color: #ffcc00;
+    color: #fff;
+}
+
+.tag-ok {
+    background-color: #339900;
+    color: #fff;
+}
+
+.tag-error {
+    background-color: #cc3300;
+    color: #fff;
+}
+
+.footer-link {
+    color: #fff;
+    text-decoration: none;
 }

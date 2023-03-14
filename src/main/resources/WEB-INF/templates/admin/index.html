@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" >
-    <head><div data-th-replace="~{fragments/includes :: includes}"></div></head>
+    <head><div data-th-replace="~{fragments/includes :: includes(title='RPKI Admin UI | Home')}"></div></head>
 
     <body>
-        <div data-th-replace="~{fragments/header :: header}"></div>
+        <div data-th-replace="~{fragments/header :: header(title='Admin Home')}"></div>
         <div class="main-flex">
             <div data-th-insert="~{fragments/sidebar :: sidebar}"></div>
             <div class="main">

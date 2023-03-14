@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
 </head>
 <body>
-  <div data-th-fragment="sidebar" class="sidebar">
-    <div class="sidebar-links">
-      <a data-th-href="@{/admin}">Home</a>
-      <a data-th-href="@{/admin/production-ca-history}">Production CA History</a>
-      <a data-th-href="@{/admin/upstream-ca}">Upstream CA Management</a>
-      <a data-th-href="@{/monitoring/healthcheck}">Health status</a>
+    <div data-th-fragment="sidebar" id="sidebar" class="sidebar collapsed">
+      <div class="sidebar-links">
+        <a id="admin" data-th-href="@{/admin}"><i class="sidebar-menu-icon bi bi-house-door"></i><span>Admin Home</span></a>
+        <a id="history" data-th-href="@{/admin/production-ca-history}"><i class="sidebar-menu-icon bi bi-clock-history"></i><span>Production CA History</span></a>
+        <a id="management" data-th-href="@{/admin/upstream-ca}"><i class="sidebar-menu-icon bi bi-diagram-2"></i><span>Upstream CA Management</span></a>
+        <a id="health-check" data-th-href="@{/admin/health-check}"><i class="sidebar-menu-icon bi bi-file-medical"></i><span>Health status</span></a>
+      </div>
+      <div class="footer">
+        <i id="expand-nav-button" class="bi bi-arrow-right" onclick="handleNav()"></i>
+      </div>
     </div>
-  </div>
 </body>
 </html>

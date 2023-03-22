@@ -6,25 +6,25 @@ import java.util.Enumeration;
 public interface KeyStorage {
     String getVersion();
 
-    void storeEncryptedKeyAndCerts(String s, String s1, byte[] bytes, Certificate[] certificates);
+    void storeEncryptedKeyAndCerts(String keyStoreName, String alias, byte[] keyBlob, Certificate[] certificates);
 
-    byte[] getEncryptedKey(String s, String s1);
+    byte[] getEncryptedKey(String keyStoreName, String alias);
 
-    Certificate getCertificate(String s, String s1);
+    Certificate getCertificate(String keyStoreName, String alias);
 
-    Certificate[] getCertificateChain(String s, String s1);
+    Certificate[] getCertificateChain(String keyStoreName, String alias);
 
-    boolean containsAlias(String s, String s1);
+    boolean containsAlias(String keyStoreName, String alias);
 
-    void deleteEntry(String s, String s1);
+    void deleteEntry(String keyStoreName, String alias);
 
-    Enumeration<String> aliases(String s);
+    Enumeration<String> aliases(String keyStoreName);
 
-    int keystoreSize(String s);
+    int keystoreSize(String keyStoreName);
 
-    void storeHmacKey(String s, byte[] bytes);
+    void storeHmacKey(String keyStoreName, byte[] hmacBlob);
 
-    byte[] getHmacKey(String s);
+    byte[] getHmacKey(String keyStoreName);
 
     Enumeration<String> listKeyStores();
 }

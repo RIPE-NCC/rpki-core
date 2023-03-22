@@ -15,13 +15,15 @@ public class ThalesDbAdapter implements DatabaseInterface {
         this.ks = ks;
     }
 
+    // rename and call delegate
     @Override
-    public void storeEncriptedKeyAndCerts(String s, String s1, byte[] bytes, Certificate[] certificates) {
-        ks.storeEncryptedKeyAndCerts(s, s1, bytes, certificates);
+    public void storeEncriptedKeyAndCerts(String keyStoreName, String alias, byte[] keyblob, Certificate[] certificates) {
+        ks.storeEncryptedKeyAndCerts(keyStoreName, alias, keyblob, certificates);
     }
 
+    // rename and call delegate
     @Override
-    public byte[] getEncriptedKey(String s, String s1) {
-        return ks.getEncryptedKey(s, s1);
+    public byte[] getEncriptedKey(String keyStoreName, String alias) {
+        return ks.getEncryptedKey(keyStoreName, alias);
     }
 }

@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.Map;
 
 @Slf4j
-@Service("resourceCacheUpdateService")
+@Service(BackgroundServices.RESOURCE_CACHE_UPDATE_SERVICE)
 public class ResourceCacheUpdateServiceBean extends ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode {
 
     private final ResourceCacheService resourceCacheService;
@@ -24,7 +24,7 @@ public class ResourceCacheUpdateServiceBean extends ConcurrentBackgroundServiceW
 
     @Override
     public String getName() {
-        return getClass().getSimpleName();
+        return "Resource cache update service";
     }
 
     @Override
@@ -34,6 +34,6 @@ public class ResourceCacheUpdateServiceBean extends ConcurrentBackgroundServiceW
 
     @Override
     public Map<String, String> supportedParameters() {
-        return Collections.singletonMap(FORCE_UPDATE_PARAMETER, "false");
+        return Collections.singletonMap(FORCE_UPDATE_PARAMETER, "");
     }
 }

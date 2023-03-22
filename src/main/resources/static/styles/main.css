@@ -218,3 +218,7 @@ ul {
     color: #fff;
     text-decoration: none;
 }
+
+fieldset {
+    padding: 10px 12px;
+}

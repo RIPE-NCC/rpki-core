@@ -35,7 +35,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static net.ripe.rpki.services.impl.background.ResourceCacheService.resourcesDiff;
@@ -68,7 +67,7 @@ public class ResourceCacheServiceTest {
     public void setUp() {
         TransactionSynchronizationManager.initSynchronization();
         subject = new ResourceCacheService(transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
-            sequentialBackgroundQueuedTaskRunner, allCaCertificateUpdateServiceBean, new X500Principal("CN=666"), new X500Principal("CN=123"), false, new SimpleMeterRegistry());
+            sequentialBackgroundQueuedTaskRunner, allCaCertificateUpdateServiceBean, new X500Principal("CN=666"), new X500Principal("CN=123"), new SimpleMeterRegistry());
     }
 
     @After
@@ -80,11 +79,11 @@ public class ResourceCacheServiceTest {
     public void shouldTrackLastUpdateAttempt() {
         when(resourceServicesClient.fetchAllResources()).thenReturn(DataSamples.totalResources());
 
-        assertThat(subject.getLastUpdateAttemptedAt()).isNull();
+        assertThat(subject.getUpdateLastAttemptedAt()).isEmpty();
 
         subject.updateFullResourceCache();
 
-        assertThat(subject.getLastUpdateAttemptedAt()).isEqualTo(Instant.now());
+        assertThat(subject.getUpdateLastAttemptedAt()).hasValue(Instant.now());
     }
 
     @Test
@@ -176,7 +175,7 @@ public class ResourceCacheServiceTest {
         when(resourceServicesClient.fetchAllResources()).thenReturn(
             new TotalResources(resourcesToReject, DataSamples.ripeNccDelegations(resourcesToReject)));
 
-        subject.updateFullResourceCache(true);
+        subject.updateFullResourceCache(Optional.of("477328"));
 
         final ImmutableResourceSet expectedValue = DataSamples.ripeNccDelegations(resourcesToReject).allDelegationResources();
         assertThat(delegationsCache.getDelegationsCache()).hasValue(expectedValue);
@@ -302,8 +301,8 @@ public class ResourceCacheServiceTest {
     private static class DataSamples {
         static MemberResources memberResources() {
             return new MemberResources(
-                    asList(new AsnResource(1L, "AS64496", "ALLOCATED", "ORG-123")),
-                    asList(new Ipv4Allocation(1L, "192.0.2.0/24", "ALLOCATED", "ORG-123")),
+                    List.of(new AsnResource(1L, "AS64496", "ALLOCATED", "ORG-123")),
+                    List.of(new Ipv4Allocation(1L, "192.0.2.0/24", "ALLOCATED", "ORG-123")),
                     emptyList(),
                     emptyList(),
                     emptyList(),
@@ -316,8 +315,8 @@ public class ResourceCacheServiceTest {
                 ipv6Allocations.add(new ResourceServicesClient.Ipv6Allocation(1L, "2001:DB8:" + Integer.toHexString(2*i)  + "::/48", "ALLOCATED", "ORG-123"));
             }
             return new MemberResources(
-                    asList(new AsnResource(1L, "AS64496", "ALLOCATED", "ORG-123")),
-                    asList(new Ipv4Allocation(1L, "192.0.2.0/24", "ALLOCATED", "ORG-123")),
+                    List.of(new AsnResource(1L, "AS64496", "ALLOCATED", "ORG-123")),
+                    List.of(new Ipv4Allocation(1L, "192.0.2.0/24", "ALLOCATED", "ORG-123")),
                     emptyList(),
                     ipv6Allocations,
                     emptyList(),

@@ -10,8 +10,11 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -21,7 +24,7 @@ public class ResourceCacheUpToDateHealthCheckTest {
 
     @Rule public FixedDateRule rule = new FixedDateRule(new DateTime());
 
-    @Mock
+    @Mock(answer = Answers.RETURNS_MOCKS)
     private ResourceCacheService resourceCacheService;
 
     private ResourceCacheUpToDateHealthCheck subject;
@@ -55,7 +58,7 @@ public class ResourceCacheUpToDateHealthCheckTest {
 
         assertThat(check.message).startsWith("last updated 33 minutes ago");
 
-        when(resourceCacheService.getLastUpdateAttemptedAt()).thenReturn(Instant.now());
+        when(resourceCacheService.getUpdateLastAttemptedAt()).thenReturn(Optional.of(Instant.now()));
         check = subject.check();
         assertThat(check.isHealthy()).isFalse();
         assertThat(check.isWarning()).isFalse();

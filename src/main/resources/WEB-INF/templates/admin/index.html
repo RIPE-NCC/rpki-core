@@ -5,7 +5,7 @@
     <body>
         <div data-th-replace="~{fragments/header :: header(title='Admin Home')}"></div>
         <div class="main-flex">
-            <div data-th-insert="~{fragments/sidebar :: sidebar}"></div>
+            <div data-th-insert="~{fragments/sidebar :: sidebar(active='admin')}"></div>
             <div class="main">
                 <div class="message-banner" data-th-if="${success}">
                     <i class="bi bi-check-circle"></i>
@@ -86,7 +86,6 @@
                                     >
                                         Run
                                     </button>
-                                    <label data-th-if="${service.supportedParameters.containsKey('forceUpdate')}">Force update: <input type="checkbox" name="forceUpdate"></label>
                                     <label data-th-if="${service.supportedParameters.containsKey('batchSize')}">Batch size: <input type="number" name="batchSize" min="1" data-th-value="${service.supportedParameters.batchSize}"></label>
                                 </form>
                             </td>

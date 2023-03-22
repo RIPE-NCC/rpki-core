@@ -98,7 +98,7 @@ public class ProductionCaControllerTest extends SpringWebControllerTestCase {
         assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
         assertThat(result.getModelAndView()).isNotNull();
         assertThat(result.getResponse().getContentAsString())
-                .contains("<td>2012-11-12 23:59:21:12</td>")
+                .contains("<td>2012-11-12 23:59:21</td>")
                 .contains("<td>principal 1</td>")
                 .contains("Some cool command");
     }

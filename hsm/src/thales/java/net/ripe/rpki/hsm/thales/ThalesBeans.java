@@ -27,14 +27,19 @@ public class ThalesBeans {
      */
     @PostConstruct
     public void initializeProvider() {
+        // How to debug connectivity issues:
+        //   * strace the process that is connecting. The InstallationTest may be the easiest to test.
+        //     `strace -o ~/strace.log -tt -ff java --module-path /opt/nfast/java/classes com.ncipher.provider.InstallationTest`
+        //   * use strace-log-merge to follow logs from all threads (`strace-log-merge ~/strage.log | less`)
+        //   * search for `connect` syscalls and see their results.
         if (Security.getProvider("DBProvider") == null) {
-            log.info("Adding DBProvider security provider which requires a connection to hardserver in a healthy state on localhost TCP/9004.");
+            log.info("Adding DBProvider security provider which requires a connection to hardserver in a healthy state on localhost TCP/9000.");
             Security.addProvider(new DBProvider());
             // Provider should now be present.
             Verify.verify(Security.getProvider("DBProvider") != null);
         }
         if (Security.getProvider("nCipherKM") == null) {
-            log.info("Adding nCipherKM security provider which requires a connection to hardserver in a healthy state on localhost TCP/9004.");
+            log.info("Adding nCipherKM security provider which requires a connection to hardserver in a healthy state on localhost TCP/9000.");
             Security.addProvider(new nCipherKM());
             // Provider should now be present.
             Verify.verify(Security.getProvider("nCipherKM") != null);

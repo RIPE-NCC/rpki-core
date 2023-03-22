@@ -1,8 +1,8 @@
 package net.ripe.rpki.services.impl.background;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.AtomicDouble;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
@@ -30,10 +30,10 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionOperations;
 
 import javax.security.auth.x500.X500Principal;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
 
@@ -59,9 +59,6 @@ public class ResourceCacheService {
     @Getter
     private final CaName allResourcesCaName;
 
-    @Getter
-    private volatile Instant lastUpdateAttemptedAt;
-
     private final AtomicReference<ResourceStat> resourceStats;
     private final ResourceCacheServiceMetrics resourceCacheServiceMetrics;
 
@@ -75,7 +72,6 @@ public class ResourceCacheService {
         AllCaCertificateUpdateServiceBean allCaCertificateUpdateServiceBean,
         @Value("${" + RepositoryConfiguration.PRODUCTION_CA_NAME + "}") X500Principal productionCaName,
         @Value("${" + RepositoryConfiguration.ALL_RESOURCES_CA_NAME + "}") X500Principal allResourcesCaName,
-        @Value("${accept.one.rejected.resource.cache.update:false}") boolean acceptOneRejectedResourceCacheUpdate,
         MeterRegistry meterRegistry
     ) {
         this.resourceServicesClient = resourceServicesClient;
@@ -93,7 +89,14 @@ public class ResourceCacheService {
             .map(AbstractInstant::toInstant)
             .orElse(null);
 
-        resourceStats = new AtomicReference<>(new ResourceStat(null, lastUpdateTimeFromDatabase));
+        resourceStats = new AtomicReference<>(new ResourceStat(
+            Optional.ofNullable(lastUpdateTimeFromDatabase),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty()
+        ));
         resourceCacheServiceMetrics = new ResourceCacheServiceMetrics(resourceStats, meterRegistry);
     }
 
@@ -101,15 +104,19 @@ public class ResourceCacheService {
         return delegationsCache.getDelegationsCache();
     }
 
+    public ResourceStat getResourceStats() {
+        return resourceStats.get();
+    }
+
     public DateTime getLastUpdatedAt() {
         return resourceCache.lastUpdateTime();
     }
 
     public void updateFullResourceCache() {
-        updateFullResourceCache(false);
+        updateFullResourceCache(Optional.empty());
     }
 
-    public void updateFullResourceCache(boolean forceUpdate) {
+    public void updateFullResourceCache(Optional<String> forceUpdateCode) {
         ResourceServicesClient.TotalResources allResources;
         try {
             allResources = resourceServicesClient.fetchAllResources();
@@ -121,16 +128,18 @@ public class ResourceCacheService {
         } finally {
             // Update this field after the attempt was completed (successfully or not) so that a WARN situation
             // does not temporarily turn into an ERROR situation (see ResourceCacheUpToDateHealthCheck).
-            this.lastUpdateAttemptedAt = Instant.now();
+            this.resourceStats.getAndUpdate(x -> x.withUpdateLastAttemptedAt(Optional.of(Instant.now())));
         }
 
         transactionTemplate.executeWithoutResult(status -> {
             final Update productionUpdate = productionResourcesUpdate(allResources.allDelegationResources());
             final Update membersUpdate = memberResourcesUpdate(allResources.getAllMembersResources());
 
-            final List<Update> updates = ImmutableList.of(productionUpdate, membersUpdate);
+            final List<Update> updates = List.of(productionUpdate, membersUpdate);
             final List<Update> rejected = updates.stream().filter(Update::isRejected).collect(Collectors.toList());
 
+            String expectedForceUpdateVerificationCode = resourceStats.get().expectedForceUpdateVerificationCode();
+            boolean forceUpdate = forceUpdateCode.stream().anyMatch(code -> Objects.equals(code, expectedForceUpdateVerificationCode));
             if (forceUpdate && !rejected.isEmpty()) {
                 log.error(
                     "Forced overriding rejection for reason(s): {}",
@@ -143,13 +152,21 @@ public class ResourceCacheService {
             interpretUpdate(productionUpdate, forceUpdate);
             interpretUpdate(membersUpdate, forceUpdate);
 
+            JdbcDBComponent.afterCommit(() -> {
+                resourceStats.getAndUpdate(rs -> rs
+                    .withLastUpdatedAt(Optional.of(Instant.now()))
+                    .withResourceUpdateRejection(Optional.empty())
+                    .withDelegationUpdateRejection(Optional.empty())
+                );
+                scheduleResourceCertificateUpdateForChangedCas(updates);
+            });
+
             if (!forceUpdate && !rejected.isEmpty()) {
                 // Rollback transactions after interpreting updates so that metrics get adjusted correctly,
                 // otherwise we could just return early before interpreting the updates.
                 status.setRollbackOnly();
+                log.error("Resource cache update rolled back since force update was not specified or verification code did not match {}", expectedForceUpdateVerificationCode);
             }
-
-            scheduleResourceCertificateUpdateForChangedCas(updates);
         });
     }
 
@@ -163,17 +180,15 @@ public class ResourceCacheService {
             return;
         }
 
-        JdbcDBComponent.afterCommit(() -> {
-            Runnable action = () -> allCaCertificateUpdateServiceBean.runService(
-                caIdentity -> changedCas.contains(caIdentity.getCaName())
-            );
-            sequentialBackgroundQueuedTaskRunner.submit(
-                "update CA certificates after resource cache update",
-                action,
-                exception -> {
-                }
-            );
-        });
+        Runnable action = () -> allCaCertificateUpdateServiceBean.runService(
+            caIdentity -> changedCas.contains(caIdentity.getCaName())
+        );
+        sequentialBackgroundQueuedTaskRunner.submit(
+            "update CA certificates after resource cache update",
+            action,
+            exception -> {
+            }
+        );
     }
 
     private void interpretUpdate(Update r, boolean acceptUpdateAnyway) {
@@ -218,12 +233,18 @@ public class ResourceCacheService {
             log.error("Production CA delegations cache update with diff {} has been rejected, reason: {}", resourcesDiff, x.message);
         };
 
+        Optional<Rejection> delegationUpdateRejection = isAcceptableDiff(resourcesDiff);
+        resourceStats.getAndUpdate(rs -> rs
+            .withDelegationUpdateRejection(delegationUpdateRejection)
+            .withDelegationDiff(Optional.of(resourcesDiff))
+        );
+
         return new Update(
             Collections.singletonMap(productionCaName, new Changes(
                 Iterators.size(added.iterator()),
                 Iterators.size(removed.iterator())
             )),
-            isAcceptableDiff(resourcesDiff),
+            delegationUpdateRejection,
             accepted,
             rejected
         );
@@ -246,7 +267,6 @@ public class ResourceCacheService {
         final ResourceDiffStat resourcesDiff = resourcesDiff(registryResources, localResources);
 
         Runnable accepted = () -> {
-            resourceStats.set(new ResourceStat(resourcesDiff, Instant.now()));
             resourceCache.populateCache(registryResources);
             resourceCacheServiceMetrics.onMemberCacheAccepted();
             if (resourcesDiff.totalPerCaMutations() == 0) {
@@ -264,13 +284,17 @@ public class ResourceCacheService {
         };
 
         final Consumer<Rejection> rejected = x -> {
-            // update the resource diff, but keep the old time
-            resourceStats.getAndUpdate(rs -> new ResourceStat(resourcesDiff, rs.lastUpdated));
             resourceCacheServiceMetrics.onMemberCacheRejected();
-            log.error(String.format("Resource cache update has been rejected, reason: %s%n%s", x.message, x.summary));
+            log.error("Resource cache update has been rejected, reason: {}\n{}}", x.message, x.summary);
         };
 
-        return new Update(resourcesDiff.getChangesMap(), isAcceptableDiff(resourcesDiff), accepted, rejected);
+        Optional<Rejection> resourceUpdateRejection = isAcceptableDiff(resourcesDiff);
+        resourceStats.getAndUpdate(rs -> rs
+            .withResourceUpdateRejection(resourceUpdateRejection)
+            .withResourceDiff(Optional.of(resourcesDiff))
+        );
+
+        return new Update(resourcesDiff.getChangesMap(), resourceUpdateRejection, accepted, rejected);
     }
 
     static int resourceSetSize(ImmutableResourceSet ipr) {
@@ -405,16 +429,32 @@ public class ResourceCacheService {
         return resourceCache.lookupResources(caName);
     }
 
-    @Data
-    @AllArgsConstructor
-    static class ResourceStat {
-        private ResourceDiffStat resourceDiff;
-        private Instant lastUpdated;
+    public Optional<Instant> getUpdateLastAttemptedAt() {
+        return resourceStats.get().getUpdateLastAttemptedAt();
+    }
+
+    @lombok.Value
+    @lombok.With
+    public static class ResourceStat {
+        Optional<Instant> lastUpdatedAt;
+        Optional<Instant> updateLastAttemptedAt;
+
+        Optional<DelegationDiffStat> delegationDiff;
+        Optional<ResourceDiffStat> resourceDiff;
+
+        Optional<Rejection> delegationUpdateRejection;
+        Optional<Rejection> resourceUpdateRejection;
+
+        public String expectedForceUpdateVerificationCode() {
+            String s = delegationUpdateRejection.map(Rejection::getMessage).orElse("") + ":" + resourceUpdateRejection.map(Rejection::getMessage).orElse("");
+            var hash = Hashing.sha256().hashString(s, StandardCharsets.UTF_8);
+            return String.format("%06d", Math.floorMod(hash.asInt(), 1_000_000));
+        }
     }
 
     @Data
     @AllArgsConstructor
-    static class ResourceDiffStat {
+    public static class ResourceDiffStat {
         private int localSize;
         private int registrySize;
         private int totalAdded;
@@ -435,7 +475,7 @@ public class ResourceCacheService {
     }
 
     @lombok.Value
-    static class DelegationDiffStat {
+    public static class DelegationDiffStat {
         int localResourceCount;
         int registrySizeResourceCount;
         int totalAdded;
@@ -459,7 +499,7 @@ public class ResourceCacheService {
     }
 
     @lombok.Value
-    static class Changes {
+    public static class Changes {
         int added;
         int deleted;
 
@@ -472,7 +512,7 @@ public class ResourceCacheService {
     }
 
     @lombok.Value
-    static class Rejection {
+    public static class Rejection {
         String message;
         Optional<String> summary;
     }
@@ -590,11 +630,11 @@ public class ResourceCacheService {
         }
 
         private static ToDoubleFunction<AtomicReference<ResourceStat>> getMetric(ToDoubleFunction<ResourceDiffStat> f) {
-            return rs -> rs.get() == null || rs.get().resourceDiff == null ? 0 : f.applyAsDouble(rs.get().resourceDiff);
+            return rs -> Optional.ofNullable(rs.get()).flatMap(x -> x.resourceDiff).map(f::applyAsDouble).orElse(0.0);
         }
 
         private static ToDoubleFunction<AtomicReference<ResourceStat>> getLastUpdated() {
-            return rs -> rs.get() == null || rs.get().lastUpdated == null ? Double.NaN : rs.get().lastUpdated.getMillis() / 1000.0;
+            return rs -> Optional.ofNullable(rs.get()).flatMap(x -> x.lastUpdatedAt).map(x -> x.getMillis() / 1000.0).orElse(Double.NaN);
         }
 
         private static double resourceSetSizeDouble(ImmutableResourceSet ipr) {
@@ -628,26 +668,11 @@ public class ResourceCacheService {
     }
 
     interface CacheUpdate {
-        CacheUpdate compose(Runnable next);
-        CacheUpdate chain(Supplier<CacheUpdate> check);
         void run(TransactionStatus status);
 
         @lombok.AllArgsConstructor
         class Apply implements CacheUpdate {
             Runnable effect;
-
-            @Override
-            public CacheUpdate compose(Runnable next) {
-                return new Apply(() -> {
-                    effect.run();
-                    next.run();
-                });
-            }
-
-            @Override
-            public CacheUpdate chain(Supplier<CacheUpdate> check) {
-                return check.get().compose(effect);
-            }
 
             @Override
             public void run(TransactionStatus status) {
@@ -660,16 +685,6 @@ public class ResourceCacheService {
         @lombok.AllArgsConstructor
         class Reject implements CacheUpdate {
             Runnable trackRejection;
-
-            @Override
-            public CacheUpdate compose(Runnable next) {
-                return this;
-            }
-
-            @Override
-            public CacheUpdate chain(Supplier<CacheUpdate> check) {
-                return this;
-            }
 
             @Override
             public void run(TransactionStatus status) {

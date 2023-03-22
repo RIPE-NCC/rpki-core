@@ -50,7 +50,7 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
 
     @Override
     public String getName() {
-        return getClass().getSimpleName();
+        return "All CA certificate update service";
     }
 
     @Override

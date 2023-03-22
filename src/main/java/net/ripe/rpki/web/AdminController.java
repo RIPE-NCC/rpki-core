@@ -91,8 +91,9 @@ public class AdminController extends BaseController {
     @PostMapping({"/services/{serviceId}"})
     public RedirectView runBackgroundService(
         @PathVariable("serviceId") String serviceId,
+        @RequestHeader(value = HttpHeaders.REFERER, required = false) String referrer,
         @Nullable @RequestParam(value = BATCH_SIZE_PARAMETER, required = false) Integer batchSize,
-        @Nullable @RequestParam(value = FORCE_UPDATE_PARAMETER, required = false) Boolean forceUpdate,
+        @Nullable @RequestParam(value = FORCE_UPDATE_PARAMETER, required = false) String forceUpdate,
         RedirectAttributes redirectAttributes
     ) {
         BackgroundService service = backgroundServiceMap.get(serviceId);
@@ -104,14 +105,14 @@ public class AdminController extends BaseController {
                 parameters.put(BATCH_SIZE_PARAMETER, batchSize.toString());
             }
             if (forceUpdate != null) {
-                parameters.put(FORCE_UPDATE_PARAMETER, forceUpdate.toString());
+                parameters.put(FORCE_UPDATE_PARAMETER, forceUpdate);
             }
 
             backgroundServices.trigger(serviceId, parameters);
 
             redirectAttributes.addFlashAttribute("success", String.format("Scheduled service '%s' for execution", service.getName()));
         }
-        return redirectToIndex();
+        return referrer == null ? redirectToIndex() : new RedirectView(referrer);
     }
 
     @GetMapping(

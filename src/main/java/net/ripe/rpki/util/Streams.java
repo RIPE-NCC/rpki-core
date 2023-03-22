@@ -3,11 +3,7 @@ package net.ripe.rpki.util;
 import lombok.SneakyThrows;
 
 import java.security.MessageDigest;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -40,8 +36,12 @@ public final class Streams {
         return stream.collect(toSortedMap(keyMapper, valueMapper));
     }
 
-    public static <T, K, V> Collector<T, ?, TreeMap<K, V>> toSortedMap(Function<T, K> keyMapper, Function<T, V> valueMapper) {
-        return Collectors.toMap(keyMapper, valueMapper, throwingMerger(), TreeMap::new);
+    public static <T, K, V> Collector<T, ?, SortedMap<K, V>> toSortedMap(Function<T, K> keyMapper, Function<T, V> valueMapper) {
+        return toSortedMap(keyMapper, valueMapper, null);
+    }
+
+    public static <T, K, V> Collector<T, ?, SortedMap<K, V>> toSortedMap(Function<T, K> keyMapper, Function<T, V> valueMapper, Comparator<? super K> comparator) {
+        return Collectors.toMap(keyMapper, valueMapper, throwingMerger(), () -> new TreeMap<>(comparator));
     }
 
     /** Copied from java.util.Collectors, where it is private */

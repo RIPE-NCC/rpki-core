@@ -129,10 +129,6 @@ resource:
 all.resources.ca.name: "CN=ALL Resources,O=RIPE NCC,C=NL"
 production.ca.name: "CN=RIPE NCC Resources,O=RIPE NCC,C=NL"
 
-# Should the instance accept the first rejected resource cache update it encounters?
-# (used to override the acceptance of big resource cache updates)
-accept.one.rejected.resource.cache.update: false
-
 private.asns.ranges: 112, 23456, 64496-64511, 64512-65534, 65535, 65536-65551, 4200000000-4294967294, 4294967295
 
 # Make the key roll services fully manual.

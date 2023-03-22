@@ -6,10 +6,11 @@
 <body>
     <div data-th-fragment="sidebar" id="sidebar" class="sidebar collapsed">
       <div class="sidebar-links">
-        <a id="admin" data-th-href="@{/admin}"><i class="sidebar-menu-icon bi bi-house-door"></i><span>Admin Home</span></a>
-        <a id="history" data-th-href="@{/admin/production-ca-history}"><i class="sidebar-menu-icon bi bi-clock-history"></i><span>Production CA History</span></a>
-        <a id="management" data-th-href="@{/admin/upstream-ca}"><i class="sidebar-menu-icon bi bi-diagram-2"></i><span>Upstream CA Management</span></a>
-        <a id="health-check" data-th-href="@{/admin/health-check}"><i class="sidebar-menu-icon bi bi-file-medical"></i><span>Health status</span></a>
+        <a data-th-href="@{/admin}" data-th-classappend="${active == 'admin' ? 'active' : ''}"><i class="sidebar-menu-icon bi bi-house-door"></i><span>Admin Home</span></a>
+        <a data-th-href="@{/admin/resource-cache}" data-th-classappend="${active == 'resource-cache' ? 'active' : ''}"><i class="sidebar-menu-icon bi bi-file"></i><span>Resource Cache</span></a>
+        <a data-th-href="@{/admin/production-ca-history}" data-th-classappend="${active == 'history' ? 'active' : ''}"><i class="sidebar-menu-icon bi bi-clock-history"></i><span>Production CA History</span></a>
+        <a data-th-href="@{/admin/upstream-ca}" data-th-classappend="${active == 'upstream-ca' ? 'active' : ''}"><i class="sidebar-menu-icon bi bi-diagram-2"></i><span>Upstream CA Management</span></a>
+        <a data-th-href="@{/admin/health-check}" data-th-classappend="${active == 'health-check' ? 'active' : ''}"><i class="sidebar-menu-icon bi bi-file-medical"></i><span>Health status</span></a>
       </div>
       <div class="footer">
         <i id="expand-nav-button" class="bi bi-arrow-right" onclick="handleNav()"></i>

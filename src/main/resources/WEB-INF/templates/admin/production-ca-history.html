@@ -2,12 +2,12 @@
 <html lang="en" >
   <head>
     <div data-th-replace="~{fragments/includes :: includes(title='RPKI Admin UI | History')}"></div>
-    <script rel="preload" data-th-src="@{/js/history-table-scripts.js}"></script>
+    <script rel="preload" data-th-src="@{/js/table-scripts.js}"></script>
   </head>
   <body>
     <div data-th-replace="~{fragments/header :: header(title='Production CA History')}"></div>
     <div class="main-flex">
-      <div data-th-insert="~{fragments/sidebar :: sidebar}"></div>
+      <div data-th-insert="~{fragments/sidebar :: sidebar(active='history')}"></div>
       <div class="main">
         <div class="message-banner" data-th-if="${success}">
           <i class="bi bi-check-circle"></i>
@@ -40,7 +40,7 @@
           </thead>
           <tbody>
           <tr data-th-each="history: ${historySummary}">
-            <td data-th-text="${#temporals.format(history.time,'yyyy-MM-dd HH:mm:ss:SS')}">Some time</td>
+            <td data-th-text="${#temporals.format(history.time,'yyyy-MM-dd HH:mm:ss')}">Some time</td>
             <td data-th-text="${history.principal}">system</td>
             <td>
               <div class="summary-content">

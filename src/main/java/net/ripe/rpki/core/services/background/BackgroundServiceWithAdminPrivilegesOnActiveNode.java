@@ -186,8 +186,8 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
         return backgroundTaskRunner.task(task, onError);
     }
 
-    protected boolean parseForceUpdateParameter(Map<String, String> parameters) {
-        return Boolean.parseBoolean(parameters.getOrDefault(FORCE_UPDATE_PARAMETER, "false"));
+    protected Optional<String> parseForceUpdateParameter(Map<String, String> parameters) {
+        return Optional.ofNullable(parameters.get(FORCE_UPDATE_PARAMETER));
     }
 
     protected Optional<Integer> parseBatchSizeParameter(Map<String, String> parameters)

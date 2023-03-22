@@ -4,7 +4,6 @@ import net.ripe.rpki.ripencc.ui.daemon.health.Health;
 import net.ripe.rpki.services.impl.background.ResourceCacheService;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
-import org.joda.time.Instant;
 import org.joda.time.Period;
 import org.joda.time.format.PeriodFormat;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +31,8 @@ public class ResourceCacheUpToDateHealthCheck extends Health.Check {
         if (lastUpdateTime.plus(MAX_DURATION_FOR_CACHE_UPDATE).isAfterNow()) {
             return Health.ok(humanFriendly(lastUpdateTime));
         }
-        Instant lastUpdateAttemptedAt = resourceCacheService.getLastUpdateAttemptedAt();
-        if (lastUpdateAttemptedAt == null) {
+        var lastUpdateAttemptedAt = resourceCacheService.getUpdateLastAttemptedAt();
+        if (lastUpdateAttemptedAt.isEmpty()) {
             return Health.warning(humanFriendly(lastUpdateTime) + ", but no update was attempted yet by this node");
         }
         return Health.error(humanFriendly(lastUpdateTime));

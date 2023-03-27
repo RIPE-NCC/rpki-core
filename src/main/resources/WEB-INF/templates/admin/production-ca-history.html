@@ -2,7 +2,7 @@
 <html lang="en" >
   <head>
     <div data-th-replace="~{fragments/includes :: includes(title='RPKI Admin UI | History')}"></div>
-    <script rel="preload" data-th-src="@{/js/table-scripts.js}"></script>
+    <script data-th-src="@{/js/table-scripts.js}"></script>
   </head>
   <body>
     <div data-th-replace="~{fragments/header :: header(title='Production CA History')}"></div>
@@ -44,10 +44,10 @@
             <td data-th-text="${history.principal}">system</td>
             <td>
               <div class="summary-content">
-                <div id="summary-full" class="summary-full hide-text-more-than-one-line" data-th-text="${history.summary}">
+                <div data-th-id="'summary-full-' + ${historyStat.index}" class="summary-full hide-text-more-than-one-line" data-th-text="${history.summary}">
                   Summary full
                 </div>
-                <i id="expand-icon" data-th-onclick="'javascript:handleExtend(' + ${historyStat.index} + ')'" class="expand-icon bi bi-chevron-down"></i>
+                <i data-th-id="'expand-icon-' + ${historyStat.index}"  data-th-onclick="'javascript:handleExtend(' + ${historyStat.index} + ')'" class="expand-icon bi bi-chevron-down"></i>
               </div>
             </td>
           </tr>

@@ -39,7 +39,7 @@ public class HsmKeyStore extends EntitySupport {
     public HsmKeyStore(byte[] hmac, String name, List<HsmKey> hsmKeys) {
         this.hmac = hmac;
         this.name = name;
-        this.hsmKeys = hsmKeys;
+        this.hsmKeys = new ArrayList<>(hsmKeys);
     }
 
     @Override

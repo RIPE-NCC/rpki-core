@@ -15,6 +15,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Entity
@@ -64,7 +65,7 @@ public class HsmKey extends EntitySupport {
         }
         final List<HsmCertificateChain> chain = new ArrayList<>(certificateChain.size());
         chain.addAll(certificateChain);
-        chain.sort((o1, o2) -> Integer.compare(o1.getChainOrder(), o2.getChainOrder()));
+        chain.sort(Comparator.comparingInt(HsmCertificateChain::getChainOrder));
         return chain;
     }
 

@@ -1,68 +1,80 @@
 <!DOCTYPE html>
-<html lang="en" >
+<html lang="en">
   <head>
     <div data-th-replace="~{fragments/includes :: includes(title='RPKI Admin UI | Resource Cache')}"></div>
-   <script rel="preload" data-th-src="@{/js/table-scripts.js}"></script>
+   <script data-th-src="@{/js/table-scripts.js}"></script>
   </head>
 
-  <body>
-    <div data-th-replace="~{fragments/header :: header(title='Resource Cache')}"></div>
-    <div class="main-flex">
-      <div data-th-insert="~{fragments/sidebar :: sidebar(active='resource-cache')}"></div>
-      <div class="main">
-        <div class="message-banner" data-th-if="${success}">
-          <i class="bi bi-check-circle"></i>
-          <span data-th-text="${success}">success messages</span>
-        </div>
-        <div class="message-banner" data-th-if="${error}">
-          <i class="bi bi-x-circle"></i>
-          <span data-th-text="${error}">error messages</span>
-        </div>
+<body>
+  <div data-th-replace="~{fragments/header :: header(title='Resource Cache')}"></div>
+  <div class="main-flex">
+    <div data-th-insert="~{fragments/sidebar :: sidebar(active='resource-cache')}"></div>
+    <div class="main">
+      <div class="message-banner" data-th-if="${success}">
+        <i class="bi bi-check-circle"></i>
+        <span data-th-text="${success}">success messages</span>
+      </div>
+      <div class="message-banner" data-th-if="${error}">
+        <i class="bi bi-x-circle"></i>
+        <span data-th-text="${error}">error messages</span>
+      </div>
 
-        <form method="POST" data-th-action="@{admin/services/{id}(id=${service.id})}">
+      <form method="POST" data-th-action="@{admin/services/{id}(id=${service.id})}">
         <p>
           The resource cache update service has been <span data-th-text="${service.status}">idle</span>.
-          <data-th-block data-th-if="${service.active && !service.waitingOrRunning}">You can <input type="submit" value="run"> it now.</data-th-block>
+          <data-th-block data-th-if="${service.active && !service.waitingOrRunning}">You can <button
+              type="submit">Run</button> it now.</data-th-block>
         </p>
-        </form>
+      </form>
 
-        <p data-th-if="${resourceStats.lastUpdatedAt.present}">
-          The resource cache last successful update was at <span data-th-text="${#temporals.format(resourceStats.lastUpdatedAt.get,'yyyy-MM-dd HH:mm:ss')}">2023-03-09T12:00:00Z</span></p>
-        <p data-th-if="${resourceStats.lastUpdatedAt.empty}">The resource cache has not been updated ever.</p>
+      <p data-th-if="${resourceStats.lastUpdatedAt.present}">
+        The resource cache last successful update was at <span
+          data-th-text="${#temporals.format(resourceStats.lastUpdatedAt.get,'yyyy-MM-dd HH:mm:ss')}">2023-03-09T12:00:00Z</span>
+      </p>
+      <p data-th-if="${resourceStats.lastUpdatedAt.empty}">The resource cache has not been updated ever.</p>
 
-        <p data-th-if="${resourceStats.updateLastAttemptedAt.empty}">
-           The resource cache update service has not been run yet since the last restart of rpki-core.
-        </p>
-        <data-th-block data-th-if="${resourceStats.updateLastAttemptedAt.present}">
+      <p data-th-if="${resourceStats.updateLastAttemptedAt.empty}">
+        The resource cache update service has not been run yet since the last restart of rpki-core.
+      </p>
+      <data-th-block data-th-if="${resourceStats.updateLastAttemptedAt.present}">
         <p>
-           The last update was attempted at <span data-th-text="${#temporals.format(resourceStats.updateLastAttemptedAt.get,'yyyy-MM-dd HH:mm:ss')}">2023-03-09T12:10:00Z</span>
+          The last update was attempted at <span
+            data-th-text="${#temporals.format(resourceStats.updateLastAttemptedAt.get,'yyyy-MM-dd HH:mm:ss')}">2023-03-09T12:10:00Z</span>
         </p>
 
         <div data-th-if="${resourceStats.rejected}">
           <h2>Resource cache update was REJECTED</h2>
           <ul>
-            <li data-th-if="${resourceStats.delegationUpdateRejectionReason.present}" data-th-text="${resourceStats.delegationUpdateRejectionReason.get}">Delegation update rejected</li>
-            <li data-th-if="${resourceStats.resourceUpdateRejectionReason.present}" data-th-text="${resourceStats.resourceUpdateRejectionReason.get}">Resource update rejected</li>
+            <li data-th-if="${resourceStats.delegationUpdateRejectionReason.present}"
+              data-th-text="${resourceStats.delegationUpdateRejectionReason.get}">Delegation update rejected</li>
+            <li data-th-if="${resourceStats.resourceUpdateRejectionReason.present}"
+              data-th-text="${resourceStats.resourceUpdateRejectionReason.get}">Resource update rejected</li>
           </ul>
           <data-th-block data-th-if="${service.active && !service.waitingOrRunning}">
             <p>
-              To force a resource cache update, please enter the verification code <span data-th-text="${resourceStats.expectedForceUpdateVerificationCode}">123456</span> below and submit the form.
+              To force a resource cache update, please enter the verification code <code class="verification-code"
+                data-th-text="${resourceStats.expectedForceUpdateVerificationCode}">123456</code> below and submit the
+              form.
             </p>
             <form method="POST" data-th-action="@{admin/services/{id}(id=${service.id})}">
               <fieldset>
-                <label>Verification code: <input type="text" name="forceUpdate" placeholder="123456" minlength="6" maxlength="6"></label>
-                <input type="submit" value="Force update">
+                <label>Verification code: <input type="text" name="forceUpdate" placeholder="123456" minlength="6"
+                    maxlength="6"></label>
+                <input class="force-button" type="submit" value="Force update">
               </fieldset>
             </form>
           </data-th-block>
           <data-th-block data-th-if="${service.active && service.waitingOrRunning}">
-            <p>After the current resource cache update service run completes you can reload this page and force an update, if required.</p>
+            <p>After the current resource cache update service run completes you can reload this page and force an
+              update, if required.</p>
           </data-th-block>
         </div>
 
         <h3>Delegations</h3>
-        <p data-th-if="${resourceStats.changedDelegations.present}" data-th-object="${resourceStats.changedDelegations.get}">
-          Delegations are different (<span data-th-text="*{totalAdded}">3</span> added and <span data-th-text="*{totalDeleted}">3</span> deleted).
+        <p data-th-if="${resourceStats.changedDelegations.present}"
+          data-th-object="${resourceStats.changedDelegations.get}">
+          Delegations are different (<span data-th-text="*{totalAdded}">3</span> added and <span
+            data-th-text="*{totalDeleted}">3</span> deleted).
         </p>
         <p data-th-if="${resourceStats.changedDelegations.empty}">
           No update for the delegations.
@@ -71,11 +83,19 @@
         <h3>Resources</h3>
         <table id="resource-cache-table" class="history-table">
           <thead>
-          <tr>
-            <th class="col-1"><div class="history-table-header">CA name<i class="bi bi-sort-down-alt" onclick="sortTable(0)"></i></div></th>
-            <th class="col-2"><div class="history-table-header">Added<i class="bi bi-sort-down-alt" onclick="sortTable(1)"></i></div></th>
-            <th class="col-2"><div class="history-table-header">Removed<i class="bi bi-sort-down-alt" onclick="sortTable(2)"></i></div></th>
-          </tr>
+            <tr>
+              <th class="col-1">
+                <div class="history-table-header">CA name<i class="bi bi-sort-down-alt" onclick="sortTable(0)"></i>
+                </div>
+              </th>
+              <th class="col-2">
+                <div class="history-table-header">Added<i class="bi bi-sort-down-alt" onclick="sortTable(1)"></i></div>
+              </th>
+              <th class="col-2">
+                <div class="history-table-header">Removed<i class="bi bi-sort-down-alt" onclick="sortTable(2)"></i>
+                </div>
+              </th>
+            </tr>
           </thead>
           <tbody data-th-if="${resourceStats.changedResources.isEmpty()}">
             <tr>
@@ -99,8 +119,8 @@
           <span id="page"></span>
           <button class="hidden" onclick="nextPage()" id="btn_next">Next</button>
         </div>
-        </data-th-block>
-      </div>
+      </data-th-block>
     </div>
-  </body>
+  </div>
+</body>
 </html>

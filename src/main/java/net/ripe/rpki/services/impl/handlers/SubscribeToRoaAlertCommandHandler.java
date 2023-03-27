@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 public class SubscribeToRoaAlertCommandHandler extends AbstractCertificateAuthorityCommandHandler<SubscribeToRoaAlertCommand> {
 
     private static final String SUBSCRIBE_SUBJECT = "Your Resource Certification (RPKI) alerts subscription";
+    public static final String SUBSCRIPTION = "subscription";
 
     private final RoaAlertConfigurationRepository repository;
 
@@ -53,14 +54,14 @@ public class SubscribeToRoaAlertCommandHandler extends AbstractCertificateAuthor
         String emailTemplate = getConfirmationTemplate(configuration);
 
         emailSender.sendEmail(command.getEmail(), SUBSCRIBE_SUBJECT, emailTemplate,
-                Collections.singletonMap("subscription", configuration.toData()));
+                Collections.singletonMap(SUBSCRIPTION, configuration.toData()));
     }
 
     private String getConfirmationTemplate(RoaAlertConfiguration configuration) {
         if(RoaAlertFrequency.WEEKLY.equals(configuration.getFrequency())) {
-            return "email-templates/subscribe-confirmation-weekly.vm";
+            return "email-templates/subscribe-confirmation-weekly.txt";
         } else {
-            return "email-templates/subscribe-confirmation-daily.vm";
+            return "email-templates/subscribe-confirmation-daily.txt";
         }
     }
 
@@ -79,14 +80,14 @@ public class SubscribeToRoaAlertCommandHandler extends AbstractCertificateAuthor
             if (!oldEmailAddress.contains(RoaAlertConfiguration.normEmail(newEmail))) {
                 String emailTemplate = getConfirmationTemplate(configuration);
                 emailSender.sendEmail(newEmail, SUBSCRIBE_SUBJECT, emailTemplate,
-                        Collections.singletonMap("subscription", newConfiguration));
+                        Collections.singletonMap(SUBSCRIPTION, newConfiguration));
             }
         }
 
         for (String oldEmail : oldConfiguration.getEmails()) {
             if (!newEmailAddress.contains(RoaAlertConfiguration.normEmail(oldEmail))) {
                 emailSender.sendEmail(oldEmail, UnsubscribeFromRoaAlertCommandHandler.UNSUBSCRIBE_SUBJECT,
-                        "email-templates/unsubscribe-confirmation.vm", Collections.singletonMap("subscription", oldConfiguration));
+                        "email-templates/unsubscribe-confirmation.txt", Collections.singletonMap(SUBSCRIPTION, oldConfiguration));
             }
         }
     }

@@ -1,98 +1,99 @@
 <!DOCTYPE html>
-<html lang="en" >
-    <head><div data-th-replace="~{fragments/includes :: includes(title='RPKI Admin UI | Home')}"></div></head>
+<html lang="en">
+<head>
+    <div data-th-replace="~{fragments/includes :: includes(title='RPKI Admin UI | Home')}"></div>
+</head>
+<body>
+    <div data-th-replace="~{fragments/header :: header(title='Admin Home')}"></div>
+    <div class="main-flex">
+        <div data-th-insert="~{fragments/sidebar :: sidebar(active='admin')}"></div>
+        <div class="main">
+            <div class="message-banner" data-th-if="${success}">
+                <i class="bi bi-check-circle"></i>
+                <span data-th-text="${success}">success messages</span>
+            </div>
+            <div class="message-banner" data-th-if="${error}">
+                <i class="bi bi-x-circle"></i>
+                <span data-th-text="${error}">error messages</span>
+            </div>
 
-    <body>
-        <div data-th-replace="~{fragments/header :: header(title='Admin Home')}"></div>
-        <div class="main-flex">
-            <div data-th-insert="~{fragments/sidebar :: sidebar(active='admin')}"></div>
-            <div class="main">
-                <div class="message-banner" data-th-if="${success}">
-                    <i class="bi bi-check-circle"></i>
-                    <span data-th-text="${success}">success messages</span>
-                </div>
-                <div class="message-banner" data-th-if="${error}">
-                    <i class="bi bi-x-circle"></i>
-                    <span data-th-text="${error}">error messages</span>
-                </div>
-
-                <table>
+            <table>
+                <tr>
+                    <th>Configuration Parameter</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>Local repository</td>
+                    <td data-th-text="${coreConfiguration.localRepositoryDirectory}">/tmp/repository/local</td>
+                </tr>
+                <tr>
+                    <td>Public repository URI</td>
+                    <td data-th-text="${coreConfiguration.publicRepositoryUri}">rsync://example.com/rpki/repository</td>
+                </tr>
+                <tr>
+                    <td>Provisioning Identity Certificate</td>
+                    <td data-th-if="${provisioningIdentityCertificate != null}"
+                        data-th-object="${provisioningIdentityCertificate}">
+                        <a data-th-href="@{admin/provisioning-identity-certificate.cer}"
+                            data-th-text="*{subject}">Subject</a>
+                        (created at <span data-th-text="*{validityPeriod.notValidBefore}">not valid before</span> and
+                        valid until <span data-th-text="*{validityPeriod.notValidAfter}">not valid after</span>)
+                    </td>
+                    <td data-th-if="${provisioningIdentityCertificate == null}">
+                        No provisioning identity certificate has been generated yet, run the "Create necessary
+                        CAs: All Resources CAs and Production CA and up-down key material" service to generate it.
+                    </td>
+                </tr>
+                <tr>
+                    <td>Current node</td>
+                    <td data-th-text="${coreConfiguration.currentNodeName}">localhost.ripe.net</td>
+                </tr>
+                <tr>
+                    <td>Active node</td>
+                    <td>
+                        <form method="POST" data-th-object="${activeNodeForm}" data-th-action="@{admin/activate-node}">
+                            <input type="text" required name="name" data-th-value="*{name}" />
+                            <button class="action-button" type="submit">Set</button>
+                        </form>
+                    </td>
+                </tr>
+            </table>
+            <table>
+                <thead>
                     <tr>
-                        <th>Configuration Parameter</th>
-                        <th>Value</th>
+                        <th>RIPE NCC Background Service</th>
+                        <th>Status</th>
+                        <th>Action</th>
                     </tr>
-                    <tr>
-                        <td>Local repository</td>
-                        <td data-th-text="${coreConfiguration.localRepositoryDirectory}">/tmp/repository/local</td>
-                    </tr>
-                    <tr>
-                        <td>Public repository URI</td>
-                        <td data-th-text="${coreConfiguration.publicRepositoryUri}">rsync://example.com/rpki/repository</td>
-                    </tr>
-                    <tr>
-                        <td>Provisioning Identity Certificate</td>
-                        <td data-th-if="${provisioningIdentityCertificate != null}" data-th-object="${provisioningIdentityCertificate}">
-                            <a data-th-href="@{admin/provisioning-identity-certificate.cer}" data-th-text="*{subject}">Subject</a>
-                            (created at <span data-th-text="*{validityPeriod.notValidBefore}">not valid before</span> and
-                            valid until <span data-th-text="*{validityPeriod.notValidAfter}">not valid after</span>)
-                        </td>
-                        <td data-th-if="${provisioningIdentityCertificate == null}">
-                            No provisioning identity certificate has been generated yet, run the "Create necessary
-                            CAs: All Resources CAs and Production CA and up-down key material" service to generate it.
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Current node</td>
-                        <td data-th-text="${coreConfiguration.currentNodeName}">localhost.ripe.net</td>
-                    </tr>
-                    <tr>
-                        <td>Active node</td>
+                </thead>
+                <tbody>
+                    <tr data-th-each="service: ${backgroundServices}">
+                        <td data-th-text="${service.name}">Service name</td>
+                        <td data-th-text="${service.status}">Status</td>
                         <td>
-                            <form method="POST" data-th-object="${activeNodeForm}" data-th-action="@{admin/activate-node}">
-                                <input type="text" required name="name" data-th-value="*{name}"/>
-                                <button type="submit">Set</button>
+                            <div data-th-if="${!service.active}">
+                                Not active
+                            </div>
+                            <div data-th-if="${service.waitingOrRunning}">
+                                Awaiting completion
+                            </div>
+                            <form method="POST" data-th-if="${service.active && !service.waitingOrRunning}"
+                                data-th-action="@{admin/services/{id}(id=${service.id})}">
+                                <button class="action-button" type="submit"
+                                    onclick="return confirm(this.getAttribute('data-onconfirm-message'))"
+                                    data-th-attr="data-onconfirm-message=${'Are you sure you want to run the ' + service.name + ' service?'}">
+                                    Run
+                                </button>
+                                <label data-th-if="${service.supportedParameters.containsKey('batchSize')}">Batch size:
+                                    <input type="number" name="batchSize" min="1"
+                                        data-th-value="${service.supportedParameters.batchSize}"></label>
                             </form>
                         </td>
                     </tr>
-                </table>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>RIPE NCC Background Service</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr data-th-each="service: ${backgroundServices}">
-                            <td data-th-text="${service.name}">Service name</td>
-                            <td data-th-text="${service.status}">Status</td>
-                            <td>
-                                <div data-th-if="${!service.active}">
-                                    Not active
-                                </div>
-                                <div data-th-if="${service.waitingOrRunning}">
-                                    Awaiting completion
-                                </div>
-                                <form
-                                    method="POST"
-                                    data-th-if="${service.active && !service.waitingOrRunning}"
-                                    data-th-action="@{admin/services/{id}(id=${service.id})}"
-                                >
-                                    <button
-                                        type="submit"
-                                        onclick="return confirm(this.getAttribute('data-onconfirm-message'))"
-                                        data-th-attr="data-onconfirm-message=${'Are you sure you want to run the ' + service.name + ' service?'}"
-                                    >
-                                        Run
-                                    </button>
-                                    <label data-th-if="${service.supportedParameters.containsKey('batchSize')}">Batch size: <input type="number" name="batchSize" min="1" data-th-value="${service.supportedParameters.batchSize}"></label>
-                                </form>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
         </div>
-    </body>
+    </div>
+</body>
+
 </html>

@@ -43,7 +43,7 @@ public class EmailSenderBeanTest {
         String emailTo = "email@example.com";
         String text = "This is a test: value";
 
-        subject.sendEmail(emailTo, "test subject", "email-templates/test-template.vm", Collections.singletonMap("param", "value"));
+        subject.sendEmail(emailTo, "test subject", "email-templates/test-template.txt", Collections.singletonMap("field", "value"));
 
         verify(mailSender).send(messageCapture.capture());
         assertEquals(emailTo, messageCapture.getValue().getTo()[0]);

@@ -1,11 +1,9 @@
 package net.ripe.rpki.services.impl;
 
-import com.google.common.collect.Sets;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.bgpris.BgpRisEntryRepositoryBean;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.server.api.configuration.Environment;
@@ -29,7 +27,6 @@ import org.springframework.mail.SimpleMailMessage;
 import javax.security.auth.x500.X500Principal;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.isA;
@@ -50,7 +47,10 @@ public class RoaAlertCheckerTest {
         new RoaConfigurationPrefixData(Asn.parse("AS65535"), IpRange.parse("127.0.0.0/8"), null)));
 
     private static final BgpRisEntry BGP_RIS_ENTRY_1 = new BgpRisEntry(Asn.parse("AS65535"), IpRange.parse("127.0.0.0/12"), 100);
+    private static final BgpRisEntry BGP_RIS_ENTRY_1_1 = new BgpRisEntry(Asn.parse("AS65535"), IpRange.parse("127.16.0.0/12"), 100);
     private static final BgpRisEntry BGP_RIS_ENTRY_2 = new BgpRisEntry(Asn.parse("AS11111"), IpRange.parse("127.0.0.0/8"), 100);
+    private static final BgpRisEntry BGP_RIS_ENTRY_2_1 = new BgpRisEntry(Asn.parse("AS22222"), IpRange.parse("127.0.0.0/8"), 100);
+    private static final BgpRisEntry BGP_RIS_ENTRY_2_2 = new BgpRisEntry(Asn.parse("AS33333"), IpRange.parse("127.0.0.0/8"), 100);
 
     @Mock
     private RoaViewService roaService;
@@ -83,7 +83,7 @@ public class RoaAlertCheckerTest {
     public void shouldCheckRoasAgainstBgpForInvalidLength() {
         when(internalNamePresenter.humanizeCaName(isA(X500Principal.class))).thenReturn("zz.example");
         when(roaService.getRoaConfiguration(CA_ID)).thenReturn(ROA_CONFIGURATION_DATA);
-        when(bgpRisEntryRepository.findMostSpecificOverlapping(CERTIFIED_RESOURCES)).thenReturn(Collections.singleton(BGP_RIS_ENTRY_1));
+        when(bgpRisEntryRepository.findMostSpecificOverlapping(CERTIFIED_RESOURCES)).thenReturn(Arrays.asList(BGP_RIS_ENTRY_1, BGP_RIS_ENTRY_1_1));
 
         subject.checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_DATA);
 
@@ -93,8 +93,8 @@ public class RoaAlertCheckerTest {
         String expected = "Dear colleague,\n" +
             "\n" +
             "This is an automated alert email about BGP announcements with your certified\n" +
-            "address space for zz.example in the Resource Certification (RPKI) service.\n" +
-            "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
+            "address space for zz.example in the Resource Certification (RPKI) service.\n\n" +
+            "\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
             "These are BGP announcements with your certified address space that have\n" +
             "the status \"Invalid Length\". The prefix length in the BGP announcement does\n" +
@@ -102,6 +102,8 @@ public class RoaAlertCheckerTest {
             "\n" +
             "AS Number   Prefix\n" +
             "AS65535   127.0.0.0/12\n" +
+            "AS65535   127.16.0.0/12\n" +
+            "\n" +
             "\n" +
             "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
@@ -120,7 +122,7 @@ public class RoaAlertCheckerTest {
     public void shouldCheckRoasAgainstBgpForInvalidAsn() {
         when(internalNamePresenter.humanizeCaName(isA(X500Principal.class))).thenReturn("zz.example");
         when(roaService.getRoaConfiguration(CA_ID)).thenReturn(ROA_CONFIGURATION_DATA);
-        when(bgpRisEntryRepository.findMostSpecificOverlapping(CERTIFIED_RESOURCES)).thenReturn(Collections.singleton(BGP_RIS_ENTRY_2));
+        when(bgpRisEntryRepository.findMostSpecificOverlapping(CERTIFIED_RESOURCES)).thenReturn(Arrays.asList(BGP_RIS_ENTRY_2, BGP_RIS_ENTRY_2_1, BGP_RIS_ENTRY_2_2));
 
         subject.checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_DATA);
 
@@ -131,7 +133,7 @@ public class RoaAlertCheckerTest {
             "\n" +
             "This is an automated alert email about BGP announcements with your certified\n" +
             "address space for zz.example in the Resource Certification (RPKI) service.\n" +
-            "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
+            "\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
             "These are BGP announcements with your certified address space that have\n" +
             "the status \"Invalid ASN\". Since they are being originated from an unauthorised\n" +
@@ -141,6 +143,10 @@ public class RoaAlertCheckerTest {
             "\n" +
             "AS Number   Prefix\n" +
             "AS11111   127.0.0.0/8\n" +
+            "AS22222   127.0.0.0/8\n" +
+            "AS33333   127.0.0.0/8\n" +
+            "\n" +
+            "\n" +
             "\n" +
             "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
@@ -187,7 +193,7 @@ public class RoaAlertCheckerTest {
             "\n" +
             "This is an automated alert email about BGP announcements with your certified\n" +
             "address space for zz.example in the Resource Certification (RPKI) service.\n" +
-            "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
+            "\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
             "These are BGP announcements with your certified address space that have\n" +
             "the status \"Invalid ASN\". Since they are being originated from an unauthorised\n" +
@@ -198,6 +204,7 @@ public class RoaAlertCheckerTest {
             "AS Number   Prefix\n" +
             "AS11111   127.0.0.0/8\n" +
             "\n" +
+            "\n" +
             "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
             "There are BGP announcements for your certified address space for which alerts\n" +
@@ -205,7 +212,8 @@ public class RoaAlertCheckerTest {
             "\n" +
             "AS Number   Prefix\n" +
             "AS12345   127.0.0.0/12\n" +
-            "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
+            "\n" +
+            "\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
             "You are able to fix and ignore reported issues, change your alert\n" +
             "settings, or unsubscribe by visiting https://my.ripe.net/#/rpki .\n";

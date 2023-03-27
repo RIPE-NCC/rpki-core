@@ -2,8 +2,6 @@ package net.ripe.rpki.services.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.server.api.configuration.Environment;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.VelocityEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,10 +9,14 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Component;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.templatemode.TemplateMode;
+import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
+import org.thymeleaf.templateresolver.ITemplateResolver;
 
 import java.io.StringWriter;
 import java.util.Map;
-import java.util.Properties;
 
 @Component
 @Slf4j
@@ -24,7 +26,7 @@ public class EmailSenderBean implements EmailSender {
 
     private final SimpleMailMessage templateMessage;
 
-    private final VelocityEngine velocityEngine;
+    private final TemplateEngine templateEngine;
 
     private static final Logger LOG = LoggerFactory.getLogger(EmailSenderBean.class);
 
@@ -35,10 +37,17 @@ public class EmailSenderBean implements EmailSender {
         this.templateMessage = new SimpleMailMessage();
         templateMessage.setFrom("noreply@ripe.net");
 
-        Properties p = new Properties();
-        p.put("resource.loader", "class");
-        p.put("class.resource.loader.class", "org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader");
-        velocityEngine = new VelocityEngine(p);
+        templateEngine = new TemplateEngine();
+        templateEngine.addTemplateResolver(templateResolver());
+    }
+
+    private ITemplateResolver templateResolver() {
+        final ClassLoaderTemplateResolver templateResolver = new ClassLoaderTemplateResolver();
+        templateResolver.setOrder(Integer.valueOf(1));
+        templateResolver.setTemplateMode(TemplateMode.TEXT);
+        templateResolver.setCharacterEncoding("UTF-8");
+        templateResolver.setCacheable(false);
+        return templateResolver;
     }
 
     public void sendEmail(String emailTo, String subject, String nameOfTemplate, Map<String, Object> parameters) {
@@ -62,10 +71,12 @@ public class EmailSenderBean implements EmailSender {
     }
 
     private String renderTemplate(String nameOfTemplate, Map<String, Object> parameters) {
-        final VelocityContext velocityContext = new VelocityContext();
-        parameters.forEach(velocityContext::put);
+
+        Context context = new Context();
+        parameters.forEach(context::setVariable);
+
         final StringWriter sw = new StringWriter();
-        velocityEngine.mergeTemplate(nameOfTemplate, "UTF-8", velocityContext, sw);
+        templateEngine.process(nameOfTemplate, context, sw);
         return sw.toString();
     }
 

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.TypedQuery;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.Optional;
 
 @Repository
 @Transactional
@@ -20,15 +21,15 @@ public class JpaHsmKeyStoreRepository extends JpaRepository<HsmKeyStore> impleme
     }
 
     @Override
-    public HsmKeyStore findKeyStoreByName(final String keyStoreName) {
+    public Optional<HsmKeyStore> findKeyStoreByName(final String keyStoreName) {
         final TypedQuery<HsmKeyStore> q = manager
                 .createQuery("FROM HsmKeyStore WHERE name = :keyStoreName", HsmKeyStore.class)
                 .setParameter("keyStoreName", keyStoreName);
-        return findUniqueResult(q);
+        return Optional.ofNullable(findUniqueResult(q));
     }
 
     @Override
-    public HsmKey findKeyByKeyStoreAndAlias(String keyStoreName, String alias) {
+    public Optional<HsmKey> findKeyByKeyStoreAndAlias(String keyStoreName, String alias) {
         final TypedQuery<HsmKey> q = manager.createQuery(
                 "SELECT hk FROM HsmKeyStore hks " +
                         "JOIN hks.hsmKeys hk " +
@@ -36,7 +37,7 @@ public class JpaHsmKeyStoreRepository extends JpaRepository<HsmKeyStore> impleme
                         "AND   hk.alias = :alias", HsmKey.class)
                 .setParameter("keyStoreName", keyStoreName)
                 .setParameter("alias", alias);
-        return findUniqueResult(q);
+        return Optional.ofNullable(findUniqueResult(q));
     }
 
     @Override

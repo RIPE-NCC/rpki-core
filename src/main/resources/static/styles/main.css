@@ -3,6 +3,10 @@ body {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
+p:last-child {
+    margin-top: 0px;
+}
+
 body a {
     color: #080037;
 }
@@ -11,7 +15,7 @@ body a:hover {
     color: #ff9600;
 }
 
-body table  {
+body table {
     border-collapse: collapse;
     width: 100%;
 }
@@ -20,12 +24,13 @@ body table:not(:last-child) {
     margin-bottom: 16px;
 }
 
-body table td, body table th {
-  border: 1px solid #ddd;
-  padding: 8px;
+body table td,
+body table th {
+    border: 1px solid #ddd;
+    padding: 8px;
 }
 
-body table tr:nth-child(even){
+body table tr:nth-child(even) {
     background-color: #f2f2f2;
 }
 
@@ -61,21 +66,26 @@ body table tr:hover {
     justify-content: space-between;
 }
 
-body button {
-    min-width: 80px;
+body table th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: left;
+    background-color: #080037;
+    color: #fff;
 }
 
-body table th {
-  padding-top: 12px;
-  padding-bottom: 12px;
-  text-align: left;
-  background-color: #080037;
-  color: #fff;
+thead i {
+    cursor: pointer;
 }
 
 body button {
     color: #fff;
     background-color: #080037;
+    cursor: pointer;
+}
+
+.action-button {
+    min-width: 80px;
 }
 
 .grid {
@@ -131,7 +141,7 @@ ul {
     align-items: center;
     color: #fff;
     background-color: #080037;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
     margin-bottom: 16px;
     padding: 16px;
 }
@@ -172,7 +182,8 @@ ul {
     float: right;
 }
 
-.hidden, .hidden-for-pagination {
+.hidden,
+.hidden-for-pagination {
     display: none;
 }
 
@@ -221,4 +232,15 @@ ul {
 
 fieldset {
     padding: 10px 12px;
+}
+
+.verification-code {
+    color: #ff9600;
+    border: 1px solid #ff9600;
+    padding: 2px 4px;
+}
+
+.force-button {
+    background-color: #ff9600;
+    color: #080037;
 }

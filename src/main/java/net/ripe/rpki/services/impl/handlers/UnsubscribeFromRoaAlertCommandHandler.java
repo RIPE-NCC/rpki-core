@@ -45,7 +45,7 @@ public class UnsubscribeFromRoaAlertCommandHandler extends AbstractCertificateAu
         }
         configuration.removeEmail(command.getEmail());
 
-        emailSender.sendEmail(normEmail(command.getEmail()), UNSUBSCRIBE_SUBJECT, "email-templates/unsubscribe-confirmation.vm",
+        emailSender.sendEmail(normEmail(command.getEmail()), UNSUBSCRIBE_SUBJECT, "email-templates/unsubscribe-confirmation.txt",
                 Collections.singletonMap("subscription", configuration.toData()));
     }
 }

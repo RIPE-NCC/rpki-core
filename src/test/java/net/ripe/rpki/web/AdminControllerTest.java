@@ -76,7 +76,7 @@ public class AdminControllerTest extends SpringWebControllerTestCase {
             form -> assertThat(form.name).isEqualTo("active-node")
         );
         assertThat(result.getResponse().getContentAsString())
-            .contains("<input type=\"text\" required name=\"name\" value=\"active-node\"/>")
+            .contains("<input type=\"text\" required name=\"name\" value=\"active-node\" />")
             .contains("<td>mock background service</td>")
             .contains("(created at").contains("valid until");  // Provisioning identity certificate
     }

@@ -95,11 +95,11 @@ function searchSummary() {
 }
 
 function handleExtend(index) {
-  const summaryFullDivs = document.getElementsByClassName("summary-full");
-  const expandIcons = document.getElementsByClassName("expand-icon");
+  const summaryFullDiv = document.getElementById(`summary-full-${index}`);
+  const expandIcon = document.getElementById(`expand-icon-${index}`)
 
-  summaryFullDivs.item(index).classList.toggle("hide-text-more-than-one-line");
-  expandIcons.item(index).classList.toggle("transform");
+  summaryFullDiv.classList.toggle("hide-text-more-than-one-line");
+  expandIcon.classList.toggle("transform");
 }
 
 function hideExpandIconsIfNeeded() {
@@ -107,7 +107,8 @@ function hideExpandIconsIfNeeded() {
   const expandIcons = document.getElementsByClassName("expand-icon");
 
   for (let i = 0; i < summaryFullDivs.length; i++) {
-    if (summaryFullDivs.item(i).scrollWidth <= summaryFullDivs.item(i).clientWidth) {
+    if (summaryFullDivs.item(i).scrollWidth <= summaryFullDivs.item(i).clientWidth
+      && summaryFullDivs.item(i).classList.contains("hide-text-more-than-one-line")) {
       expandIcons.item(i).classList.add('hidden');
     } else {
       expandIcons.item(i).classList.remove('hidden');
@@ -183,5 +184,11 @@ window.onload = function () {
   if (document.getElementById("history-table")) {
     changePage(current_page);
     checkIfHistoryNoResults();
+  }
+};
+
+window.onresize = function () {
+  if (document.getElementById("history-table")) {
+    hideExpandIconsIfNeeded();
   }
 };

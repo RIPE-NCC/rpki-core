@@ -17,11 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallbackWithoutResult;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.security.auth.x500.X500Principal;
+import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.cert.Certificate;
@@ -31,10 +29,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Random;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 
 @ActiveProfiles("test")
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestRpkiBootApplication.class)
+@Transactional
 public class DatabaseKeyStorageTest {
 
     private static final String KEY_STORE_1 = "keyStore1";
@@ -58,20 +59,11 @@ public class DatabaseKeyStorageTest {
     @Autowired
     private HsmCertificateChainRepository hsmCertificateChainRepository;
 
-    @Autowired
-    private TransactionTemplate transactionTemplate;
-
     @Before
     public void setUp() {
-        transactionTemplate.setReadOnly(false);
-        transactionTemplate.execute(new TransactionCallbackWithoutResult() {
-            @Override
-            protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
-                hsmCertificateChainRepository.removeAll();
-                hsmKeyRepository.removeAll();
-                hsmKeyStoreRepository.removeAll();
-            }
-        });
+        hsmCertificateChainRepository.removeAll();
+        hsmKeyRepository.removeAll();
+        hsmKeyStoreRepository.removeAll();
     }
 
     @Test
@@ -148,7 +140,7 @@ public class DatabaseKeyStorageTest {
                 new HashSet<>(Collections.list(hsmDatabaseService.aliases(KEY_STORE_1)))
         );
 
-        Assert.assertEquals(0, hsmDatabaseService.getCertificateChain(KEY_STORE_1, ALIAS_2).length);
+        assertThatThrownBy(() -> hsmDatabaseService.getCertificateChain(KEY_STORE_1, ALIAS_2)).isInstanceOf(DatabaseKeyStorageException.class);
 
         hsmDatabaseService.deleteEntry(KEY_STORE_2, ALIAS_3);
 

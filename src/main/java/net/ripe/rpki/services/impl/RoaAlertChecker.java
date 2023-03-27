@@ -160,7 +160,7 @@ public class RoaAlertChecker {
         configuration.getSubscription().getEmails().forEach(email -> emailSender.sendEmail(
                 email,
                 String.format(ROA_ALERT_SUBJECT_FORMAT, humanizedCaName),
-                "email-templates/roa-alert-email.vm",
+                "email-templates/roa-alert-email.txt",
                 parameters)
         );
     }

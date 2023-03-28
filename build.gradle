@@ -78,6 +78,8 @@ dependencies {
     testImplementation 'com.github.tomakehurst:wiremock-jre8:2.35.0'
     testImplementation 'net.jqwik:jqwik:1.7.3'
     testImplementation "net.ripe.rpki:rpki-commons:$rpki_commons_version:tests"
+    testImplementation 'org.assertj:assertj-core'
+
 
     implementation (project(':hsm')) {
         capabilities {

@@ -36,8 +36,6 @@ public class RoaAlertChecker {
     private final Counter countTriggeredByUnknown;
     private final Counter countUniqueAlerts;
 
-    private static final String ROA_ALERT_SUBJECT_FORMAT = "Resource Certification (RPKI) alerts for %s";
-
     private final RoaViewService roaService;
     private final BgpRisEntryViewService bgpRisEntryRepository;
     private final EmailSender emailSender;
@@ -135,7 +133,6 @@ public class RoaAlertChecker {
         return announcedRoutes;
     }
 
-    // TODO Add invalidAsns and invalidLength
     private void sendRoaAlertEmailToSubscription(RoaAlertConfigurationData configuration,
                                                  List<AnnouncedRoute> invalidAsnsToMail,
                                                  List<AnnouncedRoute> invalidLengthsToMail,
@@ -149,18 +146,19 @@ public class RoaAlertChecker {
         final SortedSet<AnnouncedRoute> ignoredAlerts = new TreeSet<>(AnnouncedRoute.ASN_PREFIX_COMPARATOR);
         ignoredAlerts.addAll(unsortedIgnoredAlerts);
 
-        Map<String, Object> parameters = new HashMap<>();
-        parameters.put("humanizedCaName", humanizedCaName);
-        parameters.put("ignoredAlerts", ignoredAlerts);
-        parameters.put("invalidAsns", invalidAsnsToMail);
-        parameters.put("invalidLengths", invalidLengthsToMail);
-        parameters.put("unknowns", unknowns);
-        parameters.put("subscription", configuration);
+        var parameters = Map.of(
+            "humanizedCaName", humanizedCaName,
+            "ignoredAlerts", ignoredAlerts,
+            "invalidAsns", invalidAsnsToMail,
+            "invalidLengths", invalidLengthsToMail,
+            "unknowns", unknowns,
+            "subscription", configuration
+        );
 
         configuration.getSubscription().getEmails().forEach(email -> emailSender.sendEmail(
                 email,
-                String.format(ROA_ALERT_SUBJECT_FORMAT, humanizedCaName),
-                "email-templates/roa-alert-email.txt",
+                String.format(EmailSender.EmailTemplates.ROA_ALERT.templateSubject, humanizedCaName),
+                EmailSender.EmailTemplates.ROA_ALERT,
                 parameters)
         );
     }

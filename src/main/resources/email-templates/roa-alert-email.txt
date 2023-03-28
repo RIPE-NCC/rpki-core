@@ -2,16 +2,16 @@ Dear colleague,
 
 This is an automated alert email about BGP announcements with your certified
 address space for [[${humanizedCaName}]] in the Resource Certification (RPKI) service.
-[# th:if="${unknowns.size()} gt 0" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+[# th:if="!${#lists.isEmpty(unknowns)}" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 There are BGP announcements that overlap with your certified address space that
 have the status "Unknown". If the announcements are legitimate you should create
 corresponding ROAs to make them Valid:
 
 AS Number   Prefix
-[# th:each="announcedroute : ${unknowns}" ][($announcedroute.originAsn)]   [($announcedroute.prefix)]
+[# th:each="announcedroute : ${unknowns}" ][(${announcedroute.originAsn})]   [(${announcedroute.prefix})]
 [/][/]
-[# th:if="${invalidAsns.size()} gt 0" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+[# th:if="!${#lists.isEmpty(invalidAsns)}" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 These are BGP announcements with your certified address space that have
 the status "Invalid ASN". Since they are being originated from an unauthorised
@@ -22,7 +22,7 @@ changing their status to "Valid".
 AS Number   Prefix
 [# th:each="announcedroute : ${invalidAsns}" ][(${announcedroute.originAsn})]   [( ${announcedroute.prefix})]
 [/][/]
-[# th:if="${invalidLengths.size()} gt 0" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+[# th:if="!${#lists.isEmpty(invalidLengths)}" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 These are BGP announcements with your certified address space that have
 the status "Invalid Length". The prefix length in the BGP announcement does
@@ -31,7 +31,7 @@ not match the prefix length in the corresponding ROA.
 AS Number   Prefix
 [# th:each="announcedroute : ${invalidLengths}"][(${announcedroute.originAsn})]   [(${announcedroute.prefix})]
 [/][/]
-[# th:if="${ignoredAlerts.size()} gt 0" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+[# th:if="!${#sets.isEmpty(ignoredAlerts)}" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 There are BGP announcements for your certified address space for which alerts
 (such as this email) are muted. They are listed here as a reminder.
@@ -39,7 +39,7 @@ There are BGP announcements for your certified address space for which alerts
 AS Number   Prefix
 [# th:each="ignoredAlert : ${ignoredAlerts}" ][(${ignoredAlert.originAsn})]   [(${ignoredAlert.prefix})]
 [/][/]
-[# th:if="${ignoredAlerts.size()} eq 0" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+[# th:if="${#sets.isEmpty(ignoredAlerts)}" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 There are no BGP announcements for your certified address space for which the
 alerts have been muted.[/]

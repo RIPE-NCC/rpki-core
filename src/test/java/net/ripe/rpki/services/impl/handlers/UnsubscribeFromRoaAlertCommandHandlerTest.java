@@ -22,6 +22,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -69,7 +70,7 @@ public class UnsubscribeFromRoaAlertCommandHandlerTest {
 
         subject.handle(new UnsubscribeFromRoaAlertCommand(TEST_VERSIONED_CA_ID, email));
 
-        verify(emailSender).sendEmail(emailCapture.capture(), isA(String.class), isA(String.class), isA(Map.class));
+        verify(emailSender).sendEmail(emailCapture.capture(), eq(EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE.templateSubject), eq(EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE), isA(Map.class));
         assertEquals(email, emailCapture.getValue());
     }
 }

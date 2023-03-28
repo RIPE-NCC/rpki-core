@@ -17,8 +17,6 @@ import static net.ripe.rpki.domain.alerts.RoaAlertConfiguration.normEmail;
 @Handler
 public class UnsubscribeFromRoaAlertCommandHandler extends AbstractCertificateAuthorityCommandHandler<UnsubscribeFromRoaAlertCommand> {
 
-    static final String UNSUBSCRIBE_SUBJECT = "Unsubscribe from Resource Certification (RPKI) alerts";
-
     private final RoaAlertConfigurationRepository repository;
 
     private final EmailSender emailSender;
@@ -45,7 +43,7 @@ public class UnsubscribeFromRoaAlertCommandHandler extends AbstractCertificateAu
         }
         configuration.removeEmail(command.getEmail());
 
-        emailSender.sendEmail(normEmail(command.getEmail()), UNSUBSCRIBE_SUBJECT, "email-templates/unsubscribe-confirmation.txt",
+        emailSender.sendEmail(normEmail(command.getEmail()), EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE.templateSubject, EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE,
                 Collections.singletonMap("subscription", configuration.toData()));
     }
 }

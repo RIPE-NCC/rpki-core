@@ -1,9 +1,8 @@
 package net.ripe.rpki.services.impl;
 
+import com.google.common.annotations.VisibleForTesting;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.server.api.configuration.Environment;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
@@ -28,8 +27,6 @@ public class EmailSenderBean implements EmailSender {
 
     private final TemplateEngine templateEngine;
 
-    private static final Logger LOG = LoggerFactory.getLogger(EmailSenderBean.class);
-
     @Autowired
     public EmailSenderBean(MailSender mailSender) {
         this.mailSender = mailSender;
@@ -38,10 +35,11 @@ public class EmailSenderBean implements EmailSender {
         templateMessage.setFrom("noreply@ripe.net");
 
         templateEngine = new TemplateEngine();
-        templateEngine.addTemplateResolver(templateResolver());
+        templateEngine.addTemplateResolver(textTemplateResolver());
     }
 
-    private ITemplateResolver templateResolver() {
+    @VisibleForTesting
+    protected static ITemplateResolver textTemplateResolver() {
         final ClassLoaderTemplateResolver templateResolver = new ClassLoaderTemplateResolver();
         templateResolver.setOrder(Integer.valueOf(1));
         templateResolver.setTemplateMode(TemplateMode.TEXT);
@@ -50,34 +48,31 @@ public class EmailSenderBean implements EmailSender {
         return templateResolver;
     }
 
-    public void sendEmail(String emailTo, String subject, String nameOfTemplate, Map<String, Object> parameters) {
+    public void sendEmail(String emailTo, String subject, EmailTemplates template, Map<String, Object> parameters) {
         SimpleMailMessage msg = new SimpleMailMessage(this.templateMessage);
         msg.setSubject(subject);
         msg.setTo(emailTo);
 
-        LOG.info("Rendering Email template {}", nameOfTemplate);
-        msg.setText(renderTemplate(nameOfTemplate, parameters));
+        log.info("Rendering Email template {}", template.templateName);
+        msg.setText(renderTemplate(template.templateName, parameters));
 
         if (!Environment.isLocal()) {
             try {
-                LOG.info("Sending email with subject: {} to: {} ", subject, emailTo);
+                log.info("Sending email with subject: {} to: {} ", subject, emailTo);
                 this.mailSender.send(msg);
             } catch (MailException e) {
-                LOG.warn("Couldn't send email to '" + emailTo + "'.", e);
+                log.warn("Couldn't send email to '" + emailTo + "'.", e);
             }
         } else {
-            LOG.info("Not sending message in DEVELOPMENT mode:\n" + msg.toString());
+            log.info("Not sending message in DEVELOPMENT mode:\n" + msg.toString());
         }
     }
 
     private String renderTemplate(String nameOfTemplate, Map<String, Object> parameters) {
-
         Context context = new Context();
-        parameters.forEach(context::setVariable);
+        context.setVariables(parameters);
 
-        final StringWriter sw = new StringWriter();
-        templateEngine.process(nameOfTemplate, context, sw);
-        return sw.toString();
+        return templateEngine.process(nameOfTemplate, context);
     }
 
 }

@@ -77,7 +77,7 @@ public class SubscribeToRoaAlertCommandHandlerTest {
 
         verify(repository).add(alertCapture.capture());
         verify(emailSender).sendEmail(emailCapture.capture(), isA(String.class),
-                eq("email-templates/subscribe-confirmation-weekly.txt"), isA(Map.class));
+                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_WEEKLY), isA(Map.class));
         assertEquals(RoaAlertFrequency.WEEKLY, alertCapture.getValue().getFrequency());
         assertEquals(email, emailCapture.getValue());
     }
@@ -97,8 +97,8 @@ public class SubscribeToRoaAlertCommandHandlerTest {
         subject.handle(new SubscribeToRoaAlertCommand(TEST_VERSIONED_CA_ID, email, newValidityStates));
 
         assertEquals(newValidityStates, configuration.getSubscriptionOrNull().getRouteValidityStates());
-        verify(emailSender, times(0)).sendEmail(anyString(), isA(String.class),
-                eq("email-templates/subscribe-confirmation-daily.txt"), isA(Map.class));
+        verify(emailSender, times(0)).sendEmail(anyString(), eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY.templateSubject),
+                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY), isA(Map.class));
     }
 
     @SuppressWarnings("unchecked")
@@ -113,8 +113,8 @@ public class SubscribeToRoaAlertCommandHandlerTest {
 
         subject.handle(new SubscribeToRoaAlertCommand(TEST_VERSIONED_CA_ID, newEmail, EnumSet.of(RouteValidityState.INVALID_ASN, RouteValidityState.INVALID_LENGTH)));
 
-        verify(emailSender, times(1)).sendEmail(eq(newEmail), isA(String.class),
-                eq("email-templates/subscribe-confirmation-daily.txt"), isA(Map.class));
+        verify(emailSender, times(1)).sendEmail(eq(newEmail), eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY.templateSubject),
+                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY), isA(Map.class));
         List<String> emails = configuration.getSubscriptionOrNull().getEmails();
         assertTrue(emails.contains(oldEmail));
         assertTrue(emails.contains(newEmail));

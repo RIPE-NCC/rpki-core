@@ -8,11 +8,15 @@ import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -64,26 +68,30 @@ public class BackgroundTaskRunner implements SmartLifecycle {
         return !forkJoinPool.isShutdown();
     }
 
-    public interface Task {
-        void execute();
+    public interface Task<T> {
+        T execute() throws Exception;
 
         void onException(Exception e);
     }
 
-    public void runParallel(Stream<Task> tasks) {
+    public <T> List<T> runParallel(Stream<Task<T>> tasks) {
         MaxExceptionsTemplate maxExceptionsTemplate = new MaxExceptionsTemplate(20);
-        forkJoinPool.submit(() -> tasks.parallel().forEach(task -> maxExceptionsTemplate.wrap(task))).join();
+        List<T> result = forkJoinPool.submit(
+            () -> tasks.parallel()
+                .flatMap(task -> maxExceptionsTemplate.wrap(task).stream())
+                .collect(Collectors.toList())
+        ).join();
         if (maxExceptionsTemplate.maxExceptionsOccurred()) {
             throw new BackgroundServiceException("Too many exceptions encountered, suspecting problems that affect ALL CAs.");
         }
+        return result;
     }
 
-    public Task task(Runnable task, Consumer<Exception> onException) {
-        return new Task() {
-
+    public <T> Task<T> task(Callable<T> task, Consumer<Exception> onException) {
+        return new Task<>() {
             @Override
-            public void execute() {
-                RunAsUserHolder.asAdmin(task::run);
+            public T execute() throws Exception {
+                return RunAsUserHolder.asAdmin((RunAsUserHolder.GetE<T, Exception>) task::call);
             }
 
             @Override
@@ -101,15 +109,16 @@ public class BackgroundTaskRunner implements SmartLifecycle {
             this.maxAllowed = maxAllowed;
         }
 
-        public void wrap(final Task task) {
+        public <T> Optional<T> wrap(final Task<T> task) {
             if (stopping.get() || maxExceptionsOccurred()) {
-                return;
+                return Optional.empty();
             }
             try {
-                task.execute();
+                return Optional.ofNullable(task.execute());
             } catch (Exception e) {
                 numberOfExceptions.incrementAndGet();
                 task.onException(e);
+                return Optional.empty();
             }
         }
 

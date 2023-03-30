@@ -2,17 +2,11 @@ package net.ripe.rpki.core.read.services.ca;
 
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
-import net.ripe.rpki.domain.CertificateAuthority;
-import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.NonHostedCertificateAuthority;
-import net.ripe.rpki.domain.NonHostedPublisherRepository;
-import net.ripe.rpki.domain.ProductionCertificateAuthority;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningAuditLogService;
 import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.server.api.support.objects.CaName;
 import org.joda.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,20 +74,12 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
 
     @Override
     public Collection<CertificateAuthorityData> findAllChildrenForCa(X500Principal caName) {
-        ManagedCertificateAuthority parent = certificateAuthorityRepository.findByTypeAndName(ManagedCertificateAuthority.class, caName);
-        return certificateAuthorityRepository.findAllByParent(parent).stream()
+        CertificateAuthority parent = certificateAuthorityRepository.findByTypeAndName(CertificateAuthority.class, caName);
+        return parent instanceof ParentCertificateAuthority
+            ? certificateAuthorityRepository.findAllByParent((ParentCertificateAuthority) parent).stream()
                 .map(this::convertToCaData)
-                .collect(Collectors.toList());
-    }
-
-    // Optimized version of the above to avoid all the resources heavy-lifting
-    // when it's not needed.
-    @Override
-    public Collection<CaIdentity> findAllChildrenIdsForCa(X500Principal productionCaName) {
-        ManagedCertificateAuthority parent = certificateAuthorityRepository.findByTypeAndName(ProductionCertificateAuthority.class, productionCaName);
-        return certificateAuthorityRepository.findAllByParent(parent).stream()
-            .map(ca -> new CaIdentity(ca.getVersionedId(), CaName.of(ca.getName())))
-            .collect(Collectors.toList());
+                .collect(Collectors.toList())
+            : Collections.emptyList();
     }
 
     @Override

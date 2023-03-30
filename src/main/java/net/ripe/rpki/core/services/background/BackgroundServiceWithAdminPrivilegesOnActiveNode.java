@@ -12,9 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -178,11 +180,18 @@ public abstract class BackgroundServiceWithAdminPrivilegesOnActiveNode implement
         }
     }
 
-    protected void runParallel(Stream<BackgroundTaskRunner.Task> tasks) {
-        backgroundTaskRunner.runParallel(tasks);
+    protected <T> List<T> runParallel(Stream<BackgroundTaskRunner.Task<T>> tasks) {
+        return backgroundTaskRunner.runParallel(tasks);
     }
 
-    protected BackgroundTaskRunner.Task task(Runnable task, Consumer<Exception> onError) {
+    protected BackgroundTaskRunner.Task<Void> task(Runnable task, Consumer<Exception> onError) {
+        return backgroundTaskRunner.task(() -> {
+            task.run();
+            return null;
+        }, onError);
+    }
+
+    protected <T> BackgroundTaskRunner.Task<T> task(Callable<T> task, Consumer<Exception> onError) {
         return backgroundTaskRunner.task(task, onError);
     }
 

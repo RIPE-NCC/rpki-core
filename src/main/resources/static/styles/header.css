@@ -62,7 +62,6 @@
 }
 
 .dropdown-content {
-    display: none;
     position: absolute;
     right: 0;
     min-width: 200px;

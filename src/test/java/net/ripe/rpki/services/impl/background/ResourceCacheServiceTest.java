@@ -4,9 +4,8 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.Getter;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.FixedDateRule;
-import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.core.services.background.SequentialBackgroundQueuedTaskRunner;
-import net.ripe.rpki.server.api.dto.CaIdentity;
+import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.DelegationsCache;
 import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient;
@@ -37,9 +36,12 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static net.ripe.rpki.services.impl.background.AllCaCertificateUpdateServiceBeanTest.MEMBER_CA_1;
+import static net.ripe.rpki.services.impl.background.AllCaCertificateUpdateServiceBeanTest.MEMBER_CA_2;
 import static net.ripe.rpki.services.impl.background.ResourceCacheService.resourcesDiff;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -118,13 +120,13 @@ public class ResourceCacheServiceTest {
 
         runnableArgumentCaptor.getValue().run();
 
-        ArgumentCaptor<Predicate<CaIdentity>> predicateArgumentCaptor = ArgumentCaptor.forClass(Predicate.class);
-        verify(allCaCertificateUpdateServiceBean).runService(predicateArgumentCaptor.capture());
+        ArgumentCaptor<Predicate<CertificateAuthorityData>> predicateArgumentCaptor = ArgumentCaptor.forClass(Predicate.class);
+        verify(allCaCertificateUpdateServiceBean).runService(eq(Collections.emptyMap()), predicateArgumentCaptor.capture());
 
-        Predicate<CaIdentity> caIdentityPredicate = predicateArgumentCaptor.getValue();
+        Predicate<CertificateAuthorityData> caIdentityPredicate = predicateArgumentCaptor.getValue();
         assertThat(caIdentityPredicate)
-                .accepts(new CaIdentity(VersionedId.parse("1"), CaName.fromOrganisationId("ORG-123")))
-                .rejects(new CaIdentity(VersionedId.parse("1"), CaName.fromOrganisationId("ORG-124")));
+                .accepts(MEMBER_CA_1)
+                .rejects(MEMBER_CA_2);
     }
 
     @Test
@@ -300,9 +302,10 @@ public class ResourceCacheServiceTest {
 
     private static class DataSamples {
         static MemberResources memberResources() {
+            String caName = MEMBER_CA_1.getName().getName();
             return new MemberResources(
-                    List.of(new AsnResource(1L, "AS64496", "ALLOCATED", "ORG-123")),
-                    List.of(new Ipv4Allocation(1L, "192.0.2.0/24", "ALLOCATED", "ORG-123")),
+                    List.of(new AsnResource(1L, "AS64496", "ALLOCATED", caName)),
+                    List.of(new Ipv4Allocation(1L, "192.0.2.0/24", "ALLOCATED", caName)),
                     emptyList(),
                     emptyList(),
                     emptyList(),
@@ -310,13 +313,14 @@ public class ResourceCacheServiceTest {
             );
         }
         static MemberResources rejectedMemberResources() {
+            String caName = MEMBER_CA_1.getName().getName();
             List<ResourceServicesClient.Ipv6Allocation> ipv6Allocations = new ArrayList<>(128);
             for (int i = 0; i <= 127; i++) {
-                ipv6Allocations.add(new ResourceServicesClient.Ipv6Allocation(1L, "2001:DB8:" + Integer.toHexString(2*i)  + "::/48", "ALLOCATED", "ORG-123"));
+                ipv6Allocations.add(new ResourceServicesClient.Ipv6Allocation(1L, "2001:DB8:" + Integer.toHexString(2*i)  + "::/48", "ALLOCATED", caName));
             }
             return new MemberResources(
-                    List.of(new AsnResource(1L, "AS64496", "ALLOCATED", "ORG-123")),
-                    List.of(new Ipv4Allocation(1L, "192.0.2.0/24", "ALLOCATED", "ORG-123")),
+                    List.of(new AsnResource(1L, "AS64496", "ALLOCATED", caName)),
+                    List.of(new Ipv4Allocation(1L, "192.0.2.0/24", "ALLOCATED", caName)),
                     emptyList(),
                     ipv6Allocations,
                     emptyList(),

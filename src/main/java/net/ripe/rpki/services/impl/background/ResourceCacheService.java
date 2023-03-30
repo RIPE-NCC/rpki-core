@@ -171,17 +171,26 @@ public class ResourceCacheService {
     }
 
     private void scheduleResourceCertificateUpdateForChangedCas(List<Update> updates) {
-        Set<CaName> changedCas = updates.stream()
+        Set<X500Principal> changedCas = updates.stream()
             .flatMap(update -> update.changes.entrySet().stream())
             .filter(entry -> entry.getValue().added > 0 || entry.getValue().deleted > 0)
-            .map(Map.Entry::getKey)
+            .map(entry -> entry.getKey().getPrincipal())
             .collect(Collectors.toSet());
         if (changedCas.isEmpty()) {
             return;
         }
 
         Runnable action = () -> allCaCertificateUpdateServiceBean.runService(
-            caIdentity -> changedCas.contains(caIdentity.getCaName())
+            Collections.emptyMap(),
+            ca -> {
+                switch (ca.getType()) {
+                    case HOSTED: case NONHOSTED:
+                        return changedCas.contains(ca.getName());
+                    case ALL_RESOURCES: case ROOT:
+                        return true;
+                }
+                throw new IllegalStateException(String.format("unknown type '%s' for CA '%s'", ca.getType(), ca.getName()));
+            }
         );
         sequentialBackgroundQueuedTaskRunner.submit(
             "update CA certificates after resource cache update",

@@ -73,7 +73,7 @@ public class SequentialBackgroundQueuedTaskRunner extends SequentialBackgroundSe
         }
     }
 
-    private void executeTask(String description, BackgroundTaskRunner.Task task) {
+    private void executeTask(String description, BackgroundTaskRunner.Task<?> task) {
         log.info("starting execution of task: {}", description);
 
         Pair<BackgroundServiceExecutionResult.Status, Long> result;

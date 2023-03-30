@@ -4,21 +4,11 @@ import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.server.api.dto.CaIdentity;
-import net.ripe.rpki.server.api.dto.CaStat;
-import net.ripe.rpki.server.api.dto.CaStatEvent;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.CommandAuditData;
-import net.ripe.rpki.server.api.dto.ProvisioningAuditData;
+import net.ripe.rpki.server.api.dto.*;
 import org.joda.time.Instant;
 
 import javax.security.auth.x500.X500Principal;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Read-only service for information related to CertificateAuthorities
@@ -70,9 +60,7 @@ public interface CertificateAuthorityViewService {
      */
     Collection<CertificateAuthorityData> findAllChildrenForCa(X500Principal productionCaName);
 
-    Collection<CaIdentity> findAllChildrenIdsForCa(X500Principal productionCaName);
-
-        // Auditing, move to own interface?
+    // Auditing, move to own interface?
     List<CommandAuditData> findMostRecentCommandsForCa(long caId);
 
     List<ProvisioningAuditData> findMostRecentMessagesForCa(UUID caUUID);

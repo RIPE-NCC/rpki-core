@@ -21,7 +21,7 @@ public interface CertificateAuthorityRepository extends Repository<CertificateAu
 
     ProductionCertificateAuthority findRootCAByName(X500Principal name);
 
-    AllResourcesCertificateAuthority findAllresourcesCAByName(X500Principal name);
+    AllResourcesCertificateAuthority findAllResourcesCAByName(X500Principal name);
 
     Collection<CertificateAuthority> findAllByParent(ParentCertificateAuthority parent);
 

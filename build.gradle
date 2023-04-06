@@ -47,13 +47,13 @@ dependencies {
     implementation "org.thymeleaf:thymeleaf:3.1.1.RELEASE"
     implementation "org.thymeleaf:thymeleaf-spring5:3.1.1.RELEASE"
 
-    implementation platform('io.sentry:sentry-bom:6.16.0')
+    implementation platform('io.sentry:sentry-bom:6.17.0')
     implementation 'io.sentry:sentry-spring-boot-starter'
     implementation 'io.sentry:sentry-logback'
 
     implementation "net.ripe.rpki:rpki-commons:$rpki_commons_version"
 
-    implementation 'org.springdoc:springdoc-openapi-ui:1.6.15'
+    implementation 'org.springdoc:springdoc-openapi-ui:1.7.0'
 
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     implementation 'org.postgresql:postgresql:42.6.0'

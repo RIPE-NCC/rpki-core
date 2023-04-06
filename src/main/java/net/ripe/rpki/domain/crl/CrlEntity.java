@@ -98,11 +98,6 @@ public class CrlEntity extends EntitySupport {
     }
 
     public boolean isUpdateNeeded(DateTime now, ResourceCertificateRepository resourceCertificateRepository) {
-        KeyPairEntity keyPair = getKeyPair();
-        if (keyPair.isRevoked()) {
-            return false;
-        }
-
         X509Crl current = getCrl();
         if (current == null) {
             return true;
@@ -131,8 +126,6 @@ public class CrlEntity extends EntitySupport {
     }
 
     public void update(ValidityPeriod validityPeriod, ResourceCertificateRepository resourceCertificateRepository) {
-        KeyPairEntity keyPair = getKeyPair();
-
         Collection<OutgoingResourceCertificate> revokedCertificates = resourceCertificateRepository.findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(keyPair, validityPeriod.getNotValidBefore());
         X509CrlBuilder builder = newCrlBuilderWithEntries(revokedCertificates);
         builder.withAuthorityKeyIdentifier(keyPair.getPublicKey());

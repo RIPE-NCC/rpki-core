@@ -1,7 +1,6 @@
 package net.ripe.rpki.web;
 
 import lombok.NonNull;
-import lombok.SneakyThrows;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.AllResourcesCaResourcesCommand;
@@ -10,6 +9,7 @@ import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementRevokeOldKeysCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -56,6 +56,7 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
     private CommandService commandService;
     @Mock
     private AllCaCertificateUpdateServiceBean allCaCertificateUpdateServiceBean;
+    private ManagedCertificateAuthorityData aca;
 
     @NonNull
     @Override
@@ -68,10 +69,17 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
     public void setUp() {
         when(repositoryConfiguration.getPublicRepositoryUri()).thenReturn(URI.create("rsync://example.com/rpki/repository"));
         when(activeNodeService.getActiveNodeName()).thenReturn("active-node");
+
+        aca = mock(ManagedCertificateAuthorityData.class);
+        when(aca.getVersionedId()).thenReturn(new VersionedId(1));
+        when(aca.getType()).thenReturn(CertificateAuthorityType.ALL_RESOURCES);
+        when(certificateAuthorityViewService.findCertificateAuthorityByName(any())).thenReturn(aca);
     }
 
     @Test
     public void should_show_upstream_ca_no_all_resources_ca() throws Exception {
+        when(certificateAuthorityViewService.findCertificateAuthorityByName(any())).thenReturn(null);
+
         MvcResult result = mockMvc.perform(get("/admin/upstream-ca")).andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
@@ -81,9 +89,6 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
 
     @Test
     public void should_show_upstream_no_sign_request() throws Exception {
-        ManagedCertificateAuthorityData aca = mock(ManagedCertificateAuthorityData.class);
-        when(certificateAuthorityViewService.findCertificateAuthorityByName(any())).thenReturn(aca);
-
         MvcResult result = mockMvc.perform(get("/admin/upstream-ca")).andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
@@ -96,7 +101,6 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
 
     @Test
     public void should_show_upstream_sign_request_exists() throws Exception {
-        ManagedCertificateAuthorityData aca = mock(ManagedCertificateAuthorityData.class);
         TrustAnchorRequest taRequest = mock(TrustAnchorRequest.class);
         when(aca.getTrustAnchorRequest()).thenReturn(taRequest);
         when(certificateAuthorityViewService.findCertificateAuthorityByName(any())).thenReturn(aca);
@@ -138,9 +142,6 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
 
     @Test
     public void should_upload_sign_response() throws Exception {
-        CertificateAuthorityData aca = mock(CertificateAuthorityData.class);
-        when(certificateAuthorityViewService.findCertificateAuthorityByName(any())).thenReturn(aca);
-
         final byte[] responseBytes = Files.readAllBytes(
             Paths.get(getClass().getClassLoader().getResource("ta/sign-response.xml").toURI()));
 
@@ -153,54 +154,26 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
     }
 
     @Test
-    public void should_create_sign_request() {
-        withAcaMock(() -> {
-            mockMvc.perform(post("/admin/create-sign-request")).andReturn();
-            verify(commandService, times(1)).execute(isA(AllResourcesCaResourcesCommand.class));
-        });
+    public void should_create_sign_request() throws Exception {
+        mockMvc.perform(post("/admin/create-sign-request")).andReturn();
+        verify(commandService, times(1)).execute(isA(AllResourcesCaResourcesCommand.class));
     }
 
     @Test
-    public void should_revoke_old_aca_key() {
-        withAcaMock(() -> {
-            mockMvc.perform(post("/admin/revoke-old-aca-key")).andReturn();
-            verify(commandService, times(1)).execute(isA(KeyManagementRevokeOldKeysCommand.class));
-        });
+    public void should_revoke_old_aca_key() throws Exception {
+        mockMvc.perform(post("/admin/revoke-old-aca-key")).andReturn();
+        verify(commandService, times(1)).execute(isA(KeyManagementRevokeOldKeysCommand.class));
     }
 
     @Test
-    public void should_activate_pending_aca_key() {
-        withAcaMock(() -> {
-            mockMvc.perform(post("/admin/activate-pending-aca-key")).andReturn();
-            verify(commandService, times(1)).execute(isA(KeyManagementActivatePendingKeysCommand.class));
-        });
+    public void should_activate_pending_aca_key() throws Exception {
+        mockMvc.perform(post("/admin/activate-pending-aca-key")).andReturn();
+        verify(commandService, times(1)).execute(isA(KeyManagementActivatePendingKeysCommand.class));
     }
 
     @Test
-    public void should_initiate_key_roll() {
-        withAcaMock(() -> {
-            mockMvc.perform(post("/admin/initiate-rolling-aca-key")).andReturn();
-            verify(commandService, times(1)).execute(isA(KeyManagementInitiateRollCommand.class));
-        });
+    public void should_initiate_key_roll() throws Exception {
+        mockMvc.perform(post("/admin/initiate-rolling-aca-key")).andReturn();
+        verify(commandService, times(1)).execute(isA(KeyManagementInitiateRollCommand.class));
     }
-
-    private void withAcaMock(CheckedRunnable r) {
-        final CertificateAuthorityData aca = mock(CertificateAuthorityData.class);
-        when(aca.getVersionedId()).thenReturn(new VersionedId(1));
-        when(certificateAuthorityViewService.findCertificateAuthorityByName(any())).thenReturn(aca);
-        r.run();
-    }
-
-    @FunctionalInterface
-    public interface CheckedRunnable extends Runnable {
-        @Override
-        @SneakyThrows
-        default void run() {
-            runThrows();
-        }
-
-        void runThrows() throws Exception;
-    }
-
-
 }

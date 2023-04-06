@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,18 +55,7 @@ public class KeyPairEntityTest {
         assertTrue(keyPair.getPrivateKey().getEncoded().length > 0);
         assertTrue(keyPair.getPublicKey().getEncoded().length > 0);
         assertEquals(KeyPairFactory.ALGORITHM, keyPair.getAlgorithm());
-        assertEquals(KeyPairStatus.NEW, keyPair.getStatus());
-    }
-
-    @Test
-    public void should_track_made_pending_at() {
-        KeyPairEntity subject = TestObjects.createTestKeyPair();
-        assertNull("key pair not yet pending", subject.getStatusChangedAt(KeyPairStatus.PENDING));
-
-        IncomingResourceCertificate certificate = TestObjects.createResourceCertificate(12L, subject);
-        subject.updateIncomingResourceCertificate(certificate.getCertificate(), certificate.getPublicationUri());
-
-        assertEquals(now, subject.getStatusChangedAt(KeyPairStatus.PENDING));
+        assertEquals(KeyPairStatus.PENDING, keyPair.getStatus());
     }
 
     @Test
@@ -90,21 +78,6 @@ public class KeyPairEntityTest {
         subject.deactivate();
 
         assertEquals(now, subject.getStatusChangedAt(KeyPairStatus.OLD));
-    }
-
-    @Test
-    public void should_track_revoked_at() {
-        KeyPairEntity subject = TestObjects.createActiveKeyPair(TEST_KEY_PAIR_NAME);
-        subject.deactivate();
-        assertNull("key pair not yet revoked", subject.getStatusChangedAt(KeyPairStatus.REVOKED));
-
-        PublishedObjectRepository publishedObjectRepository = mock(PublishedObjectRepository.class);
-
-        subject.revoke(publishedObjectRepository);
-
-        assertEquals(now, subject.getStatusChangedAt(KeyPairStatus.REVOKED));
-
-        verify(publishedObjectRepository).withdrawAllForKeyPair(isA(KeyPairEntity.class));
     }
 
     @Test

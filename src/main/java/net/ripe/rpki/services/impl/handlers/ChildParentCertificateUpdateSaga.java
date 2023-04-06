@@ -30,20 +30,17 @@ public class ChildParentCertificateUpdateSaga {
     private final KeyPairDeletionService keyPairDeletionService;
 
     private final CertificateRequestCreationService certificateRequestCreationService;
-    private final PublishedObjectRepository publishedObjectRepository;
     private final ResourceCertificateRepository resourceCertificateRepository;
     private final ResourceLookupService resourceLookupService;
     private final ConcurrentMap<X500Principal, Integer> overclaimingResourcesCounts = new ConcurrentHashMap<>();
 
     public ChildParentCertificateUpdateSaga(KeyPairDeletionService keyPairDeletionService,
                                             CertificateRequestCreationService certificateRequestCreationService,
-                                            PublishedObjectRepository publishedObjectRepository,
                                             ResourceCertificateRepository resourceCertificateRepository,
                                             ResourceLookupService resourceLookupService,
                                             MeterRegistry meterRegistry) {
         this.keyPairDeletionService = keyPairDeletionService;
         this.certificateRequestCreationService = certificateRequestCreationService;
-        this.publishedObjectRepository = publishedObjectRepository;
         this.resourceCertificateRepository = resourceCertificateRepository;
         this.resourceLookupService = resourceLookupService;
         Gauge.builder("rpkicore.overclaiming.cas", overclaimingResourcesCounts::size)
@@ -63,7 +60,7 @@ public class ChildParentCertificateUpdateSaga {
             } else if (request instanceof CertificateRevocationRequest) {
                 final CertificateRevocationResponse response = parentCa.processCertificateRevocationRequest(
                         (CertificateRevocationRequest) request, resourceCertificateRepository);
-                childCa.processCertificateRevocationResponse(response, publishedObjectRepository, keyPairDeletionService);
+                childCa.processCertificateRevocationResponse(response, keyPairDeletionService);
             }
         }
 
@@ -73,7 +70,7 @@ public class ChildParentCertificateUpdateSaga {
     private List<CertificateProvisioningMessage> checkIfUpdatedIsNeeded(ChildCertificateAuthority childCa) {
         Optional<ImmutableResourceSet> maybeChildResources = childCa.lookupCertifiableIpResources(resourceLookupService);
 
-        if (!maybeChildResources.isPresent()) {
+        if (maybeChildResources.isEmpty()) {
             log.warn("Resource cache for CA is null (not: empty), exiting.");
             return Collections.emptyList();
         }

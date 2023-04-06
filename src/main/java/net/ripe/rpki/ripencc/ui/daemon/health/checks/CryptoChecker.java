@@ -47,7 +47,7 @@ public class CryptoChecker {
     @Transactional
     public Health.Status getHealthStatus() {
         // All Resources CA has a key on the FS, check that it can be loaded
-        final AllResourcesCertificateAuthority allResourcesCa = caRepostiory.findAllresourcesCAByName(repositoryConfiguration.getAllResourcesCaPrincipal());
+        final AllResourcesCertificateAuthority allResourcesCa = caRepostiory.findAllResourcesCAByName(repositoryConfiguration.getAllResourcesCaPrincipal());
         final Health.Status status = getCaStatus("All Resources", allResourcesCa);
         if (status.isHealthy()) {
             // Production CA has its key
@@ -79,7 +79,7 @@ public class CryptoChecker {
     @Transactional
     public void checkCryptoWorks() {
         // All Resources CA has a key on the FS, check that it can be loaded
-        final AllResourcesCertificateAuthority allResourcesCa = caRepostiory.findAllresourcesCAByName(repositoryConfiguration.getAllResourcesCaPrincipal());
+        final AllResourcesCertificateAuthority allResourcesCa = caRepostiory.findAllResourcesCAByName(repositoryConfiguration.getAllResourcesCaPrincipal());
         verifyCA("All Resources", allResourcesCa);
 
         final ProductionCertificateAuthority productionCA = caRepostiory.findRootCAByName(repositoryConfiguration.getProductionCaPrincipal());

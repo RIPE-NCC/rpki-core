@@ -19,7 +19,6 @@ import javax.inject.Inject;
 public class DeleteCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<DeleteCertificateAuthorityCommand> {
 
     private final ResourceCertificateRepository resourceCertificateRepository;
-    private final PublishedObjectRepository publishedObjectRepository;
     private final RoaConfigurationRepository roaConfigurationRepository;
     private final RoaAlertConfigurationRepository roaAlertConfigurationRepository;
     private final KeyPairDeletionService keyPairDeletionService;
@@ -28,14 +27,12 @@ public class DeleteCertificateAuthorityCommandHandler extends AbstractCertificat
     @Inject
     public DeleteCertificateAuthorityCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
                                                     ResourceCertificateRepository resourceCertificateRepository,
-                                                    PublishedObjectRepository publishedObjectRepository,
                                                     RoaConfigurationRepository roaConfigurationRepository,
                                                     RoaAlertConfigurationRepository roaAlertConfigurationRepository,
                                                     KeyPairDeletionService keyPairDeletionService,
                                                     CommandAuditService commandAuditService) {
         super(certificateAuthorityRepository);
         this.resourceCertificateRepository = resourceCertificateRepository;
-        this.publishedObjectRepository = publishedObjectRepository;
         this.roaConfigurationRepository = roaConfigurationRepository;
         this.roaAlertConfigurationRepository = roaAlertConfigurationRepository;
         this.keyPairDeletionService = keyPairDeletionService;
@@ -56,7 +53,7 @@ public class DeleteCertificateAuthorityCommandHandler extends AbstractCertificat
         ca.getSignedPublicKeys().forEach(publicKey -> {
             CertificateRevocationRequest request = new CertificateRevocationRequest(publicKey);
             CertificateRevocationResponse response = ca.getParent().processCertificateRevocationRequest(request, resourceCertificateRepository);
-            ca.processCertificateRevocationResponse(response, publishedObjectRepository, keyPairDeletionService);
+            ca.processCertificateRevocationResponse(response, keyPairDeletionService);
         });
 
         ca.asManagedCertificateAuthority().ifPresent(managedCa -> {

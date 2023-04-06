@@ -4,7 +4,6 @@ import lombok.NonNull;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.KeyPairService;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.commands.CreateRootCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -17,15 +16,12 @@ import javax.inject.Inject;
 public class CreateRootCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<CreateRootCertificateAuthorityCommand> {
 
     private final RepositoryConfiguration repositoryConfiguration;
-    private final KeyPairService keyPairService;
 
     @Inject
     public CreateRootCertificateAuthorityCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
-                                                        RepositoryConfiguration repositoryConfiguration,
-                                                        KeyPairService keyPairService) {
+                                                        RepositoryConfiguration repositoryConfiguration) {
         super(certificateAuthorityRepository);
         this.repositoryConfiguration = repositoryConfiguration;
-        this.keyPairService = keyPairService;
     }
 
     @Override
@@ -45,7 +41,6 @@ public class CreateRootCertificateAuthorityCommandHandler extends AbstractCertif
             allResourcesCertificateAuthority
         );
         getCertificateAuthorityRepository().add(ca);
-        ca.createNewKeyPair(keyPairService);
     }
 
     protected AllResourcesCertificateAuthority lookupAllResourcesCertificateAuthority() {

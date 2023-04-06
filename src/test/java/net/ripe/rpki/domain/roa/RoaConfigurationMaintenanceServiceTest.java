@@ -14,14 +14,16 @@ import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCo
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static net.ripe.ipresource.ImmutableResourceSet.parse;
@@ -69,7 +71,6 @@ public class RoaConfigurationMaintenanceServiceTest extends CertificationDomainT
 
         child = new HostedCertificateAuthority(HOSTED_CA_ID, CHILD_CA_NAME, UUID.randomUUID(), parent);
         certificateAuthorityRepository.add(child);
-        child.createNewKeyPair(keyPairService);
 
         // Add the ROA configuration
         var ca = certificateAuthorityRepository.findManagedCa(HOSTED_CA_ID);
@@ -139,7 +140,7 @@ public class RoaConfigurationMaintenanceServiceTest extends CertificationDomainT
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
 
         assertThat(roaConfigurationRepository.findByCertificateAuthority(child))
-                .hasValueSatisfying(config -> config.getPrefixes().isEmpty());
+                .hasValueSatisfying(config -> assertThat(config.getPrefixes()).isEmpty());
     }
 
     private CommandStatus execute(CertificateAuthorityCommand command) {

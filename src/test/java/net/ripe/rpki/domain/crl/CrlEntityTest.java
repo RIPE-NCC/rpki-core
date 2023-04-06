@@ -3,15 +3,14 @@ package net.ripe.rpki.domain.crl;
 import net.ripe.rpki.commons.FixedDateRule;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.KeyPairEntity;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.transaction.annotation.Transactional;
@@ -106,19 +105,6 @@ public class CrlEntityTest extends CertificationDomainTestCase {
     }
 
     @Test
-    public void shouldNotUpdateWhenKeyIsRevoked() {
-        subject.update(validityPeriod, resourceCertificateRepository);
-
-        OutgoingResourceCertificate revokedCertificate = resourceCertificateRepository.findLatestOutgoingCertificate(keyPair.getPublicKey(), keyPair);
-        revokedCertificate.revoke();
-        keyPair.deactivate();
-
-        keyPair.revoke(publishedObjectRepository);
-
-        assertFalse(subject.isUpdateNeeded(now, resourceCertificateRepository));
-    }
-
-    @Test
     public void shouldNotUpdateWhenRevokedCertificateExpires() {
         OutgoingResourceCertificate certificateToRevoke = resourceCertificateRepository.findLatestOutgoingCertificate(keyPair.getPublicKey(), keyPair);
         certificateToRevoke.revoke();
@@ -128,11 +114,5 @@ public class CrlEntityTest extends CertificationDomainTestCase {
 
         DateTimeUtils.setCurrentMillisFixed(certificateToRevoke.getNotValidAfter().plusHours(1).getMillis());
         assertFalse(subject.isUpdateNeeded(now, resourceCertificateRepository));
-    }
-
-    @Ignore
-    @Test
-    public void shouldOnlyContainCertificatesSignedBySameKeyPair() {
-        // TODO: Move to integration test (do key roll, re-publish, check CRL for revoked manifest)
     }
 }

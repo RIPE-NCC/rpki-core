@@ -7,7 +7,7 @@
   <body>
     <div data-th-replace="~{fragments/header :: header(title='Production CA History')}"></div>
     <div class="main-flex">
-      <div data-th-insert="~{fragments/sidebar :: sidebar(active='history')}"></div>
+      <div data-th-replace="~{fragments/sidebar :: sidebar(active='history')}"></div>
       <div class="main">
         <div class="message-banner" data-th-if="${success}">
           <i class="bi bi-check-circle"></i>

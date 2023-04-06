@@ -8,7 +8,7 @@
 <body>
   <div data-th-replace="~{fragments/header :: header(title='Resource Cache')}"></div>
   <div class="main-flex">
-    <div data-th-insert="~{fragments/sidebar :: sidebar(active='resource-cache')}"></div>
+    <div data-th-replace="~{fragments/sidebar :: sidebar(active='resource-cache')}"></div>
     <div class="main">
       <div class="message-banner" data-th-if="${success}">
         <i class="bi bi-check-circle"></i>

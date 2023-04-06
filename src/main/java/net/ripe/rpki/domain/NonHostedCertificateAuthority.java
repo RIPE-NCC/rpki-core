@@ -171,7 +171,7 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     }
 
     @Override
-    public void processCertificateRevocationResponse(CertificateRevocationResponse response, PublishedObjectRepository publishedObjectRepository, KeyPairDeletionService keyPairDeletionService) {
+    public void processCertificateRevocationResponse(CertificateRevocationResponse response, KeyPairDeletionService keyPairDeletionService) {
         // Nothing to do for now, as the resource certificate is already revoked by the parent CA before we get here.
         // We could mark the public key as revoked, but there is nothing in RFC6492 to indicate that should happen
         // after a certificate revocation request.

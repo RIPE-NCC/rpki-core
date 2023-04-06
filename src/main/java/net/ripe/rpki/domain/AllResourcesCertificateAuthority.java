@@ -62,15 +62,4 @@ public class AllResourcesCertificateAuthority extends ManagedCertificateAuthorit
         return new ResourceClassListResponse(query.getResources());
     }
 
-    /**
-     * Finds the revoked key, marks it as revoked, and withdraws any published objects for it
-     */
-    public void processRevokedKey(String encodedSKI, PublishedObjectRepository publishedObjectRepository) {
-        final Optional<KeyPairEntity> kp = findKeyPairByEncodedPublicKey(encodedSKI);
-        if (kp.isPresent()) {
-            kp.get().revoke(publishedObjectRepository);
-        } else {
-            throw new CertificateAuthorityException("Unknown encoded key: " + encodedSKI);
-        }
-    }
 }

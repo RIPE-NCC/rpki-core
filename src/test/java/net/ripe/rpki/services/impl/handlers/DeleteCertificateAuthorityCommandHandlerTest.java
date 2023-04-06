@@ -27,12 +27,10 @@ import javax.security.auth.x500.X500Principal;
 import java.net.URI;
 import java.security.KeyPair;
 import java.security.PublicKey;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
 import static net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest.TEST_KEY_PAIR;
-import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -77,18 +75,12 @@ public class DeleteCertificateAuthorityCommandHandlerTest {
         when(keyPair.getPublicKey()).thenReturn(publicKey);
         when(keyPair.isCurrent()).thenReturn(true);
         when(parentCA.processCertificateRevocationRequest(new CertificateRevocationRequest(publicKey), resourceCertificateRepository))
-            .thenReturn(new CertificateRevocationResponse(DEFAULT_RESOURCE_CLASS, publicKey));
+            .thenReturn(new CertificateRevocationResponse(publicKey));
         when(roaConfigurationRepository.findByCertificateAuthority(hostedCA)).thenReturn(Optional.empty());
 
         subject.handle(new DeleteCertificateAuthorityCommand(new VersionedId(HOSTED_CA_ID), new X500Principal("CN=managed")));
 
-        verify(keyPair).deleteIncomingResourceCertificate();
-        verify(keyPair).requestRevoke();
-        verify(keyPair).revoke(publishedObjectRepository);
-        verify(keyPairDeletionService).deleteRevokedKeysFromResponses(
-            hostedCA,
-            Collections.singletonList(new CertificateRevocationResponse(DEFAULT_RESOURCE_CLASS, publicKey))
-        );
+        verify(keyPair).revoke(keyPairDeletionService);
 
         verify(roaAlertConfigurationRepository).findByCertificateAuthorityIdOrNull(HOSTED_CA_ID);
         verify(roaConfigurationRepository).findByCertificateAuthority(hostedCA);

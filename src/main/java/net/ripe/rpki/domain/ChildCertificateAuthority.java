@@ -26,7 +26,6 @@ public interface ChildCertificateAuthority {
     void processCertificateIssuanceResponse(CertificateIssuanceResponse response, ResourceCertificateRepository resourceCertificateRepository);
 
     void processCertificateRevocationResponse(CertificateRevocationResponse response,
-                                              PublishedObjectRepository publishedObjectRepository,
                                               KeyPairDeletionService keyPairDeletionService);
 
     List<? extends CertificateProvisioningMessage> processResourceClassListResponse(

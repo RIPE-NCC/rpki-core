@@ -3,6 +3,7 @@ package net.ripe.rpki.domain;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
+import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
@@ -18,21 +19,7 @@ import org.apache.commons.lang.builder.ToStringStyle;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import javax.persistence.CascadeType;
-import javax.persistence.CollectionTable;
-import javax.persistence.Column;
-import javax.persistence.ElementCollection;
-import javax.persistence.Embedded;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import java.math.BigInteger;
 import java.net.URI;
@@ -40,15 +27,10 @@ import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil.extractPublicationDirectory;
-import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 
 /**
  * A KeyPair belongs to a single Certificate Authority and is a holder for a private and a public key.
@@ -100,7 +82,7 @@ public class KeyPairEntity extends EntitySupport {
     private String manifestFilename;
 
     protected KeyPairEntity() {
-        setStatus(KeyPairStatus.NEW);
+        setStatus(KeyPairStatus.PENDING);
     }
 
     public KeyPairEntity(KeyPair keyPair,
@@ -134,10 +116,6 @@ public class KeyPairEntity extends EntitySupport {
         return status == KeyPairStatus.PENDING;
     }
 
-    public boolean isNew() {
-        return status == KeyPairStatus.NEW;
-    }
-
     public boolean isCurrent() {
         return status == KeyPairStatus.CURRENT;
     }
@@ -146,15 +124,8 @@ public class KeyPairEntity extends EntitySupport {
         return status == KeyPairStatus.OLD;
     }
 
-    public boolean isRevoked() {
-        return status == KeyPairStatus.REVOKED;
-    }
-
     public boolean isPublishable() {
-        // FIXME: Unit / Fitnesse testing for this. Calling findCurrentIncCert here so that
-        //        the case where a member has no more resources and therefore no more active certs
-        //        results in skipping this keypair for publishing.
-        return (isPending() || isCurrent() || isOld()) && findCurrentIncomingCertificate().isPresent();
+        return findCurrentIncomingCertificate().isPresent();
     }
 
     public void activate() {
@@ -168,14 +139,9 @@ public class KeyPairEntity extends EntitySupport {
         setStatus(KeyPairStatus.OLD);
     }
 
-    public void revoke(PublishedObjectRepository publishedObjectRepository) {
-        Validate.isTrue(status.isRevokable(), "key cannot be revoked");
-        setStatus(KeyPairStatus.REVOKED);
-        publishedObjectRepository.withdrawAllForKeyPair(this);
-    }
-
-    public void requestRevoke() {
-        setStatus(KeyPairStatus.MUSTREVOKE);
+    public void revoke(KeyPairDeletionService keyPairDeletionService) {
+        deleteIncomingResourceCertificate();
+        keyPairDeletionService.deleteRevokedKey(this);
     }
 
     public boolean isRemovable() {
@@ -199,13 +165,6 @@ public class KeyPairEntity extends EntitySupport {
             this.incomingResourceCertificate = new IncomingResourceCertificate(certificate, publicationURI, this);
         } else {
             this.incomingResourceCertificate.update(certificate, publicationURI);
-        }
-        certificateReceived();
-    }
-
-    private void certificateReceived() {
-        if (isNew()) {
-            setStatus(KeyPairStatus.PENDING);
         }
     }
 
@@ -301,10 +260,6 @@ public class KeyPairEntity extends EntitySupport {
             Keys.get().isDbProvider(persistedKeyPair.getKeyStoreProviderString()));
     }
 
-    public boolean isCertificateNeeded() {
-        return status.isCertificateNeeded();
-    }
-
     public CertificateIssuanceResponse processCertificateIssuanceRequest(ChildCertificateAuthority requestingCa,
                                                                          CertificateIssuanceRequest request,
                                                                          BigInteger serial,
@@ -330,7 +285,7 @@ public class KeyPairEntity extends EntitySupport {
                                                                              ResourceCertificateRepository resourceCertificateRepository) {
         PublicKey subjectPublicKey = request.getSubjectPublicKey();
         revokeOldCertificates(subjectPublicKey, resourceCertificateRepository);
-        return new CertificateRevocationResponse(DEFAULT_RESOURCE_CLASS, subjectPublicKey);
+        return new CertificateRevocationResponse(subjectPublicKey);
     }
 
 }

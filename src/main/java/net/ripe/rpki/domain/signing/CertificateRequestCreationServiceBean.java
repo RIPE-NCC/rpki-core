@@ -73,14 +73,12 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
     public List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(ManagedCertificateAuthority ca, ImmutableResourceSet certifiableResources) {
         final List<CertificateIssuanceRequest> requests = new ArrayList<>();
         for (KeyPairEntity kp : ca.getKeyPairs()) {
-            if (kp.isCertificateNeeded()) {
-                final Optional<IncomingResourceCertificate> currentIncomingCertificate = kp.findCurrentIncomingCertificate();
-                final X509ResourceCertificate existingCertificate = currentIncomingCertificate.map(ResourceCertificate::getCertificate).orElse(null);
-                X500Principal dn = deriveSubjectDN(kp.getPublicKey(), existingCertificate);
-                X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
-                CertificateIssuanceRequest signRequest = new CertificateIssuanceRequest(certifiableResources, dn, kp.getPublicKey(), sia);
-                requests.add(signRequest);
-            }
+            final Optional<IncomingResourceCertificate> currentIncomingCertificate = kp.findCurrentIncomingCertificate();
+            final X509ResourceCertificate existingCertificate = currentIncomingCertificate.map(ResourceCertificate::getCertificate).orElse(null);
+            X500Principal dn = deriveSubjectDN(kp.getPublicKey(), existingCertificate);
+            X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
+            CertificateIssuanceRequest signRequest = new CertificateIssuanceRequest(certifiableResources, dn, kp.getPublicKey(), sia);
+            requests.add(signRequest);
         }
         return requests;
     }
@@ -90,22 +88,20 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
                                                               ManagedCertificateAuthority ca) {
         List<SigningRequest> requests = new ArrayList<>();
         for (KeyPairEntity kp : ca.getKeyPairs()) {
-            if (kp.isCertificateNeeded()) {
-                final Optional<IncomingResourceCertificate> currentIncomingCertificate = kp.findCurrentIncomingCertificate();
-                final Boolean needToRequest = currentIncomingCertificate.map(currentCertificate ->
-                    notificationUriChanged(currentCertificate, configuration.getNotificationUri())
-                        || publicRepositoryUriChanged(currentCertificate, configuration.getPublicRepositoryUri())
-                        || resourcesChanged(currentCertificate, certifiableResources, DEFAULT_RESOURCE_CLASS)
-                        || newValidityTimeAppliesForProductionCertificate(currentCertificate, DEFAULT_RESOURCE_CLASS))
-                    .orElse(false);
+            final Optional<IncomingResourceCertificate> currentIncomingCertificate = kp.findCurrentIncomingCertificate();
+            final Boolean needToRequest = currentIncomingCertificate.map(currentCertificate ->
+                notificationUriChanged(currentCertificate, configuration.getNotificationUri())
+                    || publicRepositoryUriChanged(currentCertificate, configuration.getPublicRepositoryUri())
+                    || resourcesChanged(currentCertificate, certifiableResources, DEFAULT_RESOURCE_CLASS)
+                    || newValidityTimeAppliesForProductionCertificate(currentCertificate, DEFAULT_RESOURCE_CLASS))
+                .orElse(false);
 
-                if (currentCertificateIsNull(currentIncomingCertificate, DEFAULT_RESOURCE_CLASS) || needToRequest) {
-                    final X509ResourceCertificate existingCertificate = currentIncomingCertificate.map(ResourceCertificate::getCertificate).orElse(null);
-                    X500Principal dn = deriveSubjectDN(kp.getPublicKey(), existingCertificate);
-                    X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
-                    ResourceCertificateRequestData resourceCertificateRequestData = ResourceCertificateRequestData.forUpstreamCARequest(DEFAULT_RESOURCE_CLASS, dn, kp.getPublicKey(), sia, new IpResourceSet(certifiableResources));
-                    requests.add(new SigningRequest(resourceCertificateRequestData));
-                }
+            if (currentCertificateIsNull(currentIncomingCertificate, DEFAULT_RESOURCE_CLASS) || needToRequest) {
+                final X509ResourceCertificate existingCertificate = currentIncomingCertificate.map(ResourceCertificate::getCertificate).orElse(null);
+                X500Principal dn = deriveSubjectDN(kp.getPublicKey(), existingCertificate);
+                X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
+                ResourceCertificateRequestData resourceCertificateRequestData = ResourceCertificateRequestData.forUpstreamCARequest(DEFAULT_RESOURCE_CLASS, dn, kp.getPublicKey(), sia, new IpResourceSet(certifiableResources));
+                requests.add(new SigningRequest(resourceCertificateRequestData));
             }
         }
         return requests;

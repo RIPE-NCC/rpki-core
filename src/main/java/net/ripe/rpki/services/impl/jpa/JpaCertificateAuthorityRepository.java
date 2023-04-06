@@ -90,7 +90,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     }
 
     @Override
-    public AllResourcesCertificateAuthority findAllresourcesCAByName(X500Principal name) {
+    public AllResourcesCertificateAuthority findAllResourcesCAByName(X500Principal name) {
         return findByTypeAndName(AllResourcesCertificateAuthority.class, name);
     }
 

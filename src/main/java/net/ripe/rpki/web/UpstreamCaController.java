@@ -5,16 +5,9 @@ import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.ta.domain.response.TrustAnchorResponse;
 import net.ripe.rpki.commons.ta.serializers.TrustAnchorRequestSerializer;
 import net.ripe.rpki.commons.ta.serializers.TrustAnchorResponseSerializer;
-import net.ripe.rpki.server.api.commands.AllResourcesCaResourcesCommand;
-import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
-import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
-import net.ripe.rpki.server.api.commands.KeyManagementRevokeOldKeysCommand;
-import net.ripe.rpki.server.api.commands.ProcessTrustAnchorResponseCommand;
+import net.ripe.rpki.server.api.commands.*;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.KeyPairData;
-import net.ripe.rpki.server.api.dto.KeyPairStatus;
-import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -22,17 +15,9 @@ import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.services.impl.background.AllCaCertificateUpdateServiceBean;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -40,13 +25,7 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import javax.inject.Inject;
 import javax.security.auth.x500.X500Principal;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -88,8 +67,8 @@ public class UpstreamCaController extends BaseController {
     public ModelAndView upstreamCa() {
         final Map<String, Object> model = new HashMap<>();
         return (ModelAndView) withAllResourcesCa(allResourcesCa -> {
-            KeyPairStatus overallStatus = overallKeyPairLifeCyclePhase((ManagedCertificateAuthorityData)allResourcesCa);
-            model.put(ACA_KEY_STATUS, overallStatus.name().toLowerCase(Locale.ROOT));
+            var overallStatus = overallKeyPairLifeCyclePhase(allResourcesCa);
+            model.put(ACA_KEY_STATUS, overallStatus.map(x -> x.name().toLowerCase(Locale.ROOT)).orElse("new"));
             if (allResourcesCa.getTrustAnchorRequest() == null) {
                 model.put(PAGE_TYPE, "create-request");
             } else {
@@ -176,15 +155,20 @@ public class UpstreamCaController extends BaseController {
         });
     }
 
-    private Object withAllResourcesCa(Function<CertificateAuthorityData, Object> f) {
+    private Object withAllResourcesCa(Function<? super ManagedCertificateAuthorityData, Object> f) {
         final CertificateAuthorityData allResourcesCa = getAllResourcesCa();
         if (allResourcesCa == null) {
             final ActiveNodeForm node = new ActiveNodeForm(activeNodeService.getActiveNodeName());
             return new ModelAndView("admin/index", HttpStatus.BAD_REQUEST)
                 .addObject("error", "All resources CA does not exist")
                 .addObject("activeNodeForm", node);
+        } else if (allResourcesCa.getType() == CertificateAuthorityType.ALL_RESOURCES && allResourcesCa instanceof ManagedCertificateAuthorityData) {
+            return f.apply((ManagedCertificateAuthorityData) allResourcesCa);
         } else {
-            return f.apply(allResourcesCa);
+            final ActiveNodeForm node = new ActiveNodeForm(activeNodeService.getActiveNodeName());
+            return new ModelAndView("admin/index", HttpStatus.BAD_REQUEST)
+                .addObject("error", "All resources CA has wrong type")
+                .addObject("activeNodeForm", node);
         }
     }
 
@@ -197,12 +181,11 @@ public class UpstreamCaController extends BaseController {
         return certificateAuthorityViewService.findCertificateAuthorityByName(repositoryConfiguration.getAllResourcesCaPrincipal());
     }
 
-    private KeyPairStatus overallKeyPairLifeCyclePhase(ManagedCertificateAuthorityData allResourcesCa) {
+    private Optional<KeyPairStatus> overallKeyPairLifeCyclePhase(ManagedCertificateAuthorityData allResourcesCa) {
         final List<KeyPairData> keys = allResourcesCa.getKeys();
         return keyWithStatus(keys, KeyPairStatus.OLD)
             .or(() -> keyWithStatus(keys, KeyPairStatus.PENDING))
-            .or(() -> keyWithStatus(keys, KeyPairStatus.CURRENT))
-            .orElse(KeyPairStatus.NEW);
+            .or(() -> keyWithStatus(keys, KeyPairStatus.CURRENT));
     }
 
     private Optional<KeyPairStatus> keyWithStatus(Collection<KeyPairData> keys, KeyPairStatus expectedStatus) {

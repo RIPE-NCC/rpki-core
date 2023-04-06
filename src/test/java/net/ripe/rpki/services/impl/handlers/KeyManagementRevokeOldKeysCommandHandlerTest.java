@@ -2,13 +2,7 @@ package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest;
 import net.ripe.rpki.commons.util.VersionedId;
-import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
-import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.HostedCertificateAuthority;
-import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.PublishedObjectRepository;
-import net.ripe.rpki.domain.ResourceCertificateRepository;
-import net.ripe.rpki.domain.TestObjects;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
@@ -27,7 +21,6 @@ import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
@@ -52,8 +45,6 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
     private CertificateRequestCreationService certificateRequestCreationService;
     @Mock
     private ResourceCertificateRepository resourceCertificateRepository;
-    @Mock
-    private PublishedObjectRepository publishedObjectRepository;
 
     private final long membershipId = 43L;
     private final long acaId = 42L;
@@ -67,7 +58,7 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
         when(memberCa.isAllResourcesCa()).thenReturn(false);
 
         subject = new KeyManagementRevokeOldKeysCommandHandler(certificateAuthorityRepository, keyPairDeletionService,
-                certificateRequestCreationService, publishedObjectRepository, resourceCertificateRepository);
+                certificateRequestCreationService, resourceCertificateRepository);
     }
 
     @Test
@@ -81,7 +72,7 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
 
         when(allResourcesCa.getVersionedId()).thenReturn(new VersionedId(acaId));
         when(certificateAuthorityRepository.findManagedCa(acaId)).thenReturn(allResourcesCa);
-        when(allResourcesCa.requestOldKeysRevocation(any())).thenReturn(new ArrayList<CertificateRevocationRequest>());
+        when(allResourcesCa.requestOldKeysRevocation(any())).thenReturn(new ArrayList<>());
 
         KeyManagementRevokeOldKeysCommand command = new KeyManagementRevokeOldKeysCommand(allResourcesCa.getVersionedId());
 
@@ -113,7 +104,7 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
 
     @Test
     public void member_ca_should_request_revocation_of_old_keys() {
-        CertificateRevocationResponse response = new CertificateRevocationResponse(DEFAULT_RESOURCE_CLASS, TestObjects.TEST_KEY_PAIR_2.getPublicKey());
+        CertificateRevocationResponse response = new CertificateRevocationResponse(TestObjects.TEST_KEY_PAIR_2.getPublicKey());
 
         when(certificateAuthorityRepository.findManagedCa(membershipId)).thenReturn(memberCa);
 
@@ -123,7 +114,7 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
 
         subject.handle(new KeyManagementRevokeOldKeysCommand(new VersionedId(membershipId)), any(CommandStatus.class));
 
-        verify(memberCa).processCertificateRevocationResponse(response, publishedObjectRepository, keyPairDeletionService);
+        verify(memberCa).processCertificateRevocationResponse(response, keyPairDeletionService);
     }
 
     private CertificateRevocationRequest createRevocationRequest() {

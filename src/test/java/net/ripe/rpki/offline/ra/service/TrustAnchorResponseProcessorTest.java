@@ -5,24 +5,12 @@ import net.ripe.rpki.commons.FixedDateRule;
 import net.ripe.rpki.commons.crypto.CertificateRepositoryObject;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
-import net.ripe.rpki.commons.ta.domain.request.ResourceCertificateRequestData;
-import net.ripe.rpki.commons.ta.domain.request.RevocationRequest;
-import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
-import net.ripe.rpki.commons.ta.domain.request.TaRequest;
-import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
+import net.ripe.rpki.commons.ta.domain.request.*;
 import net.ripe.rpki.commons.ta.domain.response.ErrorResponse;
 import net.ripe.rpki.commons.ta.domain.response.RevocationResponse;
 import net.ripe.rpki.commons.ta.domain.response.SigningResponse;
 import net.ripe.rpki.commons.ta.domain.response.TrustAnchorResponse;
-import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
-import net.ripe.rpki.domain.CertificateAuthorityException;
-import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.PublicationStatus;
-import net.ripe.rpki.domain.PublishedObjectRepository;
-import net.ripe.rpki.domain.TestObjects;
-import net.ripe.rpki.domain.TrustAnchorPublishedObject;
-import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
@@ -37,22 +25,13 @@ import org.mockito.Mock;
 import javax.persistence.EntityManager;
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static net.ripe.ipresource.ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES;
 import static net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateTest.createSelfSignedCaResourceCertificate;
 import static net.ripe.rpki.domain.TestObjects.ACA_ID;
 import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.atLeastOnce;
 import static org.mockito.BDDMockito.given;
@@ -69,7 +48,6 @@ public class TrustAnchorResponseProcessorTest {
 
 
     private static final X500Principal CA_NAME = new X500Principal("CN=test");
-    private static final X500Principal PROD_CA_NAME = new X500Principal("CN=production-test");
     private static final X509ResourceCertificate NEW_CERTIFICATE = createSelfSignedCaResourceCertificate(new IpResourceSet(ALL_PRIVATE_USE_RESOURCES));
     private static final String NEW_CERTIFICATE_FILE_NAME = "cert.cer";
     private static final URI NEW_CERTIFICATE_PUBLICATION_BASE_URI = URI.create("rsync://nowhere/");
@@ -83,8 +61,6 @@ public class TrustAnchorResponseProcessorTest {
 
     private TrustAnchorResponseProcessor subject;
 
-    @Mock
-    private PublishedObjectRepository publishedObjectRepository;
     @Mock
     private TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository;
     @Mock
@@ -101,7 +77,7 @@ public class TrustAnchorResponseProcessorTest {
 
     @Before
     public void setUp() {
-        subject = new TrustAnchorResponseProcessor(CA_NAME, PROD_CA_NAME, certificateAuthorityRepository, publishedObjectRepository,
+        subject = new TrustAnchorResponseProcessor(CA_NAME, certificateAuthorityRepository,
                 trustAnchorPublishedObjectRepository, keyPairDeletionService, resourceCache);
         subject.setEntityManager(entityManager);
         allResourcesCA = new AllResourcesCertificateAuthority(ACA_ID, ALL_RESOURCES_CA_NAME, UUID.randomUUID());
@@ -114,7 +90,7 @@ public class TrustAnchorResponseProcessorTest {
 
         UpStreamCARequestEntity pendingRequest = createUpStreamCARequestEntity(allResourcesCertificateAuthority);
         given(allResourcesCertificateAuthority.getUpStreamCARequestEntity()).willReturn(pendingRequest);
-        given(certificateAuthorityRepository.findAllresourcesCAByName(CA_NAME)).willReturn(allResourcesCertificateAuthority);
+        given(certificateAuthorityRepository.findAllResourcesCAByName(CA_NAME)).willReturn(allResourcesCertificateAuthority);
 
         subject.process(getResponseWithSignedCertificates(1L, TA_OBJECTS, TEST_SIGN_RESPONSE));
 
@@ -155,7 +131,7 @@ public class TrustAnchorResponseProcessorTest {
         setUpPendingCertificateSigningRequest();
 
         TrustAnchorResponse taResponse = getResponseWithSignedCertificates(2L, TA_OBJECTS, TEST_SIGN_RESPONSE);
-        when(certificateAuthorityRepository.findAllresourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
+        when(certificateAuthorityRepository.findAllResourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
 
         subject.process(taResponse);
     }
@@ -164,7 +140,7 @@ public class TrustAnchorResponseProcessorTest {
     public void shouldRejectWhenNoPendingRequestFound() {
 
         TrustAnchorResponse taResponse = getResponseWithSignedCertificates(1L, TA_OBJECTS, TEST_SIGN_RESPONSE);
-        when(certificateAuthorityRepository.findAllresourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
+        when(certificateAuthorityRepository.findAllResourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
 
         subject.process(taResponse);
     }
@@ -179,7 +155,7 @@ public class TrustAnchorResponseProcessorTest {
             setUpPendingRevocationRequest();
 
             // expect revocation
-            when(certificateAuthorityRepository.findAllresourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
+            when(certificateAuthorityRepository.findAllResourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
 
             // expect that the pending request is revoked
             entityManager.remove(isA(UpStreamCARequestEntity.class));
@@ -200,7 +176,7 @@ public class TrustAnchorResponseProcessorTest {
         // make sure there is a pending request
         setUpPendingRevocationRequest();
 
-        when(certificateAuthorityRepository.findAllresourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
+        when(certificateAuthorityRepository.findAllResourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
 
         // expect that the pending request is removed
         entityManager.remove(isA(UpStreamCARequestEntity.class));

@@ -4,7 +4,6 @@ import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.KeyPairService;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
@@ -17,8 +16,11 @@ import org.mockito.ArgumentCaptor;
 import java.util.UUID;
 
 import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class CreateRootCertificateAuthorityCommandHandlerTest {
 
@@ -27,7 +29,6 @@ public class CreateRootCertificateAuthorityCommandHandlerTest {
     private CertificateAuthorityRepository certificateAuthorityRepository;
 
     private RepositoryConfiguration repositoryConfiguration;
-    private KeyPairService keyPairService;
 
     private CreateRootCertificateAuthorityCommand command;
 
@@ -36,9 +37,7 @@ public class CreateRootCertificateAuthorityCommandHandlerTest {
     public void setUp() {
         certificateAuthorityRepository = mock(CertificateAuthorityRepository.class);
         repositoryConfiguration = mock(RepositoryConfiguration.class);
-        keyPairService = mock(KeyPairService.class);
-        when(keyPairService.createKeyPairEntity()).thenReturn(TestObjects.TEST_KEY_PAIR_2);
-        subject = new CreateRootCertificateAuthorityCommandHandler(certificateAuthorityRepository, repositoryConfiguration, keyPairService);
+        subject = new CreateRootCertificateAuthorityCommandHandler(certificateAuthorityRepository, repositoryConfiguration);
         command = new CreateRootCertificateAuthorityCommand(new VersionedId(12), TestObjects.PRODUCTION_CA_NAME);
     }
 

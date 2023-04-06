@@ -2,13 +2,10 @@ package net.ripe.rpki.offline.ra.service;
 
 import net.ripe.rpki.commons.crypto.CertificateRepositoryObject;
 import net.ripe.rpki.commons.crypto.util.EncodedPublicKey;
-import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
-import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.PublishedObjectRepository;
-import net.ripe.rpki.domain.TrustAnchorPublishedObject;
-import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
+import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.ports.ResourceCache;
@@ -49,26 +46,20 @@ public class TrustAnchorResponseProcessor {
     @PersistenceContext
     private EntityManager entityManager;
 
-    private final X500Principal productionCaName;
     private final X500Principal allResourcesCaName;
     private final CertificateAuthorityRepository certificateAuthorityRepository;
-    private final PublishedObjectRepository publishedObjectRepository;
     private final TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository;
     private final KeyPairDeletionService keyPairDeletionService;
     private final ResourceCache resourceCache;
 
     @Inject
     public TrustAnchorResponseProcessor(@Value("${" + RepositoryConfiguration.ALL_RESOURCES_CA_NAME + "}") X500Principal allResourcesCaName,
-                                        @Value("${" + RepositoryConfiguration.PRODUCTION_CA_NAME + "}") X500Principal productionCaName,
                                         CertificateAuthorityRepository certificateAuthorityRepository,
-                                        PublishedObjectRepository publishedObjectRepository,
                                         TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository,
                                         KeyPairDeletionService keyPairDeletionService,
                                         ResourceCache resourceCache) {
         this.allResourcesCaName = allResourcesCaName;
-        this.productionCaName = productionCaName;
         this.certificateAuthorityRepository = certificateAuthorityRepository;
-        this.publishedObjectRepository = publishedObjectRepository;
         this.trustAnchorPublishedObjectRepository = trustAnchorPublishedObjectRepository;
         this.keyPairDeletionService = keyPairDeletionService;
         this.resourceCache = resourceCache;
@@ -76,29 +67,22 @@ public class TrustAnchorResponseProcessor {
 
     public void process(TrustAnchorResponse response) {
         resourceCache.verifyResourcesArePresent();
-        validateResponse(response);
+        AllResourcesCertificateAuthority allResourcesCa = getAllResourcesCa();
+        validateResponse(allResourcesCa, response);
 
-        List<String> revokedKeys = new ArrayList<>();
         for (TaResponse taResponse : response.getTaResponses()) {
             if (taResponse instanceof SigningResponse) {
-                processTaSigningResponse((SigningResponse) taResponse);
+                processTaSigningResponse(allResourcesCa, (SigningResponse) taResponse);
             } else if (taResponse instanceof RevocationResponse) {
-                RevocationResponse revokeResponse = (RevocationResponse) taResponse;
-                processTrustAnchorRevocationResponse(revokeResponse);
-                revokedKeys.add(revokeResponse.getEncodedPublicKey());
+                processTrustAnchorRevocationResponse(allResourcesCa, (RevocationResponse) taResponse);
             } else if (taResponse instanceof ErrorResponse) {
-                processTrustAnchorErrorResponse((ErrorResponse) taResponse);
+                processTrustAnchorErrorResponse(allResourcesCa, (ErrorResponse) taResponse);
             }
         }
 
-        deleteRevokedKeysForAllResourcesCa(revokedKeys);
         publishTrustAnchorObjects(response.getPublishedObjects());
 
-        removePendingRequest();
-    }
-
-    private void deleteRevokedKeysForAllResourcesCa(List<String> revokedKeys) {
-        keyPairDeletionService.deleteRevokedKeys(getAllResourcesCa(), revokedKeys);
+        removePendingRequest(allResourcesCa);
     }
 
     private void publishTrustAnchorObjects(Map<URI, CertificateRepositoryObject> objectsToPublish) {
@@ -134,7 +118,7 @@ public class TrustAnchorResponseProcessor {
 
     private void withdrawObjects(Iterable<TrustAnchorPublishedObject> objects) {
         for (TrustAnchorPublishedObject object : objects) {
-            object.withdraw(); // FIXME implicitly relying on JPA to persist this
+            object.withdraw();
         }
     }
 
@@ -146,52 +130,54 @@ public class TrustAnchorResponseProcessor {
                         () -> new HashMap<>(publishedObjects.size())));
     }
 
-    private void processTaSigningResponse(SigningResponse signingResponse) {
+    private void processTaSigningResponse(AllResourcesCertificateAuthority allResourcesCa, SigningResponse signingResponse) {
         CertificateIssuanceResponse response = CertificateIssuanceResponse.fromTaSigningResponse(signingResponse);
-        getAllResourcesCa().processCertificateIssuanceResponse(response, null);
+        allResourcesCa.processCertificateIssuanceResponse(response, null);
     }
 
 
-    private void processTrustAnchorRevocationResponse(RevocationResponse revocationResponse) {
-        getAllResourcesCa().processRevokedKey(revocationResponse.getEncodedPublicKey(), publishedObjectRepository);
+    private void processTrustAnchorRevocationResponse(AllResourcesCertificateAuthority allResourcesCa, RevocationResponse revocationResponse) {
+        String encodedSKI = revocationResponse.getEncodedPublicKey();
+        final KeyPairEntity kp = allResourcesCa.findKeyPairByEncodedPublicKey(encodedSKI)
+            .orElseThrow(() -> new CertificateAuthorityException("Unknown encoded key: " + encodedSKI));
+        allResourcesCa.processCertificateRevocationResponse(
+            new CertificateRevocationResponse(kp.getPublicKey()),
+            keyPairDeletionService
+        );
     }
 
-    private void processTrustAnchorErrorResponse(ErrorResponse errorResponse) {
-        AllResourcesCertificateAuthority allResourcesCa = getAllResourcesCa();
-
+    private void processTrustAnchorErrorResponse(AllResourcesCertificateAuthority allResourcesCa, ErrorResponse errorResponse) {
         TaRequest request = findCorrespondingTaRequest(errorResponse, allResourcesCa);
         if (request instanceof SigningRequest) {
             SigningRequest signingRequest = (SigningRequest) request;
             final EncodedPublicKey encodedPublicKey = new EncodedPublicKey(signingRequest.getResourceCertificateRequest().getEncodedSubjectPublicKey());
             allResourcesCa.findKeyPairByPublicKey(encodedPublicKey).ifPresent(keyPairEntity -> {
-                if (keyPairEntity.isNew()) {
+                if (keyPairEntity.isPending() && keyPairEntity.findCurrentIncomingCertificate().isEmpty()) {
                     allResourcesCa.removeKeyPair(keyPairEntity);
                 }
             });
         }
     }
 
-    private TaRequest findCorrespondingTaRequest(ErrorResponse errorResponse, AllResourcesCertificateAuthority productionCa) {
-        return productionCa.getUpStreamCARequestEntity().getUpStreamCARequest().getTaRequests().stream()
+    private TaRequest findCorrespondingTaRequest(ErrorResponse errorResponse, AllResourcesCertificateAuthority allResourcesCa) {
+        return allResourcesCa.getUpStreamCARequestEntity().getUpStreamCARequest().getTaRequests().stream()
             .filter(existing -> existing.getRequestId().equals(errorResponse.getRequestId()))
             .findFirst()
             .orElse(null);
     }
 
 
-    private void removePendingRequest() {
+    private void removePendingRequest(AllResourcesCertificateAuthority allResourcesCa) {
         // Remove the existing request entity.
         // I tried all possible permutation of @Cascade on the field in
         // CertificateAuthority (most likely first), but no success that way :(
-        AllResourcesCertificateAuthority allResourcesCa = getAllResourcesCa();
         UpStreamCARequestEntity upStreamCARequestEntity = allResourcesCa.getUpStreamCARequestEntity();
         allResourcesCa.setUpStreamCARequestEntity(null);
         entityManager.remove(upStreamCARequestEntity);
         entityManager.flush();
     }
 
-    private void validateResponse(TrustAnchorResponse response) {
-        AllResourcesCertificateAuthority allResourcesCa = getAllResourcesCa();
+    private void validateResponse(AllResourcesCertificateAuthority allResourcesCa, TrustAnchorResponse response) {
         UpStreamCARequestEntity upStreamCaRequestEntity = allResourcesCa.getUpStreamCARequestEntity();
 
         validatePendingRequestExists(upStreamCaRequestEntity);
@@ -223,7 +209,7 @@ public class TrustAnchorResponseProcessor {
     }
 
     private AllResourcesCertificateAuthority getAllResourcesCa() {
-        return certificateAuthorityRepository.findAllresourcesCAByName(allResourcesCaName);
+        return certificateAuthorityRepository.findAllResourcesCAByName(allResourcesCaName);
     }
 
     /**

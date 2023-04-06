@@ -7,10 +7,11 @@
     border-bottom-style: solid;
     border-color: #ff9600;
     border-width: 1px;
+    box-sizing: border-box;
     color: #080037;
     width:  100%;
     display: flex;
-    max-height: 72px;
+    height: 72px;
     flex-direction: row;
     justify-content: space-between;
     background-color: #fff;

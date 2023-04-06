@@ -39,7 +39,6 @@ import javax.security.auth.x500.X500Principal;
 import java.net.URI;
 import java.security.PublicKey;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.v;
@@ -191,17 +190,6 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
             .append("type", getType())
             .append("name", getName())
             .toString();
-    }
-
-    public Optional<KeyPairData> deleteRevokedKey(String encodedSKI, Consumer<KeyPairEntity> onDelete) {
-        final Optional<KeyPairEntity> keyPair = findKeyPairByEncodedPublicKey(encodedSKI);
-        keyPair.ifPresent(kp -> {
-            Validate.isTrue(kp.isRevoked(), "Can only archive revoked key");
-            onDelete.accept(kp);
-            kp.deleteIncomingResourceCertificate();
-            keyPairs.remove(kp);
-        });
-        return keyPair.map(KeyPairEntity::toData);
     }
 
     @Override
@@ -357,7 +345,6 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
 
     @Override
     public void processCertificateRevocationResponse(CertificateRevocationResponse response,
-                                                     PublishedObjectRepository publishedObjectRepository,
                                                      KeyPairDeletionService keyPairDeletionService) {
         findKeyPairByPublicKey(response.getSubjectPublicKey()).ifPresent(keyPair -> {
             if (keyPair.isCurrent()) {
@@ -378,11 +365,8 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
                 });
             }
 
-            keyPair.deleteIncomingResourceCertificate();
-            keyPair.requestRevoke();
-            keyPair.revoke(publishedObjectRepository);
-
-            keyPairDeletionService.deleteRevokedKeysFromResponses(this, Collections.singletonList(response));
+            keyPair.revoke(keyPairDeletionService);
+            keyPairs.remove(keyPair);
         });
     }
 
@@ -429,7 +413,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     }
 
     public boolean hasRollInProgress() {
-        return hasKeyPairWithStatus(KeyPairStatus.NEW, KeyPairStatus.PENDING, KeyPairStatus.OLD);
+        return hasKeyPairWithStatus(KeyPairStatus.PENDING, KeyPairStatus.OLD);
     }
 
     private boolean hasKeyPairWithStatus(KeyPairStatus... status) {

@@ -6,7 +6,6 @@ import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
@@ -28,19 +27,16 @@ public class KeyManagementRevokeOldKeysCommandHandler implements CertificateAuth
     private final CertificateAuthorityRepository caRepository;
     private final KeyPairDeletionService keyPairDeletionService;
     private final CertificateRequestCreationService certificateRequestCreationService;
-    private final PublishedObjectRepository publishedObjectRepository;
     private final ResourceCertificateRepository resourceCertificateRepository;
 
     @Inject
     public KeyManagementRevokeOldKeysCommandHandler(CertificateAuthorityRepository caRepository,
                                                     KeyPairDeletionService keyPairDeletionService,
                                                     CertificateRequestCreationService certificateRequestCreationService,
-                                                    PublishedObjectRepository publishedObjectRepository,
                                                     ResourceCertificateRepository resourceCertificateRepository) {
         this.caRepository = caRepository;
         this.keyPairDeletionService = keyPairDeletionService;
         this.certificateRequestCreationService = certificateRequestCreationService;
-        this.publishedObjectRepository = publishedObjectRepository;
         this.resourceCertificateRepository = resourceCertificateRepository;
     }
 
@@ -69,7 +65,7 @@ public class KeyManagementRevokeOldKeysCommandHandler implements CertificateAuth
         } else {
             requests.stream()
                 .map(request -> hostedCa.getParent().processCertificateRevocationRequest(request, resourceCertificateRepository))
-                .forEach(response -> hostedCa.processCertificateRevocationResponse(response, publishedObjectRepository, keyPairDeletionService));
+                .forEach(response -> hostedCa.processCertificateRevocationResponse(response, keyPairDeletionService));
         }
     }
 

@@ -13,11 +13,9 @@ import static java.util.Objects.requireNonNull;
 @Value
 public class CertificateRevocationResponse {
 
-    String resourceClassName;
     PublicKey subjectPublicKey;
 
-    public CertificateRevocationResponse(String resourceClassName, PublicKey subjectPublicKey) {
-        this.resourceClassName = requireNonNull(resourceClassName, "resourceClassName is required");
+    public CertificateRevocationResponse(PublicKey subjectPublicKey) {
         this.subjectPublicKey = requireNonNull(subjectPublicKey, "subjectPublicKey is required");
     }
 

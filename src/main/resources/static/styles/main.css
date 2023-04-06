@@ -38,9 +38,17 @@ body table tr:hover {
     background-color: #ddd;
 }
 
-.history-table {
-    width: 100%;
-    overflow: scroll;
+.main {
+    box-sizing: border-box;
+    height: calc(100vh - 72px);
+    overflow-y: scroll;
+    padding: 16px;
+}
+.sidebar + .main {
+    width: calc(100vw - 300px);
+}
+.sidebar.collapsed + .main {
+    width: calc(100vw - 72px);
 }
 
 .history-table .col-1 {
@@ -53,7 +61,6 @@ body table tr:hover {
 
 .history-table .col-3 {
     width: 65%;
-    overflow: scroll;
 }
 
 .history-table td {
@@ -120,11 +127,6 @@ ul {
 
 .dropdown-content a {
     text-decoration: none;
-}
-
-.main {
-    margin: 16px;
-    width: 100%;
 }
 
 .bold {
@@ -239,4 +241,13 @@ fieldset {
 .force-button {
     background-color: #ff9600;
     color: #080037;
+}
+
+.batch-number-input {
+    width: 60px
+}
+
+.batch-size {
+    margin-top: 4px;
+    display: inline-block;
 }

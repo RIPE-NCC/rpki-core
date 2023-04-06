@@ -18,13 +18,13 @@ public class KeyPairStatusTest {
     void keyPairStatusFollowsLifecycleOrder() {
         for (var i=0; i< 7; i++) {
             // Check that a random shuffle is correctly re-sorted
-            var statuses = new ArrayList<KeyPairStatus>(List.of(KeyPairStatus.values()));
+            var statuses = new ArrayList<>(List.of(KeyPairStatus.values()));
 
             Collections.shuffle(statuses);
             Collections.sort(statuses);
 
             assertThat(statuses)
-                    .containsExactly(NEW, PENDING, CURRENT, OLD, MUSTREVOKE, REVOKED);
+                    .containsExactly(PENDING, CURRENT, OLD);
         }
     }
 }

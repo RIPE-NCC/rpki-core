@@ -9,6 +9,7 @@ import javax.persistence.LockModeType;
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface CertificateAuthorityRepository extends Repository<CertificateAuthority> {
@@ -40,4 +41,12 @@ public interface CertificateAuthorityRepository extends Repository<CertificateAu
     int deleteNonHostedPublicKeysWithoutSigningCertificates();
 
     Collection<ManagedCertificateAuthority> getCasWithoutKeyPairsAndRoaConfigurationsAndUserActivityDuringTheLastYear();
+
+    /**
+     * Find the smallest intermediate CA below the CA specified by <code>productionCaName</code>. The smallest CA is the CA with the fewest
+     * children. In case there are multiple CAs with the same number of children a random one is picked.
+     * @param productionCaName the name of the parent production CA.
+     * @return the smallest CA or empty when there are no intermediate CAs under the production CA.
+     */
+    Optional<IntermediateCertificateAuthority> findSmallestIntermediateCA(X500Principal productionCaName);
 }

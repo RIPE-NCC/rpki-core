@@ -2,6 +2,7 @@ package net.ripe.rpki.services.impl.handlers;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NonNull;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
@@ -18,6 +19,7 @@ public abstract class AbstractCertificateAuthorityCommandHandler<T extends Certi
         this.certificateAuthorityRepository = Objects.requireNonNull(certificateAuthorityRepository, "certificateAuthorityRepository is null");
     }
 
+    @NonNull
     protected ManagedCertificateAuthority lookupManagedCa(Long id) {
         ManagedCertificateAuthority result = certificateAuthorityRepository.findManagedCa(id);
         if (result == null) {
@@ -26,6 +28,7 @@ public abstract class AbstractCertificateAuthorityCommandHandler<T extends Certi
         return result;
     }
 
+    @NonNull
     protected NonHostedCertificateAuthority lookupNonHostedCA(Long id) {
         NonHostedCertificateAuthority result = certificateAuthorityRepository.findNonHostedCa(id);
         if (result == null) {

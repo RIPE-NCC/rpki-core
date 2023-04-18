@@ -79,11 +79,15 @@ public abstract class CertificateAuthority extends AggregateRoot implements Chil
     }
 
     public boolean isProductionCa() {
-        return getType().equals(CertificateAuthorityType.ROOT);
+        return getType() == CertificateAuthorityType.ROOT;
+    }
+
+    public boolean isIntermediateCa() {
+        return getType() == CertificateAuthorityType.INTERMEDIATE;
     }
 
     public boolean isAllResourcesCa() {
-        return getType().equals(CertificateAuthorityType.ALL_RESOURCES);
+        return getType() == CertificateAuthorityType.ALL_RESOURCES;
     }
 
     public abstract Optional<ManagedCertificateAuthority> asManagedCertificateAuthority();

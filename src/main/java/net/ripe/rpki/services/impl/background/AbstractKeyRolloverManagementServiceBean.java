@@ -43,7 +43,7 @@ public abstract class AbstractKeyRolloverManagementServiceBean extends Sequentia
             return;
         }
 
-        actualBatchSize.ifPresent(size -> log.info("initiating key roll for up to {} certificate authorities", size));
+        actualBatchSize.ifPresent(size -> log.info("initiating key roll for up to {} certificate authorities of type {}", size, type.getSimpleName()));
 
         final Instant oldestCreationTime = Instant.now().minus(
             Duration.standardDays(certificationConfiguration.getAutoKeyRolloverMaxAgeDays()));

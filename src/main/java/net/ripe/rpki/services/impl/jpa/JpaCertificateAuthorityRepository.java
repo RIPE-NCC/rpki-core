@@ -1,14 +1,6 @@
 package net.ripe.rpki.services.impl.jpa;
 
-import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
-import net.ripe.rpki.domain.CertificateAuthority;
-import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.NameNotUniqueException;
-import net.ripe.rpki.domain.NonHostedCertificateAuthority;
-import net.ripe.rpki.domain.ParentCertificateAuthority;
-import net.ripe.rpki.domain.ProductionCertificateAuthority;
-import net.ripe.rpki.domain.PublicationStatus;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup;
 import net.ripe.rpki.server.api.dto.CaStat;
@@ -30,13 +22,7 @@ import javax.persistence.NoResultException;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.security.auth.x500.X500Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -338,6 +324,24 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
             .setParameter("threshold", yearAgo)
             .setParameter("user", CertificateAuthorityCommandGroup.USER)
             .getResultList();
+    }
+
+    @Override
+    public Optional<IntermediateCertificateAuthority> findSmallestIntermediateCA(X500Principal productionCaName) {
+        try {
+            return Optional.of(manager.createQuery(
+                        "SELECT ca FROM IntermediateCertificateAuthority ca LEFT JOIN CertificateAuthority child ON ca = child.parent" +
+                            " WHERE ca.parent.name = :productionCaName" +
+                            " GROUP BY ca " +
+                            " ORDER BY count(child) ASC, RANDOM()",
+                        IntermediateCertificateAuthority.class
+                    )
+                    .setParameter("productionCaName", productionCaName)
+                    .setMaxResults(1)
+                    .getSingleResult());
+        } catch (NoResultException e) {
+            return Optional.empty();
+        }
     }
 
     private static String inClause(final Collection<String> items) {

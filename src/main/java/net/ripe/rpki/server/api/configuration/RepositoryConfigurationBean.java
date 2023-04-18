@@ -1,7 +1,9 @@
 package net.ripe.rpki.server.api.configuration;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.util.ConfigurationUtil;
+import net.ripe.rpki.commons.util.VersionedId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
@@ -19,11 +21,12 @@ import java.nio.file.Files;
 public class RepositoryConfigurationBean implements RepositoryConfiguration {
     private final URI notificationUri;
     private final URI publicRepositoryUri;
+    private final File localRepositoryDirectory;
     private final URI taRepositoryUri;
+    private final File localTrustAnchorRepositoryDirectory;
     private final String productionCaName;
     private final String allResourcesCaName;
-    private final File localRepositoryDirectory;
-    private final File localTrustAnchorRepositoryDirectory;
+    private final String intermediateCaNamePattern;
 
     @Autowired
     public RepositoryConfigurationBean(
@@ -33,14 +36,16 @@ public class RepositoryConfigurationBean implements RepositoryConfiguration {
             @Value("${" + RepositoryConfiguration.TA_REPOSITORY_BASE_URI + "}") String taRepositoryUriString,
             @Value("${" + RepositoryConfiguration.TA_REPOSITORY_BASE_DIRECTORY + "}") String localTrustAnchorRepositoryDirectoryString,
             @Value("${" + RepositoryConfiguration.PRODUCTION_CA_NAME + "}") String productionCaName,
-            @Value("${" + RepositoryConfiguration.ALL_RESOURCES_CA_NAME + "}") String allResourcesCaName) {
-        this.productionCaName = productionCaName;
-        this.allResourcesCaName = allResourcesCaName;
-        this.localRepositoryDirectory = validateLocalRepositoryDirectory(ConfigurationUtil.interpolate(localRepositoryDirectoryString));
+            @Value("${" + RepositoryConfiguration.ALL_RESOURCES_CA_NAME + "}") String allResourcesCaName,
+            @Value("${intermediate.ca.name.pattern}") String intermediateCaNamePattern) {
         this.notificationUri = makeUri(notificationUriString);
+        this.publicRepositoryUri = makeUri(slashIt(publicRepositoryUriString));
+        this.localRepositoryDirectory = validateLocalRepositoryDirectory(ConfigurationUtil.interpolate(localRepositoryDirectoryString));
         this.taRepositoryUri = makeUri(slashIt(taRepositoryUriString));
         this.localTrustAnchorRepositoryDirectory = validateLocalRepositoryDirectory(ConfigurationUtil.interpolate(localTrustAnchorRepositoryDirectoryString));
-        this.publicRepositoryUri = makeUri(slashIt(publicRepositoryUriString));
+        this.productionCaName = productionCaName;
+        this.allResourcesCaName = allResourcesCaName;
+        this.intermediateCaNamePattern = intermediateCaNamePattern;
     }
 
     private File validateLocalRepositoryDirectory(String localRepositoryDirectoryString) {
@@ -99,13 +104,20 @@ public class RepositoryConfigurationBean implements RepositoryConfiguration {
     }
 
     @Override
+    @NonNull
     public X500Principal getProductionCaPrincipal() {
         return new X500Principal(productionCaName);
     }
 
     @Override
+    @NonNull
     public X500Principal getAllResourcesCaPrincipal() {
         return new X500Principal(allResourcesCaName);
     }
 
+    @Override
+    @NonNull
+    public X500Principal getIntermediateCaPrincipal(@NonNull VersionedId intermediateCaId) {
+        return new X500Principal(String.format(intermediateCaNamePattern, intermediateCaId.getId()));
+    }
 }

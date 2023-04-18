@@ -50,4 +50,9 @@ public class ProductionCertificateAuthority extends ManagedCertificateAuthority 
     public ProvisioningIdentityCertificate getProvisioningIdentityCertificate() {
         return myDownStreamProvisioningCommunicator.getProvisioningIdentityCertificate();
     }
+
+    @Override
+    protected KeyPairEntity generateNewKeyPair(KeyPairService keyPairService) {
+        return keyPairService.createSpecialFsKeyPairEntity();
+    }
 }

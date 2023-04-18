@@ -1,5 +1,8 @@
 package net.ripe.rpki.server.api.configuration;
 
+import lombok.NonNull;
+import net.ripe.rpki.commons.util.VersionedId;
+
 import javax.security.auth.x500.X500Principal;
 import java.io.File;
 import java.net.URI;
@@ -30,7 +33,9 @@ public interface RepositoryConfiguration {
 
     File getLocalTrustAnchorRepositoryDirectory();
 
-    X500Principal getProductionCaPrincipal();
+    @NonNull X500Principal getProductionCaPrincipal();
 
-    X500Principal getAllResourcesCaPrincipal();
+    @NonNull X500Principal getAllResourcesCaPrincipal();
+
+    @NonNull X500Principal getIntermediateCaPrincipal(@NonNull VersionedId intermediateCaId);
 }

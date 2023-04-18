@@ -60,6 +60,8 @@ public interface CertificateAuthorityViewService {
      */
     Collection<CertificateAuthorityData> findAllChildrenForCa(X500Principal productionCaName);
 
+    Optional<CertificateAuthorityData> findSmallestIntermediateCa(X500Principal productionCaName);
+
     // Auditing, move to own interface?
     List<CommandAuditData> findMostRecentCommandsForCa(long caId);
 
@@ -72,6 +74,7 @@ public interface CertificateAuthorityViewService {
     Map<UUID, RepositoryResponse> findNonHostedPublisherRepositories(X500Principal caName);
 
     Map<UUID, PublisherRequest> findAllPublisherRequestsFromNonHostedCAs();
+
     /**
      * @return all subclass instances of {@link ManagedCertificateAuthority ManagedCertificateAuthority}
      * that have a pending key, ordered by the depth of the parent CA chain (so the

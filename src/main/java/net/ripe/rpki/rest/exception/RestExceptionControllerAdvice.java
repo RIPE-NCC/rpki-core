@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.ConstraintViolationException;
 import java.time.Instant;
 import java.util.Map;
 
@@ -49,7 +50,8 @@ public class RestExceptionControllerAdvice {
             CaNameInvalidException.class,
             NotHolderOfResourcesException.class,
             PrivateAsnsUsedException.class,
-            DuplicateResourceException.class
+            DuplicateResourceException.class,
+            ConstraintViolationException.class
     })
     public ResponseEntity<Map<String, ?>> exceptionsResultingInBadRequestHandler(HttpServletRequest req, Exception e) {
         // For some reason Spring passes in the main exception instead of the cause exception that matches the @ExceptionHandler annotation :(

@@ -12,4 +12,6 @@ public interface ResourceLookupService {
     Optional<ImmutableResourceSet> lookupProductionCaResourcesSet();
 
     ImmutableResourceSet lookupMemberCaPotentialResources(X500Principal caName);
+
+    Optional<ImmutableResourceSet> lookupIntermediateCaResources(X500Principal caName);
 }

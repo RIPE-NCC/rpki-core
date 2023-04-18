@@ -33,8 +33,15 @@ public class KeyPairServiceBean implements KeyPairService {
 
     @Override
     public KeyPairEntity createKeyPairEntity() {
-        KeyPair keyPair = hardwareKeyPairFactory.get();
-        KeyPairEntitySignInfo signInfo = createSignInfo();
+        return getKeyPairEntity(hardwareKeyPairFactory.get(), createSignInfo());
+    }
+
+    @Override
+    public KeyPairEntity createSpecialFsKeyPairEntity() {
+        return getKeyPairEntity(hardwareKeyPairFactory.getFsKey(), createFsSignInfo());
+    }
+
+    private KeyPairEntity getKeyPairEntity(KeyPair keyPair, KeyPairEntitySignInfo signInfo) {
         String crlFilename = namingStrategy.crlFileName(keyPair);
         String manifestFilename = namingStrategy.manifestFileName(keyPair);
         return new KeyPairEntity(keyPair, signInfo, crlFilename, manifestFilename);
@@ -52,6 +59,13 @@ public class KeyPairServiceBean implements KeyPairService {
                 providerConfiguration.getKeyStoreProvider(),
                 providerConfiguration.getSignatureProvider(),
                 providerConfiguration.getKeyStoreType());
+    }
+
+    private KeyPairEntitySignInfo createFsSignInfo() {
+        return new KeyPairEntitySignInfo(
+                providerConfiguration.getFsKeyStoreProvider(),
+                providerConfiguration.getFsSignatureProvider(),
+                providerConfiguration.getFsKeyStoreType());
     }
 
 }

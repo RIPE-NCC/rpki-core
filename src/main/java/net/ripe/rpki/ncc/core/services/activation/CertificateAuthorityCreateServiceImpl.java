@@ -1,6 +1,5 @@
 package net.ripe.rpki.ncc.core.services.activation;
 
-import com.google.common.annotations.VisibleForTesting;
 import lombok.NonNull;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
@@ -90,8 +89,10 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
     void provisionMember(final X500Principal caName, final ImmutableResourceSet resources, final X500Principal productionCaName) {
         try {
             asAdmin(() -> {
-                Long productionCaId = findProductionCaId(productionCaName);
-                commandService.execute(new ActivateHostedCertificateAuthorityCommand(commandService.getNextId(), caName, resources, productionCaId));
+                long parentCaId = caViewService.findSmallestIntermediateCa(productionCaName)
+                    .map(id -> id.getVersionedId().getId())
+                    .orElseGet(() -> findProductionCaId(productionCaName));
+                commandService.execute(new ActivateHostedCertificateAuthorityCommand(commandService.getNextId(), caName, resources, parentCaId));
             });
         } catch (NameNotUniqueException e) {
             throw new CertificateAuthorityNameNotUniqueException(caName);
@@ -101,7 +102,7 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
     void provisionNonHostedMember(final X500Principal caName, final ImmutableResourceSet resources,
                                   final X500Principal productionCaName, final ProvisioningIdentityCertificate identityCertificate) {
         asAdmin(() -> {
-            Long productionCaId = findProductionCaId(productionCaName);
+            long productionCaId = findProductionCaId(productionCaName);
             // We want to know UUID before creating CA to add the UUID to the command summary
             final UUID uuid = UUID.randomUUID();
             commandService.execute(new ActivateNonHostedCertificateAuthorityCommand(commandService.getNextId(),
@@ -109,7 +110,7 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
         });
     }
 
-    private Long findProductionCaId(X500Principal productionCaName) {
+    private long findProductionCaId(X500Principal productionCaName) {
         Long productionCaId = caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, productionCaName);
         Validate.notNull(productionCaId, "Production Certificate Authority '" + productionCaName.getName() + "' not found");
         return productionCaId;

@@ -21,7 +21,10 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 @Slf4j
 public class SecurityConfig {
 
-    private static final RequestMatcher API_REQUEST_MATCHER = new AntPathRequestMatcher("/api/**");
+    private static final RequestMatcher API_REQUEST_MATCHER = new OrRequestMatcher(
+        new AntPathRequestMatcher("/api/**"),
+        new AntPathRequestMatcher("/prod/ca/**")
+    );
     private static final RequestMatcher PROVISIONING_REQUEST_MATCHER = new AntPathRequestMatcher("/updown");
     private static final RequestMatcher WEB_REQUEST_MATCHER =
         new NegatedRequestMatcher(new OrRequestMatcher(API_REQUEST_MATCHER, PROVISIONING_REQUEST_MATCHER));
@@ -47,6 +50,7 @@ public class SecurityConfig {
                 .antMatchers("/api/public/**").permitAll()
                 // check API headers on other requests.
                 .antMatchers("/api/**").access("@apiKeySecurity.check(request)")
+                .antMatchers("/prod/ca/**").access("@apiKeySecurity.check(request)")
             )
             .build();
     }

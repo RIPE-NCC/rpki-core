@@ -83,6 +83,11 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     }
 
     @Override
+    public Optional<CertificateAuthorityData> findSmallestIntermediateCa(X500Principal productionCaName) {
+        return certificateAuthorityRepository.findSmallestIntermediateCA(productionCaName).map(CertificateAuthority::toData);
+    }
+
+    @Override
     public Collection<ManagedCertificateAuthorityData> findManagedCasEligibleForKeyRevocation() {
         return entityManager.createQuery(
                 "FROM ManagedCertificateAuthority ca " +

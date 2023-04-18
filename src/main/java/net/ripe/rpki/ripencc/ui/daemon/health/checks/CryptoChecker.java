@@ -62,7 +62,7 @@ public class CryptoChecker {
             return Health.warning(name + " CA doesn't exists yet.");
         }
         final Optional<KeyPairEntity> keyPair = ca.getKeyPairs().stream().findFirst();
-        if (!keyPair.isPresent()) {
+        if (keyPair.isEmpty()) {
             return Health.warning(name + " CA doesn't have a key pair yet.");
         }
         try {
@@ -93,7 +93,7 @@ public class CryptoChecker {
         }
 
         final Optional<KeyPairEntity> keyPair = ca.getKeyPairs().stream().findFirst();
-        if (!keyPair.isPresent() || !keyPair.map(KeyPairEntity::getKeyPair).isPresent()) {
+        if (keyPair.isEmpty() || keyPair.map(KeyPairEntity::getKeyPair).isEmpty()) {
             log.warn(name + " CA doesn't have a key pair yet.");
             return;
         }

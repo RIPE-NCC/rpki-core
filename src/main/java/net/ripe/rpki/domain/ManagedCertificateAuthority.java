@@ -269,7 +269,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
                                                                          CertificateIssuanceRequest request,
                                                                          ResourceCertificateRepository resourceCertificateRepository,
                                                                          int issuedCertificatesPerSignedKeyLimit) {
-        Validate.isTrue(isProductionCa() || isAllResourcesCa(), "Must be Production or 'All Resources' CA");
+        Validate.isTrue(isProductionCa() || isIntermediateCa() || isAllResourcesCa(), "Must be Production, intermediate, or 'All Resources' CA");
         validateChildResourceSet(request.getResources());
         int count = resourceCertificateRepository.countNonExpiredOutgoingCertificates(request.getSubjectPublicKey(), getCurrentKeyPair());
         if (count >= issuedCertificatesPerSignedKeyLimit) {
@@ -438,9 +438,13 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     }
 
     public KeyPairEntity createNewKeyPair(KeyPairService keyPairService) {
-        KeyPairEntity keyPair = keyPairService.createKeyPairEntity();
+        KeyPairEntity keyPair = generateNewKeyPair(keyPairService);
         keyPairs.add(keyPair);
         return keyPair;
+    }
+
+    protected KeyPairEntity generateNewKeyPair(KeyPairService keyPairService) {
+        return keyPairService.createKeyPairEntity();
     }
 
     public void addKeyPair(KeyPairEntity keyPair) {

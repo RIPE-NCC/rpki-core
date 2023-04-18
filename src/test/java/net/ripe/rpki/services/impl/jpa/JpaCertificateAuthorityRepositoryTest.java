@@ -17,6 +17,7 @@ import javax.transaction.Transactional;
 
 import java.util.UUID;
 
+import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -70,5 +71,10 @@ public class JpaCertificateAuthorityRepositoryTest extends CertificationDomainTe
             NameNotUniqueException.class,
             (exception) -> assertThat(exception.getMessage()).isEqualTo("Name 'CN=ca' not unique.")
         );
+    }
+
+    @Test
+    public void findSmallestIntermediateCa() {
+        assertThat(certificateAuthorityRepository.findSmallestIntermediateCA(PRODUCTION_CA_NAME)).isEmpty();
     }
 }

@@ -64,4 +64,10 @@ public class RipeNccResourceLookupService implements ResourceLookupService {
         }
         return resourceCacheService.getCaResources(caName).orElse(ImmutableResourceSet.empty());
     }
+
+    @Override
+    public Optional<ImmutableResourceSet> lookupIntermediateCaResources(X500Principal caName) {
+        // Same as production CA for now, later we'll try to use INHERITED resources instead.
+        return resourceCacheService.getProductionCaResources();
+    }
 }

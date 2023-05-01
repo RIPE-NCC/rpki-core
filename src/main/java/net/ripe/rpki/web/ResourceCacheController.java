@@ -6,6 +6,7 @@ import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import net.ripe.rpki.services.impl.background.ResourceCacheService;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -32,9 +33,10 @@ public class ResourceCacheController extends BaseController {
         RepositoryConfiguration repositoryConfiguration,
         ActiveNodeService activeNodeService,
         ResourceCacheService resourceCacheService,
-        @Named(RESOURCE_CACHE_UPDATE_SERVICE) BackgroundService resourceCacheUpdateService
+        @Named(RESOURCE_CACHE_UPDATE_SERVICE) BackgroundService resourceCacheUpdateService,
+        GitProperties gitProperties
     ) {
-        super(repositoryConfiguration, activeNodeService);
+        super(repositoryConfiguration, activeNodeService, gitProperties);
         this.resourceCacheService = resourceCacheService;
         this.resourceCacheUpdateService = resourceCacheUpdateService;
     }

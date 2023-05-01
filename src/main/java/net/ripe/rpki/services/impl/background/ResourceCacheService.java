@@ -186,7 +186,7 @@ public class ResourceCacheService {
                 switch (ca.getType()) {
                     case HOSTED: case NONHOSTED:
                         return changedCas.contains(ca.getName());
-                    case ALL_RESOURCES: case ROOT:
+                    case ALL_RESOURCES: case ROOT: case INTERMEDIATE:
                         return true;
                 }
                 throw new IllegalStateException(String.format("unknown type '%s' for CA '%s'", ca.getType(), ca.getName()));

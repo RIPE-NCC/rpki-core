@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MvcResult;
@@ -27,6 +28,7 @@ import javax.security.auth.x500.X500Principal;
 import java.io.File;
 import java.net.URI;
 import java.util.List;
+import java.util.Properties;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,7 +60,8 @@ public class ProductionCaControllerTest extends SpringWebControllerTestCase {
             internalNamePresenter,
             repositoryConfiguration,
             caHistoryService,
-            activeNodeService
+            activeNodeService,
+            new GitProperties(new Properties())
         );
     }
 

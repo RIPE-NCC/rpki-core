@@ -4,6 +4,7 @@ import net.ripe.rpki.ripencc.ui.daemon.health.Health;
 import net.ripe.rpki.ripencc.ui.daemon.health.HealthService;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -23,9 +24,10 @@ public class HealthCheckController extends BaseController {
     public HealthCheckController(
             RepositoryConfiguration repositoryConfiguration,
             ActiveNodeService activeNodeService,
-            HealthService healthService
+            HealthService healthService,
+            GitProperties gitProperties
     ) {
-        super(repositoryConfiguration, activeNodeService);
+        super(repositoryConfiguration, activeNodeService, gitProperties);
         this.healthService = healthService;
     }
 

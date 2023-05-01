@@ -7,6 +7,7 @@ import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.services.impl.background.BackgroundServices;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -44,9 +45,10 @@ public class AdminController extends BaseController {
         ActiveNodeService activeNodeService,
         Map<String, BackgroundService> backgroundServiceMap,
         BackgroundServices backgroundServices,
-        ProvisioningIdentityViewService provisioningIdentityViewService
+        ProvisioningIdentityViewService provisioningIdentityViewService,
+        GitProperties gitProperties
     ) {
-        super(repositoryConfiguration, activeNodeService);
+        super(repositoryConfiguration, activeNodeService, gitProperties);
         this.backgroundServiceMap = backgroundServiceMap;
         this.backgroundServices = backgroundServices;
         this.provisioningIdentityViewService = provisioningIdentityViewService;

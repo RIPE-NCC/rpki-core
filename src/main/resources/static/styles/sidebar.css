@@ -46,17 +46,15 @@ a.active {
 
 .footer {
     margin-top: auto;
-    padding: 16px;
     color: #fff;
 }
 
-.footer i:hover {
+#expand-nav-button i:hover {
     color: #ff9600;
 }
 
 .sidebar.collapsed {
     width: 72px;
-    overflow: hidden;
     transition: width .2s;
 }
 
@@ -92,4 +90,18 @@ a.active {
 .footer i.rotate::before {
     transform: rotate(-180deg);
     transition: transform .1s linear;
+}
+
+.footer div {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+}
+
+.sidebar .footer .bi-git  {
+    cursor: default;
+}
+
+.muted {
+    color: #ccc;
 }

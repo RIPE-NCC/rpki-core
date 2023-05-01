@@ -11,6 +11,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -33,14 +35,14 @@ public class HealthCheckControllerTest extends SpringWebControllerTestCase {
     private ActiveNodeService activeNodeService;
     @Mock
     private HealthService healthService;
-
     @NonNull
     @Override
     protected HealthCheckController createSubjectController() {
         return new HealthCheckController(
                 repositoryConfiguration,
                 activeNodeService,
-                healthService
+                healthService,
+                new GitProperties(new Properties())
         );
     }
 
@@ -71,6 +73,5 @@ public class HealthCheckControllerTest extends SpringWebControllerTestCase {
                 .contains("WARNING")
                 .contains("<td>not available</td>");
     }
-
 
 }

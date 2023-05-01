@@ -7,6 +7,7 @@ import net.ripe.rpki.server.api.configuration.Environment;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -23,10 +24,20 @@ public class BaseController {
     public static final String ADMIN_HOME = "/admin";
     protected final RepositoryConfiguration repositoryConfiguration;
     protected final ActiveNodeService activeNodeService;
+    private final GitProperties gitProperties;
 
-    public BaseController(RepositoryConfiguration repositoryConfiguration, ActiveNodeService activeNodeService) {
+    public BaseController(RepositoryConfiguration repositoryConfiguration, ActiveNodeService activeNodeService, GitProperties gitProperties) {
         this.repositoryConfiguration = repositoryConfiguration;
         this.activeNodeService = activeNodeService;
+        this.gitProperties = gitProperties;
+    }
+
+    @ModelAttribute(name = "gitProperties", binding = false)
+    public GitInfo getGitInfo() {
+        return new GitInfo(
+                gitProperties.getBranch(),
+                gitProperties.getShortCommitId()
+        );
     }
 
     @ModelAttribute(name = "currentUser", binding = false)
@@ -43,6 +54,12 @@ public class BaseController {
     @ModelAttribute(name = "coreConfiguration", binding = false)
     public CoreConfigurationData coreConfigurationData() {
         return new CoreConfigurationData(repositoryConfiguration, activeNodeService);
+    }
+
+    @Value
+    static class GitInfo {
+        String branch;
+        String ref;
     }
 
     @Value

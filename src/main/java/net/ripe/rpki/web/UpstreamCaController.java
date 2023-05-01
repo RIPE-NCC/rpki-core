@@ -15,6 +15,7 @@ import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.services.impl.background.AllCaCertificateUpdateServiceBean;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -50,8 +51,10 @@ public class UpstreamCaController extends BaseController {
                                 CertificateAuthorityViewService certificateAuthorityViewService,
                                 CommandService commandService,
                                 AllCaCertificateUpdateServiceBean allCaCertificateUpdateServiceBean,
-                                Map<String, BackgroundService> backgroundServiceMap) {
-        super(repositoryConfiguration, activeNodeService);
+                                Map<String, BackgroundService> backgroundServiceMap,
+                                GitProperties gitProperties
+                                ) {
+        super(repositoryConfiguration, activeNodeService, gitProperties);
         this.certificateAuthorityViewService = certificateAuthorityViewService;
         this.commandService = commandService;
         this.allCaCertificateUpdateServiceBean = allCaCertificateUpdateServiceBean;

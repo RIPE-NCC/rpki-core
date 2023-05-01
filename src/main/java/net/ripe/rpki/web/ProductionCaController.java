@@ -10,6 +10,7 @@ import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.server.api.services.system.CaHistoryService;
 import net.ripe.rpki.server.api.support.objects.CaName;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -36,9 +37,10 @@ public class ProductionCaController extends BaseController {
         InternalNamePresenter internalNamePresenter, 
         RepositoryConfiguration repositoryConfiguration,
         CaHistoryService caHistoryService,
-        ActiveNodeService activeNodeService
+        ActiveNodeService activeNodeService,
+        GitProperties gitProperties
     ) {
-        super(repositoryConfiguration, activeNodeService);
+        super(repositoryConfiguration, activeNodeService, gitProperties);
         this.certificateAuthorityViewService = certificateAuthorityViewService;
         this.internalNamePresenter = internalNamePresenter;
         this.caHistoryService = caHistoryService;

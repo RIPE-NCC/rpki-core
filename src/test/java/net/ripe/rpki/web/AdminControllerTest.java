@@ -15,6 +15,7 @@ import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MvcResult;
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -52,7 +54,7 @@ public class AdminControllerTest extends SpringWebControllerTestCase {
     @Override
     protected AdminController createSubjectController() {
         Map<String, BackgroundService> backgroundServiceMap = Collections.singletonMap("backgroundService", backgroundService);
-        return new AdminController(repositoryConfiguration, activeNodeService, backgroundServiceMap, backgroundServices, provisioningIdentityViewService);
+        return new AdminController(repositoryConfiguration, activeNodeService, backgroundServiceMap, backgroundServices, provisioningIdentityViewService, new GitProperties(new Properties()));
     }
 
     @Before

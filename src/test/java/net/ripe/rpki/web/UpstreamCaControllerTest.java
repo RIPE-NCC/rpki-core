@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -29,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -62,7 +64,7 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
     @Override
     protected UpstreamCaController createSubjectController() {
         return new UpstreamCaController(repositoryConfiguration, activeNodeService,
-            certificateAuthorityViewService, commandService, allCaCertificateUpdateServiceBean, Collections.emptyMap());
+            certificateAuthorityViewService, commandService, allCaCertificateUpdateServiceBean, Collections.emptyMap(),  new GitProperties(new Properties()));
     }
 
     @Before

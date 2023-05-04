@@ -17,7 +17,6 @@ import net.ripe.rpki.commons.provisioning.x509.pkcs10.RpkiCaCertificateRequestPa
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.RequestedResourceSets;
 import net.ripe.rpki.server.api.commands.ProvisioningCertificateIssuanceCommand;
-import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
@@ -68,7 +67,6 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
     }
 
     public CertificateIssuanceResponsePayload process(NonHostedCertificateAuthorityData nonHostedCertificateAuthority,
-                                                      ManagedCertificateAuthorityData productionCA,
                                                       CertificateIssuanceRequestPayload requestPayload) {
 
         CertificateIssuanceRequestElement request = requestPayload.getRequestElement();
@@ -76,12 +74,16 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
             throw new NotPerformedException(NotPerformedError.REQ_NO_SUCH_RESOURCE_CLASS);
         }
 
+        ResourceCertificateData issuingCertificate = resourceCertificateViewService
+            .findCurrentIncomingResourceCertificate(nonHostedCertificateAuthority.getParentId())
+            .orElseThrow(() -> new NotPerformedException(NotPerformedError.REQ_NO_RESOURCES_ALLOTED_IN_RESOURCE_CLASS));
+
         RequestedResourceSets requestedResourceSets = new RequestedResourceSets(
             validateRequestedResources(request.getAllocatedAsn()),
             validateRequestedResources(request.getAllocatedIpv4()),
             validateRequestedResources(request.getAllocatedIpv6())
         );
-        ImmutableResourceSet certifiableResources = getCertifiableResources(nonHostedCertificateAuthority, productionCA);
+        ImmutableResourceSet certifiableResources = getCertifiableResources(nonHostedCertificateAuthority, issuingCertificate);
 
         ImmutableResourceSet certificateResources = requestedResourceSets.calculateEffectiveResources(certifiableResources);
         if (certificateResources.isEmpty()) {
@@ -91,16 +93,11 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
             throw new NotPerformedException(NotPerformedError.REQ_NO_RESOURCES_ALLOTED_IN_RESOURCE_CLASS);
         }
 
-        ResourceCertificateData issuingCertificate = resourceCertificateViewService.findCurrentIncomingResourceCertificate(productionCA.getId())
-            .orElseThrow(() -> new NotPerformedException(NotPerformedError.INTERNAL_SERVER_ERROR));
-
-        Optional<ResourceCertificateData> outgoingResourceCertificate = issueCertificate(
+        ResourceCertificateData outgoingResourceCertificate = issueCertificate(
             request, requestedResourceSets, nonHostedCertificateAuthority
-        );
+        ).orElseThrow(() -> new NotPerformedException(NotPerformedError.REQ_NO_RESOURCES_ALLOTED_IN_RESOURCE_CLASS));
 
-        return outgoingResourceCertificate
-            .map(orc -> createResponse(request, requestedResourceSets, certifiableResources, orc, issuingCertificate))
-            .orElseThrow(() -> new NotPerformedException(NotPerformedError.REQ_NO_RESOURCES_ALLOTED_IN_RESOURCE_CLASS));
+        return createResponse(request, requestedResourceSets, certifiableResources, outgoingResourceCertificate, issuingCertificate);
     }
 
     private Optional<ImmutableResourceSet> validateRequestedResources(IpResourceSet resourceSet) {

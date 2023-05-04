@@ -47,7 +47,7 @@ dependencies {
     implementation "org.thymeleaf:thymeleaf:3.1.1.RELEASE"
     implementation "org.thymeleaf:thymeleaf-spring5:3.1.1.RELEASE"
 
-    implementation platform('io.sentry:sentry-bom:6.18.0')
+    implementation platform('io.sentry:sentry-bom:6.18.1')
     implementation 'io.sentry:sentry-spring-boot-starter'
     implementation 'io.sentry:sentry-logback'
 

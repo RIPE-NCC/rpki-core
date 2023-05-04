@@ -1,8 +1,8 @@
 package net.ripe.rpki.rest.security;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -29,28 +29,19 @@ public class SecurityConfig {
     private static final RequestMatcher WEB_REQUEST_MATCHER =
         new NegatedRequestMatcher(new OrRequestMatcher(API_REQUEST_MATCHER, PROVISIONING_REQUEST_MATCHER));
 
-    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
-
-    @Autowired
-    public SecurityConfig(RestAuthenticationEntryPoint restAuthenticationEntryPoint) {
-        this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
-    }
-
     @Bean
-    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, JsonAuthenticationEntryPoint jsonAuthenticationEntryPoint) throws Exception {
         return http
             .requestMatcher(API_REQUEST_MATCHER)
             .csrf(c -> c.disable())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .exceptionHandling(e -> e.authenticationEntryPoint(restAuthenticationEntryPoint))
-            // If there are multiple matchers, the order is important. First match wins!
+            .exceptionHandling(e -> e.authenticationEntryPoint(jsonAuthenticationEntryPoint))
             .authorizeRequests(r -> r
                 // allow all to /api/monitoring/ endpoints
                 .antMatchers("/api/monitoring/**").permitAll()
                 .antMatchers("/api/public/**").permitAll()
-                // check API headers on other requests.
-                .antMatchers("/api/**").access("@apiKeySecurity.check(request)")
-                .antMatchers("/prod/ca/**").access("@apiKeySecurity.check(request)")
+                // All other paths matching initial .requestMatcher require API key
+                .anyRequest().access("@apiKeySecurity.check(request)")
             )
             .build();
     }
@@ -61,6 +52,7 @@ public class SecurityConfig {
             .requestMatcher(PROVISIONING_REQUEST_MATCHER)
             .csrf(c -> c.disable())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeRequests(r -> r.anyRequest().permitAll())
             .build();
     }
 
@@ -70,15 +62,14 @@ public class SecurityConfig {
         @Value("${authorization.admin.role}") String adminRole
     ) throws Exception {
         http.requestMatcher(WEB_REQUEST_MATCHER)
-            // If there are multiple matchers, the order is important. First match wins!
             .authorizeRequests(r -> r
                 .antMatchers(
                     "/login",
                     "/actuator/active-node/",
                     "/actuator/prometheus",
-                    "/monitoring/healthcheck",
-                    "/static/**"
+                    "/monitoring/healthcheck"
                     ).permitAll()
+                .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                 .anyRequest().hasAuthority(adminRole)
             );
 

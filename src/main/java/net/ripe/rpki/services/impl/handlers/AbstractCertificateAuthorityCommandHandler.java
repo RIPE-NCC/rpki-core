@@ -23,7 +23,7 @@ public abstract class AbstractCertificateAuthorityCommandHandler<T extends Certi
     protected ManagedCertificateAuthority lookupManagedCa(Long id) {
         ManagedCertificateAuthority result = certificateAuthorityRepository.findManagedCa(id);
         if (result == null) {
-            throw new EntityNotFoundException("hosted CA not found: " + id);
+            throw new EntityNotFoundException("managed CA not found: " + id);
         }
         return result;
     }

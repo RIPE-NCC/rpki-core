@@ -51,13 +51,15 @@ public class CertificateAuthorityCreateServiceImplTest {
     private ResourceLookupService resourceLookupService;
     private CertificateAuthorityViewService caViewService;
     private CommandService commandService;
+    private ProvisioningIdentityCertificate identityCertificate;
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         resourceLookupService = mock(ResourceLookupService.class);
         caViewService = mock(CertificateAuthorityViewService.class);
         commandService = mock(CommandService.class);
         subject = new CertificateAuthorityCreateServiceImpl(resourceLookupService, caViewService, commandService, PRODUCTION_CA_NAME.getName());
+        identityCertificate = loadCertificate();
     }
 
     @Test
@@ -85,7 +87,7 @@ public class CertificateAuthorityCreateServiceImplTest {
         var commandArgumentCaptor = ArgumentCaptor.forClass(ActivateHostedCertificateAuthorityCommand.class);
         verify(commandService).execute(commandArgumentCaptor.capture());
 
-        ActivateHostedCertificateAuthorityCommand command = commandArgumentCaptor.getValue();
+        var command = commandArgumentCaptor.getValue();
         assertThat(command.getParentId()).isEqualTo(INTERMEDIATE_CA.getId());
 
         verify(caViewService, never()).findCertificateAuthorityIdByTypeAndName(any(), any());
@@ -112,9 +114,7 @@ public class CertificateAuthorityCreateServiceImplTest {
     }
 
     @Test
-    public void shouldProvisionNonHostedMember() throws IOException {
-        ProvisioningIdentityCertificate identityCertificate = loadCertificate();
-
+    public void shouldProvisionNonHostedMember() {
         when(caViewService.findCertificateAuthorityIdByTypeAndName(ProductionCertificateAuthority.class, PRODUCTION_CA_NAME)).thenReturn(PRODUCTION_CA_ID);
         when(commandService.getNextId()).thenReturn(MEMBER_CA_ID);
 
@@ -131,6 +131,22 @@ public class CertificateAuthorityCreateServiceImplTest {
         assertThat(command.getResources()).isEqualTo(MEMBER_RESOURCES);
         assertThat(command.getIdentityCertificate()).isEqualTo(identityCertificate);
         assertThat(command.getParentId()).isEqualTo(PRODUCTION_CA_ID);
+    }
+
+    @Test
+    public void should_provision_non_hosted_ca_with_smallest_intermediate_ca_as_parent() {
+        when(caViewService.findSmallestIntermediateCa(PRODUCTION_CA_NAME)).thenReturn(Optional.of(INTERMEDIATE_CA));
+        when(commandService.getNextId()).thenReturn(MEMBER_CA_ID);
+
+        subject.provisionNonHostedMember(MEMBER_CA, MEMBER_RESOURCES, PRODUCTION_CA_NAME, identityCertificate);
+
+        var commandArgumentCaptor = ArgumentCaptor.forClass(ActivateNonHostedCertificateAuthorityCommand.class);
+        verify(commandService).execute(commandArgumentCaptor.capture());
+
+        var command = commandArgumentCaptor.getValue();
+        assertThat(command.getParentId()).isEqualTo(INTERMEDIATE_CA.getId());
+
+        verify(caViewService, never()).findCertificateAuthorityIdByTypeAndName(any(), any());
     }
 
     private ProvisioningIdentityCertificate loadCertificate() throws IOException {

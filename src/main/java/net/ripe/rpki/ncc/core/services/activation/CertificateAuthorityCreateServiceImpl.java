@@ -102,11 +102,13 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
     void provisionNonHostedMember(final X500Principal caName, final ImmutableResourceSet resources,
                                   final X500Principal productionCaName, final ProvisioningIdentityCertificate identityCertificate) {
         asAdmin(() -> {
-            long productionCaId = findProductionCaId(productionCaName);
+            long parentCaId = caViewService.findSmallestIntermediateCa(productionCaName)
+                .map(id -> id.getVersionedId().getId())
+                .orElseGet(() -> findProductionCaId(productionCaName));
             // We want to know UUID before creating CA to add the UUID to the command summary
             final UUID uuid = UUID.randomUUID();
             commandService.execute(new ActivateNonHostedCertificateAuthorityCommand(commandService.getNextId(),
-                caName, uuid, resources, identityCertificate, productionCaId));
+                caName, uuid, resources, identityCertificate, parentCaId));
         });
     }
 

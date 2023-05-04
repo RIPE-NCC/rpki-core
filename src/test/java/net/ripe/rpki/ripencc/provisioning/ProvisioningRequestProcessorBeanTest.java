@@ -35,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.persistence.LockTimeoutException;
+import javax.security.auth.x500.X500Principal;
 import java.security.InvalidKeyException;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
@@ -48,6 +49,7 @@ import static net.ripe.rpki.domain.TestObjects.TEST_KEY_PAIR_2;
 import static net.ripe.rpki.ripencc.provisioning.CertificateIssuanceProcessorTest.NON_HOSTED_CA_NAME;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
@@ -67,6 +69,7 @@ public class ProvisioningRequestProcessorBeanTest {
     private ProvisioningCmsSigningTimeStore provisioningCmsSigningTimeStore;
     @Mock
     private CommandService commandService;
+    private ManagedCertificateAuthorityData production;
     private ManagedCertificateAuthorityData parent;
     private NonHostedCertificateAuthorityData child;
     @Mock
@@ -76,9 +79,15 @@ public class ProvisioningRequestProcessorBeanTest {
 
     @Before
     public void setUp() {
-        parent = new ManagedCertificateAuthorityData(
+        production = new ManagedCertificateAuthorityData(
             new VersionedId(42L, 1), PRODUCTION_CA_NAME, UUID.randomUUID(), 1L,
             CertificateAuthorityType.ROOT,
+            PRODUCTION_CA_RESOURCES,
+            Collections.emptyList()
+        );
+        parent = new ManagedCertificateAuthorityData(
+            new VersionedId(43L, 1), new X500Principal("O=ORG-TEST-INTERMEDIATE-CA"), UUID.randomUUID(), 42L,
+            CertificateAuthorityType.INTERMEDIATE,
             PRODUCTION_CA_RESOURCES,
             Collections.emptyList()
         );
@@ -102,29 +111,40 @@ public class ProvisioningRequestProcessorBeanTest {
         listCms = givenListResourceClassRequestCms();
 
         // set up mocks
-        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(ProductionCertificateAuthority.class,
-                UUID.fromString(listCms.getPayload().getRecipient()))).thenReturn(parent);
         when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(NonHostedCertificateAuthority.class,
-                UUID.fromString(listCms.getPayload().getSender()))).thenReturn(child);
+            UUID.fromString(listCms.getPayload().getSender()))).thenReturn(child);
+        when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(ProductionCertificateAuthority.class,
+                UUID.fromString(listCms.getPayload().getRecipient()))).thenReturn(production);
+        when(certificateAuthorityViewService.findCertificateAuthority(child.getParentId())).thenReturn(parent);
     }
 
     @Test
-    public void shouldEnsureNonHostedMemberIsChildOfDelegationCa() {
+    public void shouldEnsureRecipientIsProductionCa() {
         parent = new ManagedCertificateAuthorityData(
             new VersionedId(99L, 1), PRODUCTION_CA_NAME, UUID.randomUUID(), 1L,
-            CertificateAuthorityType.ROOT,
+            CertificateAuthorityType.INTERMEDIATE,
             PRODUCTION_CA_RESOURCES,
             Collections.emptyList()
         );
         when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(ProductionCertificateAuthority.class,
             UUID.fromString(listCms.getPayload().getRecipient()))).thenReturn(parent);
 
-        try {
-            subject.process(listCms);
-            fail("ProvisioningException expected");
-        } catch (ProvisioningException expected) {
-            assertEquals(ResponseExceptionType.BAD_SENDER_AND_RECIPIENT, expected.getResponseExceptionType());
-        }
+        assertThatThrownBy(() -> subject.process(listCms)).isInstanceOfSatisfying(ProvisioningException.class, e ->
+            assertThat(e.getResponseExceptionType()).isEqualTo(ResponseExceptionType.UNKNOWN_RECIPIENT)
+        );
+    }
+
+    @Test
+    public void shouldEnsureNonHostedMemberIsChildOfProductionOrIntermediateCa() {
+        parent = new ManagedCertificateAuthorityData(
+            new VersionedId(99L, 1), PRODUCTION_CA_NAME, UUID.randomUUID(), 1L,
+            CertificateAuthorityType.ALL_RESOURCES,
+            PRODUCTION_CA_RESOURCES,
+            Collections.emptyList()
+        );
+        when(certificateAuthorityViewService.findCertificateAuthority(child.getParentId())).thenReturn(parent);
+
+        assertThatThrownBy(() -> subject.process(listCms)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test

@@ -15,8 +15,6 @@ import net.ripe.rpki.commons.provisioning.x509.pkcs10.RpkiCaCertificateRequestBu
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.ProvisioningCertificateIssuanceCommand;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
-import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
@@ -40,7 +38,6 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
-import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_NAME;
 import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_RESOURCES;
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 import static org.assertj.core.api.Assertions.*;
@@ -52,8 +49,6 @@ public class CertificateIssuanceProcessorTest {
 
     public static final X500Principal NON_HOSTED_CA_NAME = new X500Principal("CN=non-hosted");
     private NonHostedCertificateAuthorityData nonHostedCertificateAuthority;
-
-    private ManagedCertificateAuthorityData productionCA;
 
     @Mock
     private ResourceLookupService resourceLookupService;
@@ -72,14 +67,8 @@ public class CertificateIssuanceProcessorTest {
     public void setUp() {
         caRepositoryUri = URI.create("rsync://tmp/repo/");
 
-        productionCA = new ManagedCertificateAuthorityData(
-            new VersionedId(42L, 1), PRODUCTION_CA_NAME, UUID.randomUUID(), 1L,
-            CertificateAuthorityType.ROOT,
-            PRODUCTION_CA_RESOURCES,
-            Collections.emptyList()
-        );
         nonHostedCertificateAuthority = new NonHostedCertificateAuthorityData(
-            new VersionedId(1234L, 1), NON_HOSTED_CA_NAME, UUID.randomUUID(), productionCA.getId(),
+            new VersionedId(1234L, 1), NON_HOSTED_CA_NAME, UUID.randomUUID(), 42L,
             ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT,
             ImmutableResourceSet.empty(),
             Collections.emptySet()
@@ -90,7 +79,9 @@ public class CertificateIssuanceProcessorTest {
         when(resourceLookupService.lookupMemberCaPotentialResources(NON_HOSTED_CA_NAME)).thenReturn(ImmutableResourceSet.parse("10/8,fc00::/48"));
 
         ResourceCertificateData productionSigningCertificate = new ResourceCertificateData(mock(X509ResourceCertificate.class), caRepositoryUri.resolve("cert.cer"));
-        when(resourceCertificateViewService.findCurrentIncomingResourceCertificate(productionCA.getId()))
+        when(productionSigningCertificate.getCertificate().resources()).thenReturn(PRODUCTION_CA_RESOURCES);
+
+        when(resourceCertificateViewService.findCurrentIncomingResourceCertificate(nonHostedCertificateAuthority.getParentId()))
             .thenReturn(Optional.of(productionSigningCertificate));
     }
 
@@ -107,7 +98,7 @@ public class CertificateIssuanceProcessorTest {
             .thenReturn(Optional.of(new ResourceCertificateData(mockCertificate, caRepositoryUri)));
 
         CertificateIssuanceResponsePayload response = processor.process(
-            nonHostedCertificateAuthority, productionCA, requestPayload);
+            nonHostedCertificateAuthority, requestPayload);
 
         verify(commandService).execute(isA(ProvisioningCertificateIssuanceCommand.class));
 
@@ -133,7 +124,7 @@ public class CertificateIssuanceProcessorTest {
     @Test
     public void shouldFailToProcessAnyResourceClassExceptDefault() {
         CertificateIssuanceRequestPayload requestPayload = createPayloadClass("RIPE", caRepositoryUri, new RequestedResourceSets(Optional.empty(), Optional.of(ImmutableResourceSet.parse("11/8")), Optional.empty()));
-        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (error) -> {
                 assertThat(error.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_NO_SUCH_RESOURCE_CLASS);
             });
@@ -145,7 +136,7 @@ public class CertificateIssuanceProcessorTest {
         when(resourceLookupService.lookupMemberCaPotentialResources(NON_HOSTED_CA_NAME)).thenReturn(ImmutableResourceSet.empty());
 
         CertificateIssuanceRequestPayload requestPayload = createPayload(caRepositoryUri);
-        assertThatThrownBy(()-> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        assertThatThrownBy(()-> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (error) -> {
                 assertThat(error.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_NO_RESOURCES_ALLOTED_IN_RESOURCE_CLASS);
             });
@@ -161,7 +152,7 @@ public class CertificateIssuanceProcessorTest {
 
         CertificateIssuanceRequestPayload requestPayload = createPayload(invalidCertificate);
 
-        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (error) -> {
                 assertThat(error.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
             });
@@ -180,7 +171,7 @@ public class CertificateIssuanceProcessorTest {
             Optional.empty()
         );
         CertificateIssuanceRequestPayload requestPayload = createPayload(caRepositoryUri, requestedResources);
-        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (error) -> {
                 assertThat(error.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
                 assertThat(error.getMessage()).isEqualTo("requested resource set exceeds entry limit (100001 > 100000)");
@@ -190,7 +181,7 @@ public class CertificateIssuanceProcessorTest {
     @Test
     public void should_check_sia_uri_scheme() {
         CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create("foo://bar"));
-        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (error) -> {
                 assertThat(error.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
                 assertThat(error.getMessage()).isEqualTo("SIA URI scheme is not correct");
@@ -200,7 +191,7 @@ public class CertificateIssuanceProcessorTest {
     @Test
     public void should_check_sia_uri_is_normalized() {
         CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create("rsync://rpki.example.com/repository/../"));
-        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (error) -> {
                 assertThat(error.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
                 assertThat(error.getMessage()).isEqualTo("SIA URI is not normalized");
@@ -210,7 +201,7 @@ public class CertificateIssuanceProcessorTest {
     @Test
     public void should_check_sia_uri_is_absolute() {
         CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create("//rpki.example.com/repository/"));
-        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (error) -> {
                 assertThat(error.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
                 assertThat(error.getMessage()).isEqualTo("SIA URI is not absolute or is opaque");
@@ -220,7 +211,7 @@ public class CertificateIssuanceProcessorTest {
     @Test
     public void should_check_sia_uri_is_not_opaque() {
         CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create("rsync:repository/"));
-        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (error) -> {
                 assertThat(error.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
                 assertThat(error.getMessage()).isEqualTo("SIA URI is not absolute or is opaque");
@@ -231,7 +222,7 @@ public class CertificateIssuanceProcessorTest {
     public void should_check_sia_uri_does_not_try_to_escape_the_repository_directory() {
         // Note that URIs with intermediate `..` segments are already handled by the `normalize` check.
         CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create("rsync://rpki.example.com/../trying/to/escape/the/repository/"));
-        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (error) -> {
                 assertThat(error.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
                 assertThat(error.getMessage()).isEqualTo("SIA URI contains relative segments");
@@ -240,13 +231,10 @@ public class CertificateIssuanceProcessorTest {
 
     @Test
     public void should_check_sia_uri_is_not_too_long() {
-        StringBuilder longString = new StringBuilder("rsync://rpki.example.com/");
-        for (int i = 0; i < 210; ++i) {
-            longString.append("directory/");
-        }
+        String longString = "rsync://rpki.example.com/" + "directory/".repeat(210);
 
-        CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create(longString.toString()));
-        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        CertificateIssuanceRequestPayload requestPayload = createPayload(URI.create(longString));
+        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (response) -> {
                 assertThat(response.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
                 assertThat(response.getMessage()).isEqualTo("maximum SIA URI length exceeded (2125 > 2048)");
@@ -258,7 +246,7 @@ public class CertificateIssuanceProcessorTest {
         RSAKeyGenParameterSpec params = new RSAKeyGenParameterSpec(1024, RSAKeyGenParameterSpec.F4);
         CertificateIssuanceRequestPayload requestPayload = createPayload(params);
 
-        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (response) -> {
                 assertThat(response.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
                 assertThat(response.getMessage()).isEqualTo("public key size is not 2048");
@@ -270,7 +258,7 @@ public class CertificateIssuanceProcessorTest {
         RSAKeyGenParameterSpec params = new RSAKeyGenParameterSpec(2048, RSAKeyGenParameterSpec.F0);
         CertificateIssuanceRequestPayload requestPayload = createPayload(params);
 
-        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, productionCA, requestPayload))
+        assertThatThrownBy(() -> processor.process(nonHostedCertificateAuthority, requestPayload))
             .isInstanceOfSatisfying(NotPerformedException.class, (response) -> {
                 assertThat(response.getNotPerformedError()).isEqualTo(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
                 assertThat(response.getMessage()).isEqualTo("public key exponent is not 65537");

@@ -5,8 +5,8 @@ import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
 import net.ripe.rpki.domain.RequestedResourceSets;
-import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.ResourceCertificateData;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
 import java.net.URI;
@@ -20,12 +20,12 @@ abstract class AbstractProvisioningProcessor {
         this.resourceLookupService = resourceLookupService;
     }
 
-    protected ImmutableResourceSet getCertifiableResources(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, ManagedCertificateAuthorityData productionCA) {
+    protected ImmutableResourceSet getCertifiableResources(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, ResourceCertificateData productionCertificate) {
         // We cannot use `nonHostedCertificateAuthority.getResources()` here since they only include _certified_
         // resources (which may be limited by the requested resource set) and we must include all _certifiable_
         // resources.
         ImmutableResourceSet memberResources = resourceLookupService.lookupMemberCaPotentialResources(nonHostedCertificateAuthority.getName());
-        return memberResources.intersection(productionCA.getResources());
+        return memberResources.intersection(productionCertificate.getCertificate().resources());
     }
 
     protected CertificateElement createClassElement(X509ResourceCertificate certificate, RequestedResourceSets requestedResourceSets, URI publicationUri) {

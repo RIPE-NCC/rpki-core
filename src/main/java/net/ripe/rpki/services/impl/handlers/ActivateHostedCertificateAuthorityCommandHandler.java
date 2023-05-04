@@ -28,8 +28,8 @@ public class ActivateHostedCertificateAuthorityCommandHandler extends AbstractCe
 
     @Override
     public void handle(@NonNull ActivateHostedCertificateAuthorityCommand command, CommandStatus commandStatus) {
-        ManagedCertificateAuthority productionCa = lookupManagedCa(command.getParentId());
-        HostedCertificateAuthority memberCa = createMemberCA(command, productionCa);
+        ManagedCertificateAuthority parentCa = lookupManagedCa(command.getParentId());
+        HostedCertificateAuthority memberCa = createMemberCA(command, parentCa);
         childParentCertificateUpdateSaga.execute(memberCa, Integer.MAX_VALUE);
     }
 

@@ -15,7 +15,7 @@ import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -27,7 +27,6 @@ import org.springframework.stereotype.Component;
 import javax.persistence.LockTimeoutException;
 import javax.persistence.OptimisticLockException;
 import javax.persistence.PessimisticLockException;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -66,7 +65,7 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
     @Override
     public ProvisioningCmsObject process(ProvisioningCmsObject request) {
         UUID memberUuid = parseSenderAndRecipientUUID(request.getPayload().getSender());
-        UUID productionCaUuid = parseSenderAndRecipientUUID(request.getPayload().getRecipient());
+        UUID recipientUuid = parseSenderAndRecipientUUID(request.getPayload().getRecipient());
 
         // Gets the NonHostedCertificateAuthority and validates the (request) CMS object, including the check
         // that the object is from the correct CA.
@@ -75,9 +74,10 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
         // Update last seen signingTime for the member CA
         provisioningCmsSigningTimeStore.updateLastSeenProvisioningCmsSeenAt(nonHostedMemberCa, request.getSigningTime());
 
-        ManagedCertificateAuthorityData productionCA = getProductionCertificateAuthorityWhichIsParentOf(productionCaUuid, nonHostedMemberCa);
+        validateRecipientIsProductionCA(recipientUuid);
+        validateParentOfNonHostedMemberCA(nonHostedMemberCa);
 
-        AbstractProvisioningResponsePayload responsePayload = processRequestPayload(nonHostedMemberCa, productionCA, request.getPayload());
+        AbstractProvisioningResponsePayload responsePayload = processRequestPayload(nonHostedMemberCa, request.getPayload());
 
         responsePayload.setRecipient(request.getPayload().getSender());
         responsePayload.setSender(request.getPayload().getRecipient());
@@ -87,13 +87,12 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
 
     @VisibleForTesting
     protected AbstractProvisioningResponsePayload processRequestPayload(NonHostedCertificateAuthorityData nonHostedMemberCa,
-                                                                        ManagedCertificateAuthorityData productionCA,
                                                                         AbstractProvisioningPayload requestPayload) {
         try {
             if (requestPayload instanceof ResourceClassListQueryPayload) {
-                return listResourceClassProcessor.process(nonHostedMemberCa, productionCA);
+                return listResourceClassProcessor.process(nonHostedMemberCa);
             } else if (requestPayload instanceof CertificateIssuanceRequestPayload) {
-                return certificateIssuanceProcessor.process(nonHostedMemberCa, productionCA, (CertificateIssuanceRequestPayload) requestPayload);
+                return certificateIssuanceProcessor.process(nonHostedMemberCa, (CertificateIssuanceRequestPayload) requestPayload);
             } else if (requestPayload instanceof CertificateRevocationRequestPayload) {
                 return certificateRevocationProcessor.process(nonHostedMemberCa, (CertificateRevocationRequestPayload) requestPayload);
             } else {
@@ -141,20 +140,20 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
     /**
      * Get the production CA by UUID.
      *
-     * @param nonHostedMemberCa child CA of the parent
-     * @ensures \result is the parent of nonHostedMemberCa.
+     * @ensures \result is the production CA.
      */
-    private ManagedCertificateAuthorityData getProductionCertificateAuthorityWhichIsParentOf(UUID parentId, NonHostedCertificateAuthorityData nonHostedMemberCa) {
-        CertificateAuthorityData parent = certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(ProductionCertificateAuthority.class, parentId);
-        if (!(parent instanceof ManagedCertificateAuthorityData)) {
+    private void validateRecipientIsProductionCA(UUID recipientUUID) {
+        CertificateAuthorityData recipient = certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(ProductionCertificateAuthority.class, recipientUUID);
+        if (recipient == null || recipient.getType() != CertificateAuthorityType.ROOT) {
             throw new ProvisioningException(ResponseExceptionType.UNKNOWN_RECIPIENT);
         }
+    }
 
-        if (!Objects.equals(parent.getId(), nonHostedMemberCa.getParentId())) {
-            throw new ProvisioningException(ResponseExceptionType.BAD_SENDER_AND_RECIPIENT);
+    private void validateParentOfNonHostedMemberCA(NonHostedCertificateAuthorityData nonHostedMemberCa) {
+        CertificateAuthorityData parent = certificateAuthorityViewService.findCertificateAuthority(nonHostedMemberCa.getParentId());
+        if (parent == null || parent.getType() != CertificateAuthorityType.ROOT && parent.getType() != CertificateAuthorityType.INTERMEDIATE) {
+            throw new IllegalStateException(String.format("parent CA of '%s' does not exist or has wrong type", nonHostedMemberCa.getName()));
         }
-
-        return (ManagedCertificateAuthorityData) parent;
     }
 
     /**

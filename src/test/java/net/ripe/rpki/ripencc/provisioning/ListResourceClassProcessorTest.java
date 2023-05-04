@@ -8,7 +8,6 @@ import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
 import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassListResponseClassElement;
 import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassListResponsePayload;
 import net.ripe.rpki.domain.RequestedResourceSets;
-import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
@@ -31,11 +30,7 @@ import java.util.Optional;
 import static net.ripe.rpki.domain.Resources.ALL_RESOURCES;
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -46,9 +41,6 @@ public class ListResourceClassProcessorTest {
 
     @Mock
     private NonHostedCertificateAuthorityData nonHostedCertificateAuthority;
-
-    @Mock
-    private ManagedCertificateAuthorityData productionCA;
 
     @Mock
     private ResourceLookupService resourceLookupService;
@@ -65,11 +57,11 @@ public class ListResourceClassProcessorTest {
 
         uri = new URI("rsync://test");
         issuerCertificate = mock(X509ResourceCertificate.class);
+        when(issuerCertificate.resources()).thenReturn(ALL_RESOURCES);
 
         ResourceCertificateData incomingResourceCertificate = new ResourceCertificateData(issuerCertificate, uri);
 
-        when(productionCA.getResources()).thenReturn(ALL_RESOURCES);
-        when(resourceCertificateViewService.findCurrentIncomingResourceCertificate(productionCA.getId()))
+        when(resourceCertificateViewService.findCurrentIncomingResourceCertificate(nonHostedCertificateAuthority.getParentId()))
             .thenReturn(Optional.of(incomingResourceCertificate));
 
         X500Principal x500Principal = new X500Principal("CN=101");
@@ -80,7 +72,7 @@ public class ListResourceClassProcessorTest {
 
     @Test
     public void shouldBuildClassElementIntoTheResponsePayload() {
-        ResourceClassListResponsePayload responsePayload = processor.process(nonHostedCertificateAuthority, productionCA);
+        ResourceClassListResponsePayload responsePayload = processor.process(nonHostedCertificateAuthority);
 
         assertThat(responsePayload.getClassElements()).isNotEmpty();
         ResourceClassListResponseClassElement resourceClassListResponseClassElement = responsePayload.getClassElements().get(0);
@@ -104,7 +96,7 @@ public class ListResourceClassProcessorTest {
 
         when(resourceLookupService.lookupMemberCaPotentialResources(nonHostedCertificateAuthority.getName())).thenReturn(certifiedResources);
 
-        ResourceClassListResponsePayload responsePayload = processor.process(nonHostedCertificateAuthority, productionCA);
+        ResourceClassListResponsePayload responsePayload = processor.process(nonHostedCertificateAuthority);
 
         assertThat(responsePayload.getClassElements()).isNotEmpty();
         assertThat(responsePayload.getClassElements().get(0).getCertificateElements()).hasSize(1);

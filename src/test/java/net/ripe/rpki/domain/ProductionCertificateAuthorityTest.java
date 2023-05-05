@@ -4,6 +4,7 @@ import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
+import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.After;
@@ -47,7 +48,7 @@ public class ProductionCertificateAuthorityTest extends CertificationDomainTestC
             ImmutableResourceSet.parse("10/8"),
             createSia()
         );
-        kp.updateIncomingResourceCertificate(currentCertificate.getCertificate(), currentCertificate.getPublicationUri());
+        kp.updateIncomingResourceCertificate(new CertificateIssuanceResponse(currentCertificate.getCertificate(), currentCertificate.getPublicationUri()));
 
         CertificateIssuanceRequest request = new CertificateIssuanceRequest(ImmutableResourceSet.parse("11.0.0.0/8"), new X500Principal("CN=test"), kp.getPublicKey(), createSia());
         singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, TEST_VALIDITY_PERIOD, prodCa.getCurrentKeyPair());

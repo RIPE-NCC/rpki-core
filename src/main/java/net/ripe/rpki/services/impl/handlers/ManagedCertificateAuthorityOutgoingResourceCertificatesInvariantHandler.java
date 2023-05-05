@@ -94,7 +94,7 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
     private ImmutableResourceSet determineIncomingResources(ManagedCertificateAuthority ca) {
         Set<ImmutableResourceSet> distinctIncomingResources = ca.getKeyPairs().stream()
             .filter(KeyPairEntity::isPublishable)
-            .map(kp -> kp.getCurrentIncomingCertificate().getResources())
+            .map(kp -> kp.getCertifiedResources())
             .collect(Collectors.toSet());
 
         if (distinctIncomingResources.isEmpty()) {

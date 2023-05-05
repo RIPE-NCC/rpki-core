@@ -31,7 +31,7 @@ public class KeyPairActivatedEvent extends CertificateAuthorityEvent {
         return String.format(
             "Activated resource certificate [public key hash=%s, resources=%s, serial number=%s, not valid before=%s, not valid after=%s]",
             KeyPairUtil.getAsciiHexEncodedPublicKeyHash(keyPair.getPublicKey()),
-            incomingCertificate.getResources(),
+            incomingCertificate.getCertifiedResources(),
             incomingCertificate.getCertificate().getSerialNumber(),
             incomingCertificate.getNotValidBefore(),
             incomingCertificate.getNotValidAfter()

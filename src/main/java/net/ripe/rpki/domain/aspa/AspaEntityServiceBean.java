@@ -114,7 +114,7 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
         SortedMap<Asn, AspaConfiguration> aspaConfiguration = aspaConfigurationRepository.findByCertificateAuthority(ca)
             .values()
             .stream()
-            .filter(x -> incomingResourceCertificate.getResources().contains(x.getCustomerAsn()))
+            .filter(x -> incomingResourceCertificate.getCertifiedResources().contains(x.getCustomerAsn()))
             .collect(toSortedMap(AspaConfiguration::getCustomerAsn, x -> x));
 
         SortedMapDifference<Asn, SortedMap<Asn, AspaAfiLimit>> difference = Maps.difference(
@@ -162,7 +162,7 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
             return aspa.getCertificate().isValid()
                 && aspa.getCertificate().getSigningKeyPair().isCurrent()
                 && Objects.equals(incomingResourceCertificate.getPublicationUri(), aspa.getAspaCms().getParentCertificateUri())
-                && incomingResourceCertificate.getResources().contains(aspa.getCustomerAsn());
+                && incomingResourceCertificate.getCertifiedResources().contains(aspa.getCustomerAsn());
         } catch (UnparseableRpkiObjectException e) {
             return false;
         }

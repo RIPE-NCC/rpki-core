@@ -4,6 +4,7 @@ import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
+import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,10 +39,10 @@ public class IncomingResourceCertificateTest {
                     BASE_URI.resolve(keyPair.getManifestFilename())),
             }).getCertificate();
 
-        subject.update(updatedCertificate, UPDATED_PUBLICATION_URI);
+        subject.update(new CertificateIssuanceResponse(updatedCertificate, UPDATED_PUBLICATION_URI));
 
         assertThat(subject.getPublicationUri()).isEqualTo(UPDATED_PUBLICATION_URI);
-        assertThat(subject.getResources()).isEqualTo(ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES);
+        assertThat(subject.getCertifiedResources()).isEqualTo(ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES);
         assertThat(subject.getSubject()).isEqualTo(updatedCertificate.getSubject());
     }
 

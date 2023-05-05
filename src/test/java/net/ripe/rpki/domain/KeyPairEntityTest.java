@@ -62,7 +62,7 @@ public class KeyPairEntityTest {
     public void should_track_activated_at() {
         KeyPairEntity subject = TestObjects.createTestKeyPair();
         IncomingResourceCertificate certificate = TestObjects.createResourceCertificate(12L, subject);
-        subject.updateIncomingResourceCertificate(certificate.getCertificate(), certificate.getPublicationUri());
+        subject.updateIncomingResourceCertificate(new CertificateIssuanceResponse(certificate.getCertificate(), certificate.getPublicationUri()));
         assertNull("key pair not yet activated", subject.getStatusChangedAt(KeyPairStatus.CURRENT));
 
         subject.activate();

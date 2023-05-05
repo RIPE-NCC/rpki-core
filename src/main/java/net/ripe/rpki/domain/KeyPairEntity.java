@@ -1,8 +1,8 @@
 package net.ripe.rpki.domain;
 
+import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
-import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
@@ -160,11 +160,11 @@ public class KeyPairEntity extends EntitySupport {
         incomingResourceCertificate = null;
     }
 
-    public void updateIncomingResourceCertificate(X509ResourceCertificate certificate, URI publicationURI) {
+    public void updateIncomingResourceCertificate(CertificateIssuanceResponse issuanceResponse) {
         if (this.incomingResourceCertificate == null) {
-            this.incomingResourceCertificate = new IncomingResourceCertificate(certificate, publicationURI, this);
+            this.incomingResourceCertificate = new IncomingResourceCertificate(issuanceResponse, this);
         } else {
-            this.incomingResourceCertificate.update(certificate, publicationURI);
+            this.incomingResourceCertificate.update(issuanceResponse);
         }
     }
 
@@ -175,6 +175,10 @@ public class KeyPairEntity extends EntitySupport {
     public IncomingResourceCertificate getCurrentIncomingCertificate() {
         Validate.notNull(incomingResourceCertificate, "no current incoming certificate for key pair " + this);
         return incomingResourceCertificate;
+    }
+
+    public ImmutableResourceSet getCertifiedResources() {
+        return incomingResourceCertificate == null ? ImmutableResourceSet.empty() : incomingResourceCertificate.getCertifiedResources();
     }
 
     public Map<KeyPairStatus, DateTime> getStatusChangeTimestamps() {
@@ -271,7 +275,7 @@ public class KeyPairEntity extends EntitySupport {
         OutgoingResourceCertificate outgoingResourceCertificate = signer.buildOutgoingResourceCertificate(request, validityPeriod, this, serial);
         outgoingResourceCertificate.setRequestingCertificateAuthority(requestingCa);
         resourceCertificateRepository.add(outgoingResourceCertificate);
-        return new CertificateIssuanceResponse(outgoingResourceCertificate.getCertificate(), outgoingResourceCertificate.getPublicationUri());
+        return new CertificateIssuanceResponse(ImmutableResourceSet.empty(), outgoingResourceCertificate.getCertificate(), outgoingResourceCertificate.getPublicationUri());
     }
 
     private void revokeOldCertificates(PublicKey subjectPublicKey, ResourceCertificateRepository resourceCertificateRepository) {

@@ -113,7 +113,7 @@ public abstract class CertificationDomainTestCase {
         CertificateIssuanceResponse response = TestObjects.makeSelfSignedCertificate(resourceCertificateRepository, repositoryConfiguration, allResourcesKeyPair,
             allResources.getName(), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES);
 
-        allResources.updateIncomingResourceCertificate(allResourcesKeyPair, response.getCertificate(), response.getPublicationUri());
+        allResources.processCertificateIssuanceResponse(response, resourceCertificateRepository);
         allResources.setUpStreamCARequestEntity(null);
         assertThat(acaKeyPair.isCurrent()).isTrue();
 

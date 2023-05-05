@@ -1,15 +1,12 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
-import org.apache.commons.lang.Validate;
+import lombok.Getter;
+import lombok.NonNull;
+import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 
-import javax.persistence.CascadeType;
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-import java.net.URI;
 
 /**
  * An incoming resource certificate is used by a {@link ManagedCertificateAuthority} to track its current set of
@@ -24,21 +21,30 @@ public class IncomingResourceCertificate extends ResourceCertificate {
     @JoinColumn(name = "subject_keypair_id")
     private KeyPairEntity subjectKeyPair;
 
+    @NotNull
+    @Column(name = "inherited_resources", nullable = false)
+    @Getter
+    private ImmutableResourceSet inheritedResources;
+
     protected IncomingResourceCertificate() {
         super();
     }
 
-    public IncomingResourceCertificate(X509ResourceCertificate certificate, URI publicationURI, KeyPairEntity subjectKeyPair) {
-        super(certificate);
-        setPublicationUri(publicationURI);
-        Validate.notNull(subjectKeyPair, "subjectKeyPair is required");
+    public IncomingResourceCertificate(@NonNull CertificateIssuanceResponse issuanceResponse, @NonNull KeyPairEntity subjectKeyPair) {
+        super(issuanceResponse.getCertificate());
+        setPublicationUri(issuanceResponse.getPublicationUri());
+        this.inheritedResources = issuanceResponse.getInheritedResources();
         this.subjectKeyPair = subjectKeyPair;
         assertValid();
     }
 
-    public void update(X509ResourceCertificate certificate, URI publicationURI) {
-        updateCertificate(certificate);
-        setPublicationUri(publicationURI);
+    public void update(CertificateIssuanceResponse issuanceResponse) {
+        updateCertificate(issuanceResponse.getCertificate());
+        setPublicationUri(issuanceResponse.getPublicationUri());
+        this.inheritedResources = issuanceResponse.getInheritedResources();
     }
 
+    public ImmutableResourceSet getCertifiedResources() {
+        return inheritedResources.union(super.getResources());
+    }
 }

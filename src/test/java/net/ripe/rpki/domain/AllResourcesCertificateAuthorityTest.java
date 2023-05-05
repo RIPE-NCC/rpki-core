@@ -6,6 +6,7 @@ import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDes
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
+import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationServiceBean;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -78,7 +79,7 @@ public class AllResourcesCertificateAuthorityTest  {
             Resources.ALL_RESOURCES,
             createSia()
         );
-        kp.updateIncomingResourceCertificate(currentCertificate.getCertificate(), currentCertificate.getPublicationUri());
+        kp.updateIncomingResourceCertificate(new CertificateIssuanceResponse(currentCertificate.getCertificate(), currentCertificate.getPublicationUri()));
 
         allResourcesCa.processCertifiableResources(keyPairService, certificateRequestCreationService);
         TrustAnchorRequest trustAnchorRequest = allResourcesCa.getUpStreamCARequestEntity().getUpStreamCARequest();

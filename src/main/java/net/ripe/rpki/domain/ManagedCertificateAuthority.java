@@ -144,8 +144,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
 
     public ImmutableResourceSet getCertifiedResources() {
         return findCurrentKeyPair()
-            .flatMap(KeyPairEntity::findCurrentIncomingCertificate)
-            .map(ResourceCertificate::getResources)
+            .map(KeyPairEntity::getCertifiedResources)
             .orElse(ImmutableResourceSet.empty());
     }
 
@@ -281,20 +280,17 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     @Override
     public void processCertificateIssuanceResponse(CertificateIssuanceResponse response, ResourceCertificateRepository resourceCertificateRepository) {
         X509ResourceCertificate certificate = response.getCertificate();
-        Optional<KeyPairEntity> keyPair = findKeyPairByPublicKey(certificate.getPublicKey());
-        keyPair.ifPresent(kp -> updateIncomingResourceCertificate(kp, certificate, response.getPublicationUri()));
-    }
 
-    @VisibleForTesting
-    void updateIncomingResourceCertificate(KeyPairEntity subjectKeyPair, X509ResourceCertificate certificate, URI publicationURI) {
-        subjectKeyPair.updateIncomingResourceCertificate(certificate, publicationURI);
+        KeyPairEntity keyPair = findKeyPairByPublicKey(certificate.getPublicKey()).orElseThrow(() ->
+            new IllegalArgumentException("certificate issuance response received for unknown key"));
 
-        if (getKeyPairs().size() == 1 && subjectKeyPair.isPending()) {
-            activatePendingKey(subjectKeyPair);
+        keyPair.updateIncomingResourceCertificate(response);
+
+        if (getKeyPairs().size() == 1 && keyPair.isPending()) {
+            activatePendingKey(keyPair);
         }
 
-        // status can change after activatePendingKey
-        if (subjectKeyPair.isCurrent()) {
+        if (keyPair.isCurrent()) {
             ManagedCertificateAuthority.EVENTS.publish(this, new IncomingCertificateUpdatedEvent(getVersionedId(), certificate));
         }
     }
@@ -354,7 +350,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
                         getId(),
                         incomingResourceCertificate.getCertificate(),
                         incomingResourceCertificate.getPublicationUri(),
-                        incomingResourceCertificate.getResources()
+                        incomingResourceCertificate.getCertifiedResources()
                     );
                     ManagedCertificateAuthority.EVENTS.publish(this, new IncomingCertificateRevokedEvent(
                         getVersionedId(),
@@ -404,8 +400,8 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
 
     @Override
     public ResourceClassListResponse processResourceClassListQuery(ResourceClassListQuery query) {
-        final ImmutableResourceSet certifiedResources = getCertifiedResources().intersection(query.getResources());
-        return new ResourceClassListResponse(certifiedResources);
+        final ImmutableResourceSet childResources = getCertifiedResources().intersection(query.getResources());
+        return new ResourceClassListResponse(childResources);
     }
 
     public boolean hasCurrentKeyPair() {

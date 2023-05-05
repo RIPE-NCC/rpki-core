@@ -20,10 +20,10 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import javax.security.auth.x500.X500Principal;
-import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.List;
@@ -83,13 +83,9 @@ public class TestObjects {
         KeyPairEntitySignInfo signInfo = new KeyPairEntitySignInfo(DEFAULT_KEYSTORE_PROVIDER,
                 DEFAULT_SIGNATURE_PROVIDER,
                 DEFAULT_KEYSTORE_TYPE);
-        try {
-            return new KeyPairEntity(KeyPairFactoryTest.getKeyPair(name), signInfo,
-                    URLEncoder.encode(name + ".crl", "utf-8"),
-                    URLEncoder.encode(name + ".mft", "utf-8"));
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException(e);
-        }
+        return new KeyPairEntity(KeyPairFactoryTest.getKeyPair(name), signInfo,
+                URLEncoder.encode(name + ".crl", StandardCharsets.UTF_8),
+                URLEncoder.encode(name + ".mft", StandardCharsets.UTF_8));
     }
 
     private static long nextSerial() {
@@ -115,9 +111,10 @@ public class TestObjects {
                 validityPeriod,
                 resources,
                 subjectInformationAccessDescriptors);
-        return new IncomingResourceCertificate(outgoing.getCertificate(),
-                PUBLICATION_URI,
-                keyPair);
+        return new IncomingResourceCertificate(
+            new CertificateIssuanceResponse(outgoing.getCertificate(), PUBLICATION_URI),
+            keyPair
+        );
     }
 
     public static KeyPairEntity createTestKeyPair() {
@@ -127,7 +124,10 @@ public class TestObjects {
     public static KeyPairEntity createActiveKeyPair(String name) {
         KeyPairEntity testKeyPair = createTestKeyPair(name);
         IncomingResourceCertificate certificate = createResourceCertificate(nextSerial(), testKeyPair);
-        testKeyPair.updateIncomingResourceCertificate(certificate.getCertificate(), certificate.getPublicationUri());
+        testKeyPair.updateIncomingResourceCertificate(new CertificateIssuanceResponse(
+            certificate.getCertificate(),
+            certificate.getPublicationUri()
+        ));
         testKeyPair.activate();
         return testKeyPair;
     }
@@ -204,7 +204,7 @@ public class TestObjects {
         SigningRequest request = signingRequests.get(0);
         CertificateIssuanceResponse response = makeSelfSignedCertificate(resourceCertificateRepository, certificationConfiguration, kp,
             request.getResourceCertificateRequest().getSubjectDN(), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES);
-        ca.updateIncomingResourceCertificate(kp, response.getCertificate(), response.getPublicationUri());
+        ca.processCertificateIssuanceResponse(response, resourceCertificateRepository);
     }
 
     static CertificateIssuanceResponse makeSelfSignedCertificate(ResourceCertificateRepository resourceCertificateRepository,

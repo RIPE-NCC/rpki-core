@@ -46,12 +46,12 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
         subject = new ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHandler(new SimpleMeterRegistry(), entityManager, resourceCertificateRepository);
         when(entityManager.find(ManagedCertificateAuthority.class, CA_ID)).thenReturn(certificateAuthority);
 
-        oldKeyPair = mock(KeyPairEntity.class, RETURNS_DEEP_STUBS);
+        oldKeyPair = mock(KeyPairEntity.class);
         when(oldKeyPair.isPublishable()).thenReturn(true);
-        when(oldKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
-        currentKeyPair = mock(KeyPairEntity.class, RETURNS_DEEP_STUBS);
+        when(oldKeyPair.getCertifiedResources()).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
+        currentKeyPair = mock(KeyPairEntity.class);
         when(currentKeyPair.isPublishable()).thenReturn(true);
-        when(currentKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
+        when(currentKeyPair.getCertifiedResources()).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
         when(certificateAuthority.getKeyPairs()).thenReturn(Arrays.asList(oldKeyPair, currentKeyPair));
 
         when(resourceCertificateRepository.findCurrentOutgoingResourceCertificateResources(certificateAuthority.getName())).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
@@ -60,8 +60,8 @@ public class ManagedCertificateAuthorityOutgoingResourceCertificatesInvariantHan
     @Test
     public void should_check_incoming_resource_consistency() {
         // All incoming resource certificates should have the same resources
-        when(oldKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
-        when(currentKeyPair.getCurrentIncomingCertificate().getResources()).thenReturn(ImmutableResourceSet.parse("172.16.0.0/12"));
+        when(oldKeyPair.getCertifiedResources()).thenReturn(ImmutableResourceSet.parse("10.0.0.0/8"));
+        when(currentKeyPair.getCertifiedResources()).thenReturn(ImmutableResourceSet.parse("172.16.0.0/12"));
 
         // so an CertificateAuthorityInvariantViolationException is thrown when they do not match
         assertThatThrownBy(

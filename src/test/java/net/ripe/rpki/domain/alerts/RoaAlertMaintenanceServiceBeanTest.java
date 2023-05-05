@@ -97,7 +97,7 @@ public class RoaAlertMaintenanceServiceBeanTest extends CertificationDomainTestC
 
         Optional<IncomingResourceCertificate> certificate = child.findCurrentIncomingResourceCertificate();
         assertThat(certificate).isPresent();
-        assertThat(certificate.get().getResources()).isEqualTo(INITIAL_CHILD_RESOURCES);
+        assertThat(certificate.get().getCertifiedResources()).isEqualTo(INITIAL_CHILD_RESOURCES);
 
         var alertConfiguration = roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(HOSTED_CA_ID);
         assertThat(alertConfiguration.getIgnored())
@@ -120,7 +120,7 @@ public class RoaAlertMaintenanceServiceBeanTest extends CertificationDomainTestC
         Optional<IncomingResourceCertificate> maybeCertificate = resourceCertificateRepository.findIncomingResourceCertificateBySubjectKeyPair(child.getCurrentKeyPair());
         assertThat(maybeCertificate).isPresent();
 
-        assertThat(maybeCertificate.get().getResources()).isEqualTo(parse("fc00::/9"));
+        assertThat(maybeCertificate.get().getCertifiedResources()).isEqualTo(parse("fc00::/9"));
 
         // Has only the silences that are not in the half of the /8 no longer in the resources or are less specific.
         var alertConfiguration = roaAlertConfigurationRepository.findByCertificateAuthorityIdOrNull(HOSTED_CA_ID);

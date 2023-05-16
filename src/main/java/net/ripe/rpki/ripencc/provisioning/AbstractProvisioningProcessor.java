@@ -22,16 +22,18 @@ abstract class AbstractProvisioningProcessor {
         this.resourceLookupService = resourceLookupService;
     }
 
-    protected ImmutableResourceSet getCertifiableResources(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, ResourceCertificateData productionCertificate)
-        throws ResourceInformationNotAvailableException
-    {
+    protected ImmutableResourceSet getCertifiableResources(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, ResourceCertificateData productionCertificate) {
         // We cannot use `nonHostedCertificateAuthority.getResources()` here since they only include _certified_
         // resources (which may be limited by the requested resource set) and we must include all _certifiable_
         // resources.
-        ImmutableResourceSet memberResources = resourceLookupService.lookupMemberCaPotentialResources(nonHostedCertificateAuthority.getName())
-            .map(ResourceExtension::getResources)
-            .orElse(ImmutableResourceSet.empty());
-        return memberResources.intersection(productionCertificate.getCertificate().resources());
+        try {
+            ImmutableResourceSet memberResources = resourceLookupService.lookupMemberCaPotentialResources(nonHostedCertificateAuthority.getName())
+                .map(ResourceExtension::getResources)
+                .orElse(ImmutableResourceSet.empty());
+            return memberResources.intersection(productionCertificate.getCertificate().resources());
+        } catch (ResourceInformationNotAvailableException e) {
+            return ImmutableResourceSet.empty();
+        }
     }
 
     protected CertificateElement createClassElement(X509ResourceCertificate certificate, RequestedResourceSets requestedResourceSets, URI publicationUri) {

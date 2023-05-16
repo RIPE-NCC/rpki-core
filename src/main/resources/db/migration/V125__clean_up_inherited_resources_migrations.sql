@@ -1,0 +1,2 @@
+DROP TRIGGER set_inherited_resources ON resourcecertificate;
+DROP FUNCTION update_inherited_resources;

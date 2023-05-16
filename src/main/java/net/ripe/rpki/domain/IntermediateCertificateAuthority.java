@@ -1,7 +1,8 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
 import javax.persistence.DiscriminatorValue;
@@ -26,7 +27,7 @@ public class IntermediateCertificateAuthority extends ManagedCertificateAuthorit
     }
 
     @Override
-    public Optional<ImmutableResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
-        return resourceLookupService.lookupIntermediateCaResources(getName());
+    public Optional<ResourceExtension> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) throws ResourceInformationNotAvailableException {
+        return resourceLookupService.lookupIntermediateCaResourcesSet();
     }
 }

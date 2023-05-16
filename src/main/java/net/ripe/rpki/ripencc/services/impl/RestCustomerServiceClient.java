@@ -1,5 +1,6 @@
 package net.ripe.rpki.ripencc.services.impl;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
@@ -13,6 +14,7 @@ import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Component
@@ -40,7 +42,9 @@ public class RestCustomerServiceClient implements CustomerServiceClient {
 
     @Override
     public boolean isAvailable() {
-        return customerServiceTarget().path("monitoring/healthcheck").request().head().getStatus() == 200;
+        try (Response response = customerServiceTarget().path("monitoring/healthcheck").request().head()) {
+            return response.getStatus() == 200;
+        }
     }
 
     @Override
@@ -49,12 +53,11 @@ public class RestCustomerServiceClient implements CustomerServiceClient {
                 .request().header("ncc-internal-api-key", apiKey);
 
         MemberSummary[] memberSummaries = httpGetJson(requestWithHeader, MemberSummary[].class);
-        return Arrays.asList(memberSummaries);
+        return memberSummaries == null ? Collections.emptyList() : Arrays.asList(memberSummaries);
     }
 
     private <T> T httpGetJson(Invocation.Builder builder, Class<T> responseType) {
-        try {
-            final Response clientResponse = builder.get();
+        try (Response clientResponse = builder.get()) {
             switch (clientResponse.getStatus()) {
                 case 200:
                     return gson.fromJson(clientResponse.readEntity(String.class), responseType);
@@ -63,12 +66,15 @@ public class RestCustomerServiceClient implements CustomerServiceClient {
                 default:
                     throw new IllegalArgumentException(builder + " GET failure: " + clientResponse.getStatusInfo());
             }
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new IllegalArgumentException(builder + " GET failure: " + e.getMessage(), e);
         }
     }
 
-    private WebTarget customerServiceTarget() {
+    @VisibleForTesting
+    WebTarget customerServiceTarget() {
         return customerService.target(customerServiceUrl);
     }
 

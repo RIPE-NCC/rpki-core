@@ -4,6 +4,7 @@ import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateBuilder;
@@ -41,8 +42,10 @@ public class ResourceCertificateBuilder {
         return this;
     }
 
-    public ResourceCertificateBuilder withInheritedResourceTypes(EnumSet<IpResourceType> resourceTypes) {
-        this.inheritedResourceTypes = EnumSet.copyOf(resourceTypes);
+    public ResourceCertificateBuilder withResourceExtension(ResourceExtension resourceExtension) {
+        this.inheritedResourceTypes = EnumSet.noneOf(IpResourceType.class);
+        this.inheritedResourceTypes.addAll(resourceExtension.getInheritedResourceTypes());
+        this.resources = resourceExtension.getResources();
         return this;
     }
 
@@ -54,10 +57,6 @@ public class ResourceCertificateBuilder {
     public ResourceCertificateBuilder withSubjectDN(X500Principal subjectDN) {
         this.subjectDN = subjectDN;
         return this;
-    }
-
-    public X500Principal getSubjectDN() {
-        return subjectDN;
     }
 
     public ResourceCertificateBuilder withSubjectPublicKey(PublicKey subjectPublicKey) {
@@ -72,10 +71,6 @@ public class ResourceCertificateBuilder {
     public ResourceCertificateBuilder withIssuerDN(X500Principal issuerDN) {
         this.issuerDN = issuerDN;
         return this;
-    }
-
-    public X500Principal getIssuerDN() {
-        return issuerDN;
     }
 
     public ResourceCertificateBuilder withValidityPeriod(ValidityPeriod validityPeriod) {

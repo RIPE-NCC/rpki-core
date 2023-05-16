@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.ta.domain.request.ResourceCertificateRequestData;
@@ -59,25 +60,25 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
         }
 
         return ca.findCurrentIncomingResourceCertificate()
-            .map(certificate -> createCertificateIssuanceRequestForNewKeyPair(ca, certificate.getResources()));
+            .map(certificate -> createCertificateIssuanceRequestForNewKeyPair(ca, certificate.getResourceExtension()));
     }
 
-    public CertificateIssuanceRequest createCertificateIssuanceRequestForNewKeyPair(ManagedCertificateAuthority ca, ImmutableResourceSet certifiableResources) {
+    public CertificateIssuanceRequest createCertificateIssuanceRequestForNewKeyPair(ManagedCertificateAuthority ca, ResourceExtension resourceExtension) {
         KeyPairEntity kp = ca.createNewKeyPair(keyPairService);
         final X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
         final X500Principal dn = deriveSubjectDN(kp.getPublicKey(), null);
-        return new CertificateIssuanceRequest(certifiableResources, dn, kp.getPublicKey(), sia);
+        return new CertificateIssuanceRequest(resourceExtension, dn, kp.getPublicKey(), sia);
     }
 
     @Override
-    public List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(ManagedCertificateAuthority ca, ImmutableResourceSet certifiableResources) {
+    public List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(ManagedCertificateAuthority ca, ResourceExtension resourceExtension) {
         final List<CertificateIssuanceRequest> requests = new ArrayList<>();
         for (KeyPairEntity kp : ca.getKeyPairs()) {
             final Optional<IncomingResourceCertificate> currentIncomingCertificate = kp.findCurrentIncomingCertificate();
             final X509ResourceCertificate existingCertificate = currentIncomingCertificate.map(ResourceCertificate::getCertificate).orElse(null);
             X500Principal dn = deriveSubjectDN(kp.getPublicKey(), existingCertificate);
             X509CertificateInformationAccessDescriptor[] sia = getSubjectInformationAccessDescriptors(kp, ca, DEFAULT_RESOURCE_CLASS);
-            CertificateIssuanceRequest signRequest = new CertificateIssuanceRequest(certifiableResources, dn, kp.getPublicKey(), sia);
+            CertificateIssuanceRequest signRequest = new CertificateIssuanceRequest(resourceExtension, dn, kp.getPublicKey(), sia);
             requests.add(signRequest);
         }
         return requests;

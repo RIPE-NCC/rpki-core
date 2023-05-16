@@ -6,6 +6,7 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCms;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsTest;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaPrefix;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest;
 import net.ripe.rpki.domain.KeyPairEntityTest;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
@@ -72,7 +73,7 @@ public class RoaEntityTest {
     public static RoaEntity createEeSignedRoaEntity(ManagedCertificateAuthority ca, PublicKey subjectPublicKey, ValidityPeriod validityPeriod) {
         IpRange roaPrefix = IpRange.parse("10.0.0.0/8");
         CertificateIssuanceRequest request = new CertificateIssuanceRequest(
-            ImmutableResourceSet.of(roaPrefix),
+            ResourceExtension.ofResources(ImmutableResourceSet.of(roaPrefix)),
             new UuidRepositoryObjectNamingStrategy().eeCertificateSubject(subjectPublicKey),
             subjectPublicKey,
             TestObjects.EE_CERT_SIA

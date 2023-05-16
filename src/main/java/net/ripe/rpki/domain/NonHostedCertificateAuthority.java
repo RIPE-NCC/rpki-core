@@ -4,6 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
@@ -20,6 +21,7 @@ import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import org.apache.commons.codec.binary.Base64;
@@ -31,6 +33,7 @@ import javax.validation.constraints.NotNull;
 import java.security.PublicKey;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Entity
 @DiscriminatorValue(value = "NONHOSTED")
@@ -104,8 +107,8 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     }
 
     @Override
-    public Optional<ImmutableResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
-        return Optional.of(resourceLookupService.lookupMemberCaPotentialResources(getName()));
+    public Optional<ResourceExtension> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) throws ResourceInformationNotAvailableException {
+        return resourceLookupService.lookupMemberCaPotentialResources(getName());
     }
 
     @Override
@@ -162,37 +165,42 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     }
 
     @Override
-    public void processCertificateIssuanceResponse(CertificateIssuanceResponse response, ResourceCertificateRepository resourceCertificateRepository) {
+    public boolean processCertificateIssuanceResponse(CertificateIssuanceResponse response, ResourceCertificateRepository resourceCertificateRepository) {
         // HACK to find the outgoing resource certificate. We should refactor this so that we have a reference to an IncomingResourceCertificate instead
         // of directly referencing the outgoing resource certificate, just like KeyPairEntity.
-        Collection<OutgoingResourceCertificate> currentCertificatesBySubjectPublicKey = resourceCertificateRepository.findCurrentCertificatesBySubjectPublicKey(response.getCertificate().getPublicKey());
         PublicKeyEntity publicKey = findOrCreatePublicKeyEntityByPublicKey(response.getCertificate().getPublicKey());
-        currentCertificatesBySubjectPublicKey.forEach(publicKey::addOutgoingResourceCertificate);
+        Collection<OutgoingResourceCertificate> currentCertificatesBySubjectPublicKey = resourceCertificateRepository.findCurrentCertificatesBySubjectPublicKey(publicKey.getPublicKey());
+        return currentCertificatesBySubjectPublicKey.stream().filter(publicKey::addOutgoingResourceCertificate).count() > 0;
     }
 
     @Override
-    public void processCertificateRevocationResponse(CertificateRevocationResponse response, KeyPairDeletionService keyPairDeletionService) {
+    public boolean processCertificateRevocationResponse(CertificateRevocationResponse response, KeyPairDeletionService keyPairDeletionService) {
         // Nothing to do for now, as the resource certificate is already revoked by the parent CA before we get here.
         // We could mark the public key as revoked, but there is nothing in RFC6492 to indicate that should happen
         // after a certificate revocation request.
+        return true;
     }
 
     @Override
     public List<? extends CertificateProvisioningMessage> processResourceClassListResponse(ResourceClassListResponse response, CertificateRequestCreationService certificateRequestCreationService) {
         return publicKeys.stream()
-            .map(pk -> {
-                ImmutableResourceSet certifiableResources = response.getCertifiableResources();
+            .flatMap(pk -> {
+                ImmutableResourceSet certifiableResources = response.getResourceExtension().map(ResourceExtension::getResources).orElse(ImmutableResourceSet.empty());
                 ImmutableResourceSet certificateResources = pk.getRequestedResourceSets().calculateEffectiveResources(certifiableResources);
                 if (pk.isRevoked() || certificateResources.isEmpty()) {
-                    return new CertificateRevocationRequest(pk.getPublicKey());
+                    if (pk.getOutgoingResourceCertificates().stream().anyMatch(rc -> rc.isCurrent())) {
+                        return Stream.of(new CertificateRevocationRequest(pk.getPublicKey()));
+                    } else {
+                        return Stream.empty();
+                    }
                 }
 
-                return new CertificateIssuanceRequest(
-                    certificateResources,
+                return Stream.of(new CertificateIssuanceRequest(
+                    ResourceExtension.ofResources(certificateResources),
                     pk.getSubjectForCertificateRequest(),
                     pk.getPublicKey(),
                     pk.getRequestedSia().toArray(X509CertificateInformationAccessDescriptor[]::new)
-                );
+                ));
             })
             .collect(Collectors.toList());
     }

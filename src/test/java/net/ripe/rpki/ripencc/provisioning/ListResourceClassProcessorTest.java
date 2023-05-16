@@ -2,6 +2,7 @@ package net.ripe.rpki.ripencc.provisioning;
 
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.provisioning.payload.PayloadMessageType;
 import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
@@ -11,6 +12,7 @@ import net.ripe.rpki.domain.RequestedResourceSets;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.joda.time.DateTime;
@@ -52,7 +54,7 @@ public class ListResourceClassProcessorTest {
     private URI uri;
 
     @Before
-    public void setup() throws URISyntaxException {
+    public void setup() throws URISyntaxException, ResourceInformationNotAvailableException {
         processor = new ListResourceClassProcessor(resourceLookupService, resourceCertificateViewService);
 
         uri = new URI("rsync://test");
@@ -67,11 +69,11 @@ public class ListResourceClassProcessorTest {
         X500Principal x500Principal = new X500Principal("CN=101");
         when(nonHostedCertificateAuthority.getName()).thenReturn(x500Principal);
         when(resourceLookupService.lookupMemberCaPotentialResources(x500Principal))
-                .thenReturn(ImmutableResourceSet.parse("127.0.0.1,::1"));
+                .thenReturn(Optional.of(ResourceExtension.ofResources(ImmutableResourceSet.parse("127.0.0.1,::1"))));
     }
 
     @Test
-    public void shouldBuildClassElementIntoTheResponsePayload() {
+    public void shouldBuildClassElementIntoTheResponsePayload() throws ResourceInformationNotAvailableException {
         ResourceClassListResponsePayload responsePayload = processor.process(nonHostedCertificateAuthority);
 
         assertThat(responsePayload.getClassElements()).isNotEmpty();
@@ -84,7 +86,7 @@ public class ListResourceClassProcessorTest {
     }
 
     @Test
-    public void shouldBuildClassElementWithCertificateElement() {
+    public void shouldBuildClassElementWithCertificateElement() throws ResourceInformationNotAvailableException {
         RequestedResourceSets requestedResourceSets = new RequestedResourceSets(Optional.empty(), Optional.of(ImmutableResourceSet.parse("127.0.0.0/8")), Optional.empty());
         ImmutableResourceSet certifiedResources = ImmutableResourceSet.parse("127.0.0.1,::1");
         X509ResourceCertificate certificate = mock(X509ResourceCertificate.class);
@@ -94,7 +96,7 @@ public class ListResourceClassProcessorTest {
 
         when(nonHostedCertificateAuthority.getPublicKeys()).thenReturn(Collections.singleton(publicKeyData));
 
-        when(resourceLookupService.lookupMemberCaPotentialResources(nonHostedCertificateAuthority.getName())).thenReturn(certifiedResources);
+        when(resourceLookupService.lookupMemberCaPotentialResources(nonHostedCertificateAuthority.getName())).thenReturn(Optional.of(ResourceExtension.ofResources(certifiedResources)));
 
         ResourceClassListResponsePayload responsePayload = processor.process(nonHostedCertificateAuthority);
 

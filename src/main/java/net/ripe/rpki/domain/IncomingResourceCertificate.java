@@ -7,6 +7,8 @@ import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
+import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * An incoming resource certificate is used by a {@link ManagedCertificateAuthority} to track its current set of
@@ -38,10 +40,17 @@ public class IncomingResourceCertificate extends ResourceCertificate {
         assertValid();
     }
 
-    public void update(CertificateIssuanceResponse issuanceResponse) {
+    public boolean update(CertificateIssuanceResponse issuanceResponse) {
+        if (Arrays.equals(getDerEncoded(), issuanceResponse.getCertificate().getEncoded())
+            && Objects.equals(getPublicationUri(), issuanceResponse.getPublicationUri())
+            && Objects.equals(getInheritedResources(), issuanceResponse.getInheritedResources())) {
+            return false;
+        }
+
         updateCertificate(issuanceResponse.getCertificate());
         setPublicationUri(issuanceResponse.getPublicationUri());
         this.inheritedResources = issuanceResponse.getInheritedResources();
+        return true;
     }
 
     public ImmutableResourceSet getCertifiedResources() {

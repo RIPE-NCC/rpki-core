@@ -19,6 +19,7 @@ import net.ripe.rpki.domain.RequestedResourceSets;
 import net.ripe.rpki.server.api.commands.ProvisioningCertificateIssuanceCommand;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
@@ -67,8 +68,9 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
     }
 
     public CertificateIssuanceResponsePayload process(NonHostedCertificateAuthorityData nonHostedCertificateAuthority,
-                                                      CertificateIssuanceRequestPayload requestPayload) {
-
+                                                      CertificateIssuanceRequestPayload requestPayload)
+        throws ResourceInformationNotAvailableException
+    {
         CertificateIssuanceRequestElement request = requestPayload.getRequestElement();
         if (!DEFAULT_RESOURCE_CLASS.equals(request.getClassName())) {
             throw new NotPerformedException(NotPerformedError.REQ_NO_SUCH_RESOURCE_CLASS);

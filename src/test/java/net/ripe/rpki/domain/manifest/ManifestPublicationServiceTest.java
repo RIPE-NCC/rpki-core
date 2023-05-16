@@ -2,11 +2,11 @@ package net.ripe.rpki.domain.manifest;
 
 import io.micrometer.core.instrument.DistributionSummary;
 import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCms;
 import net.ripe.rpki.commons.crypto.crl.X509Crl;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.*;
@@ -112,7 +112,7 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
         entityManager.flush();
 
         URI uri = URI.create("rsync://localhost");
-        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ImmutableResourceSet.empty(), new X500Principal("CN=test"), PregeneratedKeyPairFactory.getInstance().generate().getPublic(),  new X509CertificateInformationAccessDescriptor[]{new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_SIGNED_OBJECT, uri)});
+        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ResourceExtension.allInherited(), new X500Principal("CN=test"), PregeneratedKeyPairFactory.getInstance().generate().getPublic(),  new X509CertificateInformationAccessDescriptor[]{new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_SIGNED_OBJECT, uri)});
         OutgoingResourceCertificate outgoingResourceCertificate = singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, new ValidityPeriod(now, now.plusHours(10)), currentKeyPair);
         outgoingResourceCertificate.revoke();
 

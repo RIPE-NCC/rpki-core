@@ -2,11 +2,13 @@ package net.ripe.rpki.ripencc.provisioning;
 
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
 import net.ripe.rpki.domain.RequestedResourceSets;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
 import java.net.URI;
@@ -20,11 +22,15 @@ abstract class AbstractProvisioningProcessor {
         this.resourceLookupService = resourceLookupService;
     }
 
-    protected ImmutableResourceSet getCertifiableResources(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, ResourceCertificateData productionCertificate) {
+    protected ImmutableResourceSet getCertifiableResources(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, ResourceCertificateData productionCertificate)
+        throws ResourceInformationNotAvailableException
+    {
         // We cannot use `nonHostedCertificateAuthority.getResources()` here since they only include _certified_
         // resources (which may be limited by the requested resource set) and we must include all _certifiable_
         // resources.
-        ImmutableResourceSet memberResources = resourceLookupService.lookupMemberCaPotentialResources(nonHostedCertificateAuthority.getName());
+        ImmutableResourceSet memberResources = resourceLookupService.lookupMemberCaPotentialResources(nonHostedCertificateAuthority.getName())
+            .map(ResourceExtension::getResources)
+            .orElse(ImmutableResourceSet.empty());
         return memberResources.intersection(productionCertificate.getCertificate().resources());
     }
 

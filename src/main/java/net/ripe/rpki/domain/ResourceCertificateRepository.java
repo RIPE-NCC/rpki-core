@@ -53,7 +53,16 @@ public interface ResourceCertificateRepository extends Repository<ResourceCertif
     boolean existsCurrentOutgoingCertificatesExceptForManifest(KeyPairEntity signingKeyPair);
 
     /**
-     * @return find the union of the resources of _all_ current outgoing resource certificates of the CA with given name.
+     * Recursively query all the resources of all current outgoing resource certificates of this CA and all its children,
+     * grandchildren, etc.
+     *
+     * <p>The recursion is only applied in case of a resource certificate that uses inherited resources (ASN, IPv4, and/or IPv6).</p>
+     *
+     * <p>This result is used to avoid removing resources from the incoming certificate that are still issued to child
+     * CAs to avoid incorrectly invalidating child CA certificates due to an overclaiming resource set.</p>
+
+     * @return find the union of the resources of _all_ current outgoing resource certificates of the CA with given name,
+     * recursively down the CA tree.
      */
     ImmutableResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName);
 

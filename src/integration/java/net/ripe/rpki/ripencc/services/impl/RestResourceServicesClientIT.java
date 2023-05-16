@@ -5,32 +5,40 @@ import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient.MemberResourceResponse;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient.MemberResources;
 import net.ripe.rpki.server.api.support.objects.CaName;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import javax.ws.rs.client.Client;
-import java.net.URI;
+import javax.inject.Inject;
+import javax.ws.rs.ProcessingException;
+import javax.ws.rs.core.Response;
 import java.util.Map;
 
-import static java.lang.String.format;
-import static net.ripe.rpki.rest.service.Rest.TESTING_API_KEY;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes = TestRpkiBootApplication.class)
 public class RestResourceServicesClientIT {
 
-    private final String internetResourcesUri = "https://rsng-apps.prepdev.ripe.net/resource-services/%s";
-
+    @Inject
     private RestResourceServicesClient subject;
-    private Client resource;
 
     @BeforeEach
     public void setUp() {
-        subject = new RestResourceServicesClient(format(internetResourcesUri, ""), true, TESTING_API_KEY);
-        resource = subject.getHttpClient();
+        Assumptions.assumeTrue(
+            serverReachable(),
+            "resource service is available"
+        );
+    }
+
+    private boolean serverReachable() {
+        try (Response response = subject.resourcesTarget().request().get()) {
+            return response.getStatusInfo().getFamily() != Response.Status.Family.SERVER_ERROR;
+        } catch (ProcessingException e) {
+            return false;
+        }
     }
 
     @Test
@@ -41,13 +49,11 @@ public class RestResourceServicesClientIT {
         final MemberResources allResources = subject.fetchAllResources().getAllMembersResources();
 
         // Now fetch for individual membershipID
-        final MemberResourceResponse memberResources = subject.httpGetJson(
-            resource.target(URI.create(format(internetResourcesUri, format("member-resources/%d", membershipId)))),
-            MemberResourceResponse.class);
+        final MemberResourceResponse memberResources = subject.fetchMemberResources(membershipId);
 
         final Map<CaName, ImmutableResourceSet> certifiableResources = allResources.getCertifiableResources();
 
-        assertTrue(certifiableResources.containsKey(ripeNccTsMemberId));
+        assertThat(certifiableResources).containsKey(ripeNccTsMemberId);
 
         final ImmutableResourceSet ipResourcesByMemberId = certifiableResources.get(ripeNccTsMemberId);
 
@@ -61,7 +67,7 @@ public class RestResourceServicesClientIT {
             }
         }
 
-        assertTrue(ipResourcesByMemberId.contains(individualMemberResources.get(ripeNccTsMemberId)));
+        assertThat(ipResourcesByMemberId.contains(individualMemberResources.get(ripeNccTsMemberId))).isTrue();
     }
 
 }

@@ -1,5 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.util.VersionedId;
@@ -53,7 +54,7 @@ public class KeyManagementInitiateRollCommandHandlerTest {
     @Before
     public void setUp() {
         command = new KeyManagementInitiateRollCommand(new VersionedId(CA_ID, 0), THRESHOLD);
-        request = new CertificateIssuanceRequest(ALL_PRIVATE_USE_RESOURCES, MEMBER_CA_NAME, TEST_KEY_PAIR.getPublic(), new X509CertificateInformationAccessDescriptor[]{});
+        request = new CertificateIssuanceRequest(ResourceExtension.ofResources(ALL_PRIVATE_USE_RESOURCES), MEMBER_CA_NAME, TEST_KEY_PAIR.getPublic(), new X509CertificateInformationAccessDescriptor[]{});
         subject = new KeyManagementInitiateRollCommandHandler(certificateAuthorityRepository, certificateRequestCreationService, resourceCertificateRepository);
 
         lenient().when(allResourcesCA.isAllResourcesCa()).thenReturn(true);

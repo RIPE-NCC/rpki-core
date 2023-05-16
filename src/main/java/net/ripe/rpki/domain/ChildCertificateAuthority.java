@@ -1,11 +1,12 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.interca.CertificateProvisioningMessage;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
 import javax.security.auth.x500.X500Principal;
@@ -19,14 +20,13 @@ public interface ChildCertificateAuthority {
 
     ParentCertificateAuthority getParent();
 
-    Optional<ImmutableResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService);
+    Optional<ResourceExtension> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) throws ResourceInformationNotAvailableException;
 
     Collection<PublicKey> getSignedPublicKeys();
 
-    void processCertificateIssuanceResponse(CertificateIssuanceResponse response, ResourceCertificateRepository resourceCertificateRepository);
+    boolean processCertificateIssuanceResponse(CertificateIssuanceResponse response, ResourceCertificateRepository resourceCertificateRepository);
 
-    void processCertificateRevocationResponse(CertificateRevocationResponse response,
-                                              KeyPairDeletionService keyPairDeletionService);
+    boolean processCertificateRevocationResponse(CertificateRevocationResponse response, KeyPairDeletionService keyPairDeletionService);
 
     List<? extends CertificateProvisioningMessage> processResourceClassListResponse(
         ResourceClassListResponse response,

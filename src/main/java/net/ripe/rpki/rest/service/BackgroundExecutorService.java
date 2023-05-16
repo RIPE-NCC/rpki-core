@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.services.impl.background.BackgroundServices;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -26,6 +27,7 @@ import static org.springframework.http.HttpStatus.PRECONDITION_FAILED;
 
 @Slf4j
 @Scope("prototype")
+@ConditionalOnProperty(prefix="system.setup.and.testing.api", value="enabled", havingValue = "true")
 @RestController
 @RequestMapping(path = "/api/background/service/{serviceName}", produces = { APPLICATION_JSON })
 @Tag(name = "/api/background/service/{serviceName}", description = "Rest Endpoint for background service")

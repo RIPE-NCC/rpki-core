@@ -1,7 +1,6 @@
 package net.ripe.rpki.ripencc.services.impl;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient;
@@ -22,24 +21,18 @@ import javax.ws.rs.core.Response;
 @ConditionalOnProperty(name="resource.services.source", havingValue = "rsng", matchIfMissing = true)
 class RestResourceServicesClient implements ResourceServicesClient {
 
-    private static final String PAGE_SIZE = "5000";
-    private static final String MEMBER_RESOURCES = "member-resources";
     private static final String TOTAL_RESOURCES = "total-resources";
     private static final String MONITORING_HEALTHCHECK = "monitoring/healthcheck";
 
     private final Gson gson = new Gson();
     private final Client resourceServices;
-    private final Boolean enableAsns;
     private final String resourceServicesUrl;
     private final String apiKey;
 
     public RestResourceServicesClient(
             @Value("${resource.services.url}") String resourceServicesUrl,
-            @Value("${resource.services.enable.asn}") Boolean enableAsns,
             @Value("${resource.services.apiKey}") String apiKey) {
-        Preconditions.checkState(enableAsns, "ASNs should be enabled in almost all circumstances. Disabling would break bgpsec certificates.");
         this.resourceServicesUrl = resourceServicesUrl;
-        this.enableAsns = enableAsns;
         this.apiKey = apiKey;
 
         final ClientConfig clientConfig = new ClientConfig();
@@ -52,10 +45,12 @@ class RestResourceServicesClient implements ResourceServicesClient {
     @Override
     public boolean isAvailable() {
         log.debug("Checking if internet resources REST API is available");
-        try {
-            return resourceServices.target(resourceServicesUrl).path(MONITORING_HEALTHCHECK)
-                    .request(MediaType.APPLICATION_JSON)
-                    .head().getStatus() == 200;
+        try (
+            Response response = resourceServices.target(resourceServicesUrl).path(MONITORING_HEALTHCHECK)
+                .request(MediaType.APPLICATION_JSON)
+                .head()
+        ) {
+            return response.getStatus() == 200;
         } catch (Exception t) {
             return false;
         }
@@ -70,24 +65,28 @@ class RestResourceServicesClient implements ResourceServicesClient {
         return response.getResponse().getContent();
     }
 
-    @VisibleForTesting
-    Client getHttpClient() {
-        return resourceServices;
+    MemberResourceResponse fetchMemberResources(long membershipId) {
+        return httpGetJson(
+            resourcesTarget().path("member-resources/" + membershipId),
+            MemberResourceResponse.class);
     }
 
-    @VisibleForTesting
-    <T> T httpGetJson(WebTarget webResource, Class<T> responseType) {
+    private <T> T httpGetJson(WebTarget webResource, Class<T> responseType) {
         log.info("HTTP GET " + webResource.getUri());
-        final Response clientResponse = webResource.request(MediaType.APPLICATION_JSON_TYPE)
+        try (
+            Response clientResponse = webResource.request(MediaType.APPLICATION_JSON_TYPE)
                 .header("X-API_KEY", apiKey)
-                .get();
-        if (clientResponse.getStatus() != 200) {
-            throw new IllegalArgumentException(webResource.getUri() + " GET failure: " + clientResponse.getStatusInfo());
+                .get()
+        ) {
+            if (clientResponse.getStatus() != 200) {
+                throw new IllegalArgumentException(webResource.getUri() + " GET failure: " + clientResponse.getStatusInfo());
+            }
+            return gson.fromJson(clientResponse.readEntity(String.class), responseType);
         }
-        return gson.fromJson(clientResponse.readEntity(String.class), responseType);
     }
 
-    private WebTarget resourcesTarget() {
+    @VisibleForTesting
+    WebTarget resourcesTarget() {
         return resourceServices.target(resourceServicesUrl);
     }
 }

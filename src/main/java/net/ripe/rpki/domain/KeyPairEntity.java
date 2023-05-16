@@ -21,7 +21,6 @@ import org.joda.time.DateTimeZone;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-import java.math.BigInteger;
 import java.net.URI;
 import java.security.KeyPair;
 import java.security.PrivateKey;
@@ -160,11 +159,12 @@ public class KeyPairEntity extends EntitySupport {
         incomingResourceCertificate = null;
     }
 
-    public void updateIncomingResourceCertificate(CertificateIssuanceResponse issuanceResponse) {
+    public boolean updateIncomingResourceCertificate(CertificateIssuanceResponse issuanceResponse) {
         if (this.incomingResourceCertificate == null) {
             this.incomingResourceCertificate = new IncomingResourceCertificate(issuanceResponse, this);
+            return true;
         } else {
-            this.incomingResourceCertificate.update(issuanceResponse);
+            return this.incomingResourceCertificate.update(issuanceResponse);
         }
     }
 
@@ -264,18 +264,17 @@ public class KeyPairEntity extends EntitySupport {
             Keys.get().isDbProvider(persistedKeyPair.getKeyStoreProviderString()));
     }
 
-    public CertificateIssuanceResponse processCertificateIssuanceRequest(ChildCertificateAuthority requestingCa,
+    public OutgoingResourceCertificate processCertificateIssuanceRequest(ChildCertificateAuthority requestingCa,
                                                                          CertificateIssuanceRequest request,
-                                                                         BigInteger serial,
-                                                                         ResourceCertificateRepository resourceCertificateRepository) {
-        DateTime now = new DateTime(DateTimeZone.UTC);
-        ValidityPeriod validityPeriod = new ValidityPeriod(now, CertificateAuthority.calculateValidityNotAfter(now));
+                                                                         ValidityPeriod validityPeriod,
+                                                                         ResourceCertificateRepository resourceCertificateRepository
+    ) {
         revokeOldCertificates(request.getSubjectPublicKey(), resourceCertificateRepository);
         ChildCertificateSigner signer = new ChildCertificateSigner();
-        OutgoingResourceCertificate outgoingResourceCertificate = signer.buildOutgoingResourceCertificate(request, validityPeriod, this, serial);
+        OutgoingResourceCertificate outgoingResourceCertificate = signer.buildOutgoingResourceCertificate(request, validityPeriod, this);
         outgoingResourceCertificate.setRequestingCertificateAuthority(requestingCa);
         resourceCertificateRepository.add(outgoingResourceCertificate);
-        return new CertificateIssuanceResponse(ImmutableResourceSet.empty(), outgoingResourceCertificate.getCertificate(), outgoingResourceCertificate.getPublicationUri());
+        return outgoingResourceCertificate;
     }
 
     private void revokeOldCertificates(PublicKey subjectPublicKey, ResourceCertificateRepository resourceCertificateRepository) {

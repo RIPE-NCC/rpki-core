@@ -36,7 +36,7 @@ public class RestResourceServicesClientTest {
 
     @Before
     public void setUp() {
-        subject = new RestResourceServicesClient("http://localhost:" + PORT + BASE_URL, true, "");
+        subject = new RestResourceServicesClient("http://localhost:" + PORT + BASE_URL, "");
 
         stubHttpCallForTheIndexPage();
     }

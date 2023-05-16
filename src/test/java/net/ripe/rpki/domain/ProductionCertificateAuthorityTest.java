@@ -2,6 +2,7 @@ package net.ripe.rpki.domain;
 
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
@@ -50,7 +51,7 @@ public class ProductionCertificateAuthorityTest extends CertificationDomainTestC
         );
         kp.updateIncomingResourceCertificate(new CertificateIssuanceResponse(currentCertificate.getCertificate(), currentCertificate.getPublicationUri()));
 
-        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ImmutableResourceSet.parse("11.0.0.0/8"), new X500Principal("CN=test"), kp.getPublicKey(), createSia());
+        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ResourceExtension.ofResources(ImmutableResourceSet.parse("11.0.0.0/8")), new X500Principal("CN=test"), kp.getPublicKey(), createSia());
         singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, TEST_VALIDITY_PERIOD, prodCa.getCurrentKeyPair());
     }
 

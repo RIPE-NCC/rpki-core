@@ -202,10 +202,11 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
             .filter(x -> !x.getMethod().equals(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_NOTIFY))
             .toArray(X509CertificateInformationAccessDescriptor[]::new);
 
-        boolean updatedNeeded = parent.isCertificateIssuanceNeeded(
+        boolean updatedNeeded = parent.isNewOutgoingCertificateNeeded(
             certificateToIssuanceRequest(currentIncomingCertificate).withSubjectInformationAccess(siaWithoutNotificationUri),
             currentIncomingCertificate.getValidityPeriod(),
-            resourceCertificateRepository
+            parent.getCurrentKeyPair(),
+            resourceCertificateRepository.findLatestOutgoingCertificate(currentIncomingCertificate.getSubjectPublicKey(), parent.getCurrentKeyPair())
         );
 
         assertThat(updatedNeeded).isTrue();
@@ -218,10 +219,11 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         IncomingResourceCertificate currentIncomingCertificate = child.getCurrentIncomingCertificate();
         parent.getCurrentIncomingCertificate().setPublicationUri(URI.create("rsync://example.com/foo.cer"));
 
-        boolean updatedNeeded = parent.isCertificateIssuanceNeeded(
+        boolean updatedNeeded = parent.isNewOutgoingCertificateNeeded(
             certificateToIssuanceRequest(currentIncomingCertificate),
             currentIncomingCertificate.getValidityPeriod(),
-            resourceCertificateRepository
+            parent.getCurrentKeyPair(),
+            resourceCertificateRepository.findLatestOutgoingCertificate(currentIncomingCertificate.getSubjectPublicKey(), parent.getCurrentKeyPair())
         );
 
         assertThat(updatedNeeded).isTrue();
@@ -234,13 +236,14 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         IncomingResourceCertificate currentIncomingCertificate = child.getCurrentIncomingCertificate();
         ValidityPeriod currentValidityPeriod = currentIncomingCertificate.getValidityPeriod();
 
-        boolean updatedNeeded = parent.isCertificateIssuanceNeeded(
+        boolean updatedNeeded = parent.isNewOutgoingCertificateNeeded(
             certificateToIssuanceRequest(currentIncomingCertificate),
             new ValidityPeriod(
                 currentValidityPeriod.getNotValidBefore().minusHours(1),
                 currentValidityPeriod.getNotValidAfter()
             ),
-            resourceCertificateRepository
+            parent.getCurrentKeyPair(),
+            resourceCertificateRepository.findLatestOutgoingCertificate(currentIncomingCertificate.getSubjectPublicKey(), parent.getCurrentKeyPair())
         );
 
         assertThat(updatedNeeded).isTrue();
@@ -253,13 +256,14 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         IncomingResourceCertificate currentIncomingCertificate = child.getCurrentIncomingCertificate();
         ValidityPeriod currentValidityPeriod = currentIncomingCertificate.getValidityPeriod();
 
-        boolean updatedNeeded = parent.isCertificateIssuanceNeeded(
+        boolean updatedNeeded = parent.isNewOutgoingCertificateNeeded(
             certificateToIssuanceRequest(currentIncomingCertificate),
             new ValidityPeriod(
                 currentValidityPeriod.getNotValidBefore(),
                 currentValidityPeriod.getNotValidAfter().plusHours(1)
             ),
-            resourceCertificateRepository
+            parent.getCurrentKeyPair(),
+            resourceCertificateRepository.findLatestOutgoingCertificate(currentIncomingCertificate.getSubjectPublicKey(), parent.getCurrentKeyPair())
         );
 
         assertThat(updatedNeeded).isTrue();
@@ -272,13 +276,14 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         IncomingResourceCertificate currentIncomingCertificate = child.getCurrentIncomingCertificate();
         ValidityPeriod currentValidityPeriod = currentIncomingCertificate.getValidityPeriod();
 
-        boolean updatedNeeded = parent.isCertificateIssuanceNeeded(
+        boolean updatedNeeded = parent.isNewOutgoingCertificateNeeded(
             certificateToIssuanceRequest(currentIncomingCertificate),
             new ValidityPeriod(
                 currentValidityPeriod.getNotValidBefore().plusHours(1),
                 currentValidityPeriod.getNotValidAfter().minusHours(1)
             ),
-            resourceCertificateRepository
+            parent.getCurrentKeyPair(),
+            resourceCertificateRepository.findLatestOutgoingCertificate(currentIncomingCertificate.getSubjectPublicKey(), parent.getCurrentKeyPair())
         );
 
         assertThat(updatedNeeded).isFalse();
@@ -308,7 +313,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
 
     private CertificateIssuanceRequest certificateToIssuanceRequest(IncomingResourceCertificate certificate) {
         return new CertificateIssuanceRequest(
-            certificate.getResources(),
+            certificate.getResourceExtension(),
             certificate.getSubject(),
             certificate.getSubjectPublicKey(),
             certificate.getSia()

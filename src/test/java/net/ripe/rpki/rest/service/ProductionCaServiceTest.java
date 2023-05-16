@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @AutoConfigureWebMvc
 @SpringBootTest(classes = TestRpkiBootApplication.class)
-public class ProductionCAServiceTest extends CertificationDomainTestCase {
+public class ProductionCaServiceTest extends CertificationDomainTestCase {
 
     @MockBean
     private CertificateAuthorityViewService certificateAuthorityViewService;

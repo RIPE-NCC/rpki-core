@@ -1,6 +1,7 @@
 package net.ripe.rpki.domain;
 
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.util.BouncyCastleUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.inmemory.InMemoryResourceCertificateRepository;
@@ -35,7 +36,7 @@ public class SingleUseEeCertificateFactoryTest {
 
     @Test
     public void shouldIssueEECertificateWithAuthorityKeyIdentifier() {
-        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ImmutableResourceSet.parse("10.0.0.0/8"), new X500Principal("CN=test"), SECOND_TEST_KEY_PAIR.getPublic(), SIA);
+        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ResourceExtension.ofResources(ImmutableResourceSet.parse("10.0.0.0/8")), new X500Principal("CN=test"), SECOND_TEST_KEY_PAIR.getPublic(), SIA);
 
         OutgoingResourceCertificate endEntity = subject.issueSingleUseEeResourceCertificate(request, TestObjects.TEST_VALIDITY_PERIOD, currentKeyPair);
 
@@ -47,7 +48,7 @@ public class SingleUseEeCertificateFactoryTest {
 
     @Test
     public void should_use_aia_of_signing_cert_for_ee_certificates() {
-        CertificateIssuanceRequest request = new CertificateIssuanceRequest(TestObjects.DEFAULT_PRODUCTION_CA_RESOURCES, new X500Principal("CN=test"), currentKeyPair.getPublicKey(), SIA);
+        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ResourceExtension.ofResources(TestObjects.DEFAULT_PRODUCTION_CA_RESOURCES), new X500Principal("CN=test"), currentKeyPair.getPublicKey(), SIA);
 
         OutgoingResourceCertificate cert = subject.issueSingleUseEeResourceCertificate(request,
             TestObjects.TEST_VALIDITY_PERIOD, currentKeyPair);
@@ -59,7 +60,7 @@ public class SingleUseEeCertificateFactoryTest {
 
     @Test
     public void shouldConfigureCrlDistributionPointsForSingleUseEeCertificates() {
-        CertificateIssuanceRequest request = new CertificateIssuanceRequest(TestObjects.DEFAULT_PRODUCTION_CA_RESOURCES, new X500Principal("CN=test"), currentKeyPair.getPublicKey(), SIA);
+        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ResourceExtension.ofResources(TestObjects.DEFAULT_PRODUCTION_CA_RESOURCES), new X500Principal("CN=test"), currentKeyPair.getPublicKey(), SIA);
         OutgoingResourceCertificate cert = subject.issueSingleUseEeResourceCertificate(request, TestObjects.TEST_VALIDITY_PERIOD, currentKeyPair);
 
         assertArrayEquals(new URI[]{currentKeyPair.crlLocationUri()}, cert.getCrlDistributionPoints());
@@ -67,7 +68,7 @@ public class SingleUseEeCertificateFactoryTest {
 
     @Test
     public void shouldIssueEndEntityResourceCertificate() {
-        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ImmutableResourceSet.parse("10.0.0.0/8"), new X500Principal("CN=test"), currentKeyPair.getPublicKey(), SIA);
+        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ResourceExtension.ofResources(ImmutableResourceSet.parse("10.0.0.0/8")), new X500Principal("CN=test"), currentKeyPair.getPublicKey(), SIA);
         OutgoingResourceCertificate endEntity = subject.issueSingleUseEeResourceCertificate(request, TestObjects.TEST_VALIDITY_PERIOD, currentKeyPair);
         assertTrue(endEntity.getCertificate().isEe());
         assertNull(endEntity.getPublishedObject());

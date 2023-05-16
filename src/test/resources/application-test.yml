@@ -20,6 +20,7 @@ spring:
 
 background-services:
   schedule.enable: false
+system.setup.and.testing.api.enabled: true
 
 #
 # Integrations
@@ -51,6 +52,11 @@ riswhoisdump.base.url: http://localhost:8080/certification/static/riswhois/
 # bcrypt.using(rounds=14).hash("test")
 authorization.admin.role: ROLE_ANONYMOUS
 api-keys.properties: "classpath:/test-api-keys.properties"
+
+intermediate.ca:
+  enabled: true
+  name.pattern: "CN=RIPE NCC Intermediate %s,O=RIPE NCC,C=NL"
+  use.inherited.resources: true
 
 autokeyrollover:
     maxage.days: 365

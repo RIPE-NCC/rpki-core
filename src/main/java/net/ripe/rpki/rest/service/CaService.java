@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.provisioning.identity.*;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.rest.pojo.RevokeHostedResult;
@@ -14,6 +15,7 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.ManagedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateService;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
@@ -177,7 +179,14 @@ public class CaService extends AbstractCaRestService {
         boolean wasInstantiated = certificateAuthority.isPresent();
         boolean isHosted = certificateAuthority.filter(ca -> ca.getType() == CertificateAuthorityType.HOSTED).isPresent();
 
-        ImmutableResourceSet certifiableResources = resourceCache.lookupMemberCaPotentialResources(caName.getPrincipal());
+        ImmutableResourceSet certifiableResources;
+        try {
+            certifiableResources = resourceCache.lookupMemberCaPotentialResources(caName.getPrincipal())
+                .map(ResourceExtension::getResources)
+                .orElse(ImmutableResourceSet.empty());
+        } catch (ResourceInformationNotAvailableException e) {
+            certifiableResources = ImmutableResourceSet.empty();
+        }
 
         return ok(of("summary", new Summary(
                 wasInstantiated,

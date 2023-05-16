@@ -18,6 +18,7 @@ import net.ripe.rpki.rest.pojo.ROA;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
+import org.springframework.http.ResponseEntity;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -144,5 +145,10 @@ class Utils {
             }
             throw e;
         }
+    }
+
+    @NonNull
+    protected static ResponseEntity<Object> badRequestError(Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
     }
 }

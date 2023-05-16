@@ -1,12 +1,13 @@
 package net.ripe.rpki.domain;
 
 import lombok.NonNull;
-import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.KeyPairData;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
 import javax.persistence.DiscriminatorValue;
@@ -18,9 +19,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Locally hosted certificate authority.
+ * Locally hosted certificate authority on behalf of a RIPE NCC member.
  *
- * A hosted certificate authority receives it's certified resources from its parent.
+ * <p>A hosted certificate authority receives it's certified resources from its parent.</p>
  */
 @Entity
 @DiscriminatorValue(value = "HOSTED")
@@ -50,8 +51,8 @@ public class HostedCertificateAuthority extends ManagedCertificateAuthority {
     }
 
     @Override
-    public Optional<ImmutableResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
-        return Optional.of(resourceLookupService.lookupMemberCaPotentialResources(getName()));
+    public Optional<ResourceExtension> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) throws ResourceInformationNotAvailableException {
+        return resourceLookupService.lookupMemberCaPotentialResources(getName());
     }
 
     @Override
@@ -64,7 +65,7 @@ public class HostedCertificateAuthority extends ManagedCertificateAuthority {
     public ResourceClassListResponse processResourceClassListQuery(ResourceClassListQuery query) {
         // Hosted certificate authorities currently are not allowed to be a parent CA. Once they are they can
         // return all their certifiable resources here.
-        return new ResourceClassListResponse();
+        return new ResourceClassListResponse(Optional.empty());
     }
 
 }

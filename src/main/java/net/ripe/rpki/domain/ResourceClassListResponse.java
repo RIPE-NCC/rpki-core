@@ -1,20 +1,19 @@
 package net.ripe.rpki.domain;
 
+import lombok.AllArgsConstructor;
+import lombok.NonNull;
 import lombok.Value;
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 
-import static java.util.Objects.requireNonNull;
+import java.util.Optional;
 
+@AllArgsConstructor
 @Value
 public class ResourceClassListResponse {
-    ImmutableResourceSet certifiableResources;
+    @NonNull Optional<ResourceExtension> resourceExtension;
 
-    public ResourceClassListResponse() {
-        this(ImmutableResourceSet.empty());
+    public ResourceClassListResponse(ImmutableResourceSet resources) {
+        this(Optional.of(ResourceExtension.ofResources(resources)));
     }
-
-    public ResourceClassListResponse(ImmutableResourceSet certifiableResources) {
-        this.certifiableResources = requireNonNull(certifiableResources, "certifiableResources is required");
-    }
-
 }

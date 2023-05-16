@@ -1,12 +1,12 @@
 package net.ripe.rpki.services.impl.handlers;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
-import org.apache.commons.lang.Validate;
 
 import javax.inject.Inject;
 
@@ -29,8 +29,7 @@ public class UpdateAllIncomingResourceCertificatesCommandHandler extends Abstrac
     }
 
     @Override
-    public void handle(UpdateAllIncomingResourceCertificatesCommand command, CommandStatus commandStatus) {
-        Validate.notNull(command);
+    public void handle(@NonNull UpdateAllIncomingResourceCertificatesCommand command, @NonNull CommandStatus commandStatus) {
         final boolean hasEffect;
         final CertificateAuthority certificateAuthority = lookupCA(command.getCertificateAuthorityId());
         if (certificateAuthority.getParent() == null) {

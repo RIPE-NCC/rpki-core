@@ -2,6 +2,7 @@ package net.ripe.rpki.rest.service;
 
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.TestRpkiBootApplication;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateBuilderHelper;
@@ -41,6 +42,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
@@ -227,7 +229,7 @@ public class CaServiceTest {
                 ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
         when(certificateAuthorityViewService.findCertificateAuthorityByName(principal)).thenReturn(certificateAuthorityData);
-        when(resourceCache.lookupMemberCaPotentialResources(principal)).thenReturn(ImmutableResourceSet.parse("10/8"));
+        when(resourceCache.lookupMemberCaPotentialResources(principal)).thenReturn(Optional.of(ResourceExtension.ofResources(ImmutableResourceSet.parse("10/8"))));
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123"))
                 .andExpect(status().isOk())
@@ -242,7 +244,7 @@ public class CaServiceTest {
         X500Principal principal = CaName.parse("123").getPrincipal();
 
         when(certificateAuthorityViewService.findCertificateAuthorityIdByName(principal)).thenReturn(null);
-        when(resourceCache.lookupMemberCaPotentialResources(principal)).thenReturn(ImmutableResourceSet.parse("10/8"));
+        when(resourceCache.lookupMemberCaPotentialResources(principal)).thenReturn(Optional.of(ResourceExtension.ofResources(ImmutableResourceSet.parse("10/8"))));
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123"))
                 .andExpect(status().isOk())

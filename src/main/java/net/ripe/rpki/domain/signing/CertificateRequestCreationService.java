@@ -1,6 +1,7 @@
 package net.ripe.rpki.domain.signing;
 
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
@@ -20,9 +21,9 @@ public interface CertificateRequestCreationService {
      */
     Optional<CertificateIssuanceRequest> initiateKeyRoll(ManagedCertificateAuthority ca, int maxAge);
 
-    CertificateIssuanceRequest createCertificateIssuanceRequestForNewKeyPair(ManagedCertificateAuthority ca, ImmutableResourceSet certifiableResources);
+    CertificateIssuanceRequest createCertificateIssuanceRequestForNewKeyPair(ManagedCertificateAuthority ca, ResourceExtension resourceExtension);
 
-    List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(ManagedCertificateAuthority ca, ImmutableResourceSet certifiableResources);
+    List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(ManagedCertificateAuthority ca, ResourceExtension resourceExtension);
 
     List<SigningRequest> requestProductionCertificates(ImmutableResourceSet certifiableResources,
                                                        ManagedCertificateAuthority ca);

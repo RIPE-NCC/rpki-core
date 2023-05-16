@@ -3,24 +3,33 @@ package net.ripe.rpki.services.impl.jpa;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpRange;
+import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
 import net.ripe.rpki.domain.roa.RoaEntityService;
+import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.CreateIntermediateCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
+import net.ripe.rpki.server.api.ports.ResourceCache;
+import net.ripe.rpki.server.api.support.objects.CaName;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.inject.Inject;
+import javax.security.auth.x500.X500Principal;
 import javax.transaction.Transactional;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import static net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest.TEST_KEY_PAIR;
+import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_NAME;
+import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_RESOURCES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JpaResourceCertificateRepositoryTest extends CertificationDomainTestCase {
@@ -33,6 +42,9 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
 
     @Inject
     private RoaEntityService roaEntityService;
+
+    @Inject
+    private ResourceCache resourceCache;
 
     @Before
     public void setUp() {
@@ -140,9 +152,36 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     @Test
     @Transactional
     public void findCurrentOutgoingChildCertificateResources() {
-        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
+        VersionedId intermediateCaId = commandService.getNextId();
+        X500Principal intermediateCaName = new X500Principal("CN=intermediate");
+        X500Principal hosted1CaName = new X500Principal("CN=hosted");
+        X500Principal hosted2CaName = new X500Principal("CN=hosted-2");
+        ImmutableResourceSet hosted1CaResources = ImmutableResourceSet.parse("10.0.0.0/24");
+        ImmutableResourceSet hosted2CaResources = ImmutableResourceSet.parse("10.0.1.0/24");
+        resourceCache.populateCache(Map.ofEntries(
+            Map.entry(CaName.of(PRODUCTION_CA_NAME), PRODUCTION_CA_RESOURCES),
+            Map.entry(CaName.of(hosted1CaName), hosted1CaResources),
+            Map.entry(CaName.of(hosted2CaName), hosted2CaResources)
+        ));
 
-        assertThat(subject.findCurrentOutgoingChildCertificateResources(ca.getName())).isEqualTo(ImmutableResourceSet.empty());
+        // Without any child CAs the set of issued child certificate resources is empty.
+        ProductionCertificateAuthority productionCa = createInitialisedProdCaWithRipeResources();
+        assertThat(subject.findCurrentOutgoingChildCertificateResources(PRODUCTION_CA_NAME)).isEqualTo(ImmutableResourceSet.empty());
+
+        // Intermediate CA uses inherited resources, so the set of issued child certificate resources is still empty.
+        commandService.execute(new CreateIntermediateCertificateAuthorityCommand(intermediateCaId, intermediateCaName, productionCa.getId()));
+        assertThat(subject.findCurrentOutgoingChildCertificateResources(PRODUCTION_CA_NAME)).isEqualTo(ImmutableResourceSet.empty());
+
+        // Hosted CAs get their resources on the certificate, so now these resources are part of the outgoing child resources
+        // for both the production CA (recursive through the intermediate CA) and intermediate CA (directly)
+        commandService.execute(new ActivateHostedCertificateAuthorityCommand(commandService.getNextId(), hosted1CaName, hosted1CaResources, intermediateCaId.getId()));
+        assertThat(subject.findCurrentOutgoingChildCertificateResources(PRODUCTION_CA_NAME)).isEqualTo(hosted1CaResources);
+        assertThat(subject.findCurrentOutgoingChildCertificateResources(intermediateCaName)).isEqualTo(hosted1CaResources);
+
+        // The resources of a hosted CA that is a direct child of the root CA must also be included.
+        commandService.execute(new ActivateHostedCertificateAuthorityCommand(commandService.getNextId(), hosted2CaName, hosted2CaResources, productionCa.getId()));
+        assertThat(subject.findCurrentOutgoingChildCertificateResources(PRODUCTION_CA_NAME)).isEqualTo(hosted1CaResources.union(hosted2CaResources));
+        assertThat(subject.findCurrentOutgoingChildCertificateResources(intermediateCaName)).isEqualTo(hosted1CaResources);
     }
 
     @Test
@@ -150,7 +189,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     public void findCurrentOutgoingResourceCertificateResources() {
         ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
 
-        assertThat(subject.findCurrentOutgoingResourceCertificateResources(ca.getName())).isEqualTo(TestObjects.PRODUCTION_CA_RESOURCES);
+        assertThat(subject.findCurrentOutgoingResourceCertificateResources(ca.getName())).isEqualTo(PRODUCTION_CA_RESOURCES);
     }
 
     @Test

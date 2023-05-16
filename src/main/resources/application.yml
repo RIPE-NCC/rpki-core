@@ -117,7 +117,6 @@ customer.service:
 resource:
     update.interval.hours: 2
     services:
-        enable.asn: true
         # Source of resource data:
         # - rsng: live data from RSNG
         # - static: static resources from a JSON file (resource.services.static.file)
@@ -131,6 +130,7 @@ production.ca.name: "CN=RIPE NCC Resources,O=RIPE NCC,C=NL"
 intermediate.ca:
     enabled: true
     name.pattern: "CN=RIPE NCC Intermediate %s,O=RIPE NCC,C=NL"
+    use.inherited.resources: false
 
 private.asns.ranges: 112, 23456, 64496-64511, 64512-65534, 65535, 65536-65551, 4200000000-4294967294, 4294967295
 

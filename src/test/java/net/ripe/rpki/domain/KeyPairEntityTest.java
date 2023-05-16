@@ -1,6 +1,7 @@
 package net.ripe.rpki.domain;
 
 import net.ripe.rpki.commons.FixedDateRule;
+import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.signing.ChildCertificateSignerTest;
@@ -14,7 +15,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.math.BigInteger;
 import java.net.URI;
 import java.util.Collections;
 
@@ -83,10 +83,10 @@ public class KeyPairEntityTest {
     @Test
     public void shouldSignChildCertificate() {
         KeyPairEntity subject = TestObjects.createActiveKeyPair(TEST_KEY_PAIR_NAME);
-        CertificateIssuanceResponse response = subject.processCertificateIssuanceRequest(requestingCa, ChildCertificateSignerTest.TEST_REQUEST, BigInteger.TEN, resourceCertificateRepository);
+        OutgoingResourceCertificate outgoingResourceCertificate = subject.processCertificateIssuanceRequest(requestingCa, ChildCertificateSignerTest.TEST_REQUEST, new ValidityPeriod(now, CertificateAuthority.calculateValidityNotAfter(now)), resourceCertificateRepository);
 
-        assertNotNull(response);
-        assertNotNull(response.getCertificate());
+        assertNotNull(outgoingResourceCertificate);
+        assertNotNull(outgoingResourceCertificate.getCertificate());
     }
 
     @Test
@@ -95,7 +95,7 @@ public class KeyPairEntityTest {
         OutgoingResourceCertificate oldCertificate = mock(OutgoingResourceCertificate.class);
         when(resourceCertificateRepository.findCurrentCertificatesBySubjectPublicKey(ChildCertificateSignerTest.TEST_REQUEST.getSubjectPublicKey())).thenReturn(Collections.singletonList(oldCertificate));
 
-        subject.processCertificateIssuanceRequest(requestingCa, ChildCertificateSignerTest.TEST_REQUEST, BigInteger.TEN, resourceCertificateRepository);
+        subject.processCertificateIssuanceRequest(requestingCa, ChildCertificateSignerTest.TEST_REQUEST, new ValidityPeriod(now, CertificateAuthority.calculateValidityNotAfter(now)), resourceCertificateRepository);
 
         verify(oldCertificate).revoke();
     }

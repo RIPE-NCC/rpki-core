@@ -11,6 +11,7 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCms;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCmsBuilder;
 import net.ripe.rpki.commons.crypto.cms.aspa.ProviderAS;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
@@ -210,6 +211,6 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
         X500Principal subject = informationAccessStrategy.eeCertificateSubject(eeKeyPair.getPublic());
         X509CertificateInformationAccessDescriptor[] sia = informationAccessStrategy.siaForSignedObjectCertificate(signingKeyPair,
             RepositoryObjectNamingStrategy.ASPA_FILE_EXTENSION, subject, eeKeyPair.getPublic());
-        return new CertificateIssuanceRequest(ImmutableResourceSet.of(customerAsn), subject, eeKeyPair.getPublic(), sia);
+        return new CertificateIssuanceRequest(ResourceExtension.ofResources(ImmutableResourceSet.of(customerAsn)), subject, eeKeyPair.getPublic(), sia);
     }
 }

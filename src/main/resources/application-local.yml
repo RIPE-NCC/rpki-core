@@ -8,6 +8,7 @@ keystore:
     type: JKS
 
 instance.name: local
+system.setup.and.testing.api.enabled: true
 
 # local setup should not be able to deliver mail by default.
 mail:
@@ -55,6 +56,9 @@ resource.services:
 authorization.admin.role: ROLE_ANONYMOUS
 # We externalise application secrets in a file outside the application on the classpath.
 api-keys.properties: "classpath:/test-api-keys.properties"
+
+intermediate.ca:
+    use.inherited.resources: true
 
 autokeyrollover:
     maxage.days: 0

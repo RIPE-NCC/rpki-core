@@ -1,17 +1,14 @@
 package net.ripe.rpki.domain;
 
+import lombok.NonNull;
 import lombok.Value;
-import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 
-import static java.util.Objects.requireNonNull;
+import java.util.Optional;
 
 @Value
 public class ResourceClassListQuery {
 
-    ImmutableResourceSet resources;
-
-    public ResourceClassListQuery(ImmutableResourceSet resources) {
-        this.resources = requireNonNull(resources, "resources is required");
-    }
+    @NonNull Optional<ResourceExtension> resourceExtension;
 
 }

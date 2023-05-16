@@ -1,6 +1,5 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
@@ -18,14 +17,10 @@ public interface ParentCertificateAuthority extends Entity {
 
     ParentCertificateAuthority getParent();
 
-    boolean isCertificateIssuanceNeeded(CertificateIssuanceRequest request, ValidityPeriod validityPeriod, ResourceCertificateRepository resourceCertificateRepository);
-
     CertificateIssuanceResponse processCertificateIssuanceRequest(ChildCertificateAuthority requestingCa,
                                                                   CertificateIssuanceRequest request,
                                                                   ResourceCertificateRepository resourceCertificateRepository,
                                                                   int issuedCertificatesPerSignedKeyLimit);
-
-    boolean isCertificateRevocationNeeded(CertificateRevocationRequest request, ResourceCertificateRepository resourceCertificateRepository);
 
     CertificateRevocationResponse processCertificateRevocationRequest(CertificateRevocationRequest request,
                                                                       ResourceCertificateRepository resourceCertificateRepository);

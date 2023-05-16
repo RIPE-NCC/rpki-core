@@ -14,7 +14,6 @@ import javax.security.auth.x500.X500Principal;
 import javax.validation.constraints.NotNull;
 import java.security.PublicKey;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -76,10 +75,12 @@ public class PublicKeyEntity extends EntitySupport {
         return Collections.unmodifiableCollection(outgoingResourceCertificates);
     }
 
-    public void addOutgoingResourceCertificate(OutgoingResourceCertificate certificate) {
-        if (!outgoingResourceCertificates.contains(certificate)) {
-            outgoingResourceCertificates.add(certificate);
+    public boolean addOutgoingResourceCertificate(OutgoingResourceCertificate certificate) {
+        if (outgoingResourceCertificates.contains(certificate)) {
+            return false;
         }
+        outgoingResourceCertificates.add(certificate);
+        return true;
     }
 
     public Optional<OutgoingResourceCertificate> findCurrentOutgoingResourceCertificate() {

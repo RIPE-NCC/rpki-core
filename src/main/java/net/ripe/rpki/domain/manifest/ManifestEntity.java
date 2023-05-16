@@ -1,10 +1,10 @@
 package net.ripe.rpki.domain.manifest;
 
-import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCms;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsBuilder;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.KeyPairEntity;
@@ -177,7 +177,7 @@ public class ManifestEntity extends EntitySupport {
         ResourceCertificateInformationAccessStrategy ias = new ResourceCertificateInformationAccessStrategyBean();
         X500Principal subject = ias.eeCertificateSubject(eeKeyPair.getPublic());
         X509CertificateInformationAccessDescriptor[] sia = ias.siaForSignedObjectCertificate(keyPair, "mft", subject, caCert.getSubjectPublicKey());
-        return new CertificateIssuanceRequest(ImmutableResourceSet.empty(), subject, eeKeyPair.getPublic(), sia);
+        return new CertificateIssuanceRequest(ResourceExtension.allInherited(), subject, eeKeyPair.getPublic(), sia);
     }
 
     private boolean isCloseToNextUpdateTime(DateTime now, ManifestCms cms) {

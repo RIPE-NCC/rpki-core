@@ -1,6 +1,5 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
@@ -8,8 +7,6 @@ import net.ripe.rpki.util.SerialNumberSupplier;
 import org.apache.commons.lang.Validate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.EnumSet;
 
 @Service
 public class SingleUseEeCertificateFactory {
@@ -27,13 +24,9 @@ public class SingleUseEeCertificateFactory {
         KeyPairEntity signingKeyPair
     ) {
         IncomingResourceCertificate active = signingKeyPair.getCurrentIncomingCertificate();
+        Validate.isTrue(active.getResources().contains(request.getResourceExtension().getResources()), "EE certificate resources MUST BE contained in the parent certificate");
         ResourceCertificateBuilder builder = new ResourceCertificateBuilder();
-        if (request.getResources().isEmpty()) {
-            builder.withInheritedResourceTypes(EnumSet.allOf(IpResourceType.class));
-        } else {
-            Validate.isTrue(active.getResources().contains(request.getResources()), "EE certificate resources MUST BE contained in the parent certificate");
-            builder.withResources(request.getResources());
-        }
+        builder.withResourceExtension(request.getResourceExtension());
         builder.withSerial(SerialNumberSupplier.getInstance().get());
         builder.withSubjectDN(request.getSubjectDN());
         builder.withSubjectPublicKey(request.getSubjectPublicKey());

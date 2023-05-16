@@ -2,7 +2,7 @@ package net.ripe.rpki.domain;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
@@ -42,8 +42,8 @@ public class AllResourcesCertificateAuthority extends ManagedCertificateAuthorit
     }
 
     @Override
-    public Optional<ImmutableResourceSet> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
-        return Optional.of(Resources.ALL_RESOURCES);
+    public Optional<ResourceExtension> lookupCertifiableIpResources(ResourceLookupService resourceLookupService) {
+        return Optional.of(ResourceExtension.ofResources(Resources.ALL_RESOURCES));
     }
 
     public void processCertifiableResources(KeyPairService keyPairService, CertificateRequestCreationService certificateRequestCreationService) {
@@ -55,11 +55,6 @@ public class AllResourcesCertificateAuthority extends ManagedCertificateAuthorit
 
         final TrustAnchorRequest trustAnchorRequest = certificateRequestCreationService.createTrustAnchorRequest(signingRequests);
         setUpStreamCARequestEntity(new UpStreamCARequestEntity(this, trustAnchorRequest));
-    }
-
-    @Override
-    public ResourceClassListResponse processResourceClassListQuery(ResourceClassListQuery query) {
-        return new ResourceClassListResponse(query.getResources());
     }
 
 }

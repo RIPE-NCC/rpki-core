@@ -2,12 +2,14 @@ package net.ripe.rpki.ncc.core.services.activation;
 
 import lombok.NonNull;
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.domain.NameNotUniqueException;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.ActivateNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateService;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
@@ -62,8 +64,17 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
             throw new CertificateAuthorityNameNotUniqueException(name);
         }
 
-        LOG.info("Creating Hosted CA: {}", name);
-        ImmutableResourceSet resources = resourceLookupService.lookupMemberCaPotentialResources(name);
+        ImmutableResourceSet resources;
+        try {
+            resources = resourceLookupService.lookupMemberCaPotentialResources(name)
+                .map(ResourceExtension::getResources)
+                .orElse(ImmutableResourceSet.empty());
+        } catch (ResourceInformationNotAvailableException e) {
+            // No resource information available, defaulting to empty resources is safe since the CA does not exist
+            // yet and no certificate will be revoked (or created).
+            resources = ImmutableResourceSet.empty();
+        }
+        LOG.info("Creating Hosted CA: {} with initial resources '{}'", name, resources);
         provisionMember(name, resources, productionCaName);
     }
 
@@ -81,8 +92,17 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
             throw new CertificateAuthorityNameNotUniqueException(name);
         }
 
-        LOG.info("Creating Non-Hosted CA: {}", name);
-        ImmutableResourceSet resources = resourceLookupService.lookupMemberCaPotentialResources(name);
+        ImmutableResourceSet resources;
+        try {
+            resources = resourceLookupService.lookupMemberCaPotentialResources(name)
+                .map(ResourceExtension::getResources)
+                .orElse(ImmutableResourceSet.empty());
+        } catch (ResourceInformationNotAvailableException e) {
+            // No resource information available, defaulting to empty resources is safe since the CA does not exist
+            // yet and no certificate will be revoked (or created).
+            resources = ImmutableResourceSet.empty();
+        }
+        LOG.info("Creating Non-Hosted CA: {} with initial resources '{}'", name, resources);
         provisionNonHostedMember(name, resources, productionCaName, identityCertificate);
     }
 

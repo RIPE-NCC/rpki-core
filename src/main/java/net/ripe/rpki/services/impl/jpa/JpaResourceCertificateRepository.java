@@ -9,6 +9,7 @@ import net.ripe.rpki.domain.ResourceCertificate;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.ripencc.support.persistence.DateTimePersistenceConverter;
 import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
+import net.ripe.rpki.ripencc.support.persistence.X500PrincipalPersistenceConverter;
 import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
 import org.apache.commons.lang.Validate;
 import org.joda.time.DateTime;
@@ -23,6 +24,7 @@ import java.math.BigInteger;
 import java.security.PublicKey;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @SuppressWarnings("java:S1192")
 @Repository
@@ -193,15 +195,39 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
 
     @Override
     public ImmutableResourceSet findCurrentOutgoingChildCertificateResources(X500Principal caName) {
-        return manager.createQuery(
-                "SELECT rc.resources " +
-                    "  FROM OutgoingResourceCertificate rc INNER JOIN rc.requestingCertificateAuthority child " +
-                    " WHERE rc.status = :current " +
-                    "   AND upper(child.parent.name) = upper(:name)",
-                ImmutableResourceSet.class)
-            .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
-            .setParameter("name", caName.getName())
-            .getResultStream()
+        // Recursively query all outgoing child certificates to determine the complete set of resources that
+        // have been issued. The recursive step only needs to be taken when the issuing certificate has inherited
+        // resources, otherwise we can just take the resources from the certificate directly (since they must
+        // contain all the child certificate resources anyway).
+        @SuppressWarnings("unchecked")
+        Stream<Object> resultStream = manager.createNativeQuery("WITH RECURSIVE certificate (requesting_ca_id, resources, inherited) AS (\n" +
+            // Base case: all outgoing certificates issued by the children of the CA indicated by `caName`
+            "  SELECT rc.requesting_ca_id, rc.resources, (rc.asn_inherited OR rc.ipv4_inherited OR rc.ipv6_inherited) as inherited\n" +
+            "    FROM resourcecertificate rc\n" +
+            "   WHERE rc.type = :outgoing\n" +
+            "     AND rc.status = :current\n" +
+            "     AND requesting_ca_id IN (SELECT child.id\n" +
+            "                                FROM certificateauthority child\n" +
+            "                                  LEFT JOIN certificateauthority parent ON child.parent_id = parent.id\n" +
+            "                               WHERE UPPER(parent.name) = UPPER(:name))\n" +
+            // Recursive step: add all outgoing certificates issued by children if the issuing certificate has inherited
+            // resources.
+            "UNION ALL\n" +
+            "  SELECT rc.requesting_ca_id, rc.resources, (rc.asn_inherited OR rc.ipv4_inherited OR rc.ipv6_inherited) as inherited\n" +
+            "    FROM certificate issuing\n" +
+            "      LEFT JOIN keypair signing_keypair ON issuing.requesting_ca_id = signing_keypair.ca_id\n" +
+            "      LEFT JOIN resourcecertificate rc ON signing_keypair.id = rc.signing_keypair_id\n" +
+            "   WHERE rc.type = :outgoing\n" +
+            "     AND rc.status = :current\n" +
+            "     AND issuing.inherited = TRUE\n" +
+            ")\n" +
+            "SELECT resources FROM certificate WHERE LENGTH(resources) > 0;\n")
+            .setParameter("outgoing", "OUTGOING")
+            .setParameter("current", OutgoingResourceCertificateStatus.CURRENT.name())
+            .setParameter("name", new X500PrincipalPersistenceConverter().convertToDatabaseColumn(caName))
+            .getResultStream();
+        return resultStream
+            .map(obj -> ImmutableResourceSet.parse((String) obj))
             .flatMap(ImmutableResourceSet::stream)
             .collect(ImmutableResourceSet.collector());
     }

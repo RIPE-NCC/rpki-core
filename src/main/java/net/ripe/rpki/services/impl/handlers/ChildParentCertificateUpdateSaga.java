@@ -5,23 +5,23 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
-import net.ripe.rpki.commons.crypto.ValidityPeriod;
+import net.ripe.ipresource.IpResourceType;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.*;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.springframework.stereotype.Component;
 
 import javax.security.auth.x500.X500Principal;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -52,35 +52,49 @@ public class ChildParentCertificateUpdateSaga {
         List<? extends CertificateProvisioningMessage> requests = checkIfUpdatedIsNeeded(childCa);
 
         ParentCertificateAuthority parentCa = childCa.getParent();
-        for (final CertificateProvisioningMessage request : requests) {
+
+        boolean hasEffect = false;
+        for (CertificateProvisioningMessage request : requests) {
+            boolean updated;
             if (request instanceof CertificateIssuanceRequest) {
                 final CertificateIssuanceResponse response = parentCa.processCertificateIssuanceRequest(
-                    childCa, (CertificateIssuanceRequest) request, resourceCertificateRepository, issuedCertificatesPerSignedKeyLimit);
-                childCa.processCertificateIssuanceResponse(response, resourceCertificateRepository);
+                    childCa, (CertificateIssuanceRequest) request, resourceCertificateRepository, issuedCertificatesPerSignedKeyLimit
+                );
+                updated = childCa.processCertificateIssuanceResponse(response, resourceCertificateRepository);
             } else if (request instanceof CertificateRevocationRequest) {
                 final CertificateRevocationResponse response = parentCa.processCertificateRevocationRequest(
-                        (CertificateRevocationRequest) request, resourceCertificateRepository);
-                childCa.processCertificateRevocationResponse(response, keyPairDeletionService);
+                        (CertificateRevocationRequest) request, resourceCertificateRepository
+                );
+                updated = childCa.processCertificateRevocationResponse(response, keyPairDeletionService);
+            } else {
+                throw new IllegalArgumentException("unknown certificate provisioning message type " + request.getClass().getSimpleName());
             }
+            hasEffect |= updated;
         }
-
-        return !requests.isEmpty();
+        return hasEffect;
     }
 
-    private List<CertificateProvisioningMessage> checkIfUpdatedIsNeeded(ChildCertificateAuthority childCa) {
-        Optional<ImmutableResourceSet> maybeChildResources = childCa.lookupCertifiableIpResources(resourceLookupService);
-
-        if (maybeChildResources.isEmpty()) {
-            log.warn("Resource cache for CA is null (not: empty), exiting.");
+    private List<? extends CertificateProvisioningMessage> checkIfUpdatedIsNeeded(ChildCertificateAuthority childCa) {
+        Optional<ResourceExtension> maybeChildResources;
+        try {
+            maybeChildResources = childCa.lookupCertifiableIpResources(resourceLookupService);
+        } catch (ResourceInformationNotAvailableException e) {
+            log.warn("Resource cache for CA '{}' is null (not: empty), exiting.", childCa.getName());
             return Collections.emptyList();
         }
-
-        ImmutableResourceSet childResources = maybeChildResources.get();
 
         // Do not remove resources that are still on outgoing resource certificates for child CAs, since this can
         // lead to an invalid repository state.
         ImmutableResourceSet currentOutgoingChildCertificateResources = resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(childCa.getName());
 
+        EnumSet<IpResourceType> childInheritedResourceTypes = maybeChildResources.map(ResourceExtension::getInheritedResourceTypes).orElse(EnumSet.noneOf(IpResourceType.class));
+        for (IpResourceType inheritedResourceType : childInheritedResourceTypes) {
+            // Inherited resources are never overclaiming due to parent-child invariant that the parent never removes resources
+            // that are still on any outgoing child certificates.
+            currentOutgoingChildCertificateResources = currentOutgoingChildCertificateResources.difference(ImmutableResourceSet.of(inheritedResourceType.getMinimum().upTo(inheritedResourceType.getMaximum())));
+        }
+
+        ImmutableResourceSet childResources = maybeChildResources.map(ResourceExtension::getResources).orElse(ImmutableResourceSet.empty());
         if (childResources.contains(currentOutgoingChildCertificateResources)) {
             this.overclaimingResourcesCounts.remove(childCa.getName());
         } else {
@@ -97,28 +111,16 @@ public class ChildParentCertificateUpdateSaga {
             childResources = childResources.union(overclaimingResources);
         }
 
+        if (!childResources.isEmpty()) {
+            maybeChildResources = Optional.of(ResourceExtension.of(childInheritedResourceTypes, childResources));
+        }
+
         ParentCertificateAuthority parentCa = childCa.getParent();
 
         final ResourceClassListResponse resourceClassListResponse = parentCa.
-            processResourceClassListQuery(new ResourceClassListQuery(childResources));
+            processResourceClassListQuery(new ResourceClassListQuery(maybeChildResources));
 
-        final List<? extends CertificateProvisioningMessage> requests = childCa.processResourceClassListResponse(
-                resourceClassListResponse, certificateRequestCreationService);
-
-        DateTime now = new DateTime(DateTimeZone.UTC);
-        ValidityPeriod validityPeriod = new ValidityPeriod(now, CertificateAuthority.calculateValidityNotAfter(now));
-
-        return requests.stream()
-            .filter(request -> {
-                if (request instanceof CertificateIssuanceRequest) {
-                    return parentCa.isCertificateIssuanceNeeded((CertificateIssuanceRequest) request, validityPeriod, resourceCertificateRepository);
-                } else if (request instanceof CertificateRevocationRequest) {
-                    return parentCa.isCertificateRevocationNeeded((CertificateRevocationRequest) request, resourceCertificateRepository);
-                } else {
-                    throw new IllegalStateException("unknown request type " + request);
-                }
-            })
-            .collect(Collectors.toList());
+        return childCa.processResourceClassListResponse(resourceClassListResponse, certificateRequestCreationService);
     }
 
 }

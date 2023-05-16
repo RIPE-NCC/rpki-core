@@ -3,6 +3,7 @@ package net.ripe.rpki.ripencc.provisioning;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.provisioning.payload.common.CertificateElement;
 import net.ripe.rpki.commons.provisioning.payload.error.NotPerformedError;
@@ -17,6 +18,7 @@ import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.ProvisioningCertificateIssuanceCommand;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
@@ -64,7 +66,7 @@ public class CertificateIssuanceProcessorTest {
     private CertificateIssuanceProcessor processor;
 
     @Before
-    public void setUp() {
+    public void setUp() throws ResourceInformationNotAvailableException {
         caRepositoryUri = URI.create("rsync://tmp/repo/");
 
         nonHostedCertificateAuthority = new NonHostedCertificateAuthorityData(
@@ -76,7 +78,8 @@ public class CertificateIssuanceProcessorTest {
 
         processor = new CertificateIssuanceProcessor(resourceLookupService, commandService, resourceCertificateViewService);
 
-        when(resourceLookupService.lookupMemberCaPotentialResources(NON_HOSTED_CA_NAME)).thenReturn(ImmutableResourceSet.parse("10/8,fc00::/48"));
+        when(resourceLookupService.lookupMemberCaPotentialResources(NON_HOSTED_CA_NAME))
+            .thenReturn(Optional.of(ResourceExtension.ofResources(ImmutableResourceSet.parse("10/8,fc00::/48"))));
 
         ResourceCertificateData productionSigningCertificate = new ResourceCertificateData(mock(X509ResourceCertificate.class), caRepositoryUri.resolve("cert.cer"));
         when(productionSigningCertificate.getCertificate().resources()).thenReturn(PRODUCTION_CA_RESOURCES);
@@ -86,7 +89,7 @@ public class CertificateIssuanceProcessorTest {
     }
 
     @Test
-    public void shouldProcessCertificateIssuanceRequest() {
+    public void shouldProcessCertificateIssuanceRequest() throws ResourceInformationNotAvailableException {
         X509ResourceCertificate mockCertificate = mock(X509ResourceCertificate.class);
         RequestedResourceSets requestedResources = new RequestedResourceSets(
             Optional.of(ImmutableResourceSet.parse("AS3333")),
@@ -132,8 +135,8 @@ public class CertificateIssuanceProcessorTest {
 
     //http://tools.ietf.org/html/rfc6492#page-23
     @Test
-    public void shouldReturnNoResourcesAllocatedResponsePayloadIfClientHoldsResources() {
-        when(resourceLookupService.lookupMemberCaPotentialResources(NON_HOSTED_CA_NAME)).thenReturn(ImmutableResourceSet.empty());
+    public void shouldReturnNoResourcesAllocatedResponsePayloadIfClientHoldsResources() throws ResourceInformationNotAvailableException {
+        when(resourceLookupService.lookupMemberCaPotentialResources(NON_HOSTED_CA_NAME)).thenReturn(Optional.empty());
 
         CertificateIssuanceRequestPayload requestPayload = createPayload(caRepositoryUri);
         assertThatThrownBy(()-> processor.process(nonHostedCertificateAuthority, requestPayload))

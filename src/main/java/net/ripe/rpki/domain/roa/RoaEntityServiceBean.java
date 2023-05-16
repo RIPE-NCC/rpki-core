@@ -7,6 +7,7 @@ import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrate
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCms;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsBuilder;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
@@ -194,6 +195,6 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
         X500Principal subject = informationAccessStrategy.eeCertificateSubject(eeKeyPair.getPublic());
         X509CertificateInformationAccessDescriptor[] sia = informationAccessStrategy.siaForSignedObjectCertificate(signingKeyPair,
                 RepositoryObjectNamingStrategy.ROA_FILE_EXTENSION, subject, eeKeyPair.getPublic());
-        return new CertificateIssuanceRequest(resources, subject, eeKeyPair.getPublic(), sia);
+        return new CertificateIssuanceRequest(ResourceExtension.ofResources(resources), subject, eeKeyPair.getPublic(), sia);
     }
 }

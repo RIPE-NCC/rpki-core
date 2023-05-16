@@ -65,7 +65,7 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
         if (ca.isAllResourcesCa()) {
             handleForAllResourcesCa((AllResourcesCertificateAuthority) ca, requests);
         } else {
-            handleForHostedCertificateAuthority(ca, requests);
+            handleForManagedCertificateAuthority(ca, requests);
         }
     }
 
@@ -73,7 +73,7 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
         ca.setUpStreamCARequestEntity(new UpStreamCARequestEntity(ca, certificationRequestCreationService.createTrustAnchorRequest(toTaRequests(requests))));
     }
 
-    private void handleForHostedCertificateAuthority(ManagedCertificateAuthority ca, List<CertificateIssuanceRequest> requests) {
+    private void handleForManagedCertificateAuthority(ManagedCertificateAuthority ca, List<CertificateIssuanceRequest> requests) {
         for (CertificateIssuanceRequest request : requests) {
             CertificateIssuanceResponse response = ca.getParent().processCertificateIssuanceRequest(
                     ca, request, resourceCertificateRepository, Integer.MAX_VALUE);
@@ -89,7 +89,7 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
                                 request.getSubjectDN(),
                                 request.getSubjectPublicKey(),
                                 request.getSubjectInformationAccess(),
-                                new IpResourceSet(request.getResources()))))
+                                new IpResourceSet(request.getResourceExtension().getResources()))))
                 .collect(Collectors.toList());
     }
 

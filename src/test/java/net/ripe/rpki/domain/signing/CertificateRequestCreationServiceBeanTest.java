@@ -2,6 +2,7 @@ package net.ripe.rpki.domain.signing;
 
 import com.google.common.collect.Lists;
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.ta.domain.request.ResourceCertificateRequestData;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
@@ -60,7 +61,7 @@ public class CertificateRequestCreationServiceBeanTest {
     public void setUp() {
         allResourcesCa = mock(AllResourcesCertificateAuthority.class);
         when(allResourcesCa.processResourceClassListQuery(any())).thenAnswer((invocation) ->
-            new ResourceClassListResponse(invocation.getArgument(0, ResourceClassListQuery.class).getResources())
+            new ResourceClassListResponse(invocation.getArgument(0, ResourceClassListQuery.class).getResourceExtension())
         );
 
         productionCa = mock(ManagedCertificateAuthority.class);
@@ -99,7 +100,7 @@ public class CertificateRequestCreationServiceBeanTest {
         Optional<CertificateIssuanceRequest> maybeRequest = subject.initiateKeyRoll(productionCa, 0);
 
         assertThat(maybeRequest).hasValueSatisfying(request -> {
-            assertThat(request.getResources()).isEqualTo(currentResourceCertificate.getResources());
+            assertThat(request.getResourceExtension().getResources()).isEqualTo(currentResourceCertificate.getResources());
         });
     }
 
@@ -135,7 +136,7 @@ public class CertificateRequestCreationServiceBeanTest {
     @Test
     public void should_not_request_member_certificates_if_key_pair_does_not_need_certificate() {
         List<CertificateIssuanceRequest> requests = subject.createCertificateIssuanceRequestForAllKeys(
-            productionCa, ImmutableResourceSet.parse("10/8"));
+            productionCa, ResourceExtension.ofResources(ImmutableResourceSet.parse("10/8")));
 
         assertTrue(requests.isEmpty());
     }
@@ -144,7 +145,7 @@ public class CertificateRequestCreationServiceBeanTest {
     public void should_request_member_certificates_if_key_pair_requires_a_certificate() {
         givenKeyPairWithoutCurrentCertificate(productionCa);
         List<CertificateIssuanceRequest> requests = subject.createCertificateIssuanceRequestForAllKeys(
-            productionCa, ImmutableResourceSet.parse("10/8"));
+            productionCa, ResourceExtension.ofResources(ImmutableResourceSet.parse("10/8")));
 
         assertThat(requests).hasSize(1).allMatch(CertificateIssuanceRequest.class::isInstance);
     }

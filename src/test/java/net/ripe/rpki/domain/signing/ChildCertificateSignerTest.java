@@ -1,6 +1,7 @@
 package net.ripe.rpki.domain.signing;
 
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
+import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.util.BouncyCastleUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.domain.KeyPairEntity;
@@ -13,7 +14,6 @@ import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import javax.security.auth.x500.X500Principal;
-import java.math.BigInteger;
 import java.net.URI;
 
 import static net.ripe.ipresource.ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES;
@@ -37,7 +37,7 @@ public class ChildCertificateSignerTest {
     };
 
     public static final CertificateIssuanceRequest TEST_REQUEST = new CertificateIssuanceRequest(
-            ALL_PRIVATE_USE_RESOURCES,
+            ResourceExtension.ofResources(ALL_PRIVATE_USE_RESOURCES),
             new X500Principal("cn=nl.bluelight"),
             SUBJECT_KEY_PAIR.getPublicKey(),
             SIA);
@@ -48,7 +48,7 @@ public class ChildCertificateSignerTest {
 
     @Test
     public void shouldIssueChildCaCertificateWithCorrectCrlAndAiaPointers() {
-        OutgoingResourceCertificate resourceCertificate = subject.buildOutgoingResourceCertificate(TEST_REQUEST, validityPeriod, SIGNING_KEY_PAIR, BigInteger.ONE);
+        OutgoingResourceCertificate resourceCertificate = subject.buildOutgoingResourceCertificate(TEST_REQUEST, validityPeriod, SIGNING_KEY_PAIR);
 
         assertEquals(SIGNING_KEY_PAIR.crlLocationUri(), resourceCertificate.getCertificate().getCrlUri());
         assertArrayEquals(EXPECTED_CHILD_CERT_AIA, resourceCertificate.getAia());
@@ -56,13 +56,13 @@ public class ChildCertificateSignerTest {
 
     @Test
     public void shouldIssueChildCaCertificateWithSiaFromRequest() {
-        OutgoingResourceCertificate resourceCertificate = subject.buildOutgoingResourceCertificate(TEST_REQUEST, validityPeriod, SIGNING_KEY_PAIR, BigInteger.ONE);
+        OutgoingResourceCertificate resourceCertificate = subject.buildOutgoingResourceCertificate(TEST_REQUEST, validityPeriod, SIGNING_KEY_PAIR);
         assertArrayEquals(SIA, resourceCertificate.getSia());
     }
 
     @Test
     public void shouldIssueChildCaCertificateWithCorrectAKI() {
-        OutgoingResourceCertificate resourceCertificate = subject.buildOutgoingResourceCertificate(TEST_REQUEST, validityPeriod, SIGNING_KEY_PAIR, BigInteger.ONE);
+        OutgoingResourceCertificate resourceCertificate = subject.buildOutgoingResourceCertificate(TEST_REQUEST, validityPeriod, SIGNING_KEY_PAIR);
 
         AuthorityKeyIdentifier expectedAki = BouncyCastleUtil.createAuthorityKeyIdentifier(SIGNING_KEY_PAIR.getPublicKey());
         assertArrayEquals(expectedAki.getKeyIdentifier(), resourceCertificate.getCertificate().getAuthorityKeyIdentifier());
@@ -70,13 +70,13 @@ public class ChildCertificateSignerTest {
 
     @Test
     public void shouldIssueChildCaCertificateWithSpecifiedValidityPeriod() {
-        OutgoingResourceCertificate resourceCertificate = subject.buildOutgoingResourceCertificate(TEST_REQUEST, validityPeriod, SIGNING_KEY_PAIR, BigInteger.ONE);
+        OutgoingResourceCertificate resourceCertificate = subject.buildOutgoingResourceCertificate(TEST_REQUEST, validityPeriod, SIGNING_KEY_PAIR);
         assertEquals(validityPeriod, resourceCertificate.getValidityPeriod());
     }
 
     @Test
     public void shouldIssueChildCaCertificateWithOurIssuerSubject() {
-        OutgoingResourceCertificate resourceCertificate = subject.buildOutgoingResourceCertificate(TEST_REQUEST, validityPeriod, SIGNING_KEY_PAIR, BigInteger.ONE);
+        OutgoingResourceCertificate resourceCertificate = subject.buildOutgoingResourceCertificate(TEST_REQUEST, validityPeriod, SIGNING_KEY_PAIR);
         assertEquals(SIGNING_KEY_PAIR.getCurrentIncomingCertificate().getSubject(), resourceCertificate.getIssuer());
     }
 

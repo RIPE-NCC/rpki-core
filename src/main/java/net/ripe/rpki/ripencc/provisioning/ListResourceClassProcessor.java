@@ -10,6 +10,7 @@ import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassLis
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.joda.time.DateTime;
@@ -32,7 +33,9 @@ class ListResourceClassProcessor extends AbstractProvisioningProcessor {
         this.resourceCertificateViewService = resourceCertificateViewService;
     }
 
-    public ResourceClassListResponsePayload process(NonHostedCertificateAuthorityData nonHostedCertificateAuthority) {
+    public ResourceClassListResponsePayload process(NonHostedCertificateAuthorityData nonHostedCertificateAuthority)
+        throws ResourceInformationNotAvailableException
+    {
         final ResourceClassListResponsePayloadBuilder responsePayloadBuilder = new ResourceClassListResponsePayloadBuilder();
 
         Optional<ResourceCertificateData> maybeIncomingResourceCertificate = resourceCertificateViewService

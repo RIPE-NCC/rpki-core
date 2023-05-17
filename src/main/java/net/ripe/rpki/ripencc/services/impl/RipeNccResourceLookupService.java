@@ -61,7 +61,7 @@ public class RipeNccResourceLookupService implements ResourceLookupService {
             throw new UnsupportedOperationException("This method does not support resource lookup for the all resources CA (" + caName + ")");
         }
         ImmutableResourceSet resources = resourceCacheService.getCaResources(caName)
-            .orElseThrow(() -> new ResourceInformationNotAvailableException("resource information for CA '" + caPrincipal.getName() + "' not available"));
+            .orElseThrow(() -> new ResourceInformationNotAvailableException("resource information not available"));
         return resources.isEmpty() ? Optional.empty() : Optional.of(ResourceExtension.ofResources(resources));
     }
 

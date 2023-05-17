@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -65,9 +66,18 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
     }
 
     @Override
-    public Optional<ImmutableResourceSet> lookupResources(final CaName user) {
-        ResourceCacheLine cacheRecord = entityManager.find(ResourceCacheLine.class, user.toString());
-        return Optional.ofNullable(cacheRecord).map(ResourceCacheLine::getResources);
+    public Optional<ImmutableResourceSet> lookupResources(final CaName member) {
+        var row = (Object[]) entityManager
+            .createNativeQuery("SELECT EXISTS(SELECT 1 FROM resource_cache WHERE name = :productionCaName), (SELECT resources FROM resource_cache WHERE name = :member)")
+            .setParameter("productionCaName", productionCaName.toString())
+            .setParameter("member", member.toString())
+            .getSingleResult();
+        var available = (boolean) row[0];
+        if (!available) {
+            return Optional.empty();
+        }
+        String resources = Objects.requireNonNullElse((String) row[1], "");
+        return Optional.of(ImmutableResourceSet.parse(resources));
     }
 
     @Override
@@ -96,7 +106,7 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
                 .executeUpdate();
     }
 
-    public void dropCache() {
+    void dropCache() {
         entityManager.createQuery("delete from ResourceCacheLine rc")
                 .executeUpdate();
     }

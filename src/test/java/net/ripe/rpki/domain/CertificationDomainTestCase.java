@@ -12,7 +12,9 @@ import net.ripe.rpki.domain.manifest.ManifestPublicationService;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.configuration.Environment;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
+import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.services.command.CommandService;
+import net.ripe.rpki.server.api.support.objects.CaName;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.inject.Named;
 import javax.persistence.EntityManager;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -80,6 +83,9 @@ public abstract class CertificationDomainTestCase {
     @Autowired
     protected CommandService commandService;
 
+    @Autowired
+    protected ResourceCache resourceCache;
+
     protected SimpleMeterRegistry meterRegistry;
 
     @Before
@@ -99,7 +105,8 @@ public abstract class CertificationDomainTestCase {
 
     protected void clearDatabase() {
         // Clean the test database. Note that this is not transactional, but the test database should be empty anyway.
-        entityManager.createNativeQuery("TRUNCATE TABLE certificateauthority, ta_published_object CASCADE").executeUpdate();
+        entityManager.createNativeQuery("TRUNCATE TABLE certificateauthority, ta_published_object, resource_cache CASCADE").executeUpdate();
+        resourceCache.populateCache(Map.of(CaName.of(repositoryConfiguration.getProductionCaPrincipal()), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES));
     }
 
     protected ProductionCertificateAuthority createInitializedAllResourcesAndProductionCertificateAuthority() {

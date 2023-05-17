@@ -422,8 +422,8 @@ public class ResourceCacheServiceTest {
         }
 
         @Override
-        public Optional<ImmutableResourceSet> lookupResources(CaName user) {
-            return Optional.ofNullable(cache.get().get(user));
+        public Optional<ImmutableResourceSet> lookupResources(CaName member) {
+            return Optional.of(cache.get().getOrDefault(member, ImmutableResourceSet.empty()));
         }
 
         @Override

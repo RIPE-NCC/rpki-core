@@ -17,6 +17,7 @@ import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
+import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExceededException;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.joda.time.DateTime;
@@ -107,6 +108,8 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
 
             // Only possible iff javax.persistence.lock.timeout != -1
             return buildError(NotPerformedError.ALREADY_PROCESSING_REQUEST);
+        } catch (ResourceInformationNotAvailableException e) {
+            return buildErrorWithDescription(NotPerformedError.INTERNAL_SERVER_ERROR, e.getMessage());
         } catch (NotPerformedException e) {
             return buildErrorWithDescription(e.getNotPerformedError(), e.getMessage());
         } catch (CertificationResourceLimitExceededException e) {

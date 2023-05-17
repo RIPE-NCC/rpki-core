@@ -11,7 +11,13 @@ public interface ResourceCache {
 
     boolean hasNoProductionResources();
 
-    Optional<ImmutableResourceSet> lookupResources(CaName user);
+    /**
+     * Looks up the resources of a RIPE NCC member. {@link Optional#empty()} is returned when the resource cache is
+     * not populated (determined by checking if there are production CA resources in the cache). Otherwise the resources
+     * of the member are returned, which can be the empty resource set if the member currently has no certifiable
+     * resources.
+     */
+    Optional<ImmutableResourceSet> lookupResources(CaName member);
 
     DateTime lastUpdateTime();
 

@@ -26,8 +26,7 @@ public class JpaResourceCacheImplTest extends CertificationDomainTestCase {
 
     @Before
     public void setUp() {
-        resourceCache.setEntityManager(entityManager);
-        inTx(() -> resourceCache.clearCache());
+        inTx(this::clearDatabase);
     }
 
     @Test
@@ -47,6 +46,18 @@ public class JpaResourceCacheImplTest extends CertificationDomainTestCase {
     }
 
     @Test
+    public void lookup_should_fail_when_production_ca_resource_are_absent() {
+        Map<CaName, ImmutableResourceSet> m = new HashMap<>();
+        m.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/8"));
+        inTx(() -> {
+            resourceCache.dropCache();
+            resourceCache.populateCache(m);
+        });
+
+        assertEquals(Optional.empty(), resourceCache.lookupResources(CaName.fromMembershipId(1)));
+        assertEquals(Optional.empty(), resourceCache.lookupResources(CaName.fromMembershipId(2)));
+    }
+    @Test
     public void testLookupAfterPopulate() {
         Map<CaName, ImmutableResourceSet> m = new HashMap<>();
         m.put(CaName.fromMembershipId(1), ImmutableResourceSet.parse("10.0.0.0/8"));
@@ -55,7 +66,7 @@ public class JpaResourceCacheImplTest extends CertificationDomainTestCase {
 
         assertEquals(Optional.of(ImmutableResourceSet.parse("10.0.0.0/8")), resourceCache.lookupResources(CaName.fromMembershipId(1)));
         assertEquals(Optional.of(ImmutableResourceSet.parse("11.0.0.0/8")), resourceCache.lookupResources(CaName.fromMembershipId(2)));
-        assertEquals(Optional.empty(), resourceCache.lookupResources(CaName.fromMembershipId(3)));
+        assertEquals(Optional.of(ImmutableResourceSet.parse("")), resourceCache.lookupResources(CaName.fromMembershipId(3)));
     }
 
 }

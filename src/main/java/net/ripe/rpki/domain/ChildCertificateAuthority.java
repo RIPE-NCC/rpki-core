@@ -32,4 +32,14 @@ public interface ChildCertificateAuthority {
         ResourceClassListResponse response,
         CertificateRequestCreationService certificateRequestCreationService
     );
+
+    /**
+     * Changes the parent of this CA. This is a dangerous operation since the child should no longer have any
+     * active certificates with the current parent and will not have any active certificates with the new parent.
+     * So the caller must ensure that any certificates are first revoked from the old parent and new certificates
+     * are re-issued by the new parent.
+     *
+     * @param newParent the new parent.
+     */
+    void switchParentTo(ParentCertificateAuthority newParent);
 }

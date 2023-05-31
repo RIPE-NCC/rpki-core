@@ -46,7 +46,7 @@ public class DeleteCertificateAuthorityCommandHandler extends AbstractCertificat
 
     @Override
     public void handle(DeleteCertificateAuthorityCommand command, CommandStatus commandStatus) {
-        final CertificateAuthority ca = lookupCA(command.getCertificateAuthorityId());
+        final CertificateAuthority ca = lookupCa(command.getCertificateAuthorityId());
 
         log.warn("deleting CA '{}' (id = {}, UUID = {})", ca.getName(), ca.getId(), ca.getUuid());
 

@@ -2,6 +2,7 @@ package net.ripe.rpki.ripencc.cache;
 
 import com.google.common.base.Preconditions;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.property.PropertyEntity;
 import net.ripe.rpki.domain.property.PropertyEntityRepository;
@@ -9,19 +10,19 @@ import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.ports.DelegationsCache;
 import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
 
@@ -43,9 +44,16 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
     }
 
     @Override
-    public DateTime lastUpdateTime() {
-        PropertyEntity entity = propertyEntityRepository.findByKey(RESOURCE_CACHE_UPDATE_KEY);
-        return entity == null ? null : getDateFormatter().parseDateTime(entity.getValue());
+    public Optional<Instant> lastUpdateTime() {
+        var entity = Optional.ofNullable(propertyEntityRepository.findByKey(RESOURCE_CACHE_UPDATE_KEY));
+        return entity.map(PropertyEntity::getValue).flatMap(value -> {
+            try {
+                return Optional.of(Instant.parse(value));
+            } catch (DateTimeParseException e) {
+                log.info("Could not parse previously stored resource cache update time of {}", value);
+                return Optional.empty();
+            }
+        });
     }
 
     @Override
@@ -119,14 +127,8 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
     }
 
     private void registerUpdateCompleted() {
-        String dateTimeString = getDateFormatter().print(new DateTime());
-        propertyEntityRepository.createOrUpdate(RESOURCE_CACHE_UPDATE_KEY, dateTimeString);
+        propertyEntityRepository.createOrUpdate(RESOURCE_CACHE_UPDATE_KEY, Instant.now().toString());
     }
-
-    private DateTimeFormatter getDateFormatter() {
-        return ISODateTimeFormat.dateTime();
-    }
-
     public void updateEntry(CaName caName, ImmutableResourceSet resources) {
         entityManager.createNativeQuery(
             "insert into resource_cache (name, resources) values (:name, :resources)\n" +
@@ -136,13 +138,6 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
             .executeUpdate();
         ResourceCacheLine cacheRecord = entityManager.find(ResourceCacheLine.class, caName.toString());
         entityManager.refresh(cacheRecord);
-    }
-
-    /**
-     * for unit testing only
-     */
-    void setEntityManager(EntityManager entityManager) {
-        this.entityManager = entityManager;
     }
 
     @Override

@@ -7,6 +7,7 @@ import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
 import org.apache.commons.lang.Validate;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nullable;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
 
@@ -19,6 +20,7 @@ public class JpaPropertyEntityRepository extends JpaRepository<PropertyEntity> i
     }
 
     @Override
+    @Nullable
     public PropertyEntity findByKey(String key) {
         Validate.notNull(key);
         Query q = createQuery("from PropertyEntity p where p.key = :key");

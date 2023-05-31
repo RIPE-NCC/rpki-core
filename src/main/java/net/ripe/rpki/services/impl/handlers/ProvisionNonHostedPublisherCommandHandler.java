@@ -33,7 +33,7 @@ public class ProvisionNonHostedPublisherCommandHandler extends AbstractCertifica
 
     @Override
     public void handle(@NonNull ProvisionNonHostedPublisherCommand command, @NonNull CommandStatus commandStatus) {
-        NonHostedCertificateAuthority ca = lookupNonHostedCA(command.getCertificateAuthorityId());
+        NonHostedCertificateAuthority ca = lookupNonHostedCa(command.getCertificateAuthorityId());
 
         UUID publisherHandle = command.getPublisherHandle();
         if (ca.getPublisherRepositories().containsKey(publisherHandle)) {

@@ -149,6 +149,12 @@ class Utils {
 
     @NonNull
     protected static ResponseEntity<Object> badRequestError(Exception e) {
-        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        return badRequestError(e.getMessage());
     }
+
+    @NonNull
+    protected static ResponseEntity<Object> badRequestError(String errorMessage) {
+        return ResponseEntity.badRequest().body(Map.of("error", errorMessage));
+    }
+
 }

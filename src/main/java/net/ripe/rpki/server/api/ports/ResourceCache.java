@@ -2,8 +2,8 @@ package net.ripe.rpki.server.api.ports;
 
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import org.joda.time.DateTime;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 
@@ -19,7 +19,7 @@ public interface ResourceCache {
      */
     Optional<ImmutableResourceSet> lookupResources(CaName member);
 
-    DateTime lastUpdateTime();
+    Optional<Instant> lastUpdateTime();
 
     boolean hasNoMemberResources();
 

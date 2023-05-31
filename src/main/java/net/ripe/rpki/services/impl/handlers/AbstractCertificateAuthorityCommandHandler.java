@@ -20,6 +20,15 @@ public abstract class AbstractCertificateAuthorityCommandHandler<T extends Certi
     }
 
     @NonNull
+    protected <U extends CertificateAuthority> U lookupCa(Class<U> type, Long id) {
+        U result = certificateAuthorityRepository.find(type, id);
+        if (result == null) {
+            throw new EntityNotFoundException(type.getSimpleName() + " not found: " + id);
+        }
+        return result;
+    }
+
+    @NonNull
     protected ManagedCertificateAuthority lookupManagedCa(Long id) {
         ManagedCertificateAuthority result = certificateAuthorityRepository.findManagedCa(id);
         if (result == null) {
@@ -29,7 +38,7 @@ public abstract class AbstractCertificateAuthorityCommandHandler<T extends Certi
     }
 
     @NonNull
-    protected NonHostedCertificateAuthority lookupNonHostedCA(Long id) {
+    protected NonHostedCertificateAuthority lookupNonHostedCa(Long id) {
         NonHostedCertificateAuthority result = certificateAuthorityRepository.findNonHostedCa(id);
         if (result == null) {
             throw new EntityNotFoundException("non-hosted CA not found: " + id);
@@ -37,7 +46,7 @@ public abstract class AbstractCertificateAuthorityCommandHandler<T extends Certi
         return result;
     }
 
-    protected CertificateAuthority lookupCA(Long id) {
+    protected CertificateAuthority lookupCa(Long id) {
         return certificateAuthorityRepository.get(id);
     }
 

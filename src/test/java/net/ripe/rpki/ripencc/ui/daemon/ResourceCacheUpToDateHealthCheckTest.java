@@ -4,8 +4,6 @@ import net.ripe.rpki.commons.FixedDateRule;
 import net.ripe.rpki.ripencc.ui.daemon.health.Health;
 import net.ripe.rpki.ripencc.ui.daemon.health.checks.ResourceCacheUpToDateHealthCheck;
 import net.ripe.rpki.services.impl.background.ResourceCacheService;
-import org.joda.time.DateTime;
-import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -14,16 +12,17 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Optional;
+import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ResourceCacheUpToDateHealthCheckTest {
-
-    @Rule public FixedDateRule rule = new FixedDateRule(new DateTime());
-
     @Mock(answer = Answers.RETURNS_MOCKS)
     private ResourceCacheService resourceCacheService;
 
@@ -36,27 +35,29 @@ public class ResourceCacheUpToDateHealthCheckTest {
 
     @Test
     public void should_be_healthy_if_cache_was_not_updated_for_less_than_configured_time() {
-        DateTime oneMillisecondBeforeThreshold = new DateTime().plusMillis(1).minus(ResourceCacheUpToDateHealthCheck.MAX_DURATION_FOR_CACHE_UPDATE);
+        // There is no elegant way to override instants created deep in our code w/o using DI or our own wrapper
+        // so take a larger time distance
+        var oneMillisecondBeforeThreshold = Instant.now().plusSeconds(1).minus(ResourceCacheUpToDateHealthCheck.MAX_DURATION_FOR_CACHE_UPDATE);
 
-        when(resourceCacheService.getLastUpdatedAt()).thenReturn(oneMillisecondBeforeThreshold);
+        when(resourceCacheService.getLastUpdatedAt()).thenReturn(Optional.of(oneMillisecondBeforeThreshold));
 
         Health.Status check = subject.check();
 
         assertThat(check.isHealthy()).isTrue();
-        assertThat(check.message).startsWith("last updated 32 minutes and 59 seconds ago");
+        assertThat(check.message).startsWith("last updated PT32M59S ago");
     }
 
     @Test
     public void should_be_unhealthy_if_cache_was_not_updated_for_8_or_more_hours() {
-        DateTime someTimeAgo = new DateTime().minus(ResourceCacheUpToDateHealthCheck.MAX_DURATION_FOR_CACHE_UPDATE);
+        var someTimeAgo = Instant.now().minus(ResourceCacheUpToDateHealthCheck.MAX_DURATION_FOR_CACHE_UPDATE);
 
-        when(resourceCacheService.getLastUpdatedAt()).thenReturn(someTimeAgo);
+        when(resourceCacheService.getLastUpdatedAt()).thenReturn(Optional.of(someTimeAgo));
 
         Health.Status check = subject.check();
         assertThat(check.isHealthy()).isFalse();
         assertThat(check.isWarning()).isTrue();
 
-        assertThat(check.message).startsWith("last updated 33 minutes ago");
+        assertThat(check.message).startsWith("last updated PT33M ago");
 
         when(resourceCacheService.getUpdateLastAttemptedAt()).thenReturn(Optional.of(Instant.now()));
         check = subject.check();

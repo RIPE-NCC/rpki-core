@@ -29,7 +29,7 @@ public class ProvisioningCertificateRevocationCommandHandler extends AbstractCer
 
     @Override
     public void handle(@NonNull ProvisioningCertificateRevocationCommand command, @NonNull CommandStatus commandStatus) {
-        final NonHostedCertificateAuthority nonHostedCa = lookupNonHostedCA(command.getCertificateAuthorityId());
+        final NonHostedCertificateAuthority nonHostedCa = lookupNonHostedCa(command.getCertificateAuthorityId());
 
         PublicKeyEntity publicKeyEntity = nonHostedCa.findPublicKeyEntityByPublicKey(command.getPublicKey())
             .orElseThrow(() -> new CommandWithoutEffectException(command));

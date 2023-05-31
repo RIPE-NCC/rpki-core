@@ -13,6 +13,8 @@ import org.quartz.Trigger;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -99,6 +101,9 @@ public class BackgroundServices {
     @Inject
     private Map<String, BackgroundService> allServices;
 
+    @Inject
+    private Environment springEnvironment;
+
     @PostConstruct
     private void scheduleAll() throws SchedulerException {
         if (!scheduleEnable) {
@@ -153,17 +158,20 @@ public class BackgroundServices {
                 futureDate(10, SECOND),
                 repeat().withIntervalInHours(riswhoisdumpUpdateIntervalHours));
 
-        schedule(ROA_ALERT_BACKGROUND_SERVICE,
-                futureDate(1, HOUR),
-                dailyAtHourAndMinute(23, 23));
-
-        schedule(ROA_ALERT_BACKGROUND_SERVICE_WEEKLY,
-                futureDate(1, HOUR),
-                weeklyOnDayAndHourAndMinute(2,23, 23));
-
         schedule(RESOURCE_CACHE_UPDATE_SERVICE,
                 futureDate(3, MINUTE),
                 repeat().withIntervalInMinutes(15));
+
+        // Do not enable email in local or pilot environment
+        if (!springEnvironment.acceptsProfiles(Profiles.of("pilot", "local"))) {
+            schedule(ROA_ALERT_BACKGROUND_SERVICE,
+                    futureDate(1, HOUR),
+                    dailyAtHourAndMinute(23, 23));
+
+            schedule(ROA_ALERT_BACKGROUND_SERVICE_WEEKLY,
+                    futureDate(1, HOUR),
+                    weeklyOnDayAndHourAndMinute(2, 23, 23));
+        }
     }
 
     private static SimpleScheduleBuilder repeat() {

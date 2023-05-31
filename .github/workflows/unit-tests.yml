@@ -9,7 +9,7 @@ jobs:
     # runs-on: gradle:7.5.1-jdk8
     services:
       postgres:
-        image: postgres:12.14
+        image: postgres:12.15
         env:
           POSTGRES_USER: certdb
           POSTGRES_PASSWORD: certdb

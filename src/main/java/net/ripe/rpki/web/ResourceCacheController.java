@@ -80,8 +80,8 @@ public class ResourceCacheController extends BaseController {
                     .collect(toSortedMap(Map.Entry::getKey, Map.Entry::getValue, caNameComparator)))
                 .orElse(new TreeMap<>(caNameComparator));
 
-            this.lastUpdatedAt = resourceStat.getLastUpdatedAt().map(t -> Instant.ofEpochMilli(t.getMillis()));
-            this.updateLastAttemptedAt = resourceStat.getUpdateLastAttemptedAt().map(t -> Instant.ofEpochMilli(t.getMillis()));
+            this.lastUpdatedAt = resourceStat.getLastUpdatedAt();
+            this.updateLastAttemptedAt = resourceStat.getUpdateLastAttemptedAt();
             this.expectedForceUpdateVerificationCode = resourceStat.expectedForceUpdateVerificationCode();
         }
     }

@@ -3,7 +3,6 @@ package net.ripe.rpki.services.impl.background;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.Getter;
 import net.ripe.ipresource.ImmutableResourceSet;
-import net.ripe.rpki.commons.FixedDateRule;
 import net.ripe.rpki.core.services.background.SequentialBackgroundQueuedTaskRunner;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.ports.DelegationsCache;
@@ -11,11 +10,11 @@ import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient.*;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import org.joda.time.DateTime;
-import org.joda.time.Instant;
+import org.assertj.core.data.TemporalOffset;
+import org.assertj.core.data.TemporalUnitOffset;
+import org.assertj.core.data.TemporalUnitWithinOffset;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -28,8 +27,11 @@ import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.security.auth.x500.X500Principal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -48,8 +50,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ResourceCacheServiceTest {
-    @Rule
-    public FixedDateRule rule = new FixedDateRule(new DateTime());
+    private Clock clock;
 
     private final TransactionOperationsSpy transactionTemplate = new TransactionOperationsSpy();
 
@@ -70,6 +71,7 @@ public class ResourceCacheServiceTest {
         TransactionSynchronizationManager.initSynchronization();
         subject = new ResourceCacheService(transactionTemplate, resourceServicesClient, resourceCache, delegationsCache,
             sequentialBackgroundQueuedTaskRunner, allCaCertificateUpdateServiceBean, new X500Principal("CN=666"), new X500Principal("CN=123"), new SimpleMeterRegistry());
+        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
     }
 
     @After
@@ -85,7 +87,8 @@ public class ResourceCacheServiceTest {
 
         subject.updateFullResourceCache();
 
-        assertThat(subject.getUpdateLastAttemptedAt()).hasValue(Instant.now());
+        assertThat(subject.getUpdateLastAttemptedAt().get())
+                .isCloseTo(Instant.now(), new TemporalUnitWithinOffset(3, ChronoUnit.SECONDS));
     }
 
     @Test
@@ -171,7 +174,7 @@ public class ResourceCacheServiceTest {
 
         resourceCache.populateCache(memberResources.getCertifiableResources());
         delegationsCache.cacheDelegations(ripeNccDelegations.allDelegationResources());
-        DateTime lastUpdate = resourceCache.lastUpdateTime();
+        Optional<Instant> lastUpdate = resourceCache.lastUpdateTime();
 
         final MemberResources resourcesToReject = DataSamples.rejectedMemberResources();
         when(resourceServicesClient.fetchAllResources()).thenReturn(
@@ -182,7 +185,7 @@ public class ResourceCacheServiceTest {
         final ImmutableResourceSet expectedValue = DataSamples.ripeNccDelegations(resourcesToReject).allDelegationResources();
         assertThat(delegationsCache.getDelegationsCache()).hasValue(expectedValue);
         assertThat(resourceCache.allMemberResources()).isEqualTo(resourcesToReject.getCertifiableResources());
-        assertThat(resourceCache.lastUpdateTime()).isGreaterThan(lastUpdate);
+        assertThat(resourceCache.lastUpdateTime().get()).isAfter(lastUpdate.get());
         assertThat(transactionTemplate.getCommits()).isOne();
         assertThat(transactionTemplate.getRollbacks()).isZero();
     }
@@ -191,7 +194,7 @@ public class ResourceCacheServiceTest {
     public void shouldFailIfInternetResourceServicesIsNotAvailable() {
         when(resourceServicesClient.fetchAllResources()).thenThrow(new RuntimeException("test"));
         subject.updateFullResourceCache();
-        assertThat(resourceCache.lastUpdateTime().getMillis()).isZero();
+        assertThat(resourceCache.lastUpdateTime()).isEmpty();
         assertThat(transactionTemplate.getExecutes()).isZero();
     }
 
@@ -199,7 +202,7 @@ public class ResourceCacheServiceTest {
     public void shouldProcessExceptions() {
         when(resourceServicesClient.fetchAllResources()).thenThrow(new RuntimeException("RSNG BRKN"));
         subject.updateFullResourceCache();
-        assertThat(resourceCache.lastUpdateTime().getMillis()).isZero();
+        assertThat(resourceCache.lastUpdateTime()).isEmpty();
         assertThat(transactionTemplate.getCommits()).isZero();
         assertThat(transactionTemplate.getRollbacks()).isZero();
     }
@@ -408,7 +411,7 @@ public class ResourceCacheServiceTest {
 
     private static class InMemoryResourceCache implements ResourceCache {
         private final AtomicReference<Map<CaName, ImmutableResourceSet>> cache = new AtomicReference<>(emptyMap());
-        private final AtomicLong lastUpdate = new AtomicLong(0L);
+        private final AtomicReference<Optional<Instant>> lastUpdate = new AtomicReference<>(Optional.empty());
 
         private final CaName productionCaName;
 
@@ -427,8 +430,8 @@ public class ResourceCacheServiceTest {
         }
 
         @Override
-        public DateTime lastUpdateTime() {
-            return new DateTime(lastUpdate.get());
+        public Optional<Instant> lastUpdateTime() {
+            return lastUpdate.get();
         }
 
         @Override
@@ -441,7 +444,7 @@ public class ResourceCacheServiceTest {
         @Override
         public void populateCache(Map<CaName, ImmutableResourceSet> certifiableResources) {
             this.cache.set(certifiableResources);
-            this.lastUpdate.set(System.currentTimeMillis());
+            this.lastUpdate.set(Optional.of(Instant.now()));
         }
 
         @Override

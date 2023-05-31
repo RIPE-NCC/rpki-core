@@ -1,5 +1,6 @@
 package net.ripe.rpki.services.impl.background;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.hash.Hashing;
@@ -21,8 +22,6 @@ import net.ripe.rpki.server.api.ports.ResourceServicesClient;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import net.ripe.rpki.util.JdbcDBComponent;
 import org.joda.time.DateTime;
-import org.joda.time.Instant;
-import org.joda.time.base.AbstractInstant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,6 +30,7 @@ import org.springframework.transaction.support.TransactionOperations;
 
 import javax.security.auth.x500.X500Principal;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -84,13 +84,8 @@ public class ResourceCacheService {
         this.productionCaName = CaName.of(productionCaName);
         this.allResourcesCaName = CaName.of(allResourcesCaName);
 
-        final Instant lastUpdateTimeFromDatabase = Optional
-            .ofNullable(resourceCache.lastUpdateTime())
-            .map(AbstractInstant::toInstant)
-            .orElse(null);
-
         resourceStats = new AtomicReference<>(new ResourceStat(
-            Optional.ofNullable(lastUpdateTimeFromDatabase),
+            resourceCache.lastUpdateTime(),
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
@@ -108,7 +103,7 @@ public class ResourceCacheService {
         return resourceStats.get();
     }
 
-    public DateTime getLastUpdatedAt() {
+    public Optional<Instant> getLastUpdatedAt() {
         return resourceCache.lastUpdateTime();
     }
 
@@ -116,7 +111,12 @@ public class ResourceCacheService {
         updateFullResourceCache(Optional.empty());
     }
 
-    public void updateFullResourceCache(Optional<String> forceUpdateCode) {
+    /**
+     *
+     * @param forceUpdateCode code to force a big change to be accepted
+     * @return whether update was applied.
+     */
+    public boolean updateFullResourceCache(Optional<String> forceUpdateCode) {
         ResourceServicesClient.TotalResources allResources;
         try {
             allResources = resourceServicesClient.fetchAllResources();
@@ -124,14 +124,14 @@ public class ResourceCacheService {
             log.error("The RIPE NCC internet resources REST API is not available", e);
             resourceCacheServiceMetrics.onMemberCacheException();
             resourceCacheServiceMetrics.onDelegationsUpdateException();
-            return;
+            return false;
         } finally {
             // Update this field after the attempt was completed (successfully or not) so that a WARN situation
             // does not temporarily turn into an ERROR situation (see ResourceCacheUpToDateHealthCheck).
             this.resourceStats.getAndUpdate(x -> x.withUpdateLastAttemptedAt(Optional.of(Instant.now())));
         }
 
-        transactionTemplate.executeWithoutResult(status -> {
+        return transactionTemplate.execute(status -> {
             final Update productionUpdate = productionResourcesUpdate(allResources.allDelegationResources());
             final Update membersUpdate = memberResourcesUpdate(allResources.getAllMembersResources());
 
@@ -166,7 +166,9 @@ public class ResourceCacheService {
                 // otherwise we could just return early before interpreting the updates.
                 status.setRollbackOnly();
                 log.error("Resource cache update rolled back since force update was not specified or verification code did not match {}", expectedForceUpdateVerificationCode);
+                return false;
             }
+            return true;
         });
     }
 
@@ -454,6 +456,7 @@ public class ResourceCacheService {
         Optional<Rejection> delegationUpdateRejection;
         Optional<Rejection> resourceUpdateRejection;
 
+        @JsonProperty("updateVerificationCode")
         public String expectedForceUpdateVerificationCode() {
             String s = delegationUpdateRejection.map(Rejection::getMessage).orElse("") + ":" + resourceUpdateRejection.map(Rejection::getMessage).orElse("");
             var hash = Hashing.sha256().hashString(s, StandardCharsets.UTF_8);
@@ -643,7 +646,7 @@ public class ResourceCacheService {
         }
 
         private static ToDoubleFunction<AtomicReference<ResourceStat>> getLastUpdated() {
-            return rs -> Optional.ofNullable(rs.get()).flatMap(x -> x.lastUpdatedAt).map(x -> x.getMillis() / 1000.0).orElse(Double.NaN);
+            return rs -> Optional.ofNullable(rs.get()).flatMap(x -> x.lastUpdatedAt).map(x -> x.toEpochMilli()/1000.0).orElse(Double.NaN);
         }
 
         private static double resourceSetSizeDouble(ImmutableResourceSet ipr) {

@@ -92,6 +92,11 @@ public abstract class CertificateAuthority extends AggregateRoot implements Chil
 
     public abstract Optional<ManagedCertificateAuthority> asManagedCertificateAuthority();
 
+    @Override
+    public void switchParentTo(ParentCertificateAuthority newParent) {
+        this.parent = newParent;
+    }
+
     /**
      * Calculates the depth of this CA in the CA hierarchy (in other words, it is the length of the parent
      * chain).

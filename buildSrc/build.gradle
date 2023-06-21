@@ -14,5 +14,5 @@ dependencies {
         exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit'
     }
     implementation 'org.eclipse.jgit:org.eclipse.jgit:5.13.0.202109080827-r'
-    implementation 'org.sonarqube:org.sonarqube.gradle.plugin:4.0.0.2929'
+    implementation 'org.sonarqube:org.sonarqube.gradle.plugin:4.2.1.3168'
 }

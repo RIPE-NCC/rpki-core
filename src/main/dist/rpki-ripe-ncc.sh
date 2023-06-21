@@ -27,7 +27,12 @@ case "$APPLICATION_ENVIRONMENT" in
         LOG_DIR="../logs"
         ;;
     prepdev)
-        ENV_OPTS=("-Xms8g" "-Xmx8g" "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005")
+        ENV_OPTS=("-Xms8g" "-Xmx8g"
+            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+            "-javaagent:opentelemetry-javaagent-1.26.0.jar"
+            "-Dotel.javaagent.configuration-file=/cert/shared/opentelemetry-java-agent.conf"
+            "-Dotel.resource.attributes=service.name=rpki-core,deployment.environment=${APPLICATION_ENVIRONMENT}"
+            )
         HSM_OPTS=("-Dprotect=module" "-DignorePassphrase=true")
         LOG_DIR="../logs"
         ;;

@@ -61,8 +61,8 @@ management:
         health.probes.enabled: true
         health.enabled: true
     health:
-        readinessstate.enabled: true
-        livenessstate.enabled: true
+        readinessState.enabled: true
+        livenessState.enabled: true
 
 #
 # Third party spring managed components

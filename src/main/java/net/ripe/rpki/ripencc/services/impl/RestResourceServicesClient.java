@@ -3,6 +3,7 @@ package net.ripe.rpki.ripencc.services.impl;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.rest.security.ApiKeySecurity;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
@@ -75,7 +76,7 @@ class RestResourceServicesClient implements ResourceServicesClient {
         log.info("HTTP GET " + webResource.getUri());
         try (
             Response clientResponse = webResource.request(MediaType.APPLICATION_JSON_TYPE)
-                .header("X-API_KEY", apiKey)
+                .header(ApiKeySecurity.API_KEY_HEADER, apiKey)
                 .get()
         ) {
             if (clientResponse.getStatus() != 200) {

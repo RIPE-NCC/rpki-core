@@ -17,6 +17,9 @@ resource.services.url: https://rsng.ripe.net/resource-services
 #
 # Application specific settings
 #
+mail.template.parameters:
+    rpkiDashboardUri: "https://localcert.ripe.net/#/rpki"
+
 key.management.data:
     archive.directory: /cert/hsmkeys/shared-keys.archive
     directory: /cert/hsmkeys/shared-keys

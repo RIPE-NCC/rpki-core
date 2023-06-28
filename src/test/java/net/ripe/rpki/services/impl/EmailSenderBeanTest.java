@@ -42,7 +42,7 @@ public class EmailSenderBeanTest {
     public void setUp() {
         messageCapture = ArgumentCaptor.forClass(SimpleMailMessage.class);
 
-        subject = new EmailSenderBean(mailSender);
+        subject = new EmailSenderBean(mailSender, "http://localhost/unit-testing");
 
         System.setProperty(Environment.APPLICATION_ENVIRONMENT_KEY, "junit");
     }

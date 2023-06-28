@@ -68,7 +68,7 @@ public class RoaAlertCheckerTest {
 
     @Before
     public void setup() {
-        EmailSender emailSenderBean = new EmailSenderBean(mailSender);
+        EmailSender emailSenderBean = new EmailSenderBean(mailSender, "https://my.ripe.net/#/rpki");
         subject = new RoaAlertChecker(roaService, bgpRisEntryRepository, internalNamePresenter, emailSenderBean, new SimpleMeterRegistry());
 
         System.setProperty(Environment.APPLICATION_ENVIRONMENT_KEY, "junit");
@@ -112,7 +112,7 @@ public class RoaAlertCheckerTest {
             "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
             "You are able to fix and ignore reported issues, change your alert\n" +
-            "settings, or unsubscribe by visiting https://my.ripe.net/#/rpki .\n";
+            "settings, or unsubscribe by visiting https://my.ripe.net/#/rpki.\n";
 
         assertEquals("Resource Certification (RPKI) alerts for zz.example", capturedMessage.getValue().getSubject());
         assertEquals(expected, capturedMessage.getValue().getText());
@@ -155,7 +155,7 @@ public class RoaAlertCheckerTest {
             "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
             "You are able to fix and ignore reported issues, change your alert\n" +
-            "settings, or unsubscribe by visiting https://my.ripe.net/#/rpki .\n";
+            "settings, or unsubscribe by visiting https://my.ripe.net/#/rpki.\n";
 
         assertEquals("Resource Certification (RPKI) alerts for zz.example", capturedMessage.getValue().getSubject());
         assertEquals(expected, capturedMessage.getValue().getText());
@@ -216,7 +216,7 @@ public class RoaAlertCheckerTest {
             "\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
             "You are able to fix and ignore reported issues, change your alert\n" +
-            "settings, or unsubscribe by visiting https://my.ripe.net/#/rpki .\n";
+            "settings, or unsubscribe by visiting https://my.ripe.net/#/rpki.\n";
 
         assertEquals("Resource Certification (RPKI) alerts for zz.example", capturedMessage.getValue().getSubject());
         assertEquals(expected, capturedMessage.getValue().getText());

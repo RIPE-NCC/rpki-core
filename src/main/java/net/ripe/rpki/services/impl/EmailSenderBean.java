@@ -4,6 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.server.api.configuration.Environment;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
@@ -14,8 +15,8 @@ import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.thymeleaf.templateresolver.ITemplateResolver;
 
-import java.io.StringWriter;
 import java.util.Map;
+import java.util.TreeMap;
 
 @Component
 @Slf4j
@@ -26,16 +27,20 @@ public class EmailSenderBean implements EmailSender {
     private final SimpleMailMessage templateMessage;
 
     private final TemplateEngine templateEngine;
+    private final Map<String, Object> defaultParameters = new TreeMap<>();
 
     @Autowired
-    public EmailSenderBean(MailSender mailSender) {
+    public EmailSenderBean(MailSender mailSender, @Value("${mail.template.parameters.rpkiDashboardUri}") String rpkiDashboardUri) {
         this.mailSender = mailSender;
+        this.defaultParameters.put("rpkiDashboardUri", rpkiDashboardUri);
 
         this.templateMessage = new SimpleMailMessage();
         templateMessage.setFrom("noreply@ripe.net");
 
         templateEngine = new TemplateEngine();
         templateEngine.addTemplateResolver(textTemplateResolver());
+
+        log.debug("configured email sender with default parameters: {}", defaultParameters);
     }
 
     @VisibleForTesting
@@ -70,6 +75,7 @@ public class EmailSenderBean implements EmailSender {
 
     private String renderTemplate(String nameOfTemplate, Map<String, Object> parameters) {
         Context context = new Context();
+        context.setVariables(this.defaultParameters);
         context.setVariables(parameters);
 
         return templateEngine.process(nameOfTemplate, context);

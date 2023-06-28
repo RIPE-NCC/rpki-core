@@ -46,4 +46,4 @@ alerts have been muted.[/]
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 You are able to fix and ignore reported issues, change your alert
-settings, or unsubscribe by visiting https://my.ripe.net/#/rpki .
+settings, or unsubscribe by visiting [[${rpkiDashboardUri}]].

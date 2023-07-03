@@ -235,7 +235,7 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
     @Override
     public ImmutableResourceSet findCurrentOutgoingResourceCertificateResources(X500Principal caName) {
         return manager.createQuery(
-                "SELECT rc.resources " +
+                "SELECT rc.resourceExtension.resources " +
                     "  FROM ManagedCertificateAuthority ca JOIN ca.keyPairs kp," +
                     "       OutgoingResourceCertificate rc " +
                     " WHERE rc.status = :current " +

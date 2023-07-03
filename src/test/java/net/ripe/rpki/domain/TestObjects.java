@@ -6,11 +6,8 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.provisioning.x509.pkcs10.RpkiCaCertificateRequestBuilder;
-import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.domain.inmemory.InMemoryResourceCertificateRepository;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
-import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
-import net.ripe.rpki.domain.signing.CertificateRequestCreationServiceBean;
 import net.ripe.rpki.hsm.Keys;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.util.SerialNumberSupplier;
@@ -26,7 +23,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.PublicKey;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -186,25 +182,29 @@ public class TestObjects {
     }
 
     public static ProductionCertificateAuthority createInitialisedProdCaWithRipeResources(ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration) {
-        CertificateRequestCreationService certificateRequestCreationService = new CertificateRequestCreationServiceBean(certificationConfiguration, null);
         ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, UUID.randomUUID(), null);
-        KeyPairEntity kp = createActiveKeyPair("TEST-KEY");
-
-        ca.addKeyPair(kp);
-
-        issueSelfSignedCertificate(resourceCertificateRepository, certificationConfiguration, certificateRequestCreationService, ca, kp);
-
-        Validate.isTrue(kp.isCurrent());
-
+        createInitialisedKeyPair(resourceCertificateRepository, certificationConfiguration, ca, "TEST-KEY");
+        Validate.isTrue(ca.hasCurrentKeyPair());
         return ca;
     }
 
-    static void issueSelfSignedCertificate(ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration, CertificateRequestCreationService certificateRequestCreationService, ProductionCertificateAuthority ca, KeyPairEntity kp) {
-        List<SigningRequest> signingRequests = certificateRequestCreationService.requestProductionCertificates(PRODUCTION_CA_RESOURCES, ca);
-        SigningRequest request = signingRequests.get(0);
-        CertificateIssuanceResponse response = makeSelfSignedCertificate(resourceCertificateRepository, certificationConfiguration, kp,
-            request.getResourceCertificateRequest().getSubjectDN(), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES);
-        ca.processCertificateIssuanceResponse(response, resourceCertificateRepository);
+    static KeyPairEntity createInitialisedKeyPair(ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration, ProductionCertificateAuthority ca, String name) {
+        KeyPairEntity kp = createTestKeyPair(name);
+        ca.addKeyPair(kp);
+        issueSelfSignedCertificates(resourceCertificateRepository, certificationConfiguration, ca);
+        return kp;
+    }
+
+    static void issueSelfSignedCertificates(ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration, ProductionCertificateAuthority ca) {
+        for (KeyPairEntity kp : ca.getKeyPairs()) {
+            if (kp.findCurrentIncomingCertificate().isEmpty()) {
+                ResourceCertificateInformationAccessStrategy ias = new ResourceCertificateInformationAccessStrategyBean();
+                var subjectDN = ias.caCertificateSubject(kp.getPublicKey());
+                CertificateIssuanceResponse response = makeSelfSignedCertificate(resourceCertificateRepository, certificationConfiguration, kp,
+                    subjectDN, ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES);
+                ca.processCertificateIssuanceResponse(response, resourceCertificateRepository);
+            }
+        }
     }
 
     static CertificateIssuanceResponse makeSelfSignedCertificate(ResourceCertificateRepository resourceCertificateRepository,

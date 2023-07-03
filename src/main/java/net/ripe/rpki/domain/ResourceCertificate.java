@@ -3,7 +3,6 @@ package net.ripe.rpki.domain;
 import lombok.Getter;
 import lombok.NonNull;
 import net.ripe.ipresource.ImmutableResourceSet;
-import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
@@ -22,7 +21,6 @@ import javax.validation.constraints.NotNull;
 import java.math.BigInteger;
 import java.net.URI;
 import java.security.PublicKey;
-import java.util.EnumSet;
 
 import static java.util.Objects.requireNonNull;
 
@@ -46,19 +44,9 @@ public abstract class ResourceCertificate extends EntitySupport {
     @Getter
     private BigInteger serial;
 
-    @Column(name = "asn_inherited", nullable = false)
-    private boolean asnInherited;
-
-    @Column(name = "ipv4_inherited", nullable = false)
-    private boolean ipv4Inherited;
-
-    @Column(name = "ipv6_inherited", nullable = false)
-    private boolean ipv6Inherited;
-
     @NotNull
-    @Column(nullable = false)
-    @Getter
-    private ImmutableResourceSet resources;
+    @Embedded
+    private EmbeddedResourceExtension resourceExtension;
 
     @NotNull
     @Column(nullable = false)
@@ -105,24 +93,11 @@ public abstract class ResourceCertificate extends EntitySupport {
         updateCertificate(certificate);
     }
 
-    @PostLoad
-    private void updateInheritedFlags() {
-        // Previously manifest certificates used inherited resources and the `resources` field was empty
-        if (resources.isEmpty()) {
-            asnInherited = true;
-            ipv4Inherited = true;
-            ipv6Inherited = true;
-        }
-    }
-
     protected void updateCertificate(X509ResourceCertificate certificate) {
         this.serial = certificate.getCertificate().getSerialNumber();
         this.subject = certificate.getSubject();
         this.issuer = certificate.getIssuer();
-        this.asnInherited = certificate.isResourceTypesInherited(EnumSet.of(IpResourceType.ASN));
-        this.ipv4Inherited = certificate.isResourceTypesInherited(EnumSet.of(IpResourceType.IPv4));
-        this.ipv6Inherited = certificate.isResourceTypesInherited(EnumSet.of(IpResourceType.IPv6));
-        this.resources = certificate.resources();
+        this.resourceExtension = new EmbeddedResourceExtension(certificate.getResourceExtension());
         this.subjectPublicKey = certificate.getPublicKey();
         this.encodedSubjectPublicKey = certificate.getPublicKey().getEncoded();
         this.validityPeriod = new EmbeddedValidityPeriod(certificate.getValidityPeriod());
@@ -134,12 +109,12 @@ public abstract class ResourceCertificate extends EntitySupport {
         return id;
     }
 
+    public @NonNull ImmutableResourceSet getResources() {
+        return resourceExtension.getResources();
+    }
+
     public @NonNull ResourceExtension getResourceExtension() {
-        var inherited = EnumSet.noneOf(IpResourceType.class);
-        if (asnInherited) inherited.add(IpResourceType.ASN);
-        if (ipv4Inherited) inherited.add(IpResourceType.IPv4);
-        if (ipv6Inherited) inherited.add(IpResourceType.IPv6);
-        return ResourceExtension.of(inherited, resources);
+        return resourceExtension.getResourceExtension();
     }
 
     public ValidityPeriod getValidityPeriod() {

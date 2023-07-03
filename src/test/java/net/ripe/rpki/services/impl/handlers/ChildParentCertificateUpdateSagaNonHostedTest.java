@@ -232,7 +232,7 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
         URI publicationUri1 = findCurrentResourceCertificate(child).get().getPublicationUri();
 
         KeyPairEntity oldKeyPair = parent.getCurrentKeyPair();
-        KeyPairEntity newKeyPair = createInitialisedProductionCaKeyPair(certificateRequestCreationService, parent, "NEW-KEY");
+        KeyPairEntity newKeyPair = createInitialisedProductionCaKeyPair(parent, "NEW-KEY");
 
         assertThat(newKeyPair.getStatus()).isEqualTo(KeyPairStatus.PENDING);
         assertChildParentInvariants(child, parent);

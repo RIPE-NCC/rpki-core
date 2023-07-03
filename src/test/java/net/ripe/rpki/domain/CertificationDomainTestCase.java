@@ -149,14 +149,8 @@ public abstract class CertificationDomainTestCase {
         return ca;
     }
 
-    public KeyPairEntity createInitialisedProductionCaKeyPair(CertificateRequestCreationService certificateRequestCreationService, ProductionCertificateAuthority ca, String keyPairName) {
-        KeyPairEntity kp = TestObjects.createTestKeyPair(keyPairName);
-        ca.addKeyPair(kp);
-        certificateAuthorityRepository.add(ca);
-
-        TestObjects.issueSelfSignedCertificate(resourceCertificateRepository, repositoryConfiguration, certificateRequestCreationService, ca, kp);
-
-        return kp;
+    public KeyPairEntity createInitialisedProductionCaKeyPair(ProductionCertificateAuthority ca, String keyPairName) {
+        return TestObjects.createInitialisedKeyPair(resourceCertificateRepository, repositoryConfiguration, ca, keyPairName);
     }
 
     protected void inTx(Runnable r) {

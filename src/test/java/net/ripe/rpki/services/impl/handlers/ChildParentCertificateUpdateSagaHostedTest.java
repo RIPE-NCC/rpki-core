@@ -330,7 +330,7 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
         URI publicationUri1 = child.getCurrentIncomingCertificate().getPublicationUri();
 
         KeyPairEntity oldKeyPair = parent.getCurrentKeyPair();
-        KeyPairEntity newKeyPair = createInitialisedProductionCaKeyPair(certificateRequestCreationService, parent, "NEW-KEY");
+        KeyPairEntity newKeyPair = createInitialisedProductionCaKeyPair(parent, "NEW-KEY");
 
         assertThat(newKeyPair.getStatus()).isEqualTo(KeyPairStatus.PENDING);
         assertChildParentInvariants(child, parent);

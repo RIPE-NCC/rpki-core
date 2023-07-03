@@ -1,16 +1,12 @@
 package net.ripe.rpki.domain;
 
 
-import net.ripe.rpki.commons.crypto.ValidityPeriod;
-import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
-import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationServiceBean;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
-import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -68,30 +64,5 @@ public class AllResourcesCertificateAuthorityTest  {
         List<TaRequest> taRequests = trustAnchorRequest.getTaRequests();
         assertEquals(1, taRequests.size());
         assertTrue(taRequests.get(0) instanceof SigningRequest);
-    }
-
-    @Test
-    public void shouldNotRequestIncomingCertificateIfTheCurrentOneIsSatisfactory() {
-        IncomingResourceCertificate currentCertificate = TestObjects.createResourceCertificate(
-            123L,
-            kp,
-            new ValidityPeriod(new DateTime().minusYears(2), new DateTime().plusYears(5).plusMinutes(1)),
-            Resources.ALL_RESOURCES,
-            createSia()
-        );
-        kp.updateIncomingResourceCertificate(new CertificateIssuanceResponse(currentCertificate.getCertificate(), currentCertificate.getPublicationUri()));
-
-        allResourcesCa.processCertifiableResources(keyPairService, certificateRequestCreationService);
-        TrustAnchorRequest trustAnchorRequest = allResourcesCa.getUpStreamCARequestEntity().getUpStreamCARequest();
-        assertEquals(0, trustAnchorRequest.getTaRequests().size());
-    }
-
-    private X509CertificateInformationAccessDescriptor[] createSia() {
-        return new X509CertificateInformationAccessDescriptor[]{
-                new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_CA_REPOSITORY,
-                        BASE_URI),
-                new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST,
-                        BASE_URI.resolve(kp.getManifestFilename())),
-        };
     }
 }

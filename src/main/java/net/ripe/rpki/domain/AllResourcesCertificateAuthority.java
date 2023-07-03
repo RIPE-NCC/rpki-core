@@ -51,7 +51,7 @@ public class AllResourcesCertificateAuthority extends ManagedCertificateAuthorit
             createNewKeyPair(keyPairService);
         }
         final List<TaRequest> signingRequests = new ArrayList<>(
-                certificateRequestCreationService.requestProductionCertificates(Resources.ALL_RESOURCES, this));
+                certificateRequestCreationService.requestAllResourcesCertificate(this));
 
         final TrustAnchorRequest trustAnchorRequest = certificateRequestCreationService.createTrustAnchorRequest(signingRequests);
         setUpStreamCARequestEntity(new UpStreamCARequestEntity(this, trustAnchorRequest));

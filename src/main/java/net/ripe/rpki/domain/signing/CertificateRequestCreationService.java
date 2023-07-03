@@ -1,10 +1,10 @@
 package net.ripe.rpki.domain.signing;
 
-import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
+import net.ripe.rpki.domain.AllResourcesCertificateAuthority;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
@@ -25,8 +25,7 @@ public interface CertificateRequestCreationService {
 
     List<CertificateIssuanceRequest> createCertificateIssuanceRequestForAllKeys(ManagedCertificateAuthority ca, ResourceExtension resourceExtension);
 
-    List<SigningRequest> requestProductionCertificates(ImmutableResourceSet certifiableResources,
-                                                       ManagedCertificateAuthority ca);
+    List<SigningRequest> requestAllResourcesCertificate(AllResourcesCertificateAuthority ca);
 
     List<CertificateRevocationRequest> createCertificateRevocationRequestForAllKeys(ManagedCertificateAuthority ca);
 

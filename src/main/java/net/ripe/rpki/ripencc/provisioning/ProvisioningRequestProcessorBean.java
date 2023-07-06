@@ -11,7 +11,6 @@ import net.ripe.rpki.commons.provisioning.payload.error.RequestNotPerformedRespo
 import net.ripe.rpki.commons.provisioning.payload.issue.request.CertificateIssuanceRequestPayload;
 import net.ripe.rpki.commons.provisioning.payload.list.request.ResourceClassListQueryPayload;
 import net.ripe.rpki.commons.provisioning.payload.revocation.request.CertificateRevocationRequestPayload;
-import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
@@ -136,7 +135,7 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
         try {
             return UUID.fromString(uuid);
         } catch (IllegalArgumentException e) {
-            throw new ProvisioningException(ResponseExceptionType.BAD_SENDER_AND_RECIPIENT);
+            throw new ProvisioningException.BadSenderAndRecipient(uuid);
         }
     }
 
@@ -148,7 +147,7 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
     private void validateRecipientIsProductionCA(UUID recipientUUID) {
         CertificateAuthorityData recipient = certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(ProductionCertificateAuthority.class, recipientUUID);
         if (recipient == null || recipient.getType() != CertificateAuthorityType.ROOT) {
-            throw new ProvisioningException(ResponseExceptionType.UNKNOWN_RECIPIENT);
+            throw new ProvisioningException.UnknownRecipient();
         }
     }
 
@@ -177,6 +176,6 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
             return result;
         }
 
-        throw new ProvisioningException(ResponseExceptionType.UNKNOWN_SENDER);
+        throw new ProvisioningException.UnknownSender(memberUuid);
     }
 }

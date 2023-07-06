@@ -12,7 +12,6 @@ import net.ripe.rpki.commons.provisioning.payload.list.request.ResourceClassList
 import net.ripe.rpki.commons.provisioning.payload.list.request.ResourceClassListQueryPayloadBuilder;
 import net.ripe.rpki.commons.provisioning.payload.revocation.CertificateRevocationKeyElement;
 import net.ripe.rpki.commons.provisioning.payload.revocation.request.CertificateRevocationRequestPayload;
-import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
@@ -25,8 +24,8 @@ import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import org.joda.time.Instant;
 import org.joda.time.DateTime;
+import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,12 +41,9 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.UUID;
 
-import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_NAME;
-import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_RESOURCES;
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
-import static net.ripe.rpki.domain.TestObjects.TEST_KEY_PAIR_2;
+import static net.ripe.rpki.domain.TestObjects.*;
 import static net.ripe.rpki.ripencc.provisioning.CertificateIssuanceProcessorTest.NON_HOSTED_CA_NAME;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
@@ -129,8 +125,10 @@ public class ProvisioningRequestProcessorBeanTest {
         when(certificateAuthorityViewService.findCertificateAuthorityByTypeAndUuid(ProductionCertificateAuthority.class,
             UUID.fromString(listCms.getPayload().getRecipient()))).thenReturn(parent);
 
-        assertThatThrownBy(() -> subject.process(listCms)).isInstanceOfSatisfying(ProvisioningException.class, e ->
-            assertThat(e.getResponseExceptionType()).isEqualTo(ResponseExceptionType.UNKNOWN_RECIPIENT)
+        assertThatThrownBy(() -> subject.process(listCms)).isInstanceOfSatisfying(ProvisioningException.class, e -> {
+                    assertThat(e).isInstanceOf(ProvisioningException.UnknownRecipient.class);
+                    assertThat(e.getName()).isEqualTo("UNKNOWN_RECIPIENT");
+                }
         );
     }
 
@@ -155,7 +153,8 @@ public class ProvisioningRequestProcessorBeanTest {
             subject.process(listCms);
             fail("ProvisioningException expected");
         } catch (ProvisioningException expected) {
-            assertEquals(ResponseExceptionType.BAD_SENDER_AND_RECIPIENT, expected.getResponseExceptionType());
+            assertThat(expected).isInstanceOf(ProvisioningException.BadSenderAndRecipient.class);
+            assertThat(expected.getName()).isEqualTo("BAD_SENDER_AND_RECIPIENT");
         }
     }
 
@@ -167,7 +166,8 @@ public class ProvisioningRequestProcessorBeanTest {
             subject.process(listCms);
             fail("ProvisioningException expected");
         } catch (ProvisioningException expected) {
-            assertEquals(ResponseExceptionType.BAD_SENDER_AND_RECIPIENT, expected.getResponseExceptionType());
+            assertThat(expected).isInstanceOf(ProvisioningException.BadSenderAndRecipient.class);
+            assertThat(expected.getName()).isEqualTo("BAD_SENDER_AND_RECIPIENT");
         }
     }
 
@@ -186,7 +186,8 @@ public class ProvisioningRequestProcessorBeanTest {
             subject.process(listCms);
             fail("ProvisioningException expected");
         } catch (ProvisioningException expected) {
-            assertEquals(ResponseExceptionType.UNKNOWN_RECIPIENT, expected.getResponseExceptionType());
+            assertThat(expected).isInstanceOf(ProvisioningException.UnknownRecipient.class);
+            assertThat(expected.getName()).isEqualTo("UNKNOWN_RECIPIENT");
         }
     }
 
@@ -203,7 +204,8 @@ public class ProvisioningRequestProcessorBeanTest {
             subject.process(listCms);
             fail("ProvisioningException expected");
         } catch (ProvisioningException expected) {
-            assertEquals(ResponseExceptionType.UNKNOWN_SENDER, expected.getResponseExceptionType());
+            assertThat(expected).isInstanceOf(ProvisioningException.UnknownSender.class);
+            assertThat(expected.getName()).isEqualTo("UNKNOWN_SENDER");
         }
     }
 

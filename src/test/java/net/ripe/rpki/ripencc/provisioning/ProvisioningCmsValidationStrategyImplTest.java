@@ -4,7 +4,6 @@ import com.google.common.io.Resources;
 import lombok.SneakyThrows;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObjectParser;
-import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateParser;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -79,8 +78,8 @@ public class ProvisioningCmsValidationStrategyImplTest {
         // The id certificates are different. Internally the validator rejects the CMS contents signature,
         // the CRL signature, the SKI because they all mismatch.
         assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.empty(), ca2IdCert))
-                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
-                .satisfies(e -> ResponseExceptionType.BAD_DATA.equals(e.getResponseExceptionType()));
+                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.BadData.class))
+                .satisfies(e -> assertThat(e.getHttpStatusCode()).isEqualTo(400));
     }
 
     //
@@ -97,8 +96,8 @@ public class ProvisioningCmsValidationStrategyImplTest {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2022-01-11T10:00:00Z").getMillis());
 
         assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.empty(), ca1IdCert))
-                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
-                .satisfies(e -> ResponseExceptionType.BAD_DATA.equals(e.getResponseExceptionType()));
+                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.BadData.class))
+                .satisfies(e -> assertThat(e.getHttpStatusCode()).isEqualTo(400));
     }
 
     @Test
@@ -106,8 +105,8 @@ public class ProvisioningCmsValidationStrategyImplTest {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2021-01-11T10:00:00Z").getMillis());
 
         assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.empty(), ca1IdCert))
-                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
-                .satisfies(e -> ResponseExceptionType.BAD_DATA.equals(e.getResponseExceptionType()));
+                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.BadData.class))
+                .satisfies(e -> assertThat(e.getHttpStatusCode()).isEqualTo(400));
     }
 
     @Test
@@ -122,9 +121,8 @@ public class ProvisioningCmsValidationStrategyImplTest {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2022-01-11T12:39:46.000Z").getMillis());
 
         assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.of(ca1CmsObject.getSigningTime().plusHours(1)), ca1IdCert))
-                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
-                .extracting(ProvisioningException::getResponseExceptionType)
-                .isEqualTo(ResponseExceptionType.POTENTIAL_REPLAY_ATTACK);
+                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.PotentialReplayAttack.class))
+                .satisfies(e -> assertThat(e.getHttpStatusCode()).isEqualTo(400));
     }
 
     @Test
@@ -132,8 +130,8 @@ public class ProvisioningCmsValidationStrategyImplTest {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2022-01-13T12:39:46.000Z").getMillis());
 
         assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.empty(), ca1IdCert))
-                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
-                .satisfies(e -> ResponseExceptionType.BAD_DATA.equals(e.getResponseExceptionType()));
+                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.BadData.class))
+                .satisfies(e -> assertThat(e.getHttpStatusCode()).isEqualTo(400));
     }
 
     @Test
@@ -141,7 +139,7 @@ public class ProvisioningCmsValidationStrategyImplTest {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2040-01-11T10:00:00Z").getMillis());
 
         assertThatThrownBy(() -> subject.validateProvisioningCmsAndIdentityCertificate(ca1CmsObject, Optional.empty(), ca1IdCert))
-                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.class))
-                .satisfies(e -> ResponseExceptionType.BAD_DATA.equals(e.getResponseExceptionType()));
+                .asInstanceOf(InstanceOfAssertFactories.type(ProvisioningException.BadData.class))
+                .satisfies(e -> assertThat(e.getHttpStatusCode()).isEqualTo(400));
     }
 }

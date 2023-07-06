@@ -1,25 +1,28 @@
 package net.ripe.rpki.ripencc.provisioning;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.search.Search;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.provisioning.payload.error.NotPerformedError;
 import net.ripe.rpki.commons.provisioning.payload.error.RequestNotPerformedResponsePayloadBuilder;
 import net.ripe.rpki.commons.provisioning.payload.list.request.ResourceClassListQueryPayloadBuilder;
-import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.commons.validation.ValidationStatus;
+import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
 import static org.assertj.core.api.BDDAssertions.then;
 
 @ExtendWith(MockitoExtension.class)
-public class ProvisioningMetricsTest {
+public class ProvisioningMetricsServiceTest {
+    private static final UUID KNOWN_UNKNOWN_SENDER = UUID.randomUUID();
     private ProvisioningMetricsService subject;
 
     private MeterRegistry registry;
@@ -27,7 +30,7 @@ public class ProvisioningMetricsTest {
     @BeforeEach
     public void setUp() {
         registry = new SimpleMeterRegistry();
-        subject = new ProvisioningMetricsService(registry);
+        subject = new ProvisioningMetricsService(registry, Set.of(KNOWN_UNKNOWN_SENDER.toString()));
     }
 
     @Test
@@ -91,8 +94,34 @@ public class ProvisioningMetricsTest {
 
     @Test
     public void testTrackProvisioningExceptionCause_payload() {
-        subject.trackProvisioningExceptionCause(new ProvisioningException(ResponseExceptionType.BAD_DATA));
+        subject.trackProvisioningExceptionCause(new ProvisioningException.BadData());
 
-        then(registry.find("rpkicore.rfc6492.response.exception").meters()).hasSize(1);
+        then(registry.find("rpkicore.rfc6492.response.exception").meters()).haveExactly(1, withType("BAD_DATA"));
+    }
+
+    @Test
+    public void testTrackUnknownSenderProvisioningError() {
+        subject.trackProvisioningExceptionCause(new ProvisioningException.UnknownSender(UUID.randomUUID()));
+
+        then(registry.find("rpkicore.rfc6492.response.exception").meters()).haveExactly(1, withType("UNKNOWN_SENDER"));
+    }
+
+    @Test
+    public void testTrackUnknownSenderProvisioningErrorForIgnoredSenderUUID() {
+        subject.trackProvisioningExceptionCause(new ProvisioningException.UnknownSender(KNOWN_UNKNOWN_SENDER));
+        then(registry.find("rpkicore.rfc6492.response.exception").meters()).isEmpty();
+    }
+
+    @Test
+    public void testTrackBadSenderAndRecipientErrorForIgnoredSender() {
+        subject.trackProvisioningExceptionCause(new ProvisioningException.BadSenderAndRecipient(KNOWN_UNKNOWN_SENDER.toString()));
+        then(registry.find("rpkicore.rfc6492.response.exception").meters()).isEmpty();
+    }
+
+    private Condition<Meter> withType(String type) {
+        return new Condition<>(
+                x -> Optional.ofNullable(x.getId().getTag("type")).orElse("").equals(type),
+                "tag 'type' with value '%s'", type
+        );
     }
 }

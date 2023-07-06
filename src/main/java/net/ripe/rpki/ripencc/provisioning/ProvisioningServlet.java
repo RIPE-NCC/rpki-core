@@ -1,7 +1,6 @@
 package net.ripe.rpki.ripencc.provisioning;
 
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
 import net.ripe.rpki.rest.exception.RequestEntityTooLargeException;
 import org.apache.commons.io.IOUtils;
 
@@ -54,10 +53,9 @@ public class ProvisioningServlet extends HttpServlet {
             resp.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
         } catch (ProvisioningException e) {
             provisioningMetrics.trackProvisioningExceptionCause(e);
-            final ResponseExceptionType responseExceptionType = e.getResponseExceptionType();
             // content-type not set for HTTP 400/503, non-CMS error responses
-            log.warn("provisioning error, HTTP {}: {}", responseExceptionType.getHttpResponseCode(), responseExceptionType.getDescription());
-            resp.sendError(responseExceptionType.getHttpResponseCode(), responseExceptionType.getDescription());
+            log.warn("provisioning error, HTTP {}: {}", e.getHttpStatusCode(), e.getDescription());
+            resp.sendError(e.getHttpStatusCode(), e.getDescription());
         }
     }
 }

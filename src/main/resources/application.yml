@@ -172,3 +172,6 @@ certificate.authority:
     # invariant checking can be slow (more than a second), causing some background jobs to run for much longer. Therefore,
     # the invariant checking is disabled by default and only enabled when running tests or locally.
     invariant.checking.enabled: false
+
+rfc6492:
+    sender.ignores: []

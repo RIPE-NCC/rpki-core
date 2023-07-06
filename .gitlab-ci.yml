@@ -1,4 +1,4 @@
-image: gradle:8.1-jdk11
+image: gradle:8.2-jdk11
 
 # Explicit version of the Mergerequests-Pipelines workflow, with the main branch
 # added.

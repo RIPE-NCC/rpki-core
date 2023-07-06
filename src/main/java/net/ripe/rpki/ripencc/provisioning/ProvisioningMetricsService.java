@@ -8,14 +8,15 @@ import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningResponsePa
 import net.ripe.rpki.commons.provisioning.payload.PayloadMessageType;
 import net.ripe.rpki.commons.provisioning.payload.error.NotPerformedError;
 import net.ripe.rpki.commons.provisioning.payload.error.RequestNotPerformedResponsePayload;
-import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
 import net.ripe.rpki.commons.validation.ValidationCheck;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.CheckForNull;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -25,13 +26,15 @@ public class ProvisioningMetricsService {
     private final ConcurrentHashMap<Pair<String, String>, Counter> validationStatusCounters = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<PayloadMessageType, Counter> payloadTypeCounters = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<NotPerformedError, Counter> errorPayloadCounters = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<ResponseExceptionType, Counter> provisioningExceptionCounters = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Counter> provisioningExceptionCounters = new ConcurrentHashMap<>();
 
     private final Counter totalValidationCount;
+    private final Set<String> ignoredSenders;
 
     @Autowired
-    public ProvisioningMetricsService(MeterRegistry registry) {
+    public ProvisioningMetricsService(MeterRegistry registry, @Value("${rfc6492.sender.ignores}") Set<String> ignoredSenders) {
         this.meterRegistry = registry;
+        this.ignoredSenders = Set.copyOf(ignoredSenders);
 
         totalValidationCount = Counter.builder("rpkicore.rfc6492.validation.total")
                 .description("total number of rpki-commons validation results tracked")
@@ -103,14 +106,17 @@ public class ProvisioningMetricsService {
      * @param provisioningException exception to log the cause for
      */
     public void trackProvisioningExceptionCause(@CheckForNull ProvisioningException provisioningException) {
-        if (provisioningException == null || provisioningException.getResponseExceptionType() == null) {
+        if (provisioningException == null) {
+            return;
+        }
+        if (provisioningException.getSender().map(ignoredSenders::contains).orElse(false)) {
             return;
         }
 
-        provisioningExceptionCounters.computeIfAbsent(provisioningException.getResponseExceptionType(),
+        provisioningExceptionCounters.computeIfAbsent(provisioningException.getName(),
                 exceptionName -> Counter.builder("rpkicore.rfc6492.response.exception")
                         .description("Number of exceptions returned from up-down endpoint by underlying exception")
-                        .tag("type", exceptionName.name())
+                        .tag("type", exceptionName)
                         .register(meterRegistry)
         ).increment();
     }

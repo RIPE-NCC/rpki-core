@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObjectParser;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObjectParserException;
-import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
 import net.ripe.rpki.domain.ProvisioningAuditLogEntity;
 import net.ripe.rpki.server.api.security.RunAsUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +51,7 @@ class ProvisioningServiceBean implements ProvisioningService {
 
                 return responseObject.getEncoded();
             } catch (ProvisioningException ex) {
-                log.warn("Not able to process provisioning request, member UUID = {} with the following error: {}", requestObject.getPayload().getSender(), ex.getMessage());
+                log.warn("Not able to process provisioning request, member UUID = {} with the following error: {}", requestObject.getPayload().getSender(), ex.getName());
                 throw ex;
             }
         });
@@ -76,7 +75,7 @@ class ProvisioningServiceBean implements ProvisioningService {
             return cmsParser.getProvisioningCmsObject();
         } catch (ProvisioningCmsObjectParserException e) {
             log.warn("Could not parse CMS Object: " + e.getMessage());
-            throw new ProvisioningException(ResponseExceptionType.BAD_DATA, e);
+            throw new ProvisioningException.BadData(e);
         }
     }
 

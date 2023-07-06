@@ -1,6 +1,5 @@
 package net.ripe.rpki.ripencc.provisioning;
 
-import net.ripe.rpki.commons.provisioning.protocol.ResponseExceptionType;
 import net.ripe.rpki.rest.security.RequestEntitySizeLimiterServletFilter;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -76,8 +75,7 @@ public class ProvisioningServletTest {
 
     @Test
     public void shouldTranslateProvisioningExceptionToHttpErrorResponse() throws Exception {
-        ResponseExceptionType provisioningErrorType = ResponseExceptionType.UNKNOWN_PROVISIONING_URL;
-        ProvisioningException provisioningException = new ProvisioningException(provisioningErrorType);
+        ProvisioningException provisioningException = new ProvisioningException.UnknownProvisioningUrl();
         request.setContent(new byte[] {});
 
         when(service.processRequest(any(byte[].class))).thenThrow(provisioningException);
@@ -86,8 +84,8 @@ public class ProvisioningServletTest {
 
         then(provisioningMetrics).should().trackProvisioningExceptionCause(provisioningException);
 
-        assertThat(response.getStatus()).isEqualTo(provisioningErrorType.getHttpResponseCode());
-        assertThat(response.getErrorMessage()).isEqualTo(provisioningErrorType.getDescription());
+        assertThat(response.getStatus()).isEqualTo(provisioningException.getHttpStatusCode());
+        assertThat(response.getErrorMessage()).isEqualTo(provisioningException.getDescription());
     }
 
     @Test

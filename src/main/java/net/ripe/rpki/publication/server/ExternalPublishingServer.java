@@ -147,8 +147,12 @@ public class ExternalPublishingServer {
             log.warn("Publishing server client is not properly initialized.");
             return Collections.emptyList();
         }
-        final StringBuilder logMessage = new StringBuilder("Sending to publishing server [");
-        logMessage.append(publishingServerUrl).append("] using clientId=").append(clientId).append(":\n");
+        final StringBuilder logMessage = new StringBuilder();
+        if (log.isInfoEnabled()) {
+            logMessage.append("Sending to publishing server [")
+                .append(publishingServerUrl)
+                .append("] using clientId=").append(clientId).append(":\n");
+        }
 
         try {
             final XMLBuilder xml = XMLBuilder
@@ -161,16 +165,22 @@ public class ExternalPublishingServer {
                     final XMLBuilder elem = xml.e(OP_TAG_NAME_PUBLISH).a("uri", publish.getUri().toString());
                     publish.hashToReplace.ifPresent(s -> elem.a("hash", s));
                     elem.t(publish.getBase64Content());
-                    logMessage.append('\t').append(publish).append('\n');
+                    if (log.isInfoEnabled()) {
+                        logMessage.append('\t').append(publish.toLogMessage()).append('\n');
+                    }
                     oneMorePublish(publish.getUri());
                 } else if (publicationMessage instanceof WithdrawRequest) {
                     final WithdrawRequest withdraw = (WithdrawRequest) publicationMessage;
                     xml.e(OP_TAG_NAME_WITHDRAW).a("uri", withdraw.getUri().toString()).a("hash", withdraw.hash);
-                    logMessage.append('\t').append(withdraw).append('\n');
+                    if (log.isInfoEnabled()) {
+                        logMessage.append('\t').append(withdraw).append('\n');
+                    }
                     oneMoreWithdraw(withdraw.getUri());
                 } else if (publicationMessage instanceof ListRequest) {
                     xml.e(OP_TAG_NAME_LIST);
-                    logMessage.append('\t').append(publicationMessage).append('\n');
+                    if (log.isInfoEnabled()) {
+                        logMessage.append('\t').append(publicationMessage).append('\n');
+                    }
                 }
             }
 

@@ -40,10 +40,6 @@ dependencies {
     }
     implementation 'org.flywaydb:flyway-core'
 
-    implementation "org.webjars:jquery:3.6.4"
-    implementation "org.webjars:bootstrap:4.6.2"
-    implementation "org.webjars:webjars-locator-core"
-
     implementation "org.thymeleaf:thymeleaf:3.1.1.RELEASE"
     implementation "org.thymeleaf:thymeleaf-spring5:3.1.1.RELEASE"
 
@@ -67,6 +63,7 @@ dependencies {
     implementation 'ch.qos.logback.contrib:logback-jackson:0.1.5'
     implementation 'net.logstash.logback:logstash-logback-encoder:7.3'
     implementation 'commons-lang:commons-lang:2.6'
+    implementation 'org.apache.commons:commons-text:1.10.0'
 
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'

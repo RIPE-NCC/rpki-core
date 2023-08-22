@@ -9,6 +9,7 @@ import net.ripe.rpki.commons.provisioning.payload.PayloadMessageType;
 import net.ripe.rpki.domain.ProvisioningAuditLogEntity;
 import net.ripe.rpki.server.api.dto.ProvisioningAuditData;
 import org.apache.tomcat.util.codec.binary.Base64;
+import org.apache.commons.text.StringEscapeUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -95,12 +96,12 @@ class ProvisioningAuditLogServiceBean implements ProvisioningAuditLogService {
                 Base64.encodeBase64String(entry.getProvisioningCmsObject()),
                 entry.getPrincipal(),
                 Objects.toString(entry.getNonHostedCaUUID(), null),
-                entry.getSummary(),
+                // Escape all non-printable characters to avoid problems with user input in our logs
+                StringEscapeUtils.escapeJava(entry.getSummary()),
                 Objects.toString(entry.getEntryUuid(), null),
                 dateFormat.print(utcDate),
                 // since request is a DER binary, encode it as base64 as well
                 Base64.encodeBase64String(request));
         }
     }
-
 }

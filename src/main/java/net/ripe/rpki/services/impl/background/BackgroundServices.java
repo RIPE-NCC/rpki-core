@@ -13,6 +13,7 @@ import org.quartz.Trigger;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,7 @@ import static org.quartz.TriggerBuilder.newTrigger;
 
 @Slf4j
 @Component
+@Lazy(false)
 public class BackgroundServices {
 
     public static final String RIS_WHOIS_UPDATE_SERVICE = "risWhoisUpdateService";

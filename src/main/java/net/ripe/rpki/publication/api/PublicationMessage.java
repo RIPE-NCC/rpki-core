@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import static net.ripe.rpki.services.impl.handlers.PublicationSupport.objectHash;
+
 public interface PublicationMessage {
 
     class PublishRequest extends EqualsSupport implements PublicationMessage {
@@ -37,13 +39,12 @@ public interface PublicationMessage {
 
         @Override
         public String toString() {
-            return String.format("PublishRequest [uri=%s, hash=%s]",
-                    uri, hashToReplace.orElse("<Absent>"));
+            return String.format("PublishRequest [uri=%s, hash=%s]", uri, hashToReplace.orElse("<Absent>"));
         }
 
-        public String toStringFull() {
-            return String.format("PublishRequest [uri=%s, content=%s, hash=%s]",
-                    uri, getBase64Content(), hashToReplace.orElse("<Absent>"));
+        public String toLogMessage() {
+            return String.format("PublishRequest [uri=%s, hash=%s, content-hash=%s]",
+                uri, hashToReplace.orElse("<Absent>"), objectHash(content));
         }
     }
 

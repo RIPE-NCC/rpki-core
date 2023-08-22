@@ -45,7 +45,7 @@ public class PublishedObjectCleanUpServiceBean extends ConcurrentBackgroundServi
         this.resourceCertificateRepository = resourceCertificateRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
 
-        this.deletedNonHostedPublicKeysCounter = Counter.builder("rpkicore.deleted.non.hosted.public.keys.without.signing.certificate")
+        this.deletedNonHostedPublicKeysCounter = Counter.builder("rpkicore.deleted.non.hosted.public.keys.without.signing.cert")
             .description("The number of deleted non-hosted public keys without signing certificate")
             .register(meterRegistry);
     }

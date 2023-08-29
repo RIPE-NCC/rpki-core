@@ -65,9 +65,9 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
 
     @Test
     public void should_create_initial_manifest_and_crl_on_first_publish() {
-        long count = subject.updateManifestAndCrlIfNeeded(ca);
+        boolean updated = subject.updateManifestAndCrlIfNeeded(ca.getCurrentKeyPair());
 
-        assertThat(count).describedAs("updated key pairs").isEqualTo(1);
+        assertThat(updated).describedAs("manifest/CRL updated").isTrue();
 
         CrlEntity crlEntity = crlEntityRepository.findByKeyPair(currentKeyPair);
         assertNotNull(crlEntity);
@@ -94,12 +94,12 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
             assertThat(summary.max()).isEqualTo(crl.getEncoded().length);
         });
 
-        assertThat(subject.updateManifestAndCrlIfNeeded(ca)).describedAs("no update needed").isZero();
+        assertThat(subject.updateManifestAndCrlIfNeeded(ca.getCurrentKeyPair())).describedAs("no update needed").isFalse();
     }
 
     @Test
     public void should_update_both_manifest_and_crl_when_crl_needs_update() {
-        subject.updateManifestAndCrlIfNeeded(ca);
+        subject.updateManifestAndCrlIfNeeded(ca.getCurrentKeyPair());
 
         X509Crl originalCrl = crlEntityRepository.findByKeyPair(currentKeyPair).getCrl();
         assertEquals("original crl is empty", 0, originalCrl.getRevokedCertificates().size());
@@ -116,7 +116,7 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
         OutgoingResourceCertificate outgoingResourceCertificate = singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, new ValidityPeriod(now, now.plusHours(10)), currentKeyPair);
         outgoingResourceCertificate.revoke();
 
-        subject.updateManifestAndCrlIfNeeded(ca);
+        subject.updateManifestAndCrlIfNeeded(ca.getCurrentKeyPair());
 
         X509Crl updatedCrl = crlEntityRepository.findByKeyPair(currentKeyPair).getCrl();
         ManifestCms updatedManifest = manifestEntityRepository.findByKeyPairEntity(currentKeyPair).getManifestCms();
@@ -136,7 +136,7 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
 
     @Test
     public void should_update_both_manifest_and_crl_when_manifest_needs_update() {
-        subject.updateManifestAndCrlIfNeeded(ca);
+        subject.updateManifestAndCrlIfNeeded(ca.getCurrentKeyPair());
 
         X509Crl originalCrl = crlEntityRepository.findByKeyPair(currentKeyPair).getCrl();
         assertEquals("original crl is empty", 0, originalCrl.getRevokedCertificates().size());
@@ -151,7 +151,7 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
         roaConfigurationRepository.getOrCreateByCertificateAuthority(ca).addPrefix(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"))));
         roaEntityService.updateRoasIfNeeded(ca);
 
-        subject.updateManifestAndCrlIfNeeded(ca);
+        subject.updateManifestAndCrlIfNeeded(ca.getCurrentKeyPair());
 
         List<RoaEntity> roas = roaEntityRepository.findCurrentByCertificateAuthority(ca);
         assertEquals("single roa issued", 1, roas.size());

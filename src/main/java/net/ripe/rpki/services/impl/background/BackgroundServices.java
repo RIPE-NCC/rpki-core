@@ -41,7 +41,6 @@ public class BackgroundServices {
     public static final String KEY_PAIR_ACTIVATION_MANAGEMENT_SERVICE = "keyPairActivationManagementService";
     public static final String HOSTED_KEY_ROLLOVER_MANAGEMENT_SERVICE = "hostedCaKeyRolloverManagementService";
     public static final String RESOURCE_CACHE_UPDATE_SERVICE = "resourceCacheUpdateService";
-    public static final String MANIFEST_CRL_UPDATE_SERVICE = "manifestCrlUpdateService";
     public static final String PUBLIC_REPOSITORY_PUBLICATION_SERVICE = "publicRepositoryPublicationService";
     public static final String PUBLIC_REPOSITORY_RSYNC_SERVICE = "publicRepositoryRsyncService";
     public static final String PUBLIC_REPOSITORY_RRDP_SERVICE = "publicRepositoryRrdpService";
@@ -61,9 +60,6 @@ public class BackgroundServices {
 
     @Value("${background-services.schedule.enable}")
     private boolean scheduleEnable;
-
-    @Value("${manifest.crl.update.interval.minutes}")
-    private int manifestCrlUpdateIntervalMinutes;
 
     @Value("${public.repository.publication.interval.minutes}")
     private int publicRepositoryPublicationIntervalMinutes;
@@ -112,10 +108,6 @@ public class BackgroundServices {
             log.info("Automatic scheduling of background-services is disabled.");
             return;
         }
-        schedule(MANIFEST_CRL_UPDATE_SERVICE,
-                futureDate(3, MINUTE),
-                repeat().withIntervalInMinutes(manifestCrlUpdateIntervalMinutes));
-
         schedule(PUBLIC_REPOSITORY_PUBLICATION_SERVICE,
                 futureDate(6, MINUTE),
                 repeat().withIntervalInMinutes(publicRepositoryPublicationIntervalMinutes));

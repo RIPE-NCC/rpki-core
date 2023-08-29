@@ -7,10 +7,7 @@ import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
 import net.ripe.rpki.domain.roa.RoaEntityService;
-import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.CreateIntermediateCertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
-import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
+import net.ripe.rpki.server.api.commands.*;
 import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.ports.ResourceCache;
@@ -80,16 +77,16 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
         // CA certificate, ROA, CRL, Manifest
         assertThat(publishedObjectRepository.findAll())
             .hasSize(4)
-            .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.TO_BE_PUBLISHED));
+            .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.PUBLISHED));
 
         transactionTemplate.executeWithoutResult((status) -> {
             // Nothing to expire, so nothing changes.
             DateTime now = new DateTime(DateTimeZone.UTC);
             ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult expired = subject.expireOutgoingResourceCertificates(now);
 
-            assertThat(expired.getExpiredCertificateCount()).isEqualTo(0);
-            assertThat(expired.getDeletedRoaCount()).isEqualTo(0);
-            assertThat(expired.getWithdrawnObjectCount()).isEqualTo(0);
+            assertThat(expired.getExpiredCertificateCount()).isZero();
+            assertThat(expired.getDeletedRoaCount()).isZero();
+            assertThat(expired.getWithdrawnObjectCount()).isZero();
 
             assertThat(subject.findAllBySigningKeyPair(ca.getCurrentKeyPair()))
                 .hasSize(3)
@@ -100,7 +97,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
             assertThat(roaEntityRepository.findAll()).hasSize(1);
             assertThat(publishedObjectRepository.findAll())
                 .hasSize(4)
-                .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.TO_BE_PUBLISHED));
+                .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.PUBLISHED));
         });
 
         transactionTemplate.executeWithoutResult((status) -> {
@@ -118,10 +115,10 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
                     assertThat(cert.getNotValidAfter()).isLessThan(afterValidity);
                     assertThat(cert.getStatus()).isEqualTo(OutgoingResourceCertificateStatus.EXPIRED);
                 });
-            assertThat(roaEntityRepository.findAll()).hasSize(0);
+            assertThat(roaEntityRepository.findAll()).isEmpty();
             assertThat(publishedObjectRepository.findAll())
                 .hasSize(4)
-                .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.WITHDRAWN));
+                .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.TO_BE_WITHDRAWN));
         });
 
         transactionTemplate.executeWithoutResult((status) -> {
@@ -129,16 +126,16 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
             DateTime afterValidity = new DateTime(DateTimeZone.UTC).plusYears(2);
             ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult expired = subject.expireOutgoingResourceCertificates(afterValidity);
 
-            assertThat(expired.getExpiredCertificateCount()).isEqualTo(0);
-            assertThat(expired.getDeletedRoaCount()).isEqualTo(0);
-            assertThat(expired.getWithdrawnObjectCount()).isEqualTo(0);
+            assertThat(expired.getExpiredCertificateCount()).isZero();
+            assertThat(expired.getDeletedRoaCount()).isZero();
+            assertThat(expired.getWithdrawnObjectCount()).isZero();
         });
     }
 
     @Test
     @Transactional
     public void deleteExpiredOutgoingResourceCertificates() {
-        assertThat(subject.deleteExpiredOutgoingResourceCertificates(new DateTime(DateTimeZone.UTC).minusDays(1))).isEqualTo(0);
+        assertThat(subject.deleteExpiredOutgoingResourceCertificates(new DateTime(DateTimeZone.UTC).minusDays(1))).isZero();
     }
 
     @Test
@@ -174,7 +171,8 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
 
         // Hosted CAs get their resources on the certificate, so now these resources are part of the outgoing child resources
         // for both the production CA (recursive through the intermediate CA) and intermediate CA (directly)
-        commandService.execute(new ActivateHostedCertificateAuthorityCommand(commandService.getNextId(), hosted1CaName, hosted1CaResources, intermediateCaId.getId()));
+        VersionedId hosted1CaId = commandService.getNextId();
+        commandService.execute(new ActivateHostedCertificateAuthorityCommand(hosted1CaId, hosted1CaName, hosted1CaResources, intermediateCaId.getId()));
         assertThat(subject.findCurrentOutgoingChildCertificateResources(PRODUCTION_CA_NAME)).isEqualTo(hosted1CaResources);
         assertThat(subject.findCurrentOutgoingChildCertificateResources(intermediateCaName)).isEqualTo(hosted1CaResources);
 
@@ -182,6 +180,24 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
         commandService.execute(new ActivateHostedCertificateAuthorityCommand(commandService.getNextId(), hosted2CaName, hosted2CaResources, productionCa.getId()));
         assertThat(subject.findCurrentOutgoingChildCertificateResources(PRODUCTION_CA_NAME)).isEqualTo(hosted1CaResources.union(hosted2CaResources));
         assertThat(subject.findCurrentOutgoingChildCertificateResources(intermediateCaName)).isEqualTo(hosted1CaResources);
+
+        // Resources of non-withdrawn certificates also count, so until a CA is published the non-withdrawn certificates
+        // must still be covered by the parent CAs certificate.
+        commandService.execute(new IssueUpdatedManifestAndCrlCommand(intermediateCaId));
+
+        ImmutableResourceSet updatedHosted1CaResources = ImmutableResourceSet.parse("10.0.2.0/24");
+        resourceCache.populateCache(Map.ofEntries(
+            Map.entry(CaName.of(PRODUCTION_CA_NAME), PRODUCTION_CA_RESOURCES),
+            Map.entry(CaName.of(hosted1CaName), updatedHosted1CaResources),
+            Map.entry(CaName.of(hosted2CaName), hosted2CaResources)
+        ));
+        commandService.execute(new UpdateAllIncomingResourceCertificatesCommand(hosted1CaId, Integer.MAX_VALUE));
+        assertThat(subject.findCurrentOutgoingChildCertificateResources(PRODUCTION_CA_NAME)).isEqualTo(hosted1CaResources.union(hosted2CaResources).union(updatedHosted1CaResources));
+
+        // After updating the publication status only the updated resources count, as the old certificate is now
+        // withdrawn from the RPKI repository.
+        commandService.execute(new IssueUpdatedManifestAndCrlCommand(intermediateCaId));
+        assertThat(subject.findCurrentOutgoingChildCertificateResources(PRODUCTION_CA_NAME)).isEqualTo(hosted2CaResources.union(updatedHosted1CaResources));
     }
 
     @Test

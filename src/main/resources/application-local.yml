@@ -86,8 +86,6 @@ online.repository:
 
 provisioning.base.url: http://localhost.ripe.net:8080/certification/updown
 
-manifest.crl.update.interval.minutes: 10
-
 # Write rsync more frequently locally
 public.repository.rsync.interval.minutes: 5
 

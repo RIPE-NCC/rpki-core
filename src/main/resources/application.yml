@@ -163,8 +163,6 @@ keypair:
 aspa:
     enabled: true
 
-manifest.crl.update.interval.minutes: 10
-
 certificate.authority:
     update.batch.size: 1000
     # When enabled some invariants of the certificate authority aggregate are checked after every command is executed.

@@ -48,8 +48,8 @@ public class IssueUpdatedManifestAndCrlCommandHandler extends AbstractCertificat
             certificateAuthority.markConfigurationApplied();
         }
 
-        long updateCount = manifestPublicationService.updateManifestAndCrlIfNeeded(certificateAuthority);
-        if (!configurationCheckNeeded && updateCount == 0) {
+        long publishedCount = manifestPublicationService.publishRpkiObjectsIfNeeded(certificateAuthority);
+        if (!configurationCheckNeeded && publishedCount == 0) {
             throw new CommandWithoutEffectException(command);
         }
     }

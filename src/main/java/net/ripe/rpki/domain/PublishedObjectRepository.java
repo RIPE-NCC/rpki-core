@@ -28,13 +28,26 @@ public interface PublishedObjectRepository extends Repository<PublishedObject> {
 
     List<PublishedObjectEntry> findEntriesByPublicationStatus(EnumSet<PublicationStatus> statuses);
 
-    void removeAll(List<PublishedObject> publishedObjects);
-
     void withdrawAllForKeyPair(KeyPairEntity keyPair);
 
     void withdrawAllForDeletedKeyPair(KeyPairEntity keyPair);
 
-    int updatePublicationStatus();
+    /**
+     * Mark objects as published/withdrawn so that they will be sent to the RRDP/rsync repositories on the next
+     * run of these background services.
+     *
+     * <p>IMPORTANT: a parent CA must always be published before a child CA to avoid invalidating a child CA's
+     * certificates due to over-claiming resources!</p>
+     *
+     * @param issuingKeyPair the issuing key pair to publish objects for.
+     * @return the number of objects published or withdrawn.
+     */
+    int publishObjects(KeyPairEntity issuingKeyPair);
 
     int deleteExpiredObjects(DateTime expirationTime);
+
+    /**
+     * Withdraw all <code>TO_BE_WITHDRAWN</code> objects issued by deleted key pairs (changing the status to <code>WITHDRAWN</code>>).
+     */
+    int withdrawObjectsForDeletedKeys();
 }

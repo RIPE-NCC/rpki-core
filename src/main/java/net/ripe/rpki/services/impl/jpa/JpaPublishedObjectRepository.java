@@ -1,11 +1,6 @@
 package net.ripe.rpki.services.impl.jpa;
 
-import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.PublicationStatus;
-import net.ripe.rpki.domain.PublishedObject;
-import net.ripe.rpki.domain.PublishedObjectData;
-import net.ripe.rpki.domain.PublishedObjectEntry;
-import net.ripe.rpki.domain.PublishedObjectRepository;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
 import org.apache.commons.lang.Validate;
 import org.joda.time.DateTime;
@@ -81,17 +76,6 @@ public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject>
     }
 
     @Override
-    public void removeAll(List<PublishedObject> publishedObjects) {
-        if (publishedObjects == null || publishedObjects.isEmpty()) {
-            return;
-        }
-        for (PublishedObject publishedObject : publishedObjects) {
-            manager.remove(manager.merge(publishedObject));
-        }
-        manager.flush();
-    }
-
-    @Override
     public void withdrawAllForKeyPair(KeyPairEntity keyPair) {
         createQuery("UPDATE PublishedObject po" +
             "   SET po.version = po.version + 1," +
@@ -126,27 +110,31 @@ public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject>
     }
 
     @Override
-    public int updatePublicationStatus() {
+    public int publishObjects(KeyPairEntity issuingKeyPair) {
         // First update `TO_BE_WITHDRAWN` before updating `TO_BE_PUBLISHED` to ensure
         // unique constraint is not violated.
         Instant now = Instant.now();
-        int count = createQuery("UPDATE PublishedObject po" +
-            "   SET po.version = po.version + 1," +
-            "       po.updatedAt = :now," +
-            "       po.status = :withdrawn" +
-            " WHERE po.status = :toBeWithdrawn")
+        int count = createQuery("UPDATE PublishedObject po\n" +
+            "   SET po.version = po.version + 1,\n" +
+            "       po.updatedAt = :now,\n" +
+            "       po.status = :withdrawn\n" +
+            " WHERE po.status = :toBeWithdrawn\n" +
+            "   AND po.issuingKeyPair = :issuingKeyPair")
             .setParameter("now", now)
             .setParameter("toBeWithdrawn", PublicationStatus.TO_BE_WITHDRAWN)
             .setParameter("withdrawn", PublicationStatus.WITHDRAWN)
+            .setParameter("issuingKeyPair", issuingKeyPair)
             .executeUpdate();
         count += createQuery("UPDATE PublishedObject po" +
             "   SET po.version = po.version + 1," +
             "       po.updatedAt = :now," +
             "       po.status = :published" +
-            " WHERE po.status = :toBePublished")
+            " WHERE po.status = :toBePublished" +
+            "   AND po.issuingKeyPair = :issuingKeyPair")
             .setParameter("now", now)
             .setParameter("toBePublished", PublicationStatus.TO_BE_PUBLISHED)
             .setParameter("published", PublicationStatus.PUBLISHED)
+            .setParameter("issuingKeyPair", issuingKeyPair)
             .executeUpdate();
         return count;
     }
@@ -165,6 +153,20 @@ public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject>
                 "  AND NOT EXISTS (FROM AspaEntity aspa WHERE aspa.publishedObject = po)")
             .setParameter("withdrawn", PublicationStatus.WITHDRAWN)
             .setParameter("expirationTime", expirationTime)
+            .executeUpdate();
+    }
+
+    @Override
+    public int withdrawObjectsForDeletedKeys() {
+        return createQuery("UPDATE PublishedObject po" +
+            "   SET po.version = po.version + 1," +
+            "       po.updatedAt = :now, " +
+            "       po.status = :withdrawn" +
+            " WHERE po.status = :toBeWithdrawn" +
+            "   AND po.issuingKeyPair IS NULL")
+            .setParameter("now", Instant.now())
+            .setParameter("withdrawn", PublicationStatus.WITHDRAWN)
+            .setParameter("toBeWithdrawn", PublicationStatus.TO_BE_WITHDRAWN)
             .executeUpdate();
     }
 

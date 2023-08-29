@@ -57,7 +57,7 @@ public class MessageDispatcherTest {
     private final class MyAutoRolloverChildCAsCommandHandler extends KeyManagementInitiateRollCommandHandler {
 
         MyAutoRolloverChildCAsCommandHandler() {
-            super(certificateAuthorityRepository, null, null);
+            super(certificateAuthorityRepository, null, null, null);
         }
 
         @Override

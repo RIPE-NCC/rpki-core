@@ -68,6 +68,16 @@ public class ManifestPublicationService {
             .register(meterRegistry);
     }
 
+    public long publishRpkiObjectsIfNeeded(ManagedCertificateAuthority certificateAuthority) {
+        // Publish each key if needed. Use `count` here to ensure all keys are published (no early termination).
+        return certificateAuthority.getKeyPairs().stream().filter(this::publishRpkiObjectsIfNeeded).count();
+    }
+
+    public boolean publishRpkiObjectsIfNeeded(KeyPairEntity keyPair) {
+        updateManifestAndCrlIfNeeded(keyPair);
+        return publishedObjectRepository.publishObjects(keyPair) > 0;
+    }
+
     /**
      * Update MFTs and CRLs. The generated manifest's and CRL's next update time must be the same, so if either
      * object needs to be updated both are newly issued.
@@ -75,47 +85,46 @@ public class ManifestPublicationService {
      * Mark all new and updated objects to be published/withdrawn.
      * Emit corresponding event, so that an update is sent to the publication server.
      */
-    public long updateManifestAndCrlIfNeeded(ManagedCertificateAuthority certificateAuthority) {
-        return certificateAuthority.getKeyPairs()
-            .stream()
-            .filter(KeyPairEntity::isPublishable)
-            .filter(keyPair -> {
-                DateTime now = DateTime.now(DateTimeZone.UTC);
+    public boolean updateManifestAndCrlIfNeeded(KeyPairEntity keyPair) {
+        if (!keyPair.isPublishable()) {
+            return false;
+        }
 
-                CrlEntity crlEntity = crlEntityRepository.findOrCreateByKeyPair(keyPair);
-                ManifestEntity manifestEntity = manifestEntityRepository.findOrCreateByKeyPairEntity(keyPair);
+        DateTime now = DateTime.now(DateTimeZone.UTC);
 
-                boolean updateNeeded = crlEntity.isUpdateNeeded(now, resourceCertificateRepository) || isManifestUpdateNeeded(now, manifestEntity);
-                if (!updateNeeded) {
-                    return false;
-                }
+        CrlEntity crlEntity = crlEntityRepository.findOrCreateByKeyPair(keyPair);
+        ManifestEntity manifestEntity = manifestEntityRepository.findOrCreateByKeyPairEntity(keyPair);
 
-                ValidityPeriod validityPeriod = new ValidityPeriod(now, now.plus(TIME_TO_NEXT_UPDATE));
+        boolean updateNeeded = crlEntity.isUpdateNeeded(now, resourceCertificateRepository) || isManifestUpdateNeeded(now, manifestEntity);
+        if (!updateNeeded) {
+            return false;
+        }
 
-                if (manifestEntity.getCertificate() != null) {
-                    // The manifest certificate must be revoked before we issue a new CRL, otherwise
-                    // the certificate's serial will not be included in the new CRL.
-                    manifestEntity.getCertificate().revoke();
-                }
+        ValidityPeriod validityPeriod = new ValidityPeriod(now, now.plus(TIME_TO_NEXT_UPDATE));
 
-                // Issue the CRL before issuing the manifest, so that the new CRL will appear on the manifest.
-                crlEntity.update(validityPeriod, resourceCertificateRepository);
-                crlEntityRepository.add(crlEntity);
+        if (manifestEntity.getCertificate() != null) {
+            // The manifest certificate must be revoked before we issue a new CRL, otherwise
+            // the certificate's serial will not be included in the new CRL.
+            manifestEntity.getCertificate().revoke();
+        }
 
-                // Issue the manifest with a one-time-use EE certificate. The validity times of the EE
-                // certificate MUST exactly match the 'thisUpdate' and 'nextUpdate' times in the manifest.
-                //
-                // This is implemented by first creating the EE certificate with the timings in
-                // 'validityPeriod'. Then the manifest is updated with the certificate, copying the timings
-                // into the manifest (see ManifestEntity#update).
-                issueManifest(manifestEntity, validityPeriod);
-                manifestEntityRepository.add(manifestEntity);
+        // Issue the CRL before issuing the manifest, so that the new CRL will appear on the manifest.
+        crlEntity.update(validityPeriod, resourceCertificateRepository);
+        crlEntityRepository.add(crlEntity);
 
-                crlSizeDistribution.record(crlEntity.getEncoded().length);
-                manifestSizeDistribution.record(manifestEntity.getEncoded().length);
+        // Issue the manifest with a one-time-use EE certificate. The validity times of the EE
+        // certificate MUST exactly match the 'thisUpdate' and 'nextUpdate' times in the manifest.
+        //
+        // This is implemented by first creating the EE certificate with the timings in
+        // 'validityPeriod'. Then the manifest is updated with the certificate, copying the timings
+        // into the manifest (see ManifestEntity#update).
+        issueManifest(manifestEntity, validityPeriod);
+        manifestEntityRepository.add(manifestEntity);
 
-                return true;
-            }).count();
+        crlSizeDistribution.record(crlEntity.getEncoded().length);
+        manifestSizeDistribution.record(manifestEntity.getEncoded().length);
+
+        return true;
     }
 
     private boolean isManifestUpdateNeeded(DateTime now, ManifestEntity manifestEntity) {

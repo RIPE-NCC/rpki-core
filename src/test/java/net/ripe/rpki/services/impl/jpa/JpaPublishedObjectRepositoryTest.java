@@ -56,15 +56,16 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
     private TrustAnchorPublishedObject toBePublishedTaObject;
     private PublishedObject toBePublishedObject;
     private PublishedObject publishedObject;
+    private ProductionCertificateAuthority productionCertificateAuthority;
 
     @Before
     public void setUp() {
         clearDatabase();
 
-        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
-        entityManager.persist(ca);
+        productionCertificateAuthority = createInitialisedProdCaWithRipeResources();
+        entityManager.persist(productionCertificateAuthority);
 
-        issuingKeyPair = ca.getCurrentKeyPair();
+        issuingKeyPair = productionCertificateAuthority.getCurrentKeyPair();
 
         toBePublishedTaObject = new TrustAnchorPublishedObject(URI.create("rsync://rpki.example.com/ta"), new byte[]{0xa, 0xb, 0xc});
 
@@ -136,9 +137,14 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
     }
 
     @Test
+    public void publishObjects() {
+        assertThat(publishedObjectRepository.publishObjects(issuingKeyPair)).isEqualTo(2);
+    }
+
+    @Test
     public void updatePublicationStatus() {
         assertEquals(3, publishedObjectRepository.findEntriesByPublicationStatus(PENDING_STATUSES).size());
-        assertEquals(2, publishedObjectRepository.updatePublicationStatus());
+        assertEquals(2, publishedObjectRepository.publishObjects(issuingKeyPair));
         assertEquals(1, trustAnchorPublishedObjectRepository.updatePublicationStatus());
 
         entityManager.refresh(toBePublishedObject);
@@ -149,12 +155,12 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
 
         // No pending objects so no updates required.
         assertEquals(0, publishedObjectRepository.findEntriesByPublicationStatus(PENDING_STATUSES).size());
-        assertEquals(0, publishedObjectRepository.updatePublicationStatus());
+        assertEquals(0, publishedObjectRepository.publishObjects(issuingKeyPair));
         assertEquals(0, trustAnchorPublishedObjectRepository.updatePublicationStatus());
 
         publishedObject.withdraw();
         assertEquals(1, publishedObjectRepository.findEntriesByPublicationStatus(PENDING_STATUSES).size());
-        assertEquals(1, publishedObjectRepository.updatePublicationStatus());
+        assertEquals(1, publishedObjectRepository.publishObjects(issuingKeyPair));
         assertEquals(0, trustAnchorPublishedObjectRepository.updatePublicationStatus());
         assertEquals(3, publishedObjectRepository.findCurrentlyPublishedObjects().size());
     }
@@ -193,7 +199,7 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
         toBeWithdrawnObject.withdraw();
         publishedObjectRepository.add(toBeWithdrawnObject);
 
-        publishedObjectRepository.updatePublicationStatus();
+        publishedObjectRepository.publishObjects(issuingKeyPair);
 
         entityManager.refresh(toBeWithdrawnObject);
         entityManager.refresh(toBePublishedObject);
@@ -240,5 +246,10 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
         publishedObject.withdrawn();
 
         assertEquals(1, publishedObjectRepository.deleteExpiredObjects(expirationTime));
+    }
+
+    @Test
+    public void withdrawObjectsForDeletedKeys() {
+        assertThat(publishedObjectRepository.withdrawObjectsForDeletedKeys()).isZero();
     }
 }

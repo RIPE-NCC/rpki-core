@@ -6,33 +6,17 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.util.UTC;
 import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
-import net.ripe.rpki.domain.CertificateAuthority;
-import net.ripe.rpki.domain.CertificateAuthorityRepository;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.PublishedObjectRepository;
-import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
-import net.ripe.rpki.domain.manifest.ManifestPublicationService;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
 import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.util.DBComponent;
-import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
-import org.joda.time.Instant;
-import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.inject.Inject;
-import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
-import javax.persistence.LockModeType;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_REPOSITORY_PUBLICATION_SERVICE;
@@ -47,59 +31,30 @@ import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_R
 @Slf4j
 public class PublicRepositoryPublicationServiceBean extends SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode {
 
-    /**
-     * The maximum number of CAs to update the manifest and CRL for during the publication transaction. If there are
-     * more than this number of CAs that need a check they will be picked up during the next run or processed by the
-     * {@link ManifestCrlUpdateServiceBean}.
-     */
-    public static final int MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE = 5;
-
-    /**
-     * The maximum time this service should lock certificate authorities while checking for manifest/CRL update.
-     * If there are more CAs that need a check they will be picked up during the next run or processed by the
-     * {@link ManifestCrlUpdateServiceBean}.
-     */
-    public static final Duration MAX_UPDATE_DURATION = Duration.standardSeconds(5);
-
     private final CommandService commandService;
     private final CertificateAuthorityRepository certificateAuthorityRepository;
-    private final ManifestPublicationService manifestPublicationService;
+
+    private final TransactionTemplate transactionTemplate;
     private final PublishedObjectRepository publishedObjectRepository;
     private final TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository;
-    private final DBComponent dbComponent;
-    private final TransactionTemplate transactionTemplate;
-
     private final Counter certificateAuthorityCounter;
-    private final Counter publishedObjectCounter;
 
     @Inject
     public PublicRepositoryPublicationServiceBean(
         BackgroundTaskRunner backgroundTaskRunner,
         CommandService commandService,
         CertificateAuthorityRepository certificateAuthorityRepository,
-        ManifestPublicationService manifestPublicationService,
-        PublishedObjectRepository publishedObjectRepository,
-        TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository,
-        DBComponent dbComponent,
-        PlatformTransactionManager transactionManager,
+        TransactionTemplate transactionTemplate, PublishedObjectRepository publishedObjectRepository, TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository,
         MeterRegistry meterRegistry) {
         super(backgroundTaskRunner);
         this.commandService = commandService;
         this.certificateAuthorityRepository = certificateAuthorityRepository;
-        this.manifestPublicationService = manifestPublicationService;
+        this.transactionTemplate = transactionTemplate;
         this.publishedObjectRepository = publishedObjectRepository;
         this.trustAnchorPublishedObjectRepository = trustAnchorPublishedObjectRepository;
-        this.dbComponent = dbComponent;
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
-        // Repeatable read, so we get a consistent snapshot of to-be-published objects
-        this.transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
 
         this.certificateAuthorityCounter = Counter.builder("rpkicore.publication.certificate.authorities")
             .description("The number of certificate authorities with pending publications updated")
-            .tag("publication", "update")
-            .register(meterRegistry);
-        this.publishedObjectCounter = Counter.builder("rpkicore.publication.published.objects")
-            .description("The number of published objects marked as published or withdrawn")
             .tag("publication", "update")
             .register(meterRegistry);
     }
@@ -111,97 +66,39 @@ public class PublicRepositoryPublicationServiceBean extends SequentialBackground
 
     @Override
     protected void runService(Map<String, String> parameters) {
-        DateTime manifestAndCrlValidityCutoff = UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_HARD_LIMIT);
-        preparePendingCertificateAuthorities(manifestAndCrlValidityCutoff);
+        // Avoid generating a delta on each run by truncating the cutoff validity time to a full hour. If there are
+        // ASPA/ROA objects to be published a CA will be immediately published, otherwise an hour boundary must be
+        // crossed. This reduces the number of generated RRDP deltas.
+        DateTime manifestAndCrlValidityCutoff = UTC.dateTime().plus(ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT)
+            .withMinuteOfHour(0).withSecondOfMinute(0).withMillisOfSecond(0);
+        transactionTemplate.executeWithoutResult(status -> trustAnchorPublishedObjectRepository.updatePublicationStatus());
         publishPendingCertificateAuthorities(manifestAndCrlValidityCutoff);
-    }
-
-    private void preparePendingCertificateAuthorities(DateTime manifestAndCrlValidityCutoff) {
-        List<ManagedCertificateAuthority> pendingCertificateAuthorities = findPendingCertificateAuthorities(true, manifestAndCrlValidityCutoff, Integer.MAX_VALUE);
-        log.info("Updating {} CAs with updated configuration or outdated manifest/CRL before publication transaction", pendingCertificateAuthorities.size());
-
-        runParallel(pendingCertificateAuthorities.stream().map(ca -> task(
-            () -> commandService.execute(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId())),
-            ex -> {
-                if (ex instanceof EntityNotFoundException) {
-                    log.info("CA '{}' not found, probably deleted since initial query", ca.getName(), ex);
-                } else {
-                    log.error("Could not publish material for CA " + ca.getName(), ex);
-                }
-            }
-        )));
+        transactionTemplate.executeWithoutResult(status -> publishedObjectRepository.withdrawObjectsForDeletedKeys());
     }
 
     private void publishPendingCertificateAuthorities(DateTime manifestAndCrlValidityCutoff) {
-        try {
-            transactionTemplate.executeWithoutResult(status -> runTransaction(manifestAndCrlValidityCutoff));
-        } catch (TransientDataAccessException e) {
-            // The transaction runs with repeatable read isolation level which may cause transient exceptions due
-            // to data access ordering. See https://www.postgresql.org/docs/current/transaction-iso.html for
-            // more information.
-            log.warn("transaction rolled back due to TransientDataAccessException, will be retried during next run. Exception: {}", e.toString());
-        }
-    }
-
-    private void runTransaction(DateTime manifestAndCrlValidityCutoff) {
-        log.info("Started publication transaction");
-
-        List<ManagedCertificateAuthority> pendingCertificateAuthorities =
-            findPendingCertificateAuthorities(false, manifestAndCrlValidityCutoff, MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE + 1);
-        if (pendingCertificateAuthorities.size() > MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE) {
-            log.info("More than {} CAs to update, aborting publication", MAX_CERTIFICATE_AUTHORITIES_TO_UPDATE);
-            return;
-        }
-
+        Collection<ManagedCertificateAuthority> pendingCertificateAuthorities =
+            certificateAuthorityRepository.findAllWithOutdatedManifests(true, manifestAndCrlValidityCutoff, Integer.MAX_VALUE);
+        log.info("Publishing {} CAs with updated configuration or outdated manifest/CRL", pendingCertificateAuthorities.size());
         certificateAuthorityCounter.increment(pendingCertificateAuthorities.size());
 
-        Instant timeout = Instant.now().plus(MAX_UPDATE_DURATION);
-        log.info("Updating {} CAs with outdated manifest or CRL", pendingCertificateAuthorities.size());
+        SortedMap<Integer, List<ManagedCertificateAuthority>> groupedByDepth =
+            pendingCertificateAuthorities.stream()
+                .collect(Collectors.groupingBy(CertificateAuthority::depth, TreeMap::new, Collectors.toList()));
 
-        long updateCountTotal = 0;
-        for (ManagedCertificateAuthority ca : pendingCertificateAuthorities) {
-            if (timeout.isBeforeNow()) {
-                // Process is taking too long, commit current results and wait for next run to process further CAs.
-                log.info("Updated {} manifests before running out of time, continuing during next run", updateCountTotal);
-                return;
-            }
-
-            dbComponent.lockCertificateAuthorityForSharing(ca.getId());
-            updateCountTotal += manifestPublicationService.updateManifestAndCrlIfNeeded(ca);
+        // Publish top-down to ensure the parent CA's certificates are always available before publishing child CA
+        // certificates. Otherwise, a child CA certificate may be invalid due to over-claiming resources.
+        for (List<ManagedCertificateAuthority> cas : groupedByDepth.values()) {
+            runParallel(cas.stream().map(ca -> task(
+                () -> commandService.execute(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId())),
+                ex -> {
+                    if (ex instanceof EntityNotFoundException) {
+                        log.info("CA '{}' not found, probably deleted since initial query", ca.getName(), ex);
+                    } else {
+                        log.error("Could not publish material for CA '{}'", ca.getName(), ex);
+                    }
+                }
+            )));
         }
-
-        Validate.isTrue(
-            findPendingCertificateAuthorities(false, manifestAndCrlValidityCutoff,1).isEmpty(),
-            "post-condition: all CAs should be ready for publication at this point"
-        );
-
-        // Atomically mark the new set of objects that are publishable.
-        int count = publishedObjectRepository.updatePublicationStatus();
-
-        // The trust anchor published object table is already managed atomically by the
-        // TrustAnchorResponseProcessor, so here we just mark the new set of objects to
-        // be published.
-        count += trustAnchorPublishedObjectRepository.updatePublicationStatus();
-
-        if (count > 0) {
-            log.info(
-                "Published/withdrawn {} objects after updating {} manifests while checking {} CAs",
-                count, updateCountTotal, pendingCertificateAuthorities.size()
-            );
-        }
-
-        publishedObjectCounter.increment(count);
-    }
-
-    /**
-     * List of certificate authorities that may need a new manifest/CRL. Children are sorted before parents
-     * to ensure proper locking order (command handlers always lock the child CA before the parent CA). This
-     * reduces the chance of deadlock or a serializable transaction rollback error.
-     */
-    private List<ManagedCertificateAuthority> findPendingCertificateAuthorities(boolean includeWithUpdatedConfiguration, DateTime manifestAndCrlValidityCutoff, int maxResults) {
-        return certificateAuthorityRepository.findAllWithOutdatedManifests(includeWithUpdatedConfiguration, manifestAndCrlValidityCutoff, maxResults)
-            .stream()
-            .sorted(Comparator.comparingInt(CertificateAuthority::depth).reversed().thenComparing(CertificateAuthority::getId))
-            .collect(Collectors.toList());
     }
 }

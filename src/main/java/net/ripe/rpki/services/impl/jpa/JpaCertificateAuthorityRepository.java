@@ -234,13 +234,11 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
                 "                 JOIN kp.incomingResourceCertificate incoming" +
                 // Key pair must be publishable and must have a current incoming certificate
                 "                WHERE kp.status IN (:publishable)" +
-                // Active objects that are not on the manifest, or inactive objects that are on the manifest, so publish needed
+                // Objects that need to be withdrawn or published
                 "                  AND (       EXISTS (SELECT po" +
                 "                                        FROM PublishedObject po" +
                 "                                       WHERE po.issuingKeyPair = kp" +
-                "                                         AND po.includedInManifest = TRUE" +
-                "                                         AND (   (po.containingManifest IS NULL AND po.status in :active)" +
-                "                                              OR (po.containingManifest IS NOT NULL AND po.status in :inactive)))" +
+                "                                         AND po.status in :pending)" +
                 // No active manifest, or manifest will expire soon, so publish needed
                 "                       OR NOT EXISTS (SELECT mft" +
                 "                                        FROM ManifestEntity mft" +
@@ -260,7 +258,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
             .setParameter("publishable", Arrays.asList(KeyPairStatus.PENDING, KeyPairStatus.CURRENT, KeyPairStatus.OLD))
             // Need to update when there are published object with pending status
             .setParameter("active", PublicationStatus.ACTIVE_STATUSES)
-            .setParameter("inactive", EnumSet.complementOf(PublicationStatus.ACTIVE_STATUSES))
+            .setParameter("pending", PublicationStatus.PENDING_STATUSES)
             .setParameter("nextUpdateCutoff", nextUpdateCutoff)
             .setParameter("includeUpdatedConfiguration", includeUpdatedConfiguration)
             .setMaxResults(maxResults)

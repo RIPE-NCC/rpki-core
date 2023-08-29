@@ -204,8 +204,9 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
             // Base case: all outgoing certificates issued by the children of the CA indicated by `caName`
             "  SELECT rc.requesting_ca_id, rc.resources, (rc.asn_inherited OR rc.ipv4_inherited OR rc.ipv6_inherited) as inherited\n" +
             "    FROM resourcecertificate rc\n" +
+            "      JOIN published_object po on rc.published_object_id = po.id\n" +
             "   WHERE rc.type = :outgoing\n" +
-            "     AND rc.status = :current\n" +
+            "     AND po.status <> :withdrawn\n" +
             "     AND requesting_ca_id IN (SELECT child.id\n" +
             "                                FROM certificateauthority child\n" +
             "                                  LEFT JOIN certificateauthority parent ON child.parent_id = parent.id\n" +
@@ -215,15 +216,16 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
             "UNION ALL\n" +
             "  SELECT rc.requesting_ca_id, rc.resources, (rc.asn_inherited OR rc.ipv4_inherited OR rc.ipv6_inherited) as inherited\n" +
             "    FROM certificate issuing\n" +
-            "      LEFT JOIN keypair signing_keypair ON issuing.requesting_ca_id = signing_keypair.ca_id\n" +
-            "      LEFT JOIN resourcecertificate rc ON signing_keypair.id = rc.signing_keypair_id\n" +
+            "      JOIN keypair signing_keypair ON issuing.requesting_ca_id = signing_keypair.ca_id\n" +
+            "      JOIN resourcecertificate rc ON signing_keypair.id = rc.signing_keypair_id\n" +
+            "      JOIN published_object po on rc.published_object_id = po.id\n" +
             "   WHERE rc.type = :outgoing\n" +
-            "     AND rc.status = :current\n" +
+            "     AND po.status <> :withdrawn\n" +
             "     AND issuing.inherited = TRUE\n" +
             ")\n" +
             "SELECT resources FROM certificate WHERE LENGTH(resources) > 0;\n")
             .setParameter("outgoing", "OUTGOING")
-            .setParameter("current", OutgoingResourceCertificateStatus.CURRENT.name())
+            .setParameter("withdrawn", PublicationStatus.WITHDRAWN.name())
             .setParameter("name", new X500PrincipalPersistenceConverter().convertToDatabaseColumn(caName))
             .getResultStream();
         return resultStream

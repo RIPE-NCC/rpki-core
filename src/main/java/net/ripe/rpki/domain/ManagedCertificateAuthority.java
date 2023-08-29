@@ -333,17 +333,6 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     }
 
     /**
-     * Let the CA initiate key rolls in its resource classes, if applicable, meaning:
-     * there is only one, current, key in existence for the resource class and it's older than the maxAge (days) supplied.
-     * Will result in a UpstreamCARequest if any new keys were created, and certificates requested for them.
-     */
-    public List<CertificateIssuanceRequest> initiateKeyRolls(int maxAge,
-                                                             CertificateRequestCreationService certificateRequestCreationService) {
-        final Optional<CertificateIssuanceRequest> request = certificateRequestCreationService.initiateKeyRoll(this, maxAge);
-        return request.map(Collections::singletonList).orElse(Collections.emptyList());
-    }
-
-    /**
      * Let the CA activate any keys in any of its resource classes, that have been pending for the minStagingTime
      *
      * @return false if NO key was activated

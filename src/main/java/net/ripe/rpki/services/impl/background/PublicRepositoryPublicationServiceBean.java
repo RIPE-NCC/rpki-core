@@ -23,7 +23,8 @@ import static net.ripe.rpki.services.impl.background.BackgroundServices.PUBLIC_R
 
 /**
  * Updates all needed CRLs and manifests to generate a new, consistent set of published RPKI objects. The update
- * is done inside a single transaction to ensure that no inconsistent set of objects can be published.
+ * is done top-down to ensure that no inconsistent set of objects can be published (parent CAs never issue
+ * certificates that cause child CAs to be invalidated).
  * <p>
  * The actual publishing to RRDP or RSYNC is done in separate background services.
  */

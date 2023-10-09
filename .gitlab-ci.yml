@@ -1,4 +1,5 @@
-image: gradle:8.2-jdk11
+default:
+  image: gradle:8.3-jdk11
 
 # Explicit version of the Mergerequests-Pipelines workflow, with the main branch
 # added.
@@ -41,6 +42,8 @@ variables:
 ######## Build stage ########
 build:
   stage: build
+  # slow builds in augusts 2023
+  timeout: 60m
   services:
     - postgres:14
   variables:

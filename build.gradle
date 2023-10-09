@@ -1,6 +1,6 @@
 plugins {
     id 'rpki-ripe-ncc.build-conventions'
-    id 'org.springframework.boot' version '2.7.13'
+    id 'org.springframework.boot' version '2.7.16'
     id 'distribution'
     id 'jacoco'
     id "com.google.cloud.tools.jib" version "3.3.2"
@@ -43,7 +43,7 @@ dependencies {
     implementation "org.thymeleaf:thymeleaf:3.1.1.RELEASE"
     implementation "org.thymeleaf:thymeleaf-spring5:3.1.1.RELEASE"
 
-    implementation platform('io.sentry:sentry-bom:6.24.0')
+    implementation platform('io.sentry:sentry-bom:6.28.0')
     implementation 'io.sentry:sentry-spring-boot-starter'
     implementation 'io.sentry:sentry-logback'
 
@@ -73,7 +73,7 @@ dependencies {
     }
 
     testImplementation 'com.github.tomakehurst:wiremock-jre8:2.35.0'
-    testImplementation 'net.jqwik:jqwik:1.7.3'
+    testImplementation 'net.jqwik:jqwik:1.7.4'
     testImplementation "net.ripe.rpki:rpki-commons:$rpki_commons_version:tests"
     testImplementation 'org.assertj:assertj-core'
 

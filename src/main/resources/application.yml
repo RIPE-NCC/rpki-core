@@ -28,7 +28,13 @@ spring:
         driver-class-name: org.postgresql.Driver
         username: certdb
         hikari:
-            maximum-pool-size: 90
+            # use keepalive to ensure there is traffic.
+            #
+            # Do not use a maximum connection lifetime. It does not help, because
+            # recycling ports may not keep the flow alive longer on a firewall
+            keepalive-time: 300000
+            maximum-pool-size: 50
+            connection-timeout: 5000
             transaction-isolation: TRANSACTION_REPEATABLE_READ
     jpa:
         database-platform: org.hibernate.dialect.PostgreSQL10Dialect

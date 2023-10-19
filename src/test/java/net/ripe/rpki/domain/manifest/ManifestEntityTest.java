@@ -6,10 +6,7 @@ import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeConstants;
-import org.joda.time.DateTimeUtils;
-import org.joda.time.DateTimeZone;
+import org.joda.time.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.security.KeyPair;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,8 +47,12 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
         ca = createInitialisedProdCaWithRipeResources();
         currentKeyPair = ca.getCurrentKeyPair();
         subject = new ManifestEntity(currentKeyPair);
-        publishedObject1 = new PublishedObject(currentKeyPair, "foo.crl", new byte[]{1, 2, 3, 4}, true, PUBLICATION_DIRECTORY, new ValidityPeriod());
-        publishedObject2 = new PublishedObject(currentKeyPair, "foo.roa", new byte[]{5, 6, 7, 8}, true, PUBLICATION_DIRECTORY, new ValidityPeriod());
+
+        var start = now.toDate();
+        var end = now.plus(Duration.standardDays(7)).toDate();
+
+        publishedObject1 = new PublishedObject(currentKeyPair, "foo.crl", new byte[]{1, 2, 3, 4}, true, PUBLICATION_DIRECTORY, new ValidityPeriod(start, end));
+        publishedObject2 = new PublishedObject(currentKeyPair, "foo.roa", new byte[]{5, 6, 7, 8}, true, PUBLICATION_DIRECTORY, new ValidityPeriod(start, end));
         initialEntries = Collections.singleton(publishedObject1);
 
         eeKeyPair = PregeneratedKeyPairFactory.getInstance().generate();

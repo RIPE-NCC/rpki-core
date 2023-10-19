@@ -14,6 +14,7 @@ import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
 import org.assertj.core.api.Condition;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +68,7 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
 
         issuingKeyPair = productionCertificateAuthority.getCurrentKeyPair();
 
-        toBePublishedTaObject = new TrustAnchorPublishedObject(URI.create("rsync://rpki.example.com/ta"), new byte[]{0xa, 0xb, 0xc});
+        toBePublishedTaObject = new TrustAnchorPublishedObject(URI.create("rsync://rpki.example.com/ta"), new byte[]{0xa, 0xb, 0xc}, VALIDITY_PERIOD.getNotValidBefore().toInstant());
 
         toBePublishedObject = new PublishedObject(
             issuingKeyPair,

@@ -1,5 +1,5 @@
 default:
-  image: gradle:8.3-jdk11
+  image: gradle:8.4-jdk11
 
 # Explicit version of the Mergerequests-Pipelines workflow, with the main branch
 # added.
@@ -45,7 +45,7 @@ build:
   # slow builds in augusts 2023
   timeout: 60m
   services:
-    - postgres:14
+    - postgres:15
   variables:
       POSTGRES_DB: certdb_test
       POSTGRES_USER: certdb

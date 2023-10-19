@@ -67,7 +67,7 @@ public class AllCaCertificateUpdateServiceBeanTest {
 
     @Before
     public void setUp() {
-        subject = new AllCaCertificateUpdateServiceBean(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()), caViewService, commandService, resourceCache, repositoryConfiguration, 1000);
+        subject = new AllCaCertificateUpdateServiceBean(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()), caViewService, commandService, resourceCache, repositoryConfiguration, 1000, new SimpleMeterRegistry());
 
         when(repositoryConfiguration.getAllResourcesCaPrincipal()).thenReturn(ALL_RESOURCES_CA_NAME);
         when(repositoryConfiguration.getProductionCaPrincipal()).thenReturn(PRODUCTION_CA_NAME);

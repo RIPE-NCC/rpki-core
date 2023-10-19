@@ -16,6 +16,7 @@ import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.rta.UpStreamCARequestEntity;
 import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.services.command.OfflineResponseProcessorException;
+import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,12 +32,10 @@ import static net.ripe.ipresource.ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES
 import static net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateTest.createSelfSignedCaResourceCertificate;
 import static net.ripe.rpki.domain.TestObjects.ACA_ID;
 import static net.ripe.rpki.domain.TestObjects.ALL_RESOURCES_CA_NAME;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.BDDMockito.atLeastOnce;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.isA;
-import static org.mockito.BDDMockito.verify;
+import static org.mockito.BDDMockito.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -53,8 +52,8 @@ public class TrustAnchorResponseProcessorTest {
     private static final URI NEW_CERTIFICATE_PUBLICATION_BASE_URI = URI.create("rsync://nowhere/");
     private static final URI NEW_CERTIFICATE_PUBLICATION_URI = NEW_CERTIFICATE_PUBLICATION_BASE_URI.resolve(NEW_CERTIFICATE_FILE_NAME);
 
-    private static SigningResponse TEST_SIGN_RESPONSE = new SigningResponse(UUID.randomUUID(), "RIPE", NEW_CERTIFICATE_PUBLICATION_URI, NEW_CERTIFICATE);
-    private static Map<URI, CertificateRepositoryObject> TA_OBJECTS = new HashMap<>();
+    private static final SigningResponse TEST_SIGN_RESPONSE = new SigningResponse(UUID.randomUUID(), "RIPE", NEW_CERTIFICATE_PUBLICATION_URI, NEW_CERTIFICATE);
+    private static final Map<URI, CertificateRepositoryObject> TA_OBJECTS = new HashMap<>();
     static {
         TA_OBJECTS.put(NEW_CERTIFICATE_PUBLICATION_URI, NEW_CERTIFICATE);
     }
@@ -104,25 +103,29 @@ public class TrustAnchorResponseProcessorTest {
 
     @Test
     public void should_process_response_and_re_publish_object() {
+        var now = Instant.now();
         final byte[] content = {'a'};
-        final TrustAnchorPublishedObject existingObject = new TrustAnchorPublishedObject(NEW_CERTIFICATE_PUBLICATION_URI, content);
+        final TrustAnchorPublishedObject existingObject = new TrustAnchorPublishedObject(NEW_CERTIFICATE_PUBLICATION_URI, content, now);
 
         given(trustAnchorPublishedObjectRepository.findActiveObjects())
                 .willReturn(Collections.singletonList(existingObject));
 
         final List<TrustAnchorPublishedObject> publishedObjects = subject.applyChangeToPublishedObjects(TA_OBJECTS);
 
-        assertEquals(2, publishedObjects.size());
+        assertThat(publishedObjects.size()).isEqualTo(2);
 
         final TrustAnchorPublishedObject actual0 = publishedObjects.get(0);
-        assertEquals(NEW_CERTIFICATE_PUBLICATION_URI, actual0.getUri());
-        assertArrayEquals(content, actual0.getContent());
-        assertFalse(actual0.getStatus().isPublished());
+        assertThat(actual0.getUri()).isEqualTo(NEW_CERTIFICATE_PUBLICATION_URI);
+        assertThat(actual0.getContent()).isEqualTo(content);
+        assertThat(actual0.getStatus().isPublished()).isFalse();
+        assertThat(actual0.getCreatedAt()).isEqualTo(now);
 
         final TrustAnchorPublishedObject actual1 = publishedObjects.get(1);
-        assertEquals(NEW_CERTIFICATE_PUBLICATION_URI, actual1.getUri());
-        assertArrayEquals(NEW_CERTIFICATE.getEncoded(), actual1.getContent());
-        assertEquals(PublicationStatus.TO_BE_PUBLISHED, actual1.getStatus());
+
+        assertThat(actual1.getUri()).isEqualTo(NEW_CERTIFICATE_PUBLICATION_URI);
+        assertThat(actual1.getContent()).isEqualTo(NEW_CERTIFICATE.getEncoded());
+        assertThat(actual1.getStatus()).isEqualTo(PublicationStatus.TO_BE_PUBLISHED);
+        assertThat(actual1.getCreatedAt()).isEqualTo(NEW_CERTIFICATE.getValidityPeriod().getNotValidBefore().toInstant());
     }
 
     @Test(expected = OfflineResponseProcessorException.class )
@@ -148,25 +151,22 @@ public class TrustAnchorResponseProcessorTest {
     @Test
     public void shouldNotifyACAAboutRevokedKeys() {
         String pubKeyIdentifier = "CN=testkey";
-        try {
-            TrustAnchorResponse combinedResponse = getResponseWithRevocationResponse(1L, TA_OBJECTS, pubKeyIdentifier);
+        TrustAnchorResponse combinedResponse = getResponseWithRevocationResponse(1L, TA_OBJECTS, pubKeyIdentifier);
 
-            // make sure there is a pending request
-            setUpPendingRevocationRequest();
+        // make sure there is a pending request
+        setUpPendingRevocationRequest();
 
-            // expect revocation
-            when(certificateAuthorityRepository.findAllResourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
+        // expect revocation
+        when(certificateAuthorityRepository.findAllResourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
 
-            // expect that the pending request is revoked
-            entityManager.remove(isA(UpStreamCARequestEntity.class));
-            entityManager.flush();
+        // expect that the pending request is revoked
+        entityManager.remove(isA(UpStreamCARequestEntity.class));
+        entityManager.flush();
 
-            subject.process(combinedResponse);
-            fail("Should have failed, CA does not have this key");
-        } catch (CertificateAuthorityException e) {
-            // See integration tests for proper handling of known keys..
-            assertEquals("Unknown encoded key: " + pubKeyIdentifier, e.getMessage());
-        }
+        assertThatThrownBy(() -> subject.process(combinedResponse))
+                .isInstanceOf(CertificateAuthorityException.class)
+                .hasMessage("Unknown encoded key: " + pubKeyIdentifier);
+        // See integration tests for proper handling of known keys...
     }
 
     @Test
@@ -184,7 +184,7 @@ public class TrustAnchorResponseProcessorTest {
 
         subject.process(taResponse);
 
-        assertNull(allResourcesCA.getUpStreamCARequestEntity());
+        assertThat(allResourcesCA.getUpStreamCARequestEntity()).isNull();
     }
 
     private void setUpPendingRevocationRequest() {

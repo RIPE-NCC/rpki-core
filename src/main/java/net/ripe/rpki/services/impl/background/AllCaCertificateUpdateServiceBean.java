@@ -1,5 +1,7 @@
 package net.ripe.rpki.services.impl.background;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
 import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode;
@@ -28,6 +30,8 @@ import static net.ripe.rpki.services.impl.background.BackgroundServices.ALL_CA_C
 public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode {
     private final int updateBatchSize;
 
+    private final Counter certificateUpdates;
+
     private final CertificateAuthorityViewService caViewService;
     private final CommandService commandService;
     private final ResourceCache resourceCache;
@@ -39,13 +43,18 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
                                              CommandService commandService,
                                              ResourceCache resourceCache,
                                              RepositoryConfiguration repositoryConfiguration,
-                                             @Value("${certificate.authority.update.batch.size:1000}") int updateBatchSize) {
+                                             @Value("${certificate.authority.update.batch.size:1000}") int updateBatchSize,
+                                             MeterRegistry meterRegistry) {
         super(backgroundTaskRunner);
         this.caViewService = caViewService;
         this.commandService = commandService;
         this.resourceCache = resourceCache;
         this.repositoryConfiguration = repositoryConfiguration;
         this.updateBatchSize = updateBatchSize;
+
+        certificateUpdates = Counter.builder("rpkicore.all.certificate.update.progress")
+                .description("Number of certificates updated by All CA certificate update service")
+                .register(meterRegistry);
     }
 
     @Override
@@ -126,6 +135,7 @@ public class AllCaCertificateUpdateServiceBean extends SequentialBackgroundServi
                     boolean updated = updateIncomingCertificates(parentCa);
                     if (updated) {
                         remainingCounter.decrementAndGet();
+                        certificateUpdates.increment();
                     }
 
                     long updateCount = updateChildren(parentCa);

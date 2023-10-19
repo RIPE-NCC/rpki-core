@@ -3,6 +3,7 @@ package net.ripe.rpki.domain;
 import lombok.Getter;
 import lombok.NonNull;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
+import org.joda.time.Instant;
 
 import javax.persistence.Column;
 import javax.persistence.EnumType;
@@ -39,11 +40,16 @@ public abstract class GenericPublishedObject extends EntitySupport {
     @NonNull
     protected byte[] content = new byte[0];
 
+    @Column(name = "created_at", nullable = false)
+    @Getter
+    private Instant createdAt;
+
     protected GenericPublishedObject() {
     }
 
-    protected GenericPublishedObject(@NonNull byte[] content) {
+    protected GenericPublishedObject(@NonNull byte[] content, Instant createdAt) {
         this.content = Arrays.copyOf(content, content.length);
+        this.createdAt = createdAt;
     }
 
     @NonNull

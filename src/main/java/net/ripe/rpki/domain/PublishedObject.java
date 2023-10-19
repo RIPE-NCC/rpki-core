@@ -5,6 +5,7 @@ import lombok.NonNull;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
 import org.apache.commons.lang3.Validate;
+import org.joda.time.Instant;
 
 import javax.persistence.*;
 import java.net.URI;
@@ -69,7 +70,7 @@ public class PublishedObject extends GenericPublishedObject {
         @NonNull URI publicationDirectory,
         @NonNull ValidityPeriod validityPeriod
     ) {
-        super(content);
+        super(content, validityPeriod.getNotValidBefore().toInstant());
         this.issuingKeyPair = issuingKeyPair;
         this.filename = filename;
         this.includedInManifest = includedInManifest;

@@ -17,6 +17,7 @@ import net.ripe.rpki.commons.ta.domain.response.RevocationResponse;
 import net.ripe.rpki.commons.ta.domain.response.SigningResponse;
 import net.ripe.rpki.commons.ta.domain.response.TaResponse;
 import net.ripe.rpki.commons.ta.domain.response.TrustAnchorResponse;
+import net.ripe.rpki.util.PublishedObjectUtil;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -101,10 +102,10 @@ public class TrustAnchorResponseProcessor {
                 if (!objectsAreSame(publishedObject, objectToPublish, uri)) {
                     publishedObject.withdraw();
                     result.add(publishedObject);
-                    result.add(new TrustAnchorPublishedObject(uri, objectToPublish.getEncoded()));
+                    result.add(new TrustAnchorPublishedObject(uri, objectToPublish.getEncoded(), PublishedObjectUtil.getFileCreationTime(uri, objectToPublish.getEncoded())));
                 }
             } else {
-                result.add(new TrustAnchorPublishedObject(uri, objectToPublish.getEncoded()));
+                result.add(new TrustAnchorPublishedObject(uri, objectToPublish.getEncoded(), PublishedObjectUtil.getFileCreationTime(uri, objectToPublish.getEncoded())));
             }
         });
         withdrawObjects(activeObjects.values());

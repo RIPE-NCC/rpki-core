@@ -1,14 +1,14 @@
 package net.ripe.rpki.publication.persistence.disk;
 
 import com.google.common.collect.Sets;
-import net.ripe.rpki.commons.util.ConfigurationUtil;
 import net.ripe.rpki.domain.PublishedObjectData;
 import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,17 +17,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static net.ripe.rpki.publication.persistence.disk.FileSystemPublicationObjectPersistence.INTERNAL_DIRECTORY_LAST_MODIFIED_TIME;
 import static net.ripe.rpki.publication.persistence.disk.FileSystemPublicationObjectPersistence.PUBLICATION_DIRECTORY_PATTERN;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class FileSystemPublicationObjectPersistenceTest {
 
@@ -47,10 +43,10 @@ public class FileSystemPublicationObjectPersistenceTest {
         new Random().nextBytes(CONTENTS);
     }
 
-    @Before
-    public void setUp() throws IOException {
-        onlineRepositoryBaseDirectory = Files.createTempDirectory("temp-online-repository").toFile();
-        taRepositoryBaseDirectory = Files.createTempDirectory("temp-ta-repository").toFile();
+    @BeforeEach
+    public void setUp(@TempDir File onlineRepositoryBaseDirectory, @TempDir File taRepositoryBaseDirectory) throws IOException {
+        this.onlineRepositoryBaseDirectory = onlineRepositoryBaseDirectory;
+        this.taRepositoryBaseDirectory = taRepositoryBaseDirectory;
 
         // fix the current time while a test is running
         DateTimeUtils.setCurrentMillisFixed(new DateTime().getMillis());
@@ -61,18 +57,8 @@ public class FileSystemPublicationObjectPersistenceTest {
             120, 1);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
-        // FileUtils was getting spurious PermissionDeniedExceptions - likely a virus scanner interaction.
-        Files.walk(onlineRepositoryBaseDirectory.toPath())
-                .sorted(Comparator.reverseOrder())
-                .map(Path::toFile)
-                .forEach(File::delete);
-        Files.walk(taRepositoryBaseDirectory.toPath())
-                .sorted(Comparator.reverseOrder())
-                .map(Path::toFile)
-                .forEach(File::delete);
-
         DateTimeUtils.setCurrentMillisSystem();
     }
 
@@ -82,7 +68,7 @@ public class FileSystemPublicationObjectPersistenceTest {
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
 
-        assertArrayEquals(CONTENTS, FileUtils.readFileToByteArray(new File(onlineRepositoryBaseDirectory, "published/foo/bar.cer")));
+        assertThat(FileUtils.readFileToByteArray(new File(onlineRepositoryBaseDirectory, "published/foo/bar.cer"))).isEqualTo(CONTENTS);
     }
 
     @Test
@@ -91,7 +77,7 @@ public class FileSystemPublicationObjectPersistenceTest {
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
 
-        assertEquals(CREATED_AT.getTime() / 1000, new File(onlineRepositoryBaseDirectory, "published/foo/bar.cer").lastModified() / 1000);
+        assertThat(new File(onlineRepositoryBaseDirectory, "published/foo/bar.cer").lastModified() / 1000).isEqualTo(CREATED_AT.getTime() / 1000);
     }
 
     @Test
@@ -100,8 +86,8 @@ public class FileSystemPublicationObjectPersistenceTest {
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
 
-        assertEquals(FileSystemPublicationObjectPersistence.INTERNAL_DIRECTORY_LAST_MODIFIED_TIME, Files.getLastModifiedTime(new File(onlineRepositoryBaseDirectory, "published/foo").toPath()));
-        assertEquals(FileSystemPublicationObjectPersistence.INTERNAL_DIRECTORY_LAST_MODIFIED_TIME, Files.getLastModifiedTime(new File(onlineRepositoryBaseDirectory, "published/foo/baz").toPath()));
+        assertThat(Files.getLastModifiedTime(new File(onlineRepositoryBaseDirectory, "published/foo").toPath())).isEqualTo(INTERNAL_DIRECTORY_LAST_MODIFIED_TIME);
+        assertThat(Files.getLastModifiedTime(new File(onlineRepositoryBaseDirectory, "published/foo/baz").toPath())).isEqualTo(INTERNAL_DIRECTORY_LAST_MODIFIED_TIME);
     }
 
     @Test
@@ -110,7 +96,7 @@ public class FileSystemPublicationObjectPersistenceTest {
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
 
-        assertArrayEquals(CONTENTS, FileUtils.readFileToByteArray(new File(taRepositoryBaseDirectory, "published/foo/bar.cer")));
+        assertThat(FileUtils.readFileToByteArray(new File(taRepositoryBaseDirectory, "published/foo/bar.cer"))).isEqualTo(CONTENTS);
     }
 
     @Test
@@ -121,13 +107,13 @@ public class FileSystemPublicationObjectPersistenceTest {
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
 
         Path targetDirectory = Files.readSymbolicLink(new File(onlineRepositoryBaseDirectory, "published").toPath());
-        assertEquals("published-2021-04-21T10:13:20.000Z", targetDirectory.toString());
+        assertThat(targetDirectory.toString()).isEqualTo("published-2021-04-21T10:13:20.000Z");
 
         DateTimeUtils.setCurrentMillisFixed(1619000000000L + TimeUnit.MINUTES.toMillis(60));
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
 
         targetDirectory = Files.readSymbolicLink(new File(onlineRepositoryBaseDirectory, "published").toPath());
-        assertEquals("published-2021-04-21T11:13:20.000Z", targetDirectory.toString());
+        assertThat(targetDirectory.toString()).isEqualTo("published-2021-04-21T11:13:20.000Z");
     }
 
     @Test
@@ -138,12 +124,12 @@ public class FileSystemPublicationObjectPersistenceTest {
         URI uri = ONLINE_REPOSITORY_BASE_URI.resolve("foo/bar.cer");
 
         Files.createDirectories(published);
-        assertTrue(Files.isDirectory(published));
+        assertThat(published).isDirectory();
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
 
-        assertTrue(Files.isSymbolicLink(published));
-        assertTrue(Files.isDirectory(published.resolveSibling("published.bak")));
+        assertThat(published).isSymbolicLink();
+        assertThat(published.resolveSibling("published.bak")).isDirectory();
     }
 
     @Test
@@ -152,26 +138,26 @@ public class FileSystemPublicationObjectPersistenceTest {
 
         DateTimeUtils.setCurrentMillisFixed(1619000000000L);
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
-        assertEquals(Sets.newHashSet(
+        assertThat(Sets.newHashSet(
             "published-2021-04-21T10:13:20.000Z",
             "published"
-        ), Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
+        )).containsExactlyInAnyOrderElementsOf(Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
 
         DateTimeUtils.setCurrentMillisFixed(1619000000000L + TimeUnit.MINUTES.toMillis(60));
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
-        assertEquals(Sets.newHashSet(
+        assertThat(Sets.newHashSet(
             "published-2021-04-21T10:13:20.000Z",
             "published",
             "published-2021-04-21T11:13:20.000Z"
-        ), Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
+        )).containsExactlyInAnyOrderElementsOf(Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
 
         DateTimeUtils.setCurrentMillisFixed(1619000000000L + TimeUnit.MINUTES.toMillis(150));
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
-        assertEquals(Sets.newHashSet(
+        assertThat(Sets.newHashSet(
             "published",
             "published-2021-04-21T11:13:20.000Z",
             "published-2021-04-21T12:43:20.000Z"
-        ), Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
+        )).containsExactlyInAnyOrderElementsOf(Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
     }
 
     @Test
@@ -187,39 +173,36 @@ public class FileSystemPublicationObjectPersistenceTest {
 
         DateTimeUtils.setCurrentMillisFixed(1619000000000L);
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
-        assertEquals(Sets.newHashSet(
+        assertThat(Sets.newHashSet(
             "published-2021-04-21T10:13:20.000Z",
             "published"
-        ), Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
+        )).containsExactlyInAnyOrderElementsOf(Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
 
         DateTimeUtils.setCurrentMillisFixed(1619000000000L + TimeUnit.MINUTES.toMillis(150));
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
-        assertEquals(Sets.newHashSet(
+        assertThat(Sets.newHashSet(
             "published-2021-04-21T10:13:20.000Z",
             "published",
             "published-2021-04-21T12:43:20.000Z"
-        ), Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
+        )).containsExactlyInAnyOrderElementsOf(Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
 
         DateTimeUtils.setCurrentMillisFixed(1619000000000L + TimeUnit.MINUTES.toMillis(200));
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
-        assertEquals(Sets.newHashSet(
+        assertThat(Sets.newHashSet(
             "published",
             "published-2021-04-21T13:33:20.000Z",
             "published-2021-04-21T12:43:20.000Z"
-        ), Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
+        )).containsExactlyInAnyOrderElementsOf(Sets.newHashSet(onlineRepositoryBaseDirectory.list()));
     }
 
     @Test
     public void should_fail_to_write_with_same_timestamp() {
         URI uri = ONLINE_REPOSITORY_BASE_URI.resolve("foo/old.cer");
-        subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
+        var publishedObjects = Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS));
 
-        try {
-            subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
-            fail("IllegalStateException expected");
-        } catch (IllegalStateException expected) {
-            // expected
-        }
+        subject.writeAll(publishedObjects);
+        assertThatThrownBy(() -> subject.writeAll(publishedObjects))
+            .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -228,49 +211,55 @@ public class FileSystemPublicationObjectPersistenceTest {
         URI newUri = ONLINE_REPOSITORY_BASE_URI.resolve("foo/new.cer");
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, oldUri, CONTENTS)));
-        assertTrue(new File(onlineRepositoryBaseDirectory, "published/foo/old.cer").exists());
+        assertThat(new File(onlineRepositoryBaseDirectory, "published/foo/old.cer")).exists();
 
         DateTimeUtils.setCurrentMillisFixed(DateTimeUtils.currentTimeMillis() + 100);
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(new Timestamp(System.currentTimeMillis()), newUri, CONTENTS)));
 
-        assertTrue(new File(onlineRepositoryBaseDirectory, "published/foo/new.cer").exists());
-        assertFalse(new File(onlineRepositoryBaseDirectory, "published/foo/old.cer").exists());
+        assertThat(new File(onlineRepositoryBaseDirectory, "published/foo/new.cer")).exists();
+        assertThat(new File(onlineRepositoryBaseDirectory, "published/foo/old.cer")).doesNotExist();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void should_reject_uri_outside_of_public_repository() {
         URI uri = URI.create("rsync://somewhere/else/bar.cer");
 
-        subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
+        var publishedObjects = Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS));
+        assertThatThrownBy(() ->subject.writeAll(publishedObjects))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void should_reject_uri_outside_of_public_repository_using_relative_segments() {
         URI uri = ONLINE_REPOSITORY_BASE_URI.resolve("../bar.cer");
 
-        subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
+        var publishedObjects = Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS));
+        assertThatThrownBy(() -> subject.writeAll(publishedObjects))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void should_reject_relative_uri() {
         URI uri = URI.create("foo/bar.cer");
 
-        subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
+        var publishedObjects = Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS));
+        assertThatThrownBy(() -> subject.writeAll(publishedObjects))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void cleanup_pattern_should_not_match_published_symlink_name() {
-        assertFalse(PUBLICATION_DIRECTORY_PATTERN.matcher("published").matches());
+        assertThat(PUBLICATION_DIRECTORY_PATTERN.matcher("published").matches()).isFalse();
     }
 
     @Test
     public void cleanup_pattern_should_match_target_directory_pattern() {
-        assertTrue(PUBLICATION_DIRECTORY_PATTERN.matcher("published-2021-04-26T09:57:59.034Z").matches());
+        assertThat(PUBLICATION_DIRECTORY_PATTERN.matcher("published-2021-04-26T09:57:59.034Z").matches()).isTrue();
     }
 
     @Test
     public void cleanup_pattern_should_match_temporary_directory_pattern() {
-        assertTrue(PUBLICATION_DIRECTORY_PATTERN.matcher("tmp-2021-04-26T10:09:06.023Z-4352054854289820810").matches());
+        assertThat(PUBLICATION_DIRECTORY_PATTERN.matcher("tmp-2021-04-26T10:09:06.023Z-4352054854289820810").matches()).isTrue();
     }
 }

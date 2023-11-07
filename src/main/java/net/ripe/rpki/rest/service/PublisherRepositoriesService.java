@@ -42,15 +42,13 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static com.google.common.collect.ImmutableMap.of;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.FORBIDDEN;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.TEXT_XML;
 
 @Slf4j
@@ -63,22 +61,26 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
 
     private final CertificateAuthorityViewService certificateAuthorityViewService;
     private final CommandService commandService;
-    private final NonHostedPublisherRepositoryService nonHostedPublisherRepositoryService;
+    private final Optional<NonHostedPublisherRepositoryService> maybeNonHostedPublisherRepositoryService;
 
 
     @Autowired
     public PublisherRepositoriesService(CertificateAuthorityViewService certificateAuthorityViewService,
                                         CommandService commandService,
-                                        NonHostedPublisherRepositoryService nonHostedPublisherRepositoryService) {
+                                        Optional<NonHostedPublisherRepositoryService> maybeNonHostedPublisherRepositoryService) {
         this.certificateAuthorityViewService = certificateAuthorityViewService;
         this.commandService = commandService;
-        this.nonHostedPublisherRepositoryService = nonHostedPublisherRepositoryService;
+        this.maybeNonHostedPublisherRepositoryService = maybeNonHostedPublisherRepositoryService;
     }
 
     @GetMapping(path = "non-hosted/publisher-repositories")
     @Operation(summary = "lists all active publisher repositories for this non-hosted CA")
     public ResponseEntity<?> listNonHostedPublicationRepositories(@PathVariable("caName") final CaName caName) {
         log.debug("List all publishers for CA: {}", caName);
+
+        if (maybeNonHostedPublisherRepositoryService.isEmpty()) {
+            return ResponseEntity.ok().body(Map.of("available", false, "repositories", Map.of()));
+        }
 
         try {
             Map<UUID, RepositoryResponseDto> repositories = certificateAuthorityViewService
@@ -87,7 +89,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> RepositoryResponseDto.of(entry.getValue())));
 
-            return ResponseEntity.ok().body(of("repositories", repositories));
+            return ResponseEntity.ok().body(Map.of("available", true, "repositories", repositories));
         } catch (EntityNotFoundException e) {
             throw new CaNotFoundException(e.getMessage());
         }
@@ -101,6 +103,11 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         @RequestParam("file") MultipartFile file
     ) {
         log.info("Publisher request for non-hosted CA: {}", caName);
+
+        if (maybeNonHostedPublisherRepositoryService.isEmpty()) {
+            return ResponseEntity.status(NOT_ACCEPTABLE).body("non hosted publishers are not available for this instance.");
+        }
+        var nonHostedPublisherRepositoryService = this.maybeNonHostedPublisherRepositoryService.orElseThrow();
 
         NonHostedCertificateAuthorityData ca = getCa(NonHostedCertificateAuthorityData.class, caName);
         if (certificateAuthorityViewService.findNonHostedPublisherRepositories(ca.getName()).size() >= NonHostedCertificateAuthority.PUBLISHER_REPOSITORIES_LIMIT) {
@@ -150,6 +157,9 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         @PathVariable("caName") final CaName caName,
         @PathVariable("publisherHandle") UUID publisherHandle
     ) {
+        if (maybeNonHostedPublisherRepositoryService.isEmpty()) {
+            return ResponseEntity.status(NOT_ACCEPTABLE).body("non hosted publishers are not available for this instance.");
+        }
         log.info("Download repository non-hosted publication response for CA: {}", caName);
 
         try {
@@ -177,6 +187,11 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
             @PathVariable("caName") final CaName caName,
             @PathVariable("publisherHandle") UUID publisherHandle
     ) {
+        if (maybeNonHostedPublisherRepositoryService.isEmpty()) {
+            return ResponseEntity.status(NOT_ACCEPTABLE).body("non hosted publishers are not available for this instance.");
+        }
+        var nonHostedPublisherRepositoryService = this.maybeNonHostedPublisherRepositoryService.orElseThrow();
+
         log.info("Delete non-hosted publication repository for CA: {}", caName);
 
         NonHostedCertificateAuthorityData ca = getCa(NonHostedCertificateAuthorityData.class, caName);

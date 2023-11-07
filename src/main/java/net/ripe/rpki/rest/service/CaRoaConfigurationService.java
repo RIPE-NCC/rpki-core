@@ -223,7 +223,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
                     final boolean isSuppressed = ignoredAnnouncements.contains(announcedRoute);
                     result.add(new BgpAnnouncementChange(bgp.getOrigin().toString(), bgp.getPrefix().toString(),
                             bgp.getVisibility(), isSuppressed, currentValidityState, futureValidityState,
-                            affectedRanges.contains(bgp.getPrefix()) && currentValidityState != futureValidityState,
+                            affectedRanges.contains(bgp.getPrefix()),
                             verifiedOrNot));
                 }
             }

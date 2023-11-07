@@ -278,6 +278,71 @@ public class CaRoaConfigurationServiceTest {
     }
 
     @Test
+    public void shouldReturnChangesEvenForUnchagedAnnouncementStatus() throws Exception {
+        // Have a large ROA covering everything
+        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Arrays.asList(
+                new RoaConfigurationPrefixData(new Asn(11), IpRange.parse("148.139.0.0/16"), 24))));
+
+        // this resource set here doesn't matter, it's only used for `findMostSpecificContainedAndNotContained`
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1, ::1");
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
+
+        Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
+        bgpRisEntries.put(true, Collections.singletonList(new BgpRisEntry(new Asn(11), IpRange.parse("148.139.0.0/24"), 16)));
+        when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
+
+        // Submit another ROA that is more specific for the announcement
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/stage")
+                        .content("[" +
+                                "{\"asn\" : \"AS11\", \"prefix\" : \"148.139.0.0/16\", \"maximalLength\" : \"24\"}," +
+                                "{\"asn\" : \"AS11\", \"prefix\" : \"148.139.0.0/24\", \"maximalLength\" : \"24\"}" +
+                                "]"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value("1"))
+                .andExpect(jsonPath("$.[0].asn").value("AS11"))
+                .andExpect(jsonPath("$.[0].prefix").value("148.139.0.0/24"))
+                .andExpect(jsonPath("$.[0].visibility").value("16"))
+                .andExpect(jsonPath("$.[0].suppressed").value("false"))
+                .andExpect(jsonPath("$.[0].currentState").value("VALID"))
+                .andExpect(jsonPath("$.[0].futureState").value("VALID"))
+                .andExpect(jsonPath("$.[0].affectedByChange").value("true"))
+                .andExpect(jsonPath("$.[0].verified").value("true"));
+    }
+
+    @Test
+    public void shouldReturnNotChangesForExactlySameROAs() throws Exception {
+        // Have a large ROA covering everything
+        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Arrays.asList(
+                new RoaConfigurationPrefixData(new Asn(11), IpRange.parse("148.139.0.0/16"), 24),
+                new RoaConfigurationPrefixData(new Asn(11), IpRange.parse("148.139.0.0/24"), 24))));
+
+        // this resource set here doesn't matter, it's only used for `findMostSpecificContainedAndNotContained`
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1, ::1");
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
+
+        Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
+        bgpRisEntries.put(true, Collections.singletonList(new BgpRisEntry(new Asn(11), IpRange.parse("148.139.0.0/24"), 16)));
+        when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
+
+        // Submit another ROA that is more specific for the announcement
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/stage")
+                        .content("[" +
+                                "{\"asn\" : \"AS11\", \"prefix\" : \"148.139.0.0/16\", \"maximalLength\" : \"24\"}," +
+                                "{\"asn\" : \"AS11\", \"prefix\" : \"148.139.0.0/24\", \"maximalLength\" : \"24\"}" +
+                                "]"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value("1"))
+                .andExpect(jsonPath("$.[0].asn").value("AS11"))
+                .andExpect(jsonPath("$.[0].prefix").value("148.139.0.0/24"))
+                .andExpect(jsonPath("$.[0].visibility").value("16"))
+                .andExpect(jsonPath("$.[0].suppressed").value("false"))
+                .andExpect(jsonPath("$.[0].currentState").value("VALID"))
+                .andExpect(jsonPath("$.[0].futureState").value("VALID"))
+                .andExpect(jsonPath("$.[0].affectedByChange").value("false"))
+                .andExpect(jsonPath("$.[0].verified").value("true"));
+    }
+
+    @Test
     public void shouldReturnAffectingROAsAllIsFine() throws Exception {
 
         when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Collections.singletonList(

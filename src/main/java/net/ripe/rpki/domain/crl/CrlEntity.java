@@ -139,7 +139,7 @@ public class CrlEntity extends EntitySupport {
         withdraw();
 
         setPublishedObject(new PublishedObject(
-                keyPair, keyPair.getCrlFilename(), encoded, true, keyPair.getCertificateRepositoryLocation(), validityPeriod));
+                keyPair, keyPair.getCrlFilename(), encoded, true, keyPair.getCertificateRepositoryLocation(), validityPeriod, builder.getThisUpdateTime()));
     }
 
     private X509CrlBuilder newCrlBuilderWithEntries(Collection<OutgoingResourceCertificate> revokedCertificates) {

@@ -59,7 +59,7 @@ public class RoaEntity extends EntitySupport {
         Validate.notNull(roaCms);
         this.certificate = eeCertificate;
         this.publishedObject = new PublishedObject(
-                eeCertificate.getSigningKeyPair(), filename, roaCms.getEncoded(), true, directory, roaCms.getValidityPeriod());
+                eeCertificate.getSigningKeyPair(), filename, roaCms.getEncoded(), true, directory, roaCms.getValidityPeriod(), roaCms.getSigningTime());
     }
 
     @Transient

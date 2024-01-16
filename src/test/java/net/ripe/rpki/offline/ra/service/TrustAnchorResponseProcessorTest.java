@@ -3,6 +3,9 @@ package net.ripe.rpki.offline.ra.service;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.FixedDateRule;
 import net.ripe.rpki.commons.crypto.CertificateRepositoryObject;
+import net.ripe.rpki.commons.crypto.UnknownCertificateRepositoryObject;
+import net.ripe.rpki.commons.crypto.crl.CrlLocator;
+import net.ripe.rpki.commons.crypto.crl.X509Crl;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.ta.domain.request.*;
@@ -10,6 +13,9 @@ import net.ripe.rpki.commons.ta.domain.response.ErrorResponse;
 import net.ripe.rpki.commons.ta.domain.response.RevocationResponse;
 import net.ripe.rpki.commons.ta.domain.response.SigningResponse;
 import net.ripe.rpki.commons.ta.domain.response.TrustAnchorResponse;
+import net.ripe.rpki.commons.validation.ValidationOptions;
+import net.ripe.rpki.commons.validation.ValidationResult;
+import net.ripe.rpki.commons.validation.objectvalidators.CertificateRepositoryObjectValidationContext;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
@@ -126,6 +132,32 @@ public class TrustAnchorResponseProcessorTest {
         assertThat(actual1.getContent()).isEqualTo(NEW_CERTIFICATE.getEncoded());
         assertThat(actual1.getStatus()).isEqualTo(PublicationStatus.TO_BE_PUBLISHED);
         assertThat(actual1.getCreatedAt()).isEqualTo(NEW_CERTIFICATE.getValidityPeriod().getNotValidBefore().toInstant());
+    }
+
+    @Test
+    public void should_process_response_for_unknown_file_and_use_now_as_default_time() {
+        var now = Instant.now();
+        var secondObjectUri = NEW_CERTIFICATE_PUBLICATION_BASE_URI.resolve("secondObject.bin");
+
+        var toPublishObjects = Map.of(
+            NEW_CERTIFICATE_PUBLICATION_URI, NEW_CERTIFICATE,
+            secondObjectUri, new UnknownCertificateRepositoryObject(new byte[]{'d', 'e', 'a', 'd', 'b', 'e', 'e', 'f'})
+        );
+
+        final List<TrustAnchorPublishedObject> publishedObjects = subject.applyChangeToPublishedObjects(toPublishObjects);
+
+        assertThat(publishedObjects.size()).isEqualTo(2);
+
+        final TrustAnchorPublishedObject actual0 = publishedObjects.stream().filter(obj -> NEW_CERTIFICATE_PUBLICATION_URI.equals(obj.getUri())).findFirst().get();
+        assertThat(actual0.getUri()).isEqualTo(NEW_CERTIFICATE_PUBLICATION_URI);
+        assertThat(actual0.getContent()).isEqualTo(NEW_CERTIFICATE.getEncoded());
+        assertThat(actual0.getStatus()).isEqualTo(PublicationStatus.TO_BE_PUBLISHED);
+        assertThat(actual0.getCreatedAt()).isEqualTo(NEW_CERTIFICATE.getValidityPeriod().getNotValidBefore().toInstant());
+
+        final TrustAnchorPublishedObject actual1 = publishedObjects.stream().filter(obj -> secondObjectUri.equals(obj.getUri())).findFirst().get();
+        assertThat(actual1.getUri()).isEqualTo(secondObjectUri);
+        assertThat(actual1.getStatus()).isEqualTo(PublicationStatus.TO_BE_PUBLISHED);
+        assertThat(actual1.getCreatedAt()).isGreaterThanOrEqualTo(now);
     }
 
     @Test(expected = OfflineResponseProcessorException.class )

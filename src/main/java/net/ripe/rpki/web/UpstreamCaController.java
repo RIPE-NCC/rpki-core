@@ -28,6 +28,7 @@ import javax.inject.Inject;
 import javax.security.auth.x500.X500Principal;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -39,6 +40,8 @@ public class UpstreamCaController extends BaseController {
     public static final String UPSTREAM_CA = "upstream-ca";
     public static final String PAGE_TYPE = "pageType";
     public static final String ACA_KEY_STATUS = "acaKeyStatus";
+    public static final String ADMIN_INDEX_PAGE = "admin/index";
+    public static final String ACTIVE_NODE_FORM = "activeNodeForm";
 
     private final CertificateAuthorityViewService certificateAuthorityViewService;
     private final CommandService commandService;
@@ -52,8 +55,7 @@ public class UpstreamCaController extends BaseController {
                                 CommandService commandService,
                                 AllCaCertificateUpdateServiceBean allCaCertificateUpdateServiceBean,
                                 Map<String, BackgroundService> backgroundServiceMap,
-                                GitProperties gitProperties
-                                ) {
+                                GitProperties gitProperties) {
         super(repositoryConfiguration, activeNodeService, gitProperties);
         this.certificateAuthorityViewService = certificateAuthorityViewService;
         this.commandService = commandService;
@@ -75,6 +77,9 @@ public class UpstreamCaController extends BaseController {
             if (allResourcesCa.getTrustAnchorRequest() == null) {
                 model.put(PAGE_TYPE, "create-request");
             } else {
+                // Do not show any extra key life-cycle buttons to avoid
+                // clicking wrong button when uploading TA response.
+                model.put(ACA_KEY_STATUS, "none");
                 model.put(PAGE_TYPE, "download-request");
                 model.put("requestFileName", getRequestFileName(allResourcesCa.getTrustAnchorRequest()));
             }
@@ -95,7 +100,7 @@ public class UpstreamCaController extends BaseController {
         final CertificateAuthorityData allResourcesCa = getAllResourcesCa();
         if (allResourcesCa == null || allResourcesCa.getTrustAnchorRequest() == null) {
             final ActiveNodeForm node = new ActiveNodeForm(activeNodeService.getActiveNodeName());
-            return new ModelAndView("admin/index", HttpStatus.NOT_FOUND)
+            return new ModelAndView(ADMIN_INDEX_PAGE, HttpStatus.NOT_FOUND)
                     .addObject("error", "All Resources CA or signing request do not exist.")
                     .addObject("activeNodeForm", node);
         }
@@ -134,28 +139,31 @@ public class UpstreamCaController extends BaseController {
     }
 
     @PostMapping({"/revoke-old-aca-key"})
-    public RedirectView revokeOldAcaKey() {
-        return (RedirectView) withAllResourcesCa(allResourcesCa -> {
-            commandService.execute(new KeyManagementRevokeOldKeysCommand(allResourcesCa.getVersionedId()));
-            return new RedirectView(UPSTREAM_CA, true);
-        });
+    public Object revokeOldAcaKey() {
+        return withAllResourcesCa(allResourcesCa ->
+                ifNoTaRequest(allResourcesCa, () -> {
+                    commandService.execute(new KeyManagementRevokeOldKeysCommand(allResourcesCa.getVersionedId()));
+                    return new RedirectView(UPSTREAM_CA, true);
+                }));
     }
 
     @PostMapping({"/activate-pending-aca-key"})
-    public RedirectView activateAcaPendingKey() {
-        return (RedirectView) withAllResourcesCa(allResourcesCa -> {
-            commandService.execute(KeyManagementActivatePendingKeysCommand.manualActivationCommand(allResourcesCa.getVersionedId()));
-            allCaCertificateUpdateServiceBean.execute(Collections.emptyMap());
-            return new RedirectView(UPSTREAM_CA, true);
-        });
+    public Object activateAcaPendingKey() {
+        return withAllResourcesCa(allResourcesCa ->
+                ifNoTaRequest(allResourcesCa, () -> {
+                    commandService.execute(KeyManagementActivatePendingKeysCommand.manualActivationCommand(allResourcesCa.getVersionedId()));
+                    allCaCertificateUpdateServiceBean.execute(Collections.emptyMap());
+                    return new RedirectView(UPSTREAM_CA, true);
+                }));
     }
 
     @PostMapping({"/initiate-rolling-aca-key"})
-    public RedirectView initiateRollingAcaKey() {
-        return (RedirectView) withAllResourcesCa(allResourcesCa -> {
-            commandService.execute(new KeyManagementInitiateRollCommand(allResourcesCa.getVersionedId(), 0));
-            return new RedirectView(UPSTREAM_CA, true);
-        });
+    public Object initiateRollingAcaKey() {
+        return withAllResourcesCa(allResourcesCa ->
+                ifNoTaRequest(allResourcesCa, () -> {
+                    commandService.execute(new KeyManagementInitiateRollCommand(allResourcesCa.getVersionedId(), 0));
+                    return new RedirectView(UPSTREAM_CA, true);
+                }));
     }
 
     private Object withAllResourcesCa(Function<? super ManagedCertificateAuthorityData, Object> f) {
@@ -171,8 +179,18 @@ public class UpstreamCaController extends BaseController {
             final ActiveNodeForm node = new ActiveNodeForm(activeNodeService.getActiveNodeName());
             return new ModelAndView("admin/index", HttpStatus.BAD_REQUEST)
                 .addObject("error", "All resources CA has wrong type")
-                .addObject("activeNodeForm", node);
+                .addObject(ACTIVE_NODE_FORM, node);
         }
+    }
+
+    private Object ifNoTaRequest(CertificateAuthorityData allResourcesCa, Supplier<Object> f) {
+        if (allResourcesCa.getTrustAnchorRequest() != null) {
+            final ActiveNodeForm node = new ActiveNodeForm(activeNodeService.getActiveNodeName());
+            return new ModelAndView("admin/index", HttpStatus.BAD_REQUEST)
+                    .addObject("error", "All resources CA already has a TA request, it must be processed first.")
+                    .addObject("activeNodeForm", node);
+        }
+        return f.get();
     }
 
     private static String getRequestFileName(TrustAnchorRequest taRequest) {

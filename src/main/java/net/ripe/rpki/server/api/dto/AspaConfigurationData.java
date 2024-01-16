@@ -10,6 +10,8 @@ import javax.validation.constraints.NotEmpty;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import static net.ripe.rpki.util.Streams.streamToSortedMap;
@@ -22,24 +24,23 @@ public class AspaConfigurationData {
     @NonNull
     Asn customerAsn;
 
+    /**
+     * Use a list of providers so we can perform additional validation and explicitly reject duplicate values.
+     * <emph>The entity restricts this to a Set w/ unique constraints in the database.</emph>
+     */
     @NonNull
-    @NotEmpty
-    List<AspaProviderData> providers;
+    List<Asn> providers;
 
-    public static String entityTag(SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> aspaConfiguration) {
+    public static String entityTag(SortedMap<Asn, SortedSet<Asn>> aspaConfiguration) {
         String json = GSON.toJson(aspaConfiguration);
         return Streams.entityTag(Stream.of(json.getBytes(StandardCharsets.UTF_8)));
     }
 
-    public static SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> dataToMaps(List<AspaConfigurationData> configuration) {
+    public static SortedMap<Asn, SortedSet<Asn>> dataToMaps(List<AspaConfigurationData> configuration) {
         return streamToSortedMap(
             configuration.stream(),
             AspaConfigurationData::getCustomerAsn,
-            aspaConfiguration -> streamToSortedMap(
-                aspaConfiguration.getProviders().stream(),
-                AspaProviderData::getProviderAsn,
-                AspaProviderData::getAfiLimit
-            )
+            ac -> new TreeSet<>(ac.getProviders())
         );
     }
 }

@@ -40,6 +40,12 @@ public abstract class GenericPublishedObject extends EntitySupport {
     @NonNull
     protected byte[] content = new byte[0];
 
+    /**
+     * The time at which this object was created.
+     *
+     * <emph>Do not parse the object for this value if an approximate value is available</emph> since parsing violates
+     * abstraction layers.
+     */
     @Column(name = "created_at", nullable = false)
     @Getter
     private Instant createdAt;

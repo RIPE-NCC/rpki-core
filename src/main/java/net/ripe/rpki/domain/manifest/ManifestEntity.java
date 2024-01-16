@@ -154,7 +154,7 @@ public class ManifestEntity extends EntitySupport {
 
         ManifestCms manifestCms = buildManifestCms(entries, eeCertificateKeyPair, signatureProvider);
 
-        publishedObject = new PublishedObject(keyPair, keyPair.getManifestFilename(), manifestCms.getEncoded(), false, keyPair.getCertificateRepositoryLocation(), manifestCms.getValidityPeriod());
+        publishedObject = new PublishedObject(keyPair, keyPair.getManifestFilename(), manifestCms.getEncoded(), false, keyPair.getCertificateRepositoryLocation(), manifestCms.getValidityPeriod(), manifestCms.getSigningTime());
 
         this.nextNumber++;
     }

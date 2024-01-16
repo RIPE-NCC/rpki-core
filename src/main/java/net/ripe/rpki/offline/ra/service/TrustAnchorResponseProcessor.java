@@ -1,7 +1,9 @@
 package net.ripe.rpki.offline.ra.service;
 
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.crypto.CertificateRepositoryObject;
 import net.ripe.rpki.commons.crypto.util.EncodedPublicKey;
+import net.ripe.rpki.commons.crypto.util.SignedObjectUtil;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
@@ -17,8 +19,8 @@ import net.ripe.rpki.commons.ta.domain.response.RevocationResponse;
 import net.ripe.rpki.commons.ta.domain.response.SigningResponse;
 import net.ripe.rpki.commons.ta.domain.response.TaResponse;
 import net.ripe.rpki.commons.ta.domain.response.TrustAnchorResponse;
-import net.ripe.rpki.util.PublishedObjectUtil;
 import org.joda.time.DateTime;
+import org.joda.time.Instant;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -41,6 +43,7 @@ import java.util.stream.Collectors;
  * I.e. stuff like: - republishing the offline objects - notifying the
  * production CA about new certs / revoked keys
  */
+@Slf4j
 @Component
 public class TrustAnchorResponseProcessor {
 
@@ -95,17 +98,27 @@ public class TrustAnchorResponseProcessor {
         final ArrayList<TrustAnchorPublishedObject> result = new ArrayList<>();
 
         final Map<URI, TrustAnchorPublishedObject> activeObjects = convertToMap(trustAnchorPublishedObjectRepository.findActiveObjects());
+        // Use the same time as fallback for all files in a request
+        var now = Instant.now();
 
         objectsToPublish.forEach((uri, objectToPublish) -> {
+            Instant creationTime;
+            try {
+                creationTime = SignedObjectUtil.getFileCreationTime(uri, objectToPublish.getEncoded());
+            } catch (SignedObjectUtil.NoTimeParsedException e) {
+                log.error("Could not determine creation time for object: " + uri, e);
+                creationTime = now;
+            }
+
             if (activeObjects.containsKey(uri)) {
                 final TrustAnchorPublishedObject publishedObject = activeObjects.remove(uri);
                 if (!objectsAreSame(publishedObject, objectToPublish, uri)) {
                     publishedObject.withdraw();
                     result.add(publishedObject);
-                    result.add(new TrustAnchorPublishedObject(uri, objectToPublish.getEncoded(), PublishedObjectUtil.getFileCreationTime(uri, objectToPublish.getEncoded())));
+                    result.add(new TrustAnchorPublishedObject(uri, objectToPublish.getEncoded(), creationTime));
                 }
             } else {
-                result.add(new TrustAnchorPublishedObject(uri, objectToPublish.getEncoded(), PublishedObjectUtil.getFileCreationTime(uri, objectToPublish.getEncoded())));
+                result.add(new TrustAnchorPublishedObject(uri, objectToPublish.getEncoded(), creationTime));
             }
         });
         withdrawObjects(activeObjects.values());

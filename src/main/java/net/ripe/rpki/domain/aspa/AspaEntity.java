@@ -1,33 +1,24 @@
 package net.ripe.rpki.domain.aspa;
 
+import com.google.common.collect.ImmutableSortedSet;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCms;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCmsParser;
-import net.ripe.rpki.commons.crypto.cms.aspa.ProviderAS;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.PublishedObject;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
-import net.ripe.rpki.server.api.dto.AspaAfiLimit;
 import net.ripe.rpki.server.api.services.command.UnparseableRpkiObjectException;
 import org.apache.commons.lang.Validate;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Transient;
+import javax.persistence.*;
 import java.net.URI;
 import java.util.List;
 import java.util.SortedMap;
+import java.util.SortedSet;
 
 import static net.ripe.rpki.util.Streams.streamToSortedMap;
 
@@ -51,19 +42,25 @@ public class AspaEntity extends EntitySupport {
     @Getter
     private PublishedObject publishedObject;
 
+    @Getter
+    @Setter
+    @Column(name = "profile_version", nullable = false)
+    private Long profileVersion;
+
     @Transient
     private AspaCms cms;
 
-    public AspaEntity(OutgoingResourceCertificate eeCertificate, AspaCms aspaCms, String filename, URI directory) {
+    public AspaEntity(OutgoingResourceCertificate eeCertificate, AspaCms aspaCms, String filename, URI directory, long profileVersion) {
         super();
         Validate.notNull(eeCertificate);
         Validate.notNull(aspaCms);
         this.certificate = eeCertificate;
         this.publishedObject = new PublishedObject(
-                eeCertificate.getSigningKeyPair(), filename, aspaCms.getEncoded(), true, directory, aspaCms.getValidityPeriod());
+                eeCertificate.getSigningKeyPair(), filename, aspaCms.getEncoded(), true, directory, aspaCms.getValidityPeriod(), aspaCms.getSigningTime());
+        this.profileVersion = profileVersion;
     }
 
-    public static SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> entitiesToMaps(List<AspaEntity> entities) {
+    public static SortedMap<Asn, SortedSet<Asn>> entitiesToMaps(List<AspaEntity> entities) {
         return streamToSortedMap(
             entities.stream(),
             AspaEntity::getCustomerAsn,
@@ -106,11 +103,7 @@ public class AspaEntity extends EntitySupport {
         return getAspaCms().getCustomerAsn();
     }
 
-    public SortedMap<Asn, AspaAfiLimit> getProviders() {
-        return streamToSortedMap(
-            getAspaCms().getProviderASSet().stream(),
-            ProviderAS::getProviderAsn,
-            providerAS -> AspaAfiLimit.fromOptionalAddressFamily(providerAS.getAfiLimit())
-        );
+    public SortedSet<Asn> getProviders() {
+        return ImmutableSortedSet.copyOf(getAspaCms().getProviderASSet());
     }
 }

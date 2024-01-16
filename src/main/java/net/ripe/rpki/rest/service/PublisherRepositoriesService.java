@@ -57,7 +57,7 @@ import static org.springframework.http.MediaType.TEXT_XML;
 @RequestMapping(path = API_URL_PREFIX + "/{caName}", produces = {APPLICATION_JSON})
 @Tag(name = "/ca/{caName}", description = "Operations on CAs")
 public class PublisherRepositoriesService extends AbstractCaRestService {
-    private static final Charset CHARSET = StandardCharsets.UTF_8;
+    public static final String NON_HOSTED_PUBLISHERS_ARE_NOT_AVAILABLE = "non hosted publishers are not available for this instance.";
 
     private final CertificateAuthorityViewService certificateAuthorityViewService;
     private final CommandService commandService;
@@ -105,7 +105,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         log.info("Publisher request for non-hosted CA: {}", caName);
 
         if (maybeNonHostedPublisherRepositoryService.isEmpty()) {
-            return ResponseEntity.status(NOT_ACCEPTABLE).body("non hosted publishers are not available for this instance.");
+            return ResponseEntity.status(NOT_ACCEPTABLE).body(NON_HOSTED_PUBLISHERS_ARE_NOT_AVAILABLE);
         }
         var nonHostedPublisherRepositoryService = this.maybeNonHostedPublisherRepositoryService.orElseThrow();
 
@@ -122,7 +122,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         UUID publisherHandle = UUID.randomUUID();
         try {
             final InputStream uploadedInputStream = file.getInputStream();
-            final String repositoryRequestBody = IOUtils.toString(uploadedInputStream, CHARSET);
+            final String repositoryRequestBody = IOUtils.toString(uploadedInputStream, StandardCharsets.UTF_8);
             PublisherRequest publisherRequest = new PublisherRequestSerializer().deserialize(repositoryRequestBody);
 
             // Core commands must be idempotent (and are automatically retried on transient failures) and this does not
@@ -158,7 +158,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         @PathVariable("publisherHandle") UUID publisherHandle
     ) {
         if (maybeNonHostedPublisherRepositoryService.isEmpty()) {
-            return ResponseEntity.status(NOT_ACCEPTABLE).body("non hosted publishers are not available for this instance.");
+            return ResponseEntity.status(NOT_ACCEPTABLE).body(NON_HOSTED_PUBLISHERS_ARE_NOT_AVAILABLE);
         }
         log.info("Download repository non-hosted publication response for CA: {}", caName);
 
@@ -175,7 +175,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
             return ResponseEntity.ok()
                     .header("content-disposition", "attachment; filename = " + filename)
                     .contentType(TEXT_XML)
-                    .body(xml.getBytes(CHARSET));
+                    .body(xml.getBytes(StandardCharsets.UTF_8));
         } catch (EntityNotFoundException e) {
             throw new CaNotFoundException(e.getMessage());
         }
@@ -188,7 +188,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
             @PathVariable("publisherHandle") UUID publisherHandle
     ) {
         if (maybeNonHostedPublisherRepositoryService.isEmpty()) {
-            return ResponseEntity.status(NOT_ACCEPTABLE).body("non hosted publishers are not available for this instance.");
+            return ResponseEntity.status(NOT_ACCEPTABLE).body(NON_HOSTED_PUBLISHERS_ARE_NOT_AVAILABLE);
         }
         var nonHostedPublisherRepositoryService = this.maybeNonHostedPublisherRepositoryService.orElseThrow();
 

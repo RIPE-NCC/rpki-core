@@ -25,7 +25,6 @@ public class RestResourceServicesClientTest {
     private static final String BASE_URL = "/resource-services/";
     private static final String MEMBER_RESOURCES_URL = "member-resources";
     private static final String TOTAL_RESOURCES_URL = "total-resources";
-    private static final String MONITORING_HEALTHCHECK = "monitoring/healthcheck";
 
     private static final int PORT = 7575;
 
@@ -51,14 +50,16 @@ public class RestResourceServicesClientTest {
 
     @Test
     public void shouldBeAvailable() {
-        stubFor(head(urlEqualTo(BASE_URL+ MONITORING_HEALTHCHECK)).withHeader("Accept", equalTo(APPLICATION_JSON)).willReturn(aResponse().withStatus(200)));
+        stubFor(head(urlEqualTo(BASE_URL + RestResourceServicesClient.HEALTHCHECK_PATH))
+                .withHeader("Accept", equalTo(APPLICATION_JSON)).willReturn(aResponse().withStatus(200)));
 
         assertTrue(subject.isAvailable());
     }
 
     @Test
     public void shouldBeUnavailable() {
-        stubFor(head(urlEqualTo(BASE_URL+ MONITORING_HEALTHCHECK)).withHeader("Accept", equalTo(APPLICATION_JSON)).willReturn(aResponse().withStatus(500)));
+        stubFor(head(urlEqualTo(BASE_URL+ RestResourceServicesClient.HEALTHCHECK_PATH))
+                .withHeader("Accept", equalTo(APPLICATION_JSON)).willReturn(aResponse().withStatus(500)));
 
         assertFalse(subject.isAvailable());
     }

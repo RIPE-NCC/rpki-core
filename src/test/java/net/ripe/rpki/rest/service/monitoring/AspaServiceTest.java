@@ -7,7 +7,6 @@ import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.aspa.AspaConfiguration;
 import net.ripe.rpki.domain.aspa.AspaConfigurationRepository;
 import net.ripe.rpki.rest.service.Rest;
-import net.ripe.rpki.server.api.dto.AspaAfiLimit;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hamcrest.Matchers.hasSize;
@@ -48,12 +44,12 @@ public class AspaServiceTest {
 
     @Test
     public void shouldReturnProperAspas() throws Exception {
-        Map<Asn, AspaAfiLimit> providers = new TreeMap<>();
-        providers.put(Asn.parse("AS10"), AspaAfiLimit.IPv4);
-        providers.put(Asn.parse("AS11"), AspaAfiLimit.IPv6);
-        providers.put(Asn.parse("AS12"), AspaAfiLimit.ANY);
+        SortedSet<Asn> providers = new TreeSet<>();
+        providers.add(Asn.parse("AS10"));
+        providers.add(Asn.parse("AS11"));
+        providers.add(Asn.parse("AS12"));
         when(aspaConfigurationRepository.findAll()).thenReturn(Arrays.asList(
-            new AspaConfiguration(mock(ManagedCertificateAuthority.class), Asn.parse("AS1"), Collections.emptyMap()),
+            new AspaConfiguration(mock(ManagedCertificateAuthority.class), Asn.parse("AS1"), Collections.emptySortedSet()),
             new AspaConfiguration(mock(ManagedCertificateAuthority.class), Asn.parse("AS2"), providers)
         ));
 
@@ -64,12 +60,9 @@ public class AspaServiceTest {
             .andExpect(jsonPath("$.aspaConfigurations[0].providers", hasSize(0)))
             .andExpect(jsonPath("$.aspaConfigurations[1].customerAsn").value("AS2"))
             .andExpect(jsonPath("$.aspaConfigurations[1].providers", hasSize(3)))
-            .andExpect(jsonPath("$.aspaConfigurations[1].providers[0].providerAsn").value("AS10"))
-            .andExpect(jsonPath("$.aspaConfigurations[1].providers[0].afiLimit").value("IPv4"))
-            .andExpect(jsonPath("$.aspaConfigurations[1].providers[1].providerAsn").value("AS11"))
-            .andExpect(jsonPath("$.aspaConfigurations[1].providers[1].afiLimit").value("IPv6"))
-            .andExpect(jsonPath("$.aspaConfigurations[1].providers[2].providerAsn").value("AS12"))
-            .andExpect(jsonPath("$.aspaConfigurations[1].providers[2].afiLimit").value("ANY"))
+            .andExpect(jsonPath("$.aspaConfigurations[1].providers[0]").value("AS10"))
+            .andExpect(jsonPath("$.aspaConfigurations[1].providers[1]").value("AS11"))
+            .andExpect(jsonPath("$.aspaConfigurations[1].providers[2]").value("AS12"))
             .andExpect(jsonPath("$.metadata").isMap())
             .andExpect(jsonPath("$.aspaConfigurations", hasSize(2)));
     }

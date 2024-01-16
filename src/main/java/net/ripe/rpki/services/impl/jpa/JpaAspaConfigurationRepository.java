@@ -31,6 +31,19 @@ public class JpaAspaConfigurationRepository extends JpaRepository<AspaConfigurat
     }
 
     @Override
+    public SortedMap<Asn, AspaConfiguration> findConfigurationsWithProvidersByCertificateAuthority(ManagedCertificateAuthority ca) {
+        Stream<AspaConfiguration> aspaConfigurationStream = manager
+                .createQuery("from AspaConfiguration ac where ac.certificateAuthority.id = :caId and ac.providers is not empty order by customerAsn", AspaConfiguration.class)
+                .setParameter("caId", ca.getId())
+                .getResultStream();
+        return streamToSortedMap(
+                aspaConfigurationStream,
+                AspaConfiguration::getCustomerAsn,
+                x -> x
+        );
+    }
+
+    @Override
     protected Class<AspaConfiguration> getEntityClass() {
         return AspaConfiguration.class;
     }

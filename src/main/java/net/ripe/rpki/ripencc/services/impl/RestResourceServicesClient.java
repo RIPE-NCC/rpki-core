@@ -23,7 +23,7 @@ import javax.ws.rs.core.Response;
 class RestResourceServicesClient implements ResourceServicesClient {
 
     private static final String TOTAL_RESOURCES = "total-resources";
-    private static final String MONITORING_HEALTHCHECK = "monitoring/healthcheck";
+    static final String HEALTHCHECK_PATH = "charged-resources-api/actuator/health";
 
     private final Gson gson = new Gson();
     private final Client resourceServices;
@@ -47,7 +47,7 @@ class RestResourceServicesClient implements ResourceServicesClient {
     public boolean isAvailable() {
         log.debug("Checking if internet resources REST API is available");
         try (
-            Response response = resourceServices.target(resourceServicesUrl).path(MONITORING_HEALTHCHECK)
+            Response response = resourceServices.target(resourceServicesUrl).path(HEALTHCHECK_PATH)
                 .request(MediaType.APPLICATION_JSON)
                 .head()
         ) {

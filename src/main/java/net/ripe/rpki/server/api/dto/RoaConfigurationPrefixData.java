@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import lombok.Getter;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaPrefix;
@@ -43,10 +44,12 @@ public class RoaConfigurationPrefixData extends ValueObjectSupport {
     };
 
     // cycle when serialised using default serialiser
+    @Getter
     @JsonSerialize(using = ToStringSerializer.class)
     private final Asn asn;
 
     // cycle when serialised using default serialiser
+    @Getter
     @JsonSerialize(using = ToStringSerializer.class)
     private final IpRange prefix;
 
@@ -64,22 +67,18 @@ public class RoaConfigurationPrefixData extends ValueObjectSupport {
         this(asn, new RoaPrefix(prefix, maximumLength));
     }
 
-    public Asn getAsn() {
-        return asn;
-    }
-
     @JsonIgnore
     public RoaPrefix getRoaPrefix() {
         return new RoaPrefix(prefix, maximumLength);
     }
 
-    public IpRange getPrefix() {
-        return prefix;
-    }
-
     @JsonProperty("maxLength")
     public int getMaximumLength() {
         return maximumLength == null ? getPrefix().getPrefixLength() : maximumLength;
+    }
+
+    public Integer getNullableMaxLength() {
+        return maximumLength;
     }
 
     @Override

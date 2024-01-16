@@ -10,6 +10,7 @@ import net.ripe.rpki.commons.validation.roa.AllowedRoute;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
+import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.rest.pojo.BgpAnnouncement;
 import net.ripe.rpki.rest.pojo.BgpAnnouncementChange;
 import net.ripe.rpki.rest.pojo.PublishSet;
@@ -17,11 +18,7 @@ import net.ripe.rpki.rest.pojo.ROA;
 import net.ripe.rpki.rest.pojo.ROAExtended;
 import net.ripe.rpki.rest.pojo.ROAWithAnnouncementStatus;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
-import net.ripe.rpki.server.api.dto.BgpRisEntry;
-import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
-import net.ripe.rpki.server.api.dto.RoaConfigurationData;
-import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
+import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
@@ -35,15 +32,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.google.common.collect.ImmutableMap.of;
@@ -66,6 +55,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
 
     @Autowired
     public CaRoaConfigurationService(RoaViewService roaViewService,
+                                     RoaConfigurationRepository roaConfigurationRepository,
                                      BgpRisEntryViewService bgpRisEntryViewService,
                                      RoaAlertConfigurationViewService roaAlertConfigurationViewService,
                                      CommandService commandService) {
@@ -195,6 +185,23 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
 
         final Set<AllowedRoute> currentRoutes = new HashSet<>(currentRoaConfiguration.toAllowedRoutes());
         final Set<AllowedRoute> futureRoutes = new HashSet<>(futureRoas.size());
+        IpResourceSet affectedRanges;
+        try {
+            affectedRanges = buildAffectedRanges(futureRoas, futureRoutes, currentRoutes);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(BAD_REQUEST).body(Map.of(ERROR, e.getMessage()));
+        }
+
+        final List<BgpAnnouncementChange> bgpAnnouncementChanges = getBgpAnnouncementChanges(
+                ca, currentRoutes, futureRoutes, bgpAnnouncements, affectedRanges);
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_JSON)
+            .eTag(currentRoaConfiguration.entityTag())
+            .body(bgpAnnouncementChanges);
+    }
+
+    private IpResourceSet buildAffectedRanges(List<ROA> futureRoas, Set<AllowedRoute> futureRoutes, Set<AllowedRoute> currentRoutes) {
         final IpResourceSet affectedRanges = new IpResourceSet();
         for (ROA roa : futureRoas) {
             final IpRange roaIpRange = IpRange.parse(roa.getPrefix());
@@ -203,11 +210,35 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
             if (!currentRoutes.contains(route))
                 affectedRanges.add(roaIpRange);
         }
+
+        final Map<AnnouncedRoute, List<Integer>> futureRoaMap = Utils.makeROAMap(futureRoas);
+        Optional<String> e = Utils.validateUniqueROAs("Error in future ROAs", futureRoaMap);
+        if (e.isPresent()) {
+            throw new IllegalArgumentException(e.get());
+        }
+
         for (AllowedRoute route : currentRoutes) {
             if (!futureRoutes.contains(route))
                 affectedRanges.add(route.getPrefix());
-        }
 
+            final AnnouncedRoute key = new AnnouncedRoute(route.getAsn(), route.getPrefix());
+            if (futureRoaMap.containsKey(key)) {
+                futureRoaMap.get(key).forEach(futureMaxLength -> {
+                    if (!Objects.equals(futureMaxLength, route.getMaximumLength())) {
+                        // the same ASN+prefix and different max length
+                        throw new IllegalArgumentException(Utils.getSameROAErrorMessage(route, key, futureMaxLength));
+                    }
+                });
+            }
+        }
+        return affectedRanges;
+    }
+
+    private List<BgpAnnouncementChange> getBgpAnnouncementChanges(HostedCertificateAuthorityData ca,
+                                                                  Set<AllowedRoute> currentRoutes,
+                                                                  Set<AllowedRoute> futureRoutes,
+                                                                  Map<Boolean, Collection<BgpRisEntry>> bgpAnnouncements,
+                                                                  IpResourceSet affectedRanges) {
         final NestedIntervalMap<IpResource, List<AllowedRoute>> currentRouteMap = allowedRoutesToNestedIntervalMap(currentRoutes);
         final NestedIntervalMap<IpResource, List<AllowedRoute>> futureRouteMap = allowedRoutesToNestedIntervalMap(futureRoutes);
         final Set<AnnouncedRoute> ignoredAnnouncements = getIgnoredAnnouncement(ca.getId());
@@ -228,11 +259,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
                 }
             }
         }
-
-        return ResponseEntity.ok()
-            .contentType(MediaType.APPLICATION_JSON)
-            .eTag(currentRoaConfiguration.entityTag())
-            .body(result);
+        return result;
     }
 
     @PostMapping(path = "publish")
@@ -269,14 +296,21 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
         if (ifMatchHeader != null && publishSet.getIfMatch() != null && !ifMatchHeader.equals(publishSet.getIfMatch())) {
             return badRequest("`If-Match` header and `ifMatch` field do not match");
         }
-        String ifMatch = StringUtils.defaultIfEmpty(ifMatchHeader, publishSet.getIfMatch());
+        final String ifMatch = StringUtils.defaultIfEmpty(ifMatchHeader, publishSet.getIfMatch());
 
         try {
+            Utils.validateNoIdenticalROAs(
+                            roaViewService.getRoaConfiguration(ca.getId()),
+                            publishSet.getAdded(), publishSet.getDeleted())
+                    .ifPresent(rc -> {
+                        throw new IllegalArgumentException(rc);
+                    });
+
             commandService.execute(new UpdateRoaConfigurationCommand(
-                ca.getVersionedId(),
-                Optional.ofNullable(ifMatch),
-                getRoaConfigurationPrefixDatas(publishSet.getAdded()),
-                getRoaConfigurationPrefixDatas(publishSet.getDeleted())
+                    ca.getVersionedId(),
+                    Optional.ofNullable(ifMatch),
+                    getRoaConfigurationPrefixDatas(publishSet.getAdded()),
+                    getRoaConfigurationPrefixDatas(publishSet.getDeleted())
             ));
             return noContent();
         } catch (Exception e) {

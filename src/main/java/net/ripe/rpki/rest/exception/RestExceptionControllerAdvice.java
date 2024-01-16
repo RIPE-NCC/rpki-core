@@ -1,7 +1,7 @@
 package net.ripe.rpki.rest.exception;
 
 import com.google.common.collect.ImmutableMap;
-import net.ripe.rpki.server.api.services.command.DuplicateResourceException;
+import net.ripe.rpki.server.api.services.command.IllegalResourceException;
 import net.ripe.rpki.server.api.services.command.EntityTagDoesNotMatchException;
 import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
 import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
@@ -50,7 +50,7 @@ public class RestExceptionControllerAdvice {
             CaNameInvalidException.class,
             NotHolderOfResourcesException.class,
             PrivateAsnsUsedException.class,
-            DuplicateResourceException.class,
+            IllegalResourceException.class,
             ConstraintViolationException.class
     })
     public ResponseEntity<Map<String, ?>> exceptionsResultingInBadRequestHandler(HttpServletRequest req, Exception e) {

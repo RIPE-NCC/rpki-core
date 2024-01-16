@@ -338,8 +338,9 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
      * @return false if NO key was activated
      */
     public boolean activatePendingKeys(Duration minStagingTime) {
+        DateTime cutOffTime = new DateTime().minus(minStagingTime);
         return findPendingKeyPair()
-            .filter(pkp -> pkp.getStatusChangedAt(KeyPairStatus.PENDING).isBefore(new DateTime().minus(minStagingTime)))
+            .filter(pkp -> pkp.getStatusChangedAt(KeyPairStatus.PENDING).isBefore(cutOffTime))
             .map(pkp -> {
                 activatePendingKey(pkp);
                 return true;

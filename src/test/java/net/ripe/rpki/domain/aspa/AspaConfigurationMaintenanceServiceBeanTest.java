@@ -1,5 +1,6 @@
 package net.ripe.rpki.domain.aspa;
 
+import com.google.common.collect.ImmutableSortedSet;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
@@ -12,7 +13,6 @@ import net.ripe.rpki.domain.aspa.AspaConfigurationMaintenanceServiceBean.AspaCon
 import net.ripe.rpki.domain.audit.CommandAudit;
 import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCommand;
-import net.ripe.rpki.server.api.dto.AspaAfiLimit;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,7 +50,7 @@ public class AspaConfigurationMaintenanceServiceBeanTest  {
 
     @Before
     public void setUp() {
-        aspaConfiguration = new AspaConfiguration(certificateAuthority, CUSTOMER_ASN, Collections.singletonMap(PROVIDER_ASN, AspaAfiLimit.IPv4));
+        aspaConfiguration = new AspaConfiguration(certificateAuthority, CUSTOMER_ASN, ImmutableSortedSet.of(PROVIDER_ASN));
         when(certificateAuthority.getVersionedId()).thenReturn(CERTIFICATE_AUTHORITY_ID);
         when(certificateAuthorityRepository.findManagedCa(CA_ID)).thenReturn(certificateAuthority);
         when(aspaConfigurationRepository.findByCertificateAuthority(certificateAuthority)).thenReturn(new TreeMap<>(Collections.singletonMap(CUSTOMER_ASN, aspaConfiguration)));

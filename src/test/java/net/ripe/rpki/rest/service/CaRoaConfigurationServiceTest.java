@@ -115,7 +115,7 @@ public class CaRoaConfigurationServiceTest {
     }
 
     @Test
-    public void shouldPostROAtoStageBreakLength() throws Exception {
+    public void shouldPreventFromStaginBreakingChanges() throws Exception {
         when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Collections.singletonList(
                 new RoaConfigurationPrefixData(new Asn(10), IpRange.parse(TESTNET_1), 32))));
 
@@ -132,15 +132,11 @@ public class CaRoaConfigurationServiceTest {
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/stage")
                 .content("[{\"asn\" : \"AS10\", \"prefix\" : \"" + TESTNET_1 + "\", \"maximalLength\" : \"24\"}]"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value("1"))
-                .andExpect(jsonPath("$.[0].asn").value("AS10"))
-                .andExpect(jsonPath("$.[0].prefix").value("192.0.2.0/28"))
-                .andExpect(jsonPath("$.[0].visibility").value("1000"))
-                .andExpect(jsonPath("$.[0].suppressed").value("false"))
-                .andExpect(jsonPath("$.[0].verified").value("true"))
-                .andExpect(jsonPath("$.[0].currentState").value("VALID"))
-                .andExpect(jsonPath("$.[0].futureState").value("INVALID_LENGTH"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error")
+                        .value("There is an overlap in ROAs: existing " +
+                                "AllowedRoute[asn=AS10,maximumLength=32,prefix=192.0.2.0/24] has the same (ASN, prefix) as added " +
+                                "ROA{asn='AS10', prefix='192.0.2.0/24', maximalLength=24}"));
     }
 
     /**
@@ -343,6 +339,31 @@ public class CaRoaConfigurationServiceTest {
     }
 
     @Test
+    public void shouldNotCrashOnStagingDuplicates() throws Exception {
+        // Have a large ROA covering everything
+        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Arrays.asList(
+                new RoaConfigurationPrefixData(new Asn(11), IpRange.parse("148.139.0.0/24"), 26))));
+
+        // this resource set here doesn't matter, it's only used for `findMostSpecificContainedAndNotContained`
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1, ::1");
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
+
+        Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
+        bgpRisEntries.put(true, Collections.singletonList(new BgpRisEntry(new Asn(11), IpRange.parse("148.139.0.0/24"), 16)));
+        when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
+
+        // Submit another ROA that is more specific for the announcement
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/stage")
+                        .content("[" +
+                                "{\"asn\" : \"AS11\", \"prefix\" : \"148.139.0.0/16\", \"maximalLength\" : \"22\"}," +
+                                "{\"asn\" : \"AS11\", \"prefix\" : \"148.139.0.0/16\", \"maximalLength\" : \"24\"}" +
+                                "]"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value(
+                        "Error in future ROAs: there are more than one pair (AS11, 148.139.0.0/16), max lengths: [22, 24]"));
+    }
+
+    @Test
     public void shouldReturnAffectingROAsAllIsFine() throws Exception {
 
         when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Collections.singletonList(
@@ -424,8 +445,11 @@ public class CaRoaConfigurationServiceTest {
 
         ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("193.0.24.0/21, 2001:67c:64::/48");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
-
         when(certificateAuthorityData.getVersionedId()).thenReturn(VersionedId.parse("1"));
+
+        RoaConfigurationData roaConfigurationData = new RoaConfigurationData(Collections.singletonList(
+                new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("193.0.24.0/21"), 21)));
+        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(roaConfigurationData);
 
         ArgumentCaptor<UpdateRoaConfigurationCommand> argument = ArgumentCaptor.forClass(UpdateRoaConfigurationCommand.class);
 
@@ -458,6 +482,10 @@ public class CaRoaConfigurationServiceTest {
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
         when(certificateAuthorityData.getVersionedId()).thenReturn(VersionedId.parse("1"));
         ArgumentCaptor<UpdateRoaConfigurationCommand> argument = ArgumentCaptor.forClass(UpdateRoaConfigurationCommand.class);
+
+        RoaConfigurationData roaConfigurationData = new RoaConfigurationData(Collections.singletonList(
+                new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("193.0.24.0/21"), 21)));
+        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(roaConfigurationData);
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/publish")
                 .content("{ " +
@@ -523,15 +551,18 @@ public class CaRoaConfigurationServiceTest {
     public void shouldNotAddPrivateRoas() throws Exception {
         ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("193.0.24.0/21, 2001:67c:64::/48");
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
-
         when(certificateAuthorityData.getVersionedId()).thenReturn(VersionedId.parse("1"));
+
+        RoaConfigurationData roaConfigurationData = new RoaConfigurationData(Collections.singletonList(
+                new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("193.0.24.0/21"), 21)));
+        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(roaConfigurationData);
+
         when(commandService.execute(isA(UpdateRoaConfigurationCommand.class)))
                 .thenThrow(new PrivateAsnsUsedException("ROA configuration", Collections.singletonList(new Asn(64512L))));
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/publish")
                 .content("{ \"added\" : [{\"asn\" : \"AS64512\", \"prefix\" : \"193.0.24.0/21\", \"maximalLength\" : " + "\"21\"}] }"))
                 .andExpect(status().is(400));
-
     }
 
     @Test

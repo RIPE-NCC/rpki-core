@@ -10,7 +10,6 @@ import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrate
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCms;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCmsBuilder;
-import net.ripe.rpki.commons.crypto.cms.aspa.ProviderAS;
 import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.CertificateInformationAccessUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
@@ -30,7 +29,6 @@ import net.ripe.rpki.domain.SingleUseKeyPairFactory;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.naming.RepositoryObjectNamingStrategy;
 import net.ripe.rpki.server.api.commands.CommandContext;
-import net.ripe.rpki.server.api.dto.AspaAfiLimit;
 import net.ripe.rpki.server.api.services.command.UnparseableRpkiObjectException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.DateTime;
@@ -50,6 +48,8 @@ import static net.ripe.rpki.util.Streams.toSortedMap;
 @Service
 @Slf4j
 public class AspaEntityServiceBean implements AspaEntityService, CertificateAuthorityEventVisitor {
+    public static final long CURRENT_ASPA_PROFILE_VERSION = 16L;
+
     private final CertificateAuthorityRepository certificateAuthorityRepository;
     private final AspaConfigurationRepository aspaConfigurationRepository;
     private final AspaEntityRepository aspaEntityRepository;
@@ -97,39 +97,44 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
      * are fully up-to-date with the configuration.
      */
     public Pair<Collection<AspaEntity>, SortedMap<Asn, AspaConfiguration>> validateAspaConfiguration(ManagedCertificateAuthority ca) {
-        SortedMap<Asn, AspaEntity> aspaEntities = aspaEntityRepository.findCurrentByCertificateAuthority(ca).stream()
-            .collect(toSortedMap(AspaEntity::getCustomerAsn, x -> x));
+        // Not all ASPA entities can necessarily be parsed (e.g. profile change). While all ASNs should have 0..1 ASPA,
+        // there can be many unparesable ASPAs
+        List<AspaEntity> aspaEntities = aspaEntityRepository.findCurrentByCertificateAuthority(ca);
 
         Optional<IncomingResourceCertificate> maybeCurrentIncomingResourceCertificate = ca.findCurrentIncomingResourceCertificate();
         if (!maybeCurrentIncomingResourceCertificate.isPresent()) {
             // No current resource certificate, so all ASPA entities are invalid and without resources there is
             // no applicable configuration
-            return Pair.of(aspaEntities.values(), Collections.emptySortedMap());
+            return Pair.of(aspaEntities, Collections.emptySortedMap());
         }
 
         IncomingResourceCertificate incomingResourceCertificate = maybeCurrentIncomingResourceCertificate.get();
 
-        Map<Boolean, List<AspaEntity>> validatedAspaEntities = aspaEntities.values().stream()
-            .collect(Collectors.partitioningBy(aspa -> isValidAspaEntity(incomingResourceCertificate, aspa)));
+        Map<Boolean, List<AspaEntity>> validatedAspaEntities = aspaEntities.stream()
+                .collect(Collectors.partitioningBy(aspa -> isValidAspaEntity(incomingResourceCertificate, aspa)));
 
-        SortedMap<Asn, AspaConfiguration> aspaConfiguration = aspaConfigurationRepository.findByCertificateAuthority(ca)
+        // Aspa Configurations covered by resource certificate
+        SortedMap<Asn, AspaConfiguration> aspaConfiguration = aspaConfigurationRepository.findConfigurationsWithProvidersByCertificateAuthority(ca)
             .values()
             .stream()
             .filter(x -> incomingResourceCertificate.getCertifiedResources().contains(x.getCustomerAsn()))
             .collect(toSortedMap(AspaConfiguration::getCustomerAsn, x -> x));
 
-        SortedMapDifference<Asn, SortedMap<Asn, AspaAfiLimit>> difference = Maps.difference(
+        SortedMapDifference<Asn, SortedSet<Asn>> difference = Maps.difference(
             AspaConfiguration.entitiesToMaps(aspaConfiguration),
             AspaEntity.entitiesToMaps(validatedAspaEntities.get(true))
         );
+
+        Map<Asn, AspaEntity> validAspaEntitiesByAsn = validatedAspaEntities.get(true)
+            .stream()
+            .collect(Collectors.toMap(AspaEntity::getCustomerAsn, x -> x));
 
         List<AspaEntity> invalidAspaEntities = Stream.concat(
                 validatedAspaEntities.get(false).stream(),
                 Stream.concat(
                         difference.entriesOnlyOnRight().keySet().stream(),
                         difference.entriesDiffering().keySet().stream()
-                    )
-                    .map(aspaEntities::get)
+                ).map(validAspaEntitiesByAsn::get)
             )
             .collect(Collectors.toList());
 
@@ -153,24 +158,51 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
             aspaEntity.revokeAndRemove(aspaEntityRepository);
         }
         for (AspaConfiguration aspaConfiguration : validated.getRight().values()) {
-            AspaEntity aspaEntity = createAspaEntity(ca, aspaConfiguration);
-            aspaEntityRepository.add(aspaEntity);
+            Optional<AspaEntity> aspaEntity = createAspaEntity(ca, aspaConfiguration);
+            aspaEntity.ifPresent(aspaEntityRepository::add);
         }
     }
 
     private static boolean isValidAspaEntity(IncomingResourceCertificate incomingResourceCertificate, AspaEntity aspa) {
+        boolean isValidAndCurrent = false;
         try {
-            return aspa.getCertificate().isValid()
-                && aspa.getCertificate().getSigningKeyPair().isCurrent()
-                && Objects.equals(incomingResourceCertificate.getPublicationUri(), aspa.getAspaCms().getParentCertificateUri())
-                && incomingResourceCertificate.getCertifiedResources().contains(aspa.getCustomerAsn());
+            isValidAndCurrent = aspa.getCertificate().isValid()
+                    && aspa.getCertificate().getSigningKeyPair().isCurrent()
+                    && aspa.getProfileVersion() == CURRENT_ASPA_PROFILE_VERSION
+                    && Objects.equals(incomingResourceCertificate.getPublicationUri(), aspa.getAspaCms().getParentCertificateUri())
+                    && incomingResourceCertificate.getCertifiedResources().contains(aspa.getCustomerAsn());
+
+            return isValidAndCurrent;
         } catch (UnparseableRpkiObjectException e) {
             return false;
+        } finally {
+            try {
+                if (!isValidAndCurrent && log.isInfoEnabled()) {
+                    log.info("Will re-issue ASPA at {} certificate-valid={} keypair-current={} profile-version={} (current={}) parent-uri={} resources-match={}",
+                            aspa.getCertificate().isValid(), aspa.getCertificate().getSigningKeyPair().isCurrent(), aspa.getProfileVersion(), CURRENT_ASPA_PROFILE_VERSION,
+                            Objects.equals(incomingResourceCertificate.getPublicationUri(), aspa.getAspaCms().getParentCertificateUri()), incomingResourceCertificate.getCertifiedResources().contains(aspa.getCustomerAsn())
+                    );
+                }
+            } catch (Exception e) {
+                // Ignore exceptions while printing debug message.
+            }
         }
     }
 
+    /**
+     * Create AspaEntity if possible
+     * @param certificateAuthority CA to issue under
+     * @param aspaConfiguration configuration to apply
+     * @return AspaEntity if possible, or empty.
+     */
     @VisibleForTesting
-    AspaEntity createAspaEntity(ManagedCertificateAuthority certificateAuthority, AspaConfiguration aspaConfiguration) {
+    Optional<AspaEntity> createAspaEntity(ManagedCertificateAuthority certificateAuthority, AspaConfiguration aspaConfiguration) {
+        // Filter out configurations that can not result in a valid ASPA entity, and would cause failures when trying
+        // to get the CMS payload
+        if (aspaConfiguration.getProviders().isEmpty() || !certificateAuthority.getCertifiedResources().contains(aspaConfiguration.getCustomerAsn())) {
+            return Optional.empty();
+        }
+
         DateTime now = DateTime.now(DateTimeZone.UTC);
 
         KeyPairEntity currentKeyPair = certificateAuthority.getCurrentKeyPair();
@@ -183,8 +215,8 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
         AspaCms aspaCms = generateAspaCms(aspaConfiguration, eeKeyPair, endEntityCertificate.getCertificate());
         URI publicationDirectory = CertificateInformationAccessUtil.extractPublicationDirectory(
             currentKeyPair.getCurrentIncomingCertificate().getSia());
-        return new AspaEntity(endEntityCertificate, aspaCms,
-            informationAccessStrategy.aspaFilename(endEntityCertificate), publicationDirectory);
+        return Optional.of(new AspaEntity(endEntityCertificate, aspaCms,
+            informationAccessStrategy.aspaFilename(endEntityCertificate), publicationDirectory, CURRENT_ASPA_PROFILE_VERSION));
     }
 
     private OutgoingResourceCertificate createEndEntityCertificate(
@@ -199,10 +231,8 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
         AspaCmsBuilder builder = new AspaCmsBuilder();
         builder.withCertificate(endEntityX509ResourceCertificate);
         builder.withCustomerAsn(aspaConfiguration.getCustomerAsn());
-        builder.withProviderASSet(aspaConfiguration.getProviders().entrySet().stream()
-            .map(entry -> new ProviderAS(entry.getKey(), entry.getValue().toOptionalAddressFamily()))
-            .collect(Collectors.toList())
-        );
+        builder.withProviderASSet(aspaConfiguration.getProviders());
+
         builder.withSignatureProvider(singleUseKeyPairFactory.signatureProvider());
         return builder.build(eeKeyPair.getPrivate());
     }

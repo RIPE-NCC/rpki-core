@@ -1,13 +1,13 @@
 package net.ripe.rpki.rest.service;
 
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.gson.Gson;
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.UpdateAspaConfigurationCommand;
-import net.ripe.rpki.server.api.dto.AspaAfiLimit;
 import net.ripe.rpki.server.api.dto.AspaConfigurationData;
-import net.ripe.rpki.server.api.dto.AspaProviderData;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.EntityTagDoesNotMatchException;
@@ -30,6 +30,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import javax.security.auth.x500.X500Principal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,6 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@Slf4j
 @ActiveProfiles("test")
 @RunWith(SpringRunner.class)
 @AutoConfigureMockMvc
@@ -49,7 +53,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class CaAspaConfigurationServiceTest {
     private static final long CA_ID = 123L;
     public static final List<AspaConfigurationData> ASPA_CONFIGURATION_DATA = Collections.singletonList(
-        new AspaConfigurationData(Asn.parse("AS1"), Collections.singletonList(new AspaProviderData(Asn.parse("AS5"), AspaAfiLimit.ANY)))
+        new AspaConfigurationData(Asn.parse("AS1"), List.of(Asn.parse("AS5")))
     );
     public static final String ASPA_CONFIGURATION_ETAG = AspaConfigurationData.entityTag(AspaConfigurationData.dataToMaps(ASPA_CONFIGURATION_DATA));
     public static final Gson GSON = new Gson();
@@ -85,16 +89,18 @@ public class CaAspaConfigurationServiceTest {
             .andExpect(jsonPath("$.aspaConfigurations", hasSize(1)))
             .andExpect(jsonPath("$.aspaConfigurations[0].customerAsn").value("AS1"))
             .andExpect(jsonPath("$.aspaConfigurations[0].providers", hasSize(1)))
-            .andExpect(jsonPath("$.aspaConfigurations[0].providers[0].providerAsn").value("AS5"))
-            .andExpect(jsonPath("$.aspaConfigurations[0].providers[0].afiLimit").value("ANY"));
+                .andDo(res -> log.info(res.getResponse().getContentAsString()));
     }
 
     @Test
-    public void shouldUpdateAspaConfigurationForCa() throws Exception {
+    public void shouldUpdateAspaConfigurationForCa_with_provider() throws Exception {
+        var nextAs = new Random().nextInt(2048) + 1024;
+
         mockMvc.perform(Rest.put(API_URL_PREFIX + "/123/aspa")
                 .header(HttpHeaders.IF_MATCH, ASPA_CONFIGURATION_ETAG)
-                .content("{\"ifMatch\":" + GSON.toJson(ASPA_CONFIGURATION_ETAG) + ",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":[{\"providerAsn\":\"AS5\",\"afiLimit\":\"ANY\"}]}]}")
+                .content("{\"ifMatch\":" + GSON.toJson(ASPA_CONFIGURATION_ETAG) + ",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":[\"AS" + nextAs + "\"]}]}")
             )
+                .andDo(res -> log.info(res.getResponse().getContentAsString()))
             .andExpect(status().isNoContent());
 
         ArgumentCaptor<UpdateAspaConfigurationCommand> commandArgumentCaptor = ArgumentCaptor.forClass(UpdateAspaConfigurationCommand.class);
@@ -103,15 +109,47 @@ public class CaAspaConfigurationServiceTest {
     }
 
     @Test
+    public void shouldUpdateAspaConfigurationForCa_with_multiple_provider() throws Exception {
+        var providers = IntStream.range(1000, 1100)
+                .mapToObj(i -> "AS"+i)
+                .collect(Collectors.toList());
+
+        mockMvc.perform(Rest.put(API_URL_PREFIX + "/123/aspa")
+                        .header(HttpHeaders.IF_MATCH, ASPA_CONFIGURATION_ETAG)
+                        .content("{\"ifMatch\":" + GSON.toJson(ASPA_CONFIGURATION_ETAG) + ",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\": " + GSON.toJson(providers) + "}]}")
+                )
+                .andDo(res -> log.info(res.getResponse().getContentAsString()))
+                .andExpect(status().isNoContent());
+
+        ArgumentCaptor<UpdateAspaConfigurationCommand> commandArgumentCaptor = ArgumentCaptor.forClass(UpdateAspaConfigurationCommand.class);
+        verify(commandService).execute(commandArgumentCaptor.capture());
+        assertThat(commandArgumentCaptor.getValue().getIfMatch()).isEqualTo(ASPA_CONFIGURATION_ETAG);
+    }
+
+    @Test
+    public void shouldUpdateAspaConfigurationForCa_no_providers() throws Exception {
+        mockMvc.perform(Rest.put(API_URL_PREFIX + "/123/aspa")
+                        .header(HttpHeaders.IF_MATCH, ASPA_CONFIGURATION_ETAG)
+                        .content("{\"ifMatch\":" + GSON.toJson(ASPA_CONFIGURATION_ETAG) + ",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":[]}]}")
+                )
+                .andDo(res -> log.info(res.getResponse().getContentAsString()))
+                .andExpect(status().isNoContent());
+
+        ArgumentCaptor<UpdateAspaConfigurationCommand> commandArgumentCaptor = ArgumentCaptor.forClass(UpdateAspaConfigurationCommand.class);
+        verify(commandService).execute(commandArgumentCaptor.capture());
+        assertThat(commandArgumentCaptor.getValue().getIfMatch()).isEqualTo(ASPA_CONFIGURATION_ETAG);
+    }
+
+    @Test
     public void shouldFailWhenAspaConfigurationIsMissingOrMalformed() throws Exception {
+        // etag mismatch
         assertBadRequest("{\"ifMatch\":\"etag\"}");
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\"}]}");
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"bad-asn\",\"providers\":[{\"providerAsn\":\"AS5\",\"afiLimit\":\"ANY\"}]}]}");
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":[{\"providerAsn\":\"AS5\"}]}]}");
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":[{\"providerAsn\":\"AS5\",\"afiLimit\":\"BAD-LIMIT\"}]}]}");
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"AS99999999999999\",\"providers\":[{\"providerAsn\":\"AS5\",\"afiLimit\":\"ANY\"}]}]}");
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"FOO1\",\"providers\":[{\"providerAsn\":\"AS5\",\"afiLimit\":\"ANY\"}]}]}");
-        assertBadRequest("{\"ifMatch\":\"etag\",'aspaConfigurations':[{\"customerAsn\":\"FOO1\",\"providers\":[{\"providerAsn\":\"AS5\",\"afiLimit\":\"ANY\"}]}]}");
+        // Other cases do not send an etag
+        assertBadRequest("{\"aspaConfigurations\":[{\"customerAsn\":\"AS1\"}]}");
+        assertBadRequest("{\"aspaConfigurations\":[{\"customerAsn\":\"bad-asn\",\"providers\":[\"AS5\"]}]}");
+        assertBadRequest("{\"aspaConfigurations\":[{\"customerAsn\":\"AS99999999999999\",\"providers\":[\"AS5\"]}]}");
+        assertBadRequest("{\"aspaConfigurations\":[{\"customerAsn\":\"FOO1\",\"providers\":[\"AS5\"]}]}");
+        assertBadRequest("{'aspaConfigurations':[{\"customerAsn\":\"FOO1\",\"providers\":[\"AS5\"]}]}");
     }
 
     @Test
@@ -141,23 +179,14 @@ public class CaAspaConfigurationServiceTest {
             )
             .andExpect(status().isBadRequest());
     }
-
-    @Test
-    public void shouldFailWhenDuplicateAsnsAreConfigured() throws Exception {
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":[]},{\"customerAsn\":\"AS1\",\"providers\":[]}]}");
-    }
-
     @Test
     public void shouldFailWhenProvidersIsEmpty() throws Exception {
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":null}]}");
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":[]}]}");
+        assertBadRequest("{\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":null}]}");
     }
 
     @Test
     public void shouldFailWhenProviderInformationIsMissing() throws Exception {
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":[{}]}]}");
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":[{\"providerAsn\":\"AS123\"}]}]}");
-        assertBadRequest("{\"ifMatch\":\"etag\",\"aspaConfigurations\":[{\"customerAsn\":\"AS1\",\"providers\":[{\"afiLimit\":\"ANY\"}]}]}");
+        assertBadRequest("{\"aspaConfigurations\":[{\"customerAsn\":\"AS1\"}]}");
     }
 
     private void assertBadRequest(String content) throws Exception {
@@ -165,7 +194,7 @@ public class CaAspaConfigurationServiceTest {
                 .header(HttpHeaders.IF_MATCH, ASPA_CONFIGURATION_ETAG)
                 .content(content)
             )
+            .andDo(res -> log.info(res.getResponse().getContentAsString()))
             .andExpect(status().isBadRequest());
     }
-
 }

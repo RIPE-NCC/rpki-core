@@ -1,5 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
+import com.google.common.collect.ImmutableSortedSet;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCms;
@@ -7,7 +8,6 @@ import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.aspa.*;
 import net.ripe.rpki.domain.roa.*;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
-import net.ripe.rpki.server.api.dto.AspaAfiLimit;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 import org.junit.Before;
 import org.junit.Test;
@@ -98,7 +98,7 @@ public class IssueUpdatedManifestAndCrlCommandHandlerTest extends CertificationD
 
     @Test
     public void should_update_aspa_entities() {
-        aspaConfigurationRepository.add(new AspaConfiguration(ca, Asn.parse("AS64512"), Collections.singletonMap(Asn.parse("AS1"), AspaAfiLimit.ANY)));
+        aspaConfigurationRepository.add(new AspaConfiguration(ca, Asn.parse("AS64512"), ImmutableSortedSet.of(Asn.parse("AS1"))));
         ca.markConfigurationUpdated();
 
         assertThat(aspaEntityRepository.findCurrentByCertificateAuthority(ca)).describedAs("current ASPA entities").isEmpty();

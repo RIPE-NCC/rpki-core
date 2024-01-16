@@ -9,6 +9,8 @@ import java.util.SortedMap;
 public interface AspaConfigurationRepository {
     SortedMap<Asn, AspaConfiguration> findByCertificateAuthority(ManagedCertificateAuthority certificateAuthority);
 
+    SortedMap<Asn, AspaConfiguration> findConfigurationsWithProvidersByCertificateAuthority(ManagedCertificateAuthority certificateAuthority);
+
     Collection<AspaConfiguration> findAll();
 
     void add(AspaConfiguration aspaConfiguration);

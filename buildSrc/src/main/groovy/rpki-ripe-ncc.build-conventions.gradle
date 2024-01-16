@@ -10,13 +10,26 @@ group = 'net.ripe.rpki-ripe-ncc'
 
 repositories {
     mavenLocal()
-    mavenCentral()
+    mavenCentral() {
+        content {
+            excludeGroupByRegex "com\\.thales\\.esecurity\\.*"
+            excludeGroupByRegex "com\\.ncipher\\.nfast\\.*"
+        }
+    }
 
     maven {
         url = uri('https://oss.sonatype.org/content/repositories/releases')
+        content {
+            excludeGroupByRegex "com\\.thales\\.esecurity\\.*"
+            excludeGroupByRegex "com\\.ncipher\\.nfast\\.*"
+        }
     }
     maven {
         url = uri('https://oss.sonatype.org/content/repositories/snapshots')
+        content {
+            excludeGroupByRegex "com\\.thales\\.esecurity\\.*"
+            excludeGroupByRegex "com\\.ncipher\\.nfast\\.*"
+        }
     }
 
     maven {

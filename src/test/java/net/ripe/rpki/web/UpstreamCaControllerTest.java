@@ -168,14 +168,37 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
     }
 
     @Test
+    public void should_NOT_revoke_old_aca_key_when_TA_request_is_present() throws Exception {
+        TrustAnchorRequest taRequest = mock(TrustAnchorRequest.class);
+        when(aca.getTrustAnchorRequest()).thenReturn(taRequest);
+        mockMvc.perform(post("/admin/revoke-old-aca-key")).andReturn();
+        verify(commandService, times(0)).execute(isA(KeyManagementRevokeOldKeysCommand.class));
+    }
+
+    @Test
     public void should_activate_pending_aca_key() throws Exception {
         mockMvc.perform(post("/admin/activate-pending-aca-key")).andReturn();
         verify(commandService, times(1)).execute(isA(KeyManagementActivatePendingKeysCommand.class));
+    }
+    @Test
+    public void should_NOT_activate_pending_aca_key_when_TA_request_is_present() throws Exception {
+        TrustAnchorRequest taRequest = mock(TrustAnchorRequest.class);
+        when(aca.getTrustAnchorRequest()).thenReturn(taRequest);
+        mockMvc.perform(post("/admin/activate-pending-aca-key")).andReturn();
+        verify(commandService, times(0)).execute(isA(KeyManagementActivatePendingKeysCommand.class));
     }
 
     @Test
     public void should_initiate_key_roll() throws Exception {
         mockMvc.perform(post("/admin/initiate-rolling-aca-key")).andReturn();
         verify(commandService, times(1)).execute(isA(KeyManagementInitiateRollCommand.class));
+    }
+
+    @Test
+    public void should_NOT_initiate_key_roll_when_TA_request_is_present() throws Exception {
+        TrustAnchorRequest taRequest = mock(TrustAnchorRequest.class);
+        when(aca.getTrustAnchorRequest()).thenReturn(taRequest);
+        mockMvc.perform(post("/admin/initiate-rolling-aca-key")).andReturn();
+        verify(commandService, times(0)).execute(isA(KeyManagementInitiateRollCommand.class));
     }
 }

@@ -10,13 +10,12 @@ import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.core.events.CertificateAuthorityEventVisitor;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.audit.CommandAuditService;
+import net.ripe.rpki.rest.exception.PreconditionRequiredException;
 import net.ripe.rpki.ripencc.support.event.EventDelegateTracker;
 import net.ripe.rpki.ripencc.support.event.EventSubscription;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.CommandContext;
-import net.ripe.rpki.server.api.services.command.CommandService;
-import net.ripe.rpki.server.api.services.command.CommandStatus;
-import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
+import net.ripe.rpki.server.api.services.command.*;
 import net.ripe.rpki.services.impl.handlers.CommandHandlerMetrics;
 import net.ripe.rpki.services.impl.handlers.LockCertificateAuthorityHandler;
 import net.ripe.rpki.services.impl.handlers.MessageDispatcher;
@@ -127,6 +126,10 @@ public class CommandServiceImpl implements CommandService {
                     log.info("Command failed with possibly transient locking exception {}, retry {} in {} ms: {}", e.getClass().getName(), retryCount, sleepForMs, command);
                     sleepUninterruptibly(sleepForMs, TimeUnit.MILLISECONDS);
                 }
+            } catch (EntityTagDoesNotMatchException | PreconditionRequiredException | IllegalResourceException | NotHolderOfResourcesException | PrivateAsnsUsedException e) {
+                // Do not log these user generated commands: This causes very noisy logs.
+                log.info("Aborted a (user) command: {} for reason {}", command, e.getMessage());
+                throw e;
             } catch (Exception e) {
                 log.warn("Error processing command: {}", command, e);
                 throw e;

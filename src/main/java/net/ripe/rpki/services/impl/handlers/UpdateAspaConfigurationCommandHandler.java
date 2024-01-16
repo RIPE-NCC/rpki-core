@@ -13,21 +13,17 @@ import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.aspa.AspaConfiguration;
 import net.ripe.rpki.domain.aspa.AspaConfigurationRepository;
 import net.ripe.rpki.server.api.commands.UpdateAspaConfigurationCommand;
-import net.ripe.rpki.server.api.dto.AspaAfiLimit;
 import net.ripe.rpki.server.api.dto.AspaConfigurationData;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
-import net.ripe.rpki.server.api.services.command.DuplicateResourceException;
+import net.ripe.rpki.server.api.services.command.IllegalResourceException;
 import net.ripe.rpki.server.api.services.command.EntityTagDoesNotMatchException;
 import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
 import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import org.springframework.beans.factory.annotation.Value;
 
 import javax.inject.Inject;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -58,37 +54,55 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
 
     @Override
     public void handle(@NonNull UpdateAspaConfigurationCommand command, CommandStatus commandStatus) {
+        validateUpdateAspaConfigurationCommand(command);
+
+
         ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityId());
         SortedMap<Asn, AspaConfiguration> entities = aspaConfigurationRepository.findByCertificateAuthority(ca);
 
-        SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> currentConfiguration = AspaConfiguration.entitiesToMaps(entities);
+        SortedMap<Asn, SortedSet<Asn>> currentConfiguration = AspaConfiguration.entitiesToMaps(entities);
         validateEntityTag(command, currentConfiguration);
 
-        SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> updatedConfiguration = parseUpdatedConfiguration(ca, command);
+        SortedMap<Asn, SortedSet<Asn>> updatedConfiguration = parseUpdatedConfiguration(ca, command);
 
-        SortedMapDifference<Asn, SortedMap<Asn, AspaAfiLimit>> difference = Maps.difference(currentConfiguration, updatedConfiguration);
+        SortedMapDifference<Asn, SortedSet<Asn>> difference = Maps.difference(currentConfiguration, updatedConfiguration);
         if (difference.areEqual()) {
             throw new CommandWithoutEffectException(command);
         }
         for (Asn removed : difference.entriesOnlyOnLeft().keySet()) {
             aspaConfigurationRepository.remove(entities.get(removed));
         }
-        for (Map.Entry<Asn, SortedMap<Asn, AspaAfiLimit>> added : difference.entriesOnlyOnRight().entrySet()) {
+        for (Map.Entry<Asn, SortedSet<Asn>> added : difference.entriesOnlyOnRight().entrySet()) {
             aspaConfigurationRepository.add(new AspaConfiguration(ca, added.getKey(), added.getValue()));
         }
-        for (Map.Entry<Asn, MapDifference.ValueDifference<SortedMap<Asn, AspaAfiLimit>>> updated : difference.entriesDiffering().entrySet()) {
+        for (Map.Entry<Asn, MapDifference.ValueDifference<SortedSet<Asn>>> updated : difference.entriesDiffering().entrySet()) {
             entities.get(updated.getKey()).setProviders(updated.getValue().rightValue());
         }
 
         ca.markConfigurationUpdated();
     }
 
-    private SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> parseUpdatedConfiguration(ManagedCertificateAuthority ca, UpdateAspaConfigurationCommand command) {
-        SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> updatedConfiguration;
+    private void validateUpdateAspaConfigurationCommand(UpdateAspaConfigurationCommand command) {
+        var configuration = command.getConfiguration();
+        if (configuration.stream().map(AspaConfigurationData::getCustomerAsn).distinct().count() != configuration.size()) {
+            throw new IllegalResourceException("duplicate customer ASN in ASPA configuration");
+        }
+
+        if (configuration.stream().anyMatch(ac -> ac.getProviders().stream().distinct().count() != ac.getProviders().size())) {
+            throw new IllegalResourceException("duplicate provider ASN in ASPA configuration");
+        }
+
+        if (configuration.stream().anyMatch(ac -> ac.getProviders().isEmpty())) {
+            throw new IllegalResourceException("One of the configured ASPAs does not have providers");
+        }
+    }
+
+    private SortedMap<Asn, SortedSet<Asn>> parseUpdatedConfiguration(ManagedCertificateAuthority ca, UpdateAspaConfigurationCommand command) {
+        SortedMap<Asn, SortedSet<Asn>> updatedConfiguration;
         try {
             updatedConfiguration = AspaConfigurationData.dataToMaps(command.getConfiguration());
         } catch (IllegalStateException e) {
-            throw new DuplicateResourceException("duplicate ASN in ASPA configuration");
+            throw new IllegalResourceException("duplicate ASN in ASPA configuration");
         }
 
         validateCustomerAsns(ca, updatedConfiguration);
@@ -97,14 +111,14 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
         return updatedConfiguration;
     }
 
-    private static void validateEntityTag(UpdateAspaConfigurationCommand command, SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> currentConfiguration) {
+    private static void validateEntityTag(UpdateAspaConfigurationCommand command, SortedMap<Asn, SortedSet<Asn>> currentConfiguration) {
         String entityTag = AspaConfigurationData.entityTag(currentConfiguration);
         if (!entityTag.equals(command.getIfMatch())) {
             throw new EntityTagDoesNotMatchException(entityTag, command.getIfMatch());
         }
     }
 
-    private static void validateCustomerAsns(ManagedCertificateAuthority ca, SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> updatedConfiguration) {
+    private static void validateCustomerAsns(ManagedCertificateAuthority ca, SortedMap<Asn, SortedSet<Asn>> updatedConfiguration) {
         ImmutableResourceSet certifiedResources = ca.getCertifiedResources();
         ImmutableResourceSet uncertifiedAsns = ImmutableResourceSet.of(updatedConfiguration.keySet()).difference(certifiedResources);
         if (!uncertifiedAsns.isEmpty()) {
@@ -112,13 +126,13 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
         }
     }
 
-    private void validateProviderAsns(SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> configuration) {
-        for (Map.Entry<Asn, SortedMap<Asn, AspaAfiLimit>> aspa : configuration.entrySet()) {
+    private void validateProviderAsns(SortedMap<Asn, SortedSet<Asn>> configuration) {
+        for (Map.Entry<Asn, SortedSet<Asn>> aspa : configuration.entrySet()) {
             Asn customerAsn = aspa.getKey();
-            Set<Asn> providerAsns = aspa.getValue().keySet();
+            Set<Asn> providerAsns = aspa.getValue();
 
             if (providerAsns.contains(customerAsn)) {
-                throw new DuplicateResourceException(String.format("customer %s appears in provider set %s", customerAsn, providerAsns));
+                throw new IllegalResourceException(String.format("customer %s appears in provider set %s", customerAsn, providerAsns));
             }
         }
 
@@ -128,10 +142,10 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
         }
     }
 
-    private List<Asn> findAddedPrivateAsns(SortedMap<Asn, SortedMap<Asn, AspaAfiLimit>> configuration) {
+    private List<Asn> findAddedPrivateAsns(SortedMap<Asn, SortedSet<Asn>> configuration) {
         return configuration.values().stream()
-            .flatMap(providers -> providers.keySet().stream())
-            .filter(privateAsns::contains)
-            .collect(Collectors.toList());
+                .flatMap(Collection::stream)
+                .filter(privateAsns::contains)
+                .collect(Collectors.toList());
     }
 }

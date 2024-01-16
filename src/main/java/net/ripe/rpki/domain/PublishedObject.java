@@ -5,7 +5,7 @@ import lombok.NonNull;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.manifest.ManifestEntity;
 import org.apache.commons.lang3.Validate;
-import org.joda.time.Instant;
+import org.joda.time.DateTime;
 
 import javax.persistence.*;
 import java.net.URI;
@@ -63,6 +63,29 @@ public class PublishedObject extends GenericPublishedObject {
     }
 
     public PublishedObject(
+            @NonNull KeyPairEntity issuingKeyPair,
+            @NonNull String filename,
+            byte[] content,
+            boolean includedInManifest,
+            @NonNull URI publicationDirectory,
+            @NonNull ValidityPeriod validityPeriod,
+            @NonNull DateTime createdAt
+    ) {
+        super(content, createdAt.toInstant());
+        this.issuingKeyPair = issuingKeyPair;
+        this.filename = filename;
+        this.includedInManifest = includedInManifest;
+        String dir = publicationDirectory.toString();
+        this.directory = (dir.endsWith("/")) ? dir : dir + "/";
+        this.validityPeriod = new EmbeddedValidityPeriod(validityPeriod);
+    }
+
+    /**
+     * Construct a PublishedObject with <emph>implicit</emph> createdAt from the validity period.
+     *
+     * <emph>Do not use for CMS signed objects or CRLs</emph>
+     */
+    public PublishedObject(
         @NonNull KeyPairEntity issuingKeyPair,
         @NonNull String filename,
         byte[] content,
@@ -70,13 +93,7 @@ public class PublishedObject extends GenericPublishedObject {
         @NonNull URI publicationDirectory,
         @NonNull ValidityPeriod validityPeriod
     ) {
-        super(content, validityPeriod.getNotValidBefore().toInstant());
-        this.issuingKeyPair = issuingKeyPair;
-        this.filename = filename;
-        this.includedInManifest = includedInManifest;
-        String dir = publicationDirectory.toString();
-        this.directory = (dir.endsWith("/")) ? dir : dir + "/";
-        this.validityPeriod = new EmbeddedValidityPeriod(validityPeriod);
+        this(issuingKeyPair, filename, content, includedInManifest, publicationDirectory, validityPeriod, validityPeriod.getNotValidBefore());
     }
 
     @NonNull

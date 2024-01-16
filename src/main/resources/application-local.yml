@@ -24,7 +24,6 @@ spring:
     devtools.livereload.enabled: false
     thymeleaf:
         cache: false
-        prefix: file:src/main/resources/WEB-INF/templates/
 
 background-services:
     schedule.enable: false
@@ -98,7 +97,7 @@ publication:
     server.url: https://localhost:7766/
 
 riswhoisdump:
-    base.url: http://localhost:8080/certification/static/dev-ris
+    base.url: http://localhost:8080/certification/riswhois
     update.interval.hours: 1
 
 ta.repository:

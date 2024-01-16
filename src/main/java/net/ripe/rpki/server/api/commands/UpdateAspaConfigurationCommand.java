@@ -33,7 +33,7 @@ public class UpdateAspaConfigurationCommand extends CertificateAuthorityModifica
 
     private static String getHumanReadableProviders(AspaConfigurationData aspa) {
         return aspa.getProviders().stream()
-            .map(provider -> provider.getProviderAsn() + " [" + provider.getAfiLimit() + "]")
+            .map(Object::toString)
             .collect(Collectors.joining(", "));
     }
 }

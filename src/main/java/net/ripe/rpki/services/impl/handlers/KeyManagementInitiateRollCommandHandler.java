@@ -16,7 +16,9 @@ import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 
@@ -80,9 +82,9 @@ public class KeyManagementInitiateRollCommandHandler extends AbstractCertificate
     }
 
     private void handleForAllResourcesCa(AllResourcesCertificateAuthority ca, CertificateIssuanceRequest request) {
-        ca.setUpStreamCARequestEntity(new UpStreamCARequestEntity(ca, certificationRequestCreationService.createTrustAnchorRequest(
-            Collections.singletonList(toTaRequests(request))
-        )));
+        List<TaRequest> signingRequests = new ArrayList<>(Collections.singletonList(toTaRequests(request)));
+        ca.setUpStreamCARequestEntity(new UpStreamCARequestEntity(ca,
+                certificationRequestCreationService.createTrustAnchorRequest(signingRequests)));
     }
 
     private void handleForManagedCertificateAuthority(ManagedCertificateAuthority ca, CertificateIssuanceRequest request) {

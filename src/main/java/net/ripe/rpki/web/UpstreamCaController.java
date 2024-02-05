@@ -38,10 +38,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class UpstreamCaController extends BaseController {
 
     public static final String UPSTREAM_CA = "upstream-ca";
-    public static final String PAGE_TYPE = "pageType";
+    public static final String REQUEST_HANDLING = "requestHandling";
     public static final String ACA_KEY_STATUS = "acaKeyStatus";
     public static final String ADMIN_INDEX_PAGE = "admin/index";
     public static final String ACTIVE_NODE_FORM = "activeNodeForm";
+    public static final String ERROR = "error";
 
     private final CertificateAuthorityViewService certificateAuthorityViewService;
     private final CommandService commandService;
@@ -75,12 +76,17 @@ public class UpstreamCaController extends BaseController {
             var overallStatus = overallKeyPairLifeCyclePhase(allResourcesCa);
             model.put(ACA_KEY_STATUS, overallStatus.map(x -> x.name().toLowerCase(Locale.ROOT)).orElse("new"));
             if (allResourcesCa.getTrustAnchorRequest() == null) {
-                model.put(PAGE_TYPE, "create-request");
+                // Only show "generate request" when there are no key pair in PENDING or OLD state,
+                // trying to generate yet another one will mess things up
+                if (!hasKeyWithStatus(allResourcesCa, KeyPairStatus.PENDING) &&
+                    !hasKeyWithStatus(allResourcesCa, KeyPairStatus.OLD)) {
+                    model.put(REQUEST_HANDLING, "create-request");
+                }
             } else {
                 // Do not show any extra key life-cycle buttons to avoid
                 // clicking wrong button when uploading TA response.
                 model.put(ACA_KEY_STATUS, "none");
-                model.put(PAGE_TYPE, "download-request");
+                model.put(REQUEST_HANDLING, "download-request");
                 model.put("requestFileName", getRequestFileName(allResourcesCa.getTrustAnchorRequest()));
             }
             return new ModelAndView("admin/upstream-ca", model);
@@ -101,8 +107,8 @@ public class UpstreamCaController extends BaseController {
         if (allResourcesCa == null || allResourcesCa.getTrustAnchorRequest() == null) {
             final ActiveNodeForm node = new ActiveNodeForm(activeNodeService.getActiveNodeName());
             return new ModelAndView(ADMIN_INDEX_PAGE, HttpStatus.NOT_FOUND)
-                    .addObject("error", "All Resources CA or signing request do not exist.")
-                    .addObject("activeNodeForm", node);
+                    .addObject(ERROR, "All Resources CA or signing request do not exist.")
+                    .addObject(ACTIVE_NODE_FORM, node);
         }
 
         final TrustAnchorRequest taRequest = allResourcesCa.getTrustAnchorRequest();
@@ -132,16 +138,16 @@ public class UpstreamCaController extends BaseController {
         } catch (Exception e) {
             log.error("Could not upload response", e);
             final ActiveNodeForm node = new ActiveNodeForm(activeNodeService.getActiveNodeName());
-            return new ModelAndView("admin/index", HttpStatus.NOT_FOUND)
-                .addObject("error", "Could not upload/process response, " + e.getMessage())
-                .addObject("activeNodeForm", node);
+            return new ModelAndView(ADMIN_INDEX_PAGE, HttpStatus.NOT_FOUND)
+                .addObject(ERROR, "Could not upload/process response, " + e.getMessage())
+                .addObject(ACTIVE_NODE_FORM, node);
         }
     }
 
     @PostMapping({"/revoke-old-aca-key"})
     public Object revokeOldAcaKey() {
         return withAllResourcesCa(allResourcesCa ->
-                ifNoTaRequest(allResourcesCa, () -> {
+                requireACAState(allResourcesCa, KeyPairStatus.OLD, () -> {
                     commandService.execute(new KeyManagementRevokeOldKeysCommand(allResourcesCa.getVersionedId()));
                     return new RedirectView(UPSTREAM_CA, true);
                 }));
@@ -150,7 +156,7 @@ public class UpstreamCaController extends BaseController {
     @PostMapping({"/activate-pending-aca-key"})
     public Object activateAcaPendingKey() {
         return withAllResourcesCa(allResourcesCa ->
-                ifNoTaRequest(allResourcesCa, () -> {
+                requireACAState(allResourcesCa, KeyPairStatus.PENDING, () -> {
                     commandService.execute(KeyManagementActivatePendingKeysCommand.manualActivationCommand(allResourcesCa.getVersionedId()));
                     allCaCertificateUpdateServiceBean.execute(Collections.emptyMap());
                     return new RedirectView(UPSTREAM_CA, true);
@@ -160,7 +166,7 @@ public class UpstreamCaController extends BaseController {
     @PostMapping({"/initiate-rolling-aca-key"})
     public Object initiateRollingAcaKey() {
         return withAllResourcesCa(allResourcesCa ->
-                ifNoTaRequest(allResourcesCa, () -> {
+                requireACAState(allResourcesCa, KeyPairStatus.CURRENT, () -> {
                     commandService.execute(new KeyManagementInitiateRollCommand(allResourcesCa.getVersionedId(), 0));
                     return new RedirectView(UPSTREAM_CA, true);
                 }));
@@ -170,25 +176,39 @@ public class UpstreamCaController extends BaseController {
         final CertificateAuthorityData allResourcesCa = getAllResourcesCa();
         if (allResourcesCa == null) {
             final ActiveNodeForm node = new ActiveNodeForm(activeNodeService.getActiveNodeName());
-            return new ModelAndView("admin/index", HttpStatus.BAD_REQUEST)
-                .addObject("error", "All resources CA does not exist")
-                .addObject("activeNodeForm", node);
+            return new ModelAndView(ADMIN_INDEX_PAGE, HttpStatus.BAD_REQUEST)
+                .addObject(ERROR, "All resources CA does not exist")
+                .addObject(ACTIVE_NODE_FORM, node);
         } else if (allResourcesCa.getType() == CertificateAuthorityType.ALL_RESOURCES && allResourcesCa instanceof ManagedCertificateAuthorityData) {
             return f.apply((ManagedCertificateAuthorityData) allResourcesCa);
         } else {
             final ActiveNodeForm node = new ActiveNodeForm(activeNodeService.getActiveNodeName());
-            return new ModelAndView("admin/index", HttpStatus.BAD_REQUEST)
-                .addObject("error", "All resources CA has wrong type")
+            return new ModelAndView(ADMIN_INDEX_PAGE, HttpStatus.BAD_REQUEST)
+                .addObject(ERROR, "All resources CA has wrong type")
                 .addObject(ACTIVE_NODE_FORM, node);
         }
     }
 
-    private Object ifNoTaRequest(CertificateAuthorityData allResourcesCa, Supplier<Object> f) {
+    private Object requireACAState(CertificateAuthorityData allResourcesCa, KeyPairStatus requiredStatus, Supplier<Object> f) {
         if (allResourcesCa.getTrustAnchorRequest() != null) {
             final ActiveNodeForm node = new ActiveNodeForm(activeNodeService.getActiveNodeName());
-            return new ModelAndView("admin/index", HttpStatus.BAD_REQUEST)
-                    .addObject("error", "All resources CA already has a TA request, it must be processed first.")
-                    .addObject("activeNodeForm", node);
+            return new ModelAndView(ADMIN_INDEX_PAGE, HttpStatus.BAD_REQUEST)
+                    .addObject(ERROR, "All resources CA already has a TA request, it must be processed first.")
+                    .addObject(ACTIVE_NODE_FORM, node);
+        } else {
+            var overallStatus = overallKeyPairLifeCyclePhase((ManagedCertificateAuthorityData) allResourcesCa);
+            if (overallStatus.isEmpty()) {
+                return f.get();
+            }
+            if (overallStatus.get() != requiredStatus) {
+                // The status of the ACA keypair cannot be processed here
+                final ActiveNodeForm node = new ActiveNodeForm(activeNodeService.getActiveNodeName());
+                var errorMessage = String.format("All resources CA keypair having status %s is present, " +
+                        "but expected status is %s.", overallStatus.get(), requiredStatus);
+                return new ModelAndView(ADMIN_INDEX_PAGE, HttpStatus.BAD_REQUEST)
+                        .addObject(ERROR, errorMessage)
+                        .addObject(ACTIVE_NODE_FORM, node);
+            }
         }
         return f.get();
     }
@@ -207,6 +227,10 @@ public class UpstreamCaController extends BaseController {
         return keyWithStatus(keys, KeyPairStatus.OLD)
             .or(() -> keyWithStatus(keys, KeyPairStatus.PENDING))
             .or(() -> keyWithStatus(keys, KeyPairStatus.CURRENT));
+    }
+
+    private boolean hasKeyWithStatus(ManagedCertificateAuthorityData allResourcesCa, KeyPairStatus expectedStatus) {
+        return keyWithStatus(allResourcesCa.getKeys(), expectedStatus).isPresent();
     }
 
     private Optional<KeyPairStatus> keyWithStatus(Collection<KeyPairData> keys, KeyPairStatus expectedStatus) {

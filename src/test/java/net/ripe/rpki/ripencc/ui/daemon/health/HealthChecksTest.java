@@ -21,6 +21,6 @@ public class HealthChecksTest {
 
     @Test
     public void checkRegistered() {
-            assertThat(subject.getChecks().size()).isEqualTo(6);
+            assertThat(subject.getChecks().size()).isEqualTo(5);
     }
 }

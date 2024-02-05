@@ -16,7 +16,7 @@
             <span data-th-text="${error}">error messages</span>
         </div>
         <!-- Upstream sign request flow -->
-        <div data-th-switch="${pageType}">
+        <div data-th-switch="${requestHandling}">
             <table class="ca-management-table"  data-th-case="'create-request'">
                 <tr>
                     <td>Generate signing request</td>

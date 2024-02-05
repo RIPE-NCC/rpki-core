@@ -12,18 +12,10 @@ public class CertificationProviderConfig {
         @Value("${keystore.provider}") String keyStoreProvider,
         @Value("${keypair.generator.provider}") String keyPairGeneratorProvider,
         @Value("${signature.provider}") String signatureProvider,
-        @Value("${keystore.type}") String keyStoreType,
-        @Value("${fs.keystore.provider:${keystore.provider}}")
-        String fsKeyStoreProvider,
-        @Value("${fs.keypair.generator.provider:${keypair.generator.provider}}")
-        String fsKeyPairGeneratorProvider,
-        @Value("${fs.signature.provider:${signature.provider}}")
-        String fsSignatureProvider,
-        @Value("${fs.keystore.type:${keystore.type}}")
-        String fsKeyStoreType
+        @Value("${keystore.type}") String keyStoreType
     ) {
         return new CertificationProviderConfigurationData(
-            keyStoreProvider, keyPairGeneratorProvider, signatureProvider, keyStoreType,
-            fsKeyStoreProvider, fsKeyPairGeneratorProvider, fsSignatureProvider, fsKeyStoreType);
+            keyStoreProvider, keyPairGeneratorProvider, signatureProvider, keyStoreType
+        );
     }
 }

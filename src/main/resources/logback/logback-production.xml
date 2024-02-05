@@ -17,7 +17,7 @@
 
     <appender name="certification-jsonl" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
-        <file>../logs/certification-jsonl</file>
+        <file>../logs/certification.jsonl</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>../logs/certification.jsonl.%d{yyyy-MM-dd}</fileNamePattern>
         </rollingPolicy>

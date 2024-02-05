@@ -21,6 +21,8 @@ import javax.persistence.OneToOne;
 import javax.validation.constraints.NotNull;
 import java.net.URI;
 
+import static java.util.Objects.requireNonNull;
+
 @Entity
 @DiscriminatorValue(value = "OUTGOING")
 public class OutgoingResourceCertificate extends ResourceCertificate {
@@ -65,6 +67,7 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
         super(certificate);
         Validate.isTrue(embedded || filename != null, "embedded or filename must be set");
         Validate.isTrue(embedded || parentPublicationDirectory != null, "embedded or parentPublicationDirectory must be set");
+        Validate.notNull(signingKeyPair);
         this.signingKeyPair = signingKeyPair;
         this.embedded = embedded;
         this.status = OutgoingResourceCertificateStatus.CURRENT;
@@ -72,7 +75,7 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
             publishedObject = new PublishedObject(signingKeyPair, filename, getDerEncoded(), true, parentPublicationDirectory, getValidityPeriod());
             setPublicationUri(publishedObject.getUri());
         }
-        assertValid();
+        revalidateCertificate();
     }
 
     public KeyPairEntity getSigningKeyPair() {
@@ -81,7 +84,7 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
 
     public void setRequestingCertificateAuthority(@NonNull ChildCertificateAuthority requestingCertificateAuthority) {
         Validate.isTrue(isCurrent(), "only CURRENT certificate can have requesting child certificate authority");
-        this.requestingCertificateAuthority = requestingCertificateAuthority;
+        this.requestingCertificateAuthority = requireNonNull(requestingCertificateAuthority);
     }
 
     public boolean isCurrent() {

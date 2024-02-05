@@ -96,7 +96,7 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
         assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
         assertThat(result.getModelAndView()).isNotNull();
         Map<String, Object> model = result.getModelAndView().getModel();
-        assertThat(model).extractingByKey("pageType").isEqualTo("create-request");
+        assertThat(model).extractingByKey("requestHandling").isEqualTo("create-request");
 
         assertThat(result.getResponse().getContentAsString()).contains("<td>Generate signing request</td>");
     }
@@ -112,7 +112,7 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
         assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
         assertThat(result.getModelAndView()).isNotNull();
         Map<String, Object> model = result.getModelAndView().getModel();
-        assertThat(model).extractingByKey("pageType").isEqualTo("download-request");
+        assertThat(model).extractingByKey("requestHandling").isEqualTo("download-request");
         assertThat(model).extractingByKey("requestFileName").isEqualTo("request-19700101-000000.xml");
 
         assertThat(result.getResponse().getContentAsString()).contains("<td>Download signing request");

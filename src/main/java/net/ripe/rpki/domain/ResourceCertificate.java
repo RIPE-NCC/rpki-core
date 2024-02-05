@@ -37,6 +37,7 @@ public abstract class ResourceCertificate extends EntitySupport {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_resourcecertificate")
+    @Getter
     private Long id;
 
     @NotNull
@@ -102,19 +103,26 @@ public abstract class ResourceCertificate extends EntitySupport {
         this.encodedSubjectPublicKey = certificate.getPublicKey().getEncoded();
         this.validityPeriod = new EmbeddedValidityPeriod(certificate.getValidityPeriod());
         this.encoded = certificate.getEncoded();
+        revalidateCertificate();
     }
 
-    @Override
-    public Long getId() {
-        return id;
+    protected void revalidateCertificate() {
+        Validate.notNull(serial);
+        Validate.notNull(subject);
+        Validate.notNull(issuer);
+        Validate.notNull(resourceExtension);
+        Validate.notNull(subjectPublicKey);
+        Validate.notNull(encodedSubjectPublicKey);
+        Validate.notNull(validityPeriod);
+        Validate.notNull(encoded);
     }
 
-    public @NonNull ImmutableResourceSet getResources() {
-        return resourceExtension.getResources();
+    public ImmutableResourceSet getResources() {
+        return requireNonNull(resourceExtension.getResources());
     }
 
-    public @NonNull ResourceExtension getResourceExtension() {
-        return resourceExtension.getResourceExtension();
+    public ResourceExtension getResourceExtension() {
+        return requireNonNull(resourceExtension.getResourceExtension());
     }
 
     public ValidityPeriod getValidityPeriod() {

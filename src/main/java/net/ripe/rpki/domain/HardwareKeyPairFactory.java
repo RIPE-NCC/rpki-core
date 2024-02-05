@@ -12,31 +12,20 @@ import java.util.function.Supplier;
  */
 public class HardwareKeyPairFactory implements Supplier<KeyPair> {
     private final KeyPairFactory keyPairFactory;
-    private final KeyPairFactory fsKeyPairFactory;
     private final CertificationProviderConfigurationData providerConfigurationData;
 
     public HardwareKeyPairFactory(CertificationProviderConfigurationData providerConfigurationData) {
         this.keyPairFactory = new KeyPairFactory(providerConfigurationData.getKeyPairGeneratorProvider());
-        this.fsKeyPairFactory = providerConfigurationData.hasDifferentProviders() ?
-            new KeyPairFactory(providerConfigurationData.getFsKeyPairGeneratorProvider()) :
-            this.keyPairFactory;
         this.providerConfigurationData = providerConfigurationData;
     }
     public HardwareKeyPairFactory(CertificationProviderConfigurationData providerConfigurationData, KeyPairFactory keyPairFactory) {
         this.keyPairFactory = keyPairFactory.withProvider(providerConfigurationData.getSignatureProvider());
-        this.fsKeyPairFactory = providerConfigurationData.hasDifferentProviders() ?
-            new KeyPairFactory(providerConfigurationData.getFsSignatureProvider()) :
-            this.keyPairFactory;
         this.providerConfigurationData = providerConfigurationData;
     }
 
     @Override
     public KeyPair get() {
         return keyPairFactory.generate();
-    }
-
-    public KeyPair getFsKey() {
-        return fsKeyPairFactory.generate();
     }
 
     public String keyPairGeneratorProvider() {

@@ -46,16 +46,4 @@ public abstract class EntitySupport implements Entity {
         return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
     }
 
-    /**
-     * @throws IllegalStateException
-     *             the entity validation failed.
-     */
-    public void assertValid() {
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        Validator validator = factory.getValidator();
-        Set<ConstraintViolation<EntitySupport>> result = validator.validate(this);
-        if (!result.isEmpty()) {
-            throw new IllegalStateException(result.toString());
-        }
-    }
 }

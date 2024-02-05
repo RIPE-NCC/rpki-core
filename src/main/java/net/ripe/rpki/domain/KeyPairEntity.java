@@ -89,11 +89,12 @@ public class KeyPairEntity extends EntitySupport {
                          String crlFilename,
                          String manifestFilename) {
         this();
+        Validate.notNull(manifestFilename);
+        Validate.notNull(crlFilename);
         this.size = ((RSAPublicKey) keyPair.getPublic()).getModulus().bitLength();
         this.persistedKeyPair = new PersistedKeyPair(keyPair, signInfo);
         this.crlFilename = crlFilename;
         this.manifestFilename = manifestFilename;
-        assertValid();
     }
 
     @Override

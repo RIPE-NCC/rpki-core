@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
+import org.apache.commons.lang3.Validate;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
@@ -34,10 +35,11 @@ public class IncomingResourceCertificate extends ResourceCertificate {
 
     public IncomingResourceCertificate(@NonNull CertificateIssuanceResponse issuanceResponse, @NonNull KeyPairEntity subjectKeyPair) {
         super(issuanceResponse.getCertificate());
+        Validate.notNull(issuanceResponse);
         setPublicationUri(issuanceResponse.getPublicationUri());
         this.inheritedResources = issuanceResponse.getInheritedResources();
         this.subjectKeyPair = subjectKeyPair;
-        assertValid();
+        revalidate();
     }
 
     public boolean update(CertificateIssuanceResponse issuanceResponse) {
@@ -50,10 +52,17 @@ public class IncomingResourceCertificate extends ResourceCertificate {
         updateCertificate(issuanceResponse.getCertificate());
         setPublicationUri(issuanceResponse.getPublicationUri());
         this.inheritedResources = issuanceResponse.getInheritedResources();
+        revalidate();
         return true;
     }
 
     public ImmutableResourceSet getCertifiedResources() {
         return inheritedResources.union(super.getResources());
+    }
+
+    protected void revalidate() {
+        Validate.notNull(subjectKeyPair);
+        Validate.notNull(inheritedResources);
+        revalidateCertificate();
     }
 }

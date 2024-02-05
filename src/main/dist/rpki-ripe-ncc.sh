@@ -17,7 +17,7 @@ CORE_JAR=${CORE_JAR:-"./rpki-ripe-ncc.jar"}
 
 CORE_OPTS=(
     "--spring.profiles.active=$APPLICATION_ENVIRONMENT"
-    "--spring.config.additional-location=file:/cert/shared/rpki-config-credentials.properties"
+    "--spring.config.additional-location=${SPRING_CONFIG_ADDITIONAL_LOCATION:-file:/cert/shared/rpki-config-credentials.properties}"
 )
 
 case "$APPLICATION_ENVIRONMENT" in

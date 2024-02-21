@@ -74,6 +74,12 @@ public class ManifestEntity extends EntitySupport {
     @Column(name = "nextnumber", nullable = false)
     private long nextNumber;
 
+    /**
+     * Does the manifest need to be re-issued right now?
+     */
+    @Column(name = "needs_reissuance", nullable = false)
+    private boolean needsReissuance = false;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "keypair_id", nullable = false)
     private KeyPairEntity keyPair;
@@ -128,7 +134,8 @@ public class ManifestEntity extends EntitySupport {
         return cms == null
                 || isCloseToNextUpdateTime(now, cms)
                 || parentCertificatePublicationLocationChanged(cms, keyPair.getCurrentIncomingCertificate())
-                || !cms.matchesFiles(manifestEntries.stream().collect(Collectors.toMap(PublishedObject::getFilename, PublishedObject::getContent, (a, b) -> b)));
+                || !cms.matchesFiles(manifestEntries.stream().collect(Collectors.toMap(PublishedObject::getFilename, PublishedObject::getContent, (a, b) -> b)))
+                || needsReissuance;
     }
 
     public void update(OutgoingResourceCertificate eeCertificate,
@@ -157,6 +164,7 @@ public class ManifestEntity extends EntitySupport {
         publishedObject = new PublishedObject(keyPair, keyPair.getManifestFilename(), manifestCms.getEncoded(), false, keyPair.getCertificateRepositoryLocation(), manifestCms.getValidityPeriod(), manifestCms.getSigningTime());
 
         this.nextNumber++;
+        this.needsReissuance = false;
     }
 
     private ManifestCms buildManifestCms(Collection<PublishedObject> manifestEntries, KeyPair eeKeyPair, String signatureProvider) {

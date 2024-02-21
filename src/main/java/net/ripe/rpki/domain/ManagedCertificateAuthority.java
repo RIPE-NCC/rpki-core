@@ -215,7 +215,8 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
             final ImmutableResourceSet removed = latestOutgoingCertificate.getResources().difference(request.getResourceExtension().getResources());
 
             log.info(
-                    "Current certificate for resource class {} of {} has different resources. Added resources: {}, removed resources: {}",
+                    "Current certificate at {} for resource class {} of {} has different resources. Added resources: {}, removed resources: {}",
+                    v("url", latestOutgoingCertificate.getPublicationUri()),
                     DEFAULT_RESOURCE_CLASS, v("subject", request.getSubjectDN()),
                     v("addedResources", added), v("removedResources", removed),
                     v("currentResources", latestOutgoingCertificate.getResources()), v("requestedResources", request.getResourceExtension())
@@ -291,12 +292,12 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         }
 
         if (latestOutgoingCertificate == null) {
-            log.info("No current certificate for resource class {} and current key pair, requesting new certificate", DEFAULT_RESOURCE_CLASS);
+            log.info("No current certificate for resource class {} and current key pair for {}, requesting new certificate", DEFAULT_RESOURCE_CLASS, requestingCa.getName());
         }
 
         int count = resourceCertificateRepository.countNonExpiredOutgoingCertificates(request.getSubjectPublicKey(), getCurrentKeyPair());
         if (count >= issuedCertificatesPerSignedKeyLimit) {
-            throw new CertificationResourceLimitExceededException("number of issued certificates for public key exceeds the limit (" + count + " >= " + issuedCertificatesPerSignedKeyLimit + ")");
+            throw new CertificationResourceLimitExceededException("number of issued certificates for public key " + request.getSubjectPublicKey() + " of " + request.getSubjectDN() + " exceeds the limit (" + count + " >= " + issuedCertificatesPerSignedKeyLimit + ")");
         }
 
         return getCurrentKeyPair().processCertificateIssuanceRequest(requestingCa, request, validityPeriod, resourceCertificateRepository);

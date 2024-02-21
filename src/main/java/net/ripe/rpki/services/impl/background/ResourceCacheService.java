@@ -401,7 +401,7 @@ public class ResourceCacheService {
             return Optional.of(new Rejection(
                     String.format(
                             "The sum of all per-CA changes (%d) is too big, added %d prefixes, deleted %d prefixes",
-                            diffStat.totalAdded + diffStat.totalDeleted,
+                            diffStat.totalPerCaMutations(),
                             diffStat.totalAdded, diffStat.totalDeleted
                     ),
                     Optional.of(summary)

@@ -34,6 +34,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    // for http client - we do not use reactive patterns in general
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     if (osdetector.os == "osx") {
         runtimeOnly "io.netty:netty-resolver-dns-native-macos:${managedVersions['io.netty:netty-resolver-dns-native-macos']}:osx-${osdetector.arch}"

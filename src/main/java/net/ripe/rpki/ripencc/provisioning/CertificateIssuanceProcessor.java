@@ -1,6 +1,7 @@
 package net.ripe.rpki.ripencc.provisioning;
 
 import com.google.common.collect.Iterators;
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
@@ -28,6 +29,7 @@ import org.joda.time.DateTime;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
+import javax.validation.constraints.Null;
 import java.math.BigInteger;
 import java.net.URI;
 import java.security.PublicKey;
@@ -40,6 +42,7 @@ import java.util.Optional;
 
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 
+@Slf4j
 @Component
 class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
 
@@ -229,7 +232,9 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
         try {
             PKCS10CertificationRequest pkc10Request = requestElement.getCertificateRequest();
             return new RpkiCaCertificateRequestParser(pkc10Request);
-        } catch (RpkiCaCertificateRequestParserException e) {
+            // TODO: NPE can be removed after rpki-commons 1.38/2.0.0 is removed.
+        } catch (NullPointerException | RpkiCaCertificateRequestParserException e) {
+            log.error("Failed to parse certificate request", e);
             throw new NotPerformedException(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
         }
     }

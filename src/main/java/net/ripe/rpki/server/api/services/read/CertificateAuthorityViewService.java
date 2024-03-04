@@ -5,6 +5,7 @@ import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.dto.*;
+import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.Instant;
 
 import javax.security.auth.x500.X500Principal;
@@ -71,7 +72,7 @@ public interface CertificateAuthorityViewService {
 
     Collection<? extends CaStatEvent> getCaStatEvents();
 
-    Map<UUID, RepositoryResponse> findNonHostedPublisherRepositories(X500Principal caName);
+    Map<UUID, Pair<PublisherRequest, RepositoryResponse>> findNonHostedPublisherRepositories(X500Principal caName);
 
     Map<UUID, PublisherRequest> findAllPublisherRequestsFromNonHostedCAs();
 

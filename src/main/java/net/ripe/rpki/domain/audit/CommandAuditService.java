@@ -7,6 +7,7 @@ import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.dto.CommandAuditData;
 
 import java.util.List;
+import java.util.Map;
 
 public interface CommandAuditService {
 
@@ -25,4 +26,6 @@ public interface CommandAuditService {
      * Used when we delete a CA completely.
      */
     void deleteCommandsForCa(long caId);
+
+    Map<String, Long> findMentionsInSummary(String email);
 }

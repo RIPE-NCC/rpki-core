@@ -1,5 +1,6 @@
 package net.ripe.rpki.rest.service;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Value;
@@ -23,6 +24,8 @@ import net.ripe.rpki.server.api.support.objects.CaName;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -63,6 +66,29 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
     private final CommandService commandService;
     private final Optional<NonHostedPublisherRepositoryService> maybeNonHostedPublisherRepositoryService;
 
+    /**
+     * A workaround for the long-standing issue https://github.com/NLnetLabs/krill/issues/984 that appears to be a wont-fix.
+     *
+     * @return repository response that is patched
+     */
+    private static RepositoryResponse patchPublisherResponseTag(PublisherRequest publisherRequest, RepositoryResponse repositoryResponse) {
+        // krill does not handle tags correctly - copy this into the response.
+        //
+        // >  tag:  If the <publisher_request/> message included a "tag" attribute,
+        // >       the repository MUST include an identical "tag" attribute in the
+        // >       <repository_response/> message; if the request did not include a
+        // >       tag attribute, the response MUST NOT include a tag attribute
+        // >       either.
+        return new RepositoryResponse(
+            publisherRequest.getTag(),
+            repositoryResponse.getServiceUri(),
+            repositoryResponse.getPublisherHandle(),
+            repositoryResponse.getSiaBase(),
+            repositoryResponse.getRrdpNotificationUri(),
+            repositoryResponse.getRepositoryBpkiTa()
+        );
+    }
+
 
     @Autowired
     public PublisherRepositoriesService(CertificateAuthorityViewService certificateAuthorityViewService,
@@ -87,7 +113,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
                 .findNonHostedPublisherRepositories(caName.getPrincipal())
                 .entrySet()
                 .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> RepositoryResponseDto.of(entry.getValue())));
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> RepositoryResponseDto.of(patchPublisherResponseTag(entry.getValue().getKey(), entry.getValue().getValue()))));
 
             return ResponseEntity.ok().body(Map.of("available", true, "repositories", repositories));
         } catch (EntityNotFoundException e) {
@@ -163,17 +189,17 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         log.info("Download repository non-hosted publication response for CA: {}", caName);
 
         try {
-            RepositoryResponse repositoryResponse = certificateAuthorityViewService
+            var publisherExchange = certificateAuthorityViewService
                 .findNonHostedPublisherRepositories(caName.getPrincipal())
                 .get(publisherHandle);
-            if (repositoryResponse == null) {
+            if (publisherExchange == null) {
                 throw new ObjectNotFoundException("publisher repository not found for handle '" + publisherHandle + "'");
             }
 
             String filename = "repository-response-" + publisherHandle + ".xml";
-            String xml = new RepositoryResponseSerializer().serialize(repositoryResponse);
+            String xml = new RepositoryResponseSerializer().serialize(patchPublisherResponseTag(publisherExchange.getKey(), publisherExchange.getValue()));
             return ResponseEntity.ok()
-                    .header("content-disposition", "attachment; filename = " + filename)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(filename).build().toString())
                     .contentType(TEXT_XML)
                     .body(xml.getBytes(StandardCharsets.UTF_8));
         } catch (EntityNotFoundException e) {
@@ -208,6 +234,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
 
     @Value
     private static class RepositoryResponseDto {
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         String tag;
         String serviceUri;
         String publisherHandle;

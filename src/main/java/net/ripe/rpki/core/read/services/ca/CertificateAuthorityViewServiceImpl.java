@@ -7,6 +7,7 @@ import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningAuditLogService;
 import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -148,7 +149,7 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     }
 
     @Override
-    public Map<UUID, RepositoryResponse> findNonHostedPublisherRepositories(X500Principal caName) {
+    public Map<UUID, Pair<PublisherRequest, RepositoryResponse>> findNonHostedPublisherRepositories(X500Principal caName) {
         NonHostedCertificateAuthority ca = certificateAuthorityRepository.findByTypeAndName(NonHostedCertificateAuthority.class, caName);
         if (ca == null) {
             throw new EntityNotFoundException("non-hosted CA '" + caName + "' not found");
@@ -156,7 +157,7 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
 
         return ca.getPublisherRepositories().values().stream().collect(Collectors.toMap(
             NonHostedPublisherRepository::getPublisherHandle,
-            NonHostedPublisherRepository::getRepositoryResponse
+            repository -> Pair.of(repository.getPublisherRequest(), repository.getRepositoryResponse())
         ));
     }
 

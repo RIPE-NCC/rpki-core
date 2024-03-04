@@ -1,6 +1,7 @@
 package net.ripe.rpki.domain.alerts;
 
 import com.google.common.collect.Sets;
+import lombok.Getter;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.domain.CertificateAuthority;
@@ -44,6 +45,7 @@ public class RoaAlertConfiguration extends EntitySupport {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "roa_alert_conf_seq")
     private Long id;
 
+    @Getter
     @OneToOne(optional=false, fetch=FetchType.EAGER)
     @JoinColumn(name = "certificateauthority_id")
     private CertificateAuthority certificateAuthority;
@@ -51,6 +53,7 @@ public class RoaAlertConfiguration extends EntitySupport {
     @Basic(optional=false)
     private String email; // May be empty for no subscription.
 
+    @Getter
     @Basic(optional=false)
     @Column(name = "frequency")
     @Enumerated(EnumType.STRING)
@@ -83,14 +86,6 @@ public class RoaAlertConfiguration extends EntitySupport {
     @Override
     public Object getId() {
         return id;
-    }
-
-    public RoaAlertFrequency getFrequency() {
-        return frequency;
-    }
-
-    public CertificateAuthority getCertificateAuthority() {
-        return certificateAuthority;
     }
 
     public void clearSubscription() {

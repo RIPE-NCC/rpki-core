@@ -1,5 +1,6 @@
 package net.ripe.rpki.server.api.commands;
 
+import lombok.Getter;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
@@ -12,6 +13,7 @@ import java.util.EnumSet;
  * Subscribe an email address to alerts about BGP updates seen by RIS
  * that are invalidated by the CA's ROAs.
  */
+@Getter
 public class SubscribeToRoaAlertCommand extends CertificateAuthorityCommand {
 
     private final String email;
@@ -32,18 +34,6 @@ public class SubscribeToRoaAlertCommand extends CertificateAuthorityCommand {
         this.email = email;
         this.routeValidityStates = EnumSet.copyOf(routeValidityStates);
         this.frequency = frequency;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public Collection<RouteValidityState> getRouteValidityStates() {
-        return routeValidityStates;
-    }
-
-    public RoaAlertFrequency getFrequency() {
-        return frequency;
     }
 
     // Let's make this conform to human repre

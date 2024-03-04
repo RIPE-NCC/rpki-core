@@ -65,8 +65,7 @@ public class DownStreamProvisioningCommunicator extends EntitySupport {
         X509CrlBuilder crlBuilder = new X509CrlBuilder();
 
         crlBuilder.withIssuerDN(identityCertificate.getSubject());
-        crlBuilder.withThisUpdateTime(identityCertificate.getValidityPeriod().getNotValidBefore());
-        crlBuilder.withNextUpdateTime(identityCertificate.getValidityPeriod().getNotValidAfter());
+        crlBuilder.withValidityPeriod(identityCertificate.getValidityPeriod());
         crlBuilder.withNumber(BigInteger.ONE);
 
         crlBuilder.withAuthorityKeyIdentifier(persistedKeyPair.getPublicKey());

@@ -130,8 +130,7 @@ public class CrlEntity extends EntitySupport {
         X509CrlBuilder builder = newCrlBuilderWithEntries(revokedCertificates);
         builder.withAuthorityKeyIdentifier(keyPair.getPublicKey());
         builder.withIssuerDN(keyPair.getCurrentIncomingCertificate().getSubject());
-        builder.withThisUpdateTime(validityPeriod.getNotValidBefore());
-        builder.withNextUpdateTime(validityPeriod.getNotValidAfter());
+        builder.withValidityPeriod(validityPeriod);
         builder.withNumber(BigInteger.valueOf(getAndIncrementNextNumber()));
         builder.withSignatureProvider(keyPair.getSignatureProvider());
 

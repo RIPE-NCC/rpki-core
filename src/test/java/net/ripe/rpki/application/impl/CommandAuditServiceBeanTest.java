@@ -1,5 +1,6 @@
 package net.ripe.rpki.application.impl;
 
+import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.audit.CommandAudit;
@@ -13,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.inject.Inject;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup.USER;
@@ -26,10 +29,10 @@ public class CommandAuditServiceBeanTest extends CertificationDomainTestCase {
 
     private static final UUID TEST_USER_UUID = UUID.randomUUID();
     private ManagedCertificateAuthority ca;
+
     @Before
     public void setUp() {
         clearDatabase();
-
         ca = createInitialisedProdCaWithRipeResources();
         RunAsUserHolder.set(RunAsUser.operator(TEST_USER_UUID));
     }
@@ -86,5 +89,25 @@ public class CommandAuditServiceBeanTest extends CertificationDomainTestCase {
         entityManager.flush();
         entityManager.refresh(commandContext.getCommandAudit());
         assertThat(commandContext.getCommandAudit().getDeletedAt()).isNotNull();
+    }
+
+    @Test
+    public void should_extract_emails_from_subscribe_command_summary() {
+        String email = "user_some.email+ripe.net@gmail.com";
+
+        recordCommand(new SubscribeToRoaAlertCommand(ca.getVersionedId(), email, List.of(RouteValidityState.INVALID_ASN)), "some event");
+        recordCommand(new UnsubscribeFromRoaAlertCommand(ca.getVersionedId(), email), "some event 2");
+
+        entityManager.flush();
+        Map<String, Long> emailMentions = subject.findMentionsInSummary(email);
+        assertThat(emailMentions.size()).isEqualTo(2);
+        assertThat(emailMentions.get("SubscribeToRoaAlertCommand")).isEqualTo(1L);
+        assertThat(emailMentions.get("UnsubscribeFromRoaAlertCommand")).isEqualTo(1L);
+    }
+
+    private void recordCommand(CertificateAuthorityCommand command, String event) {
+        CommandContext commandContext = subject.startRecording(command);
+        commandContext.recordEvent(event);
+        subject.finishRecording(commandContext);
     }
 }

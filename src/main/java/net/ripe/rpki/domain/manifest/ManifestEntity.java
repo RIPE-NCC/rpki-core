@@ -174,8 +174,7 @@ public class ManifestEntity extends EntitySupport {
         }
         builder.withCertificate(certificate.getCertificate());
         builder.withManifestNumber(BigInteger.valueOf(nextNumber));
-        builder.withThisUpdateTime(certificate.getNotValidBefore());
-        builder.withNextUpdateTime(certificate.getNotValidAfter());
+        builder.withValidityPeriod(certificate.getValidityPeriod());
         builder.withSignatureProvider(signatureProvider);
         return builder.build(eeKeyPair.getPrivate());
     }

@@ -36,4 +36,12 @@ public class JpaRoaAlertConfigurationRepository extends JpaRepository<RoaAlertCo
         query.setParameter("frequency", frequency);
         return query.getResultList();
     }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public List<RoaAlertConfiguration> findByEmail(String email) {
+        Query query = createQuery("SELECT rac FROM RoaAlertConfiguration rac WHERE email LIKE :email");
+        query.setParameter("email", "%" + email + "%");
+        return query.getResultList();
+    }
 }

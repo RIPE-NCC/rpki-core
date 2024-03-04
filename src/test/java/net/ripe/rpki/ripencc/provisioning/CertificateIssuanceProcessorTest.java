@@ -22,6 +22,7 @@ import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
+import org.assertj.core.api.Assertions;
 import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.joda.time.DateTime;

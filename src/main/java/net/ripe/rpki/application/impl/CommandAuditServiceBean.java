@@ -20,6 +20,7 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.security.auth.x500.X500Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -126,5 +127,18 @@ public class CommandAuditServiceBean implements CommandAuditService {
         Query query = entityManager.createQuery("UPDATE CommandAudit cd SET cd.deletedAt = CURRENT_TIMESTAMP() WHERE cd.certificateAuthorityId = :id");
         query.setParameter("id", caId);
         query.executeUpdate();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Map<String, Long> findMentionsInSummary(String item) {
+        Query query = entityManager.createQuery(
+                "SELECT ca FROM CommandAudit ca " +
+                        "WHERE commandSummary LIKE :itemSpaces " +
+                        "OR commandSummary LIKE :itemParens");
+        query.setParameter("itemSpaces", "% " + item + " %");
+        query.setParameter("itemParens", "%'" + item + "'%");
+        List<CommandAudit> commands = query.getResultList();
+        return commands.stream().collect(Collectors.toMap(CommandAudit::getCommandType, c -> 1L, Long::sum));
     }
 }

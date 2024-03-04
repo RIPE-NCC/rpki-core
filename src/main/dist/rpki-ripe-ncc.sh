@@ -53,7 +53,7 @@ esac
 JAVA_OPTS=(
     "-DAPPLICATION_ENVIRONMENT=$APPLICATION_ENVIRONMENT"
     "-Dinstance.name=$(hostname)"
-    "-XX:+UseParallelOldGC"
+    "-XX:+UseParallelGC"
     "-Xlog:gc:$LOG_DIR/gc.log:utctime"
     "-XX:+HeapDumpOnOutOfMemoryError" "-XX:HeapDumpPath=$LOG_DIR" "-XX:+ExitOnOutOfMemoryError"
     "${ENV_OPTS[@]}"

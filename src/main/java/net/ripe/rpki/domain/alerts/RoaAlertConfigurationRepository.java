@@ -14,4 +14,6 @@ public interface RoaAlertConfigurationRepository {
     RoaAlertConfiguration findByCertificateAuthorityIdOrNull(long caId);
 
     void remove(RoaAlertConfiguration entity);
+
+    List<RoaAlertConfiguration> findByEmail(String email);
 }

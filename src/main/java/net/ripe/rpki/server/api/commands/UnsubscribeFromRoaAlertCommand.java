@@ -1,5 +1,6 @@
 package net.ripe.rpki.server.api.commands;
 
+import lombok.Getter;
 import net.ripe.rpki.commons.util.VersionedId;
 
 /**
@@ -8,15 +9,12 @@ import net.ripe.rpki.commons.util.VersionedId;
  */
 public class UnsubscribeFromRoaAlertCommand extends CertificateAuthorityCommand {
 
+    @Getter
     private final String email;
 
     public UnsubscribeFromRoaAlertCommand(VersionedId certificateAuthorityId, String email) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
         this.email = email;
-    }
-
-    public String getEmail() {
-        return email;
     }
 
     @Override

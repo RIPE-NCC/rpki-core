@@ -185,11 +185,18 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
 
         final Set<AllowedRoute> currentRoutes = new HashSet<>(currentRoaConfiguration.toAllowedRoutes());
         final Set<AllowedRoute> futureRoutes = new HashSet<>(futureRoas.size());
+
         IpResourceSet affectedRanges;
         try {
+            // This will fill up futureRoutes as well
             affectedRanges = buildAffectedRanges(futureRoas, futureRoutes, currentRoutes);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(BAD_REQUEST).body(Map.of(ERROR, e.getMessage()));
+        }
+
+        Optional<String> validationError = Roas.validateRoaUpdate(futureRoutes);
+        if (validationError.isPresent()) {
+            return ResponseEntity.status(BAD_REQUEST).body(Map.of(ERROR, validationError.get()));
         }
 
         final List<BgpAnnouncementChange> bgpAnnouncementChanges = getBgpAnnouncementChanges(
@@ -210,26 +217,9 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
             if (!currentRoutes.contains(route))
                 affectedRanges.add(roaIpRange);
         }
-
-        final Map<AnnouncedRoute, List<Integer>> futureRoaMap = Utils.makeROAMap(futureRoas);
-        Optional<String> e = Utils.validateUniqueROAs("Error in future ROAs", futureRoaMap);
-        if (e.isPresent()) {
-            throw new IllegalArgumentException(e.get());
-        }
-
         for (AllowedRoute route : currentRoutes) {
             if (!futureRoutes.contains(route))
                 affectedRanges.add(route.getPrefix());
-
-            final AnnouncedRoute key = new AnnouncedRoute(route.getAsn(), route.getPrefix());
-            if (futureRoaMap.containsKey(key)) {
-                futureRoaMap.get(key).forEach(futureMaxLength -> {
-                    if (!Objects.equals(futureMaxLength, route.getMaximumLength())) {
-                        // the same ASN+prefix and different max length
-                        throw new IllegalArgumentException(Utils.getSameROAErrorMessage(route, key, futureMaxLength));
-                    }
-                });
-            }
         }
         return affectedRanges;
     }
@@ -299,9 +289,10 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
         final String ifMatch = StringUtils.defaultIfEmpty(ifMatchHeader, publishSet.getIfMatch());
 
         try {
-            Utils.validateNoIdenticalROAs(
-                            roaViewService.getRoaConfiguration(ca.getId()),
-                            publishSet.getAdded(), publishSet.getDeleted())
+            var currentRoas = new HashSet<>(roaViewService.getRoaConfiguration(ca.getId()).toAllowedRoutes());
+            var futureRoas = Roas.applyDiff(currentRoas, Roas.toDiff(publishSet));
+
+            Roas.validateRoaUpdate(futureRoas)
                     .ifPresent(rc -> {
                         throw new IllegalArgumentException(rc);
                     });

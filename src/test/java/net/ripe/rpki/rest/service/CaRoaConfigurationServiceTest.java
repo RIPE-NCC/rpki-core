@@ -30,11 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import javax.security.auth.x500.X500Principal;
 import javax.ws.rs.core.HttpHeaders;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -115,7 +111,26 @@ public class CaRoaConfigurationServiceTest {
     }
 
     @Test
-    public void shouldPreventFromStaginBreakingChanges() throws Exception {
+    public void shouldNotRejectSameAsnPrefixAndDifferentMaxLengthWhenItsAReplacements() throws Exception {
+        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(List.of(
+                new RoaConfigurationPrefixData(new Asn(10), IpRange.parse("193.0.24.0/21"), 21))));
+
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("127.0.0.1, ::1");
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
+
+        Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
+        bgpRisEntries.put(false, Collections.singletonList(new BgpRisEntry(new Asn(10), IpRange.parse("193.0.24.0/21"), 21)));
+        when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
+
+        // try to replace one maxLength with the other
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/stage")
+                        .content("[{\"asn\" : \"AS10\", \"prefix\" : \"193.0.24.0/21\", \"maximalLength\": 22 }]"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value("1"));
+    }
+
+    @Test
+    public void shouldRejectSameAsnPrefixAndDifferentMaxLengthWhenItsExtraROA() throws Exception {
         when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(Collections.singletonList(
                 new RoaConfigurationPrefixData(new Asn(10), IpRange.parse(TESTNET_1), 32))));
 
@@ -131,12 +146,13 @@ public class CaRoaConfigurationServiceTest {
         when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/stage")
-                .content("[{\"asn\" : \"AS10\", \"prefix\" : \"" + TESTNET_1 + "\", \"maximalLength\" : \"24\"}]"))
+                        .content("[" +
+                                "{\"asn\" : \"AS10\", \"prefix\" : \"" + TESTNET_1 + "\", \"maximalLength\" : \"24\"}," +
+                                "{\"asn\" : \"AS10\", \"prefix\" : \"" + TESTNET_1 + "\", \"maximalLength\" : \"25\"}]"
+                        ))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error")
-                        .value("There is an overlap in ROAs: existing " +
-                                "AllowedRoute[asn=AS10,maximumLength=32,prefix=192.0.2.0/24] has the same (ASN, prefix) as added " +
-                                "ROA{asn='AS10', prefix='192.0.2.0/24', maximalLength=24}"));
+                        .value("Error in future ROAs: there are more than one pair (AS10, 192.0.2.0/24), max lengths: [24, 25]"));
     }
 
     /**

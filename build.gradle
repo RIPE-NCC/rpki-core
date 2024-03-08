@@ -53,7 +53,7 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-ui:1.7.0'
 
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-    implementation 'org.postgresql:postgresql:42.6.0'
+    implementation 'org.postgresql:postgresql:42.7.2'
     runtimeOnly 'org.springframework.boot:spring-boot-starter-tomcat'
 
     implementation 'com.google.code.gson:gson:2.10.1'

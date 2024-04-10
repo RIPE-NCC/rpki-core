@@ -1,22 +1,22 @@
 package net.ripe.rpki.rest.service;
 
 import com.google.common.collect.Streams;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import lombok.Value;
+import lombok.experimental.UtilityClass;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
+import net.ripe.rpki.commons.validation.roa.RoaPrefixData;
 import net.ripe.rpki.rest.pojo.PublishSet;
-import net.ripe.rpki.rest.pojo.ROA;
+import net.ripe.rpki.rest.pojo.ApiRoaPrefix;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@UtilityClass
 public class Roas {
-
+    // FIXME: This is sketchy: prefix is only used in error message. Why is the parameter required?
     public static Optional<String> validateUniqueROAs(String prefix, Map<AnnouncedRoute, List<Integer>> newOnes) {
         for (var e : newOnes.entrySet()) {
             var maxLengths = e.getValue();
@@ -36,7 +36,7 @@ public class Roas {
         );
     }
 
-    private static AllowedRoute toAllowedRoute(ROA roa) {
+    private static AllowedRoute toAllowedRoute(ApiRoaPrefix roa) {
         var roaIpRange = IpRange.parse(roa.getPrefix());
         var maxLength = roa.getMaxLength() != null ? roa.getMaxLength() : roaIpRange.getPrefixLength();
         return new AllowedRoute(Asn.parse(roa.getAsn()), roaIpRange, maxLength);
@@ -49,7 +49,7 @@ public class Roas {
         return futureRoas;
     }
 
-    public static Optional<String> validateRoaUpdate(Set<AllowedRoute> futureRoutes) {
+    public static <T extends RoaPrefixData> Optional<String> validateRoaUpdate(Set<T> futureRoutes) {
         var futureMap = futureRoutes.stream().collect(Collectors.toMap(
                 r -> new AnnouncedRoute(r.getAsn(), r.getPrefix()),
                 r -> Collections.singletonList(r.getMaximumLength()),

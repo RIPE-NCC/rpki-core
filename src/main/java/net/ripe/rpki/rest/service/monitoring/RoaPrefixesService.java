@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import net.ripe.rpki.commons.validation.roa.RoaPrefixData;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
@@ -52,7 +53,7 @@ public class RoaPrefixesService {
                         .stream()
                         .flatMap(rc -> rc.getPrefixes().stream())
                         .map(RoaConfigurationPrefix::toData)
-                        .sorted(RoaConfigurationPrefixData.COMPARATOR)
+                        .sorted(RoaPrefixData.ROA_PREFIX_DATA_COMPARATOR)
                         .collect(Collectors.toList());
         return ResponseEntity.ok(ValidatedObjectsResponse.of(roas, Collections.singletonMap("origin", "rpki-core")));
     }

@@ -7,14 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.IpResource;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.etree.NestedIntervalMap;
-import net.ripe.rpki.commons.validation.roa.AllowedRoute;
-import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
-import net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy;
-import net.ripe.rpki.commons.validation.roa.RouteValidityState;
-import net.ripe.rpki.server.api.dto.BgpRisEntry;
-import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
-import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
-import net.ripe.rpki.server.api.dto.RoaConfigurationData;
+import net.ripe.rpki.commons.validation.roa.*;
+import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.ports.InternalNamePresenter;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
@@ -105,15 +99,14 @@ public class RoaAlertChecker {
     AnnouncedRoutes getAnnouncedRoutesForCA(CertificateAuthorityData ca, Set<AnnouncedRoute> ignoredAnnouncements) {
         RoaConfigurationData roaConfiguration = roaService.getRoaConfiguration(ca.getId());
         Collection<BgpRisEntry> announcements = bgpRisEntryRepository.findMostSpecificOverlapping(ca.getResources());
-        RouteOriginValidationPolicy policy = new RouteOriginValidationPolicy();
-        NestedIntervalMap<IpResource, List<AllowedRoute>> allowedRoutes = allowedRoutesToNestedIntervalMap(roaConfiguration.toAllowedRoutes());
+        NestedIntervalMap<IpResource, List<RoaConfigurationPrefixData>> allowedRoutes = allowedRoutesToNestedIntervalMap(roaConfiguration.getPrefixes());
 
         AnnouncedRoutes announcedRoutes = new AnnouncedRoutes();
         announcements.stream().map(BgpRisEntry::toAnnouncedRoute)
             .filter(x -> !ignoredAnnouncements.contains(x))
             .forEach(announcedRoute -> {
 
-                RouteValidityState validityState = policy.validateAnnouncedRoute(allowedRoutes, announcedRoute);
+                RouteValidityState validityState = RouteOriginValidationPolicy.validateAnnouncedRoute(allowedRoutes, announcedRoute);
                 switch (validityState) {
                     case VALID:
                         announcedRoutes.valids.add(announcedRoute);
@@ -139,11 +132,11 @@ public class RoaAlertChecker {
                                                  List<AnnouncedRoute> unknowns,
                                                  Set<AnnouncedRoute> unsortedIgnoredAlerts) {
         String humanizedCaName = internalNamePresenter.humanizeCaName(configuration.getCertificateAuthority().getName());
-        invalidAsnsToMail.sort(AnnouncedRoute.ASN_PREFIX_COMPARATOR);
-        invalidLengthsToMail.sort(AnnouncedRoute.ASN_PREFIX_COMPARATOR);
-        unknowns.sort(AnnouncedRoute.ASN_PREFIX_COMPARATOR);
+        Collections.sort(invalidAsnsToMail);
+        Collections.sort(invalidLengthsToMail);
+        Collections.sort(unknowns);
 
-        final SortedSet<AnnouncedRoute> ignoredAlerts = new TreeSet<>(AnnouncedRoute.ASN_PREFIX_COMPARATOR);
+        final SortedSet<AnnouncedRoute> ignoredAlerts = new TreeSet<>();
         ignoredAlerts.addAll(unsortedIgnoredAlerts);
 
         var parameters = Map.of(

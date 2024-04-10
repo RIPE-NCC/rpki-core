@@ -13,6 +13,8 @@ public interface BgpRisEntryViewService {
 
     /**
      * @return all matching BGP RIS entries that do not have a more specific matching entry.
+     * <emph>Take care when using this method: it does not consistently return a covering less specific.</emph>
+     * TODO: Clarify the behaviour of this method.
      */
     Collection<BgpRisEntry> findMostSpecificOverlapping(ImmutableResourceSet resources);
 

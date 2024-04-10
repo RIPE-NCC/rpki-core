@@ -1,25 +1,29 @@
 package net.ripe.rpki.rest.pojo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 
 public class ROAWithAnnouncementStatus {
-
-    private ROA roa;
+    /**
+     * Use legacy name in JSON serialization
+     */
+    @JsonProperty("roa")
+    private ApiRoaPrefix roa;
     private RouteValidityState validity;
 
     public ROAWithAnnouncementStatus() {
     }
 
-    public ROAWithAnnouncementStatus(ROA roa, RouteValidityState validity) {
+    public ROAWithAnnouncementStatus(ApiRoaPrefix roa, RouteValidityState validity) {
         this.roa = roa;
         this.validity = validity;
     }
 
-    public ROA getRoa() {
+    public ApiRoaPrefix getRoa() {
         return roa;
     }
 
-    public void setRoa(ROA roa) {
+    public void setRoa(ApiRoaPrefix roa) {
         this.roa = roa;
     }
 

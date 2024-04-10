@@ -9,7 +9,7 @@ import java.util.List;
 public class PublishSet {
 
     private String ifMatch;
-    private List<ROA> added = Collections.emptyList();
-    private List<ROA> deleted = Collections.emptyList();
+    private List<ApiRoaPrefix> added = Collections.emptyList();
+    private List<ApiRoaPrefix> deleted = Collections.emptyList();
 
 }

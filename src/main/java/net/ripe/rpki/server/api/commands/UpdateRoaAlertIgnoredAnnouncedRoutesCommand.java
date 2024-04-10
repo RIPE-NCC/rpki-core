@@ -2,6 +2,7 @@ package net.ripe.rpki.server.api.commands;
 
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
+import net.ripe.rpki.commons.validation.roa.RouteData;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.ArrayList;
@@ -19,9 +20,9 @@ public class UpdateRoaAlertIgnoredAnnouncedRoutesCommand extends CertificateAuth
     public UpdateRoaAlertIgnoredAnnouncedRoutesCommand(VersionedId certificateAuthorityId, Collection<AnnouncedRoute> added, Collection<AnnouncedRoute> deleted) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
         this.additions = new ArrayList<>(added);
-        this.additions.sort(AnnouncedRoute.ASN_PREFIX_COMPARATOR);
+        this.additions.sort(RouteData.ROUTE_DATA_COMPARATOR);
         this.deletions = new ArrayList<>(deleted);
-        this.deletions.sort(AnnouncedRoute.ASN_PREFIX_COMPARATOR);
+        this.deletions.sort(RouteData.ROUTE_DATA_COMPARATOR);
     }
 
     public List<AnnouncedRoute> getAdditions() {

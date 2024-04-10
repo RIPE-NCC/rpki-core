@@ -12,6 +12,7 @@ import org.apache.commons.lang.builder.ToStringStyle;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,6 +36,10 @@ public class RoaConfigurationPrefix {
     // Nullable for database compatibility reasons.
     @Column(name = "maximum_length", nullable = true)
     private Integer maximumLength;
+
+    @Getter
+    @Column(name = "updated_at", insertable = false, updatable = false)
+    private Instant updatedAt;
 
     protected RoaConfigurationPrefix() {
         // JPA uses this
@@ -69,7 +74,7 @@ public class RoaConfigurationPrefix {
     }
 
     public RoaConfigurationPrefixData toData() {
-        return new RoaConfigurationPrefixData(getAsn(), getPrefix(), getMaximumLength());
+        return new RoaConfigurationPrefixData(getAsn(), getPrefix(), getMaximumLength(), getUpdatedAt());
     }
 
     @Override

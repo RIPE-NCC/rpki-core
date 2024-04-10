@@ -2,6 +2,7 @@ package net.ripe.rpki.server.api.dto;
 
 import lombok.NonNull;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
+import net.ripe.rpki.commons.validation.roa.RoaPrefixData;
 import net.ripe.rpki.server.api.support.objects.ValueObjectSupport;
 import net.ripe.rpki.util.Streams;
 
@@ -16,17 +17,12 @@ public class RoaConfigurationData extends ValueObjectSupport {
 
     public RoaConfigurationData(@NonNull List<RoaConfigurationPrefixData> prefixes) {
         this.prefixes = new ArrayList<>(prefixes);
-        this.prefixes.sort(RoaConfigurationPrefixData.COMPARATOR);
+        this.prefixes.sort(RoaPrefixData.ROA_PREFIX_DATA_COMPARATOR);
     }
 
     public List<RoaConfigurationPrefixData> getPrefixes() {
         return Collections.unmodifiableList(prefixes);
     }
-
-    public List<AllowedRoute> toAllowedRoutes() {
-        return toAllowedRoutes(prefixes);
-    }
-
     public String entityTag() {
         return Streams.entityTag(
             prefixes.stream().flatMap(prefix -> Stream.of(
@@ -36,13 +32,6 @@ public class RoaConfigurationData extends ValueObjectSupport {
             ))
         );
     }
-
-    private static List<AllowedRoute> toAllowedRoutes(Collection<? extends RoaConfigurationPrefixData> prefixes) {
-        return prefixes.stream()
-                .map(roaPrefix -> new AllowedRoute(roaPrefix.getAsn(), roaPrefix.getPrefix(), roaPrefix.getMaximumLength()))
-                .collect(Collectors.toList());
-    }
-
     private static byte[] stringBytes(Object value) {
         return String.valueOf(value).getBytes(StandardCharsets.UTF_8);
     }

@@ -1,0 +1,217 @@
+#!/usr/bin/env node
+
+const GitLab = ({apiUrl, apiToken, projectId}) => {
+    const repeat = (x) => (n) => [...new Array(n)].map(() => x);
+
+    const fetchFromGitLab = async (path, params) => {
+        const query = Object.entries({"per_page": 100, ...params})
+              .filter(([_, value]) => value != null)
+              .map(([name, value]) => `${name}=${encodeURIComponent(value)}`)
+              .reduce((acc, x) => `${acc}${acc != "" ? "&" : ""}${x}`, "");
+        const response = await fetch(
+            `${apiUrl}/${path}?${query}`,
+            {
+                headers: {
+                    "PRIVATE-TOKEN": apiToken,
+                    "accept": "application/json",
+                }
+            }
+        );
+        if (!response.ok) {
+            switch (response.status) {
+            case 401:
+                throw "The configured access token is invalid. A project access token with scope read_api and role reporter is required.";
+            case 403:
+                throw "The configured access token has insufficient permissions. The token must have scope read_api and role reporter.";
+            default:
+                throw `Failed to GET ${apiUrl}${path}?${query}, server returned: ${response.status}`;
+            }
+        }
+        return response.json();
+    };
+
+    const fetchAll = (f) => async function* (params={}, {concurrency, maxPages}={concurrency: 3, maxPages: 100}) {
+        const fetcher = (page) => f({...params, page});
+        let page = 0;
+        while (page < maxPages) {
+            const pages = Math.min(concurrency, maxPages - page);
+            const results = await Promise.all(repeat(fetcher)(pages).map((f) => f(page++)));
+            for (const result of results) {
+                if (result.length === 0) {
+                    break;
+                }
+                yield* result;
+            }
+        }
+    };
+
+    return {
+        queries: {
+            commit: (sha) => fetchFromGitLab(`/projects/${projectId}/repository/commits/${sha}`),
+            deployments: (params={}) => fetchFromGitLab(`/projects/${projectId}/deployments`, params),
+            merge_requests: (params={}) => fetchFromGitLab(`/projects/${projectId}/merge_requests`, params),
+        },
+
+        combinators: {
+            findFirst: (f) => (params={}, fetchConfig) => async (p) => {
+                for await (const result of fetchAll(f)(params, fetchConfig)) {
+                    if (p(result)) {
+                        return result;
+                    }
+                }
+            },
+            findAll: (f) => (params={}, fetchConfig) => async (p=() => true) => {
+                let acc = [];
+                for await (const result of fetchAll(f)(params, fetchConfig)) {
+                    if (p(result)) {
+                        acc.push(result);
+                    }
+                }
+                return acc;
+            },
+        },
+    };
+};
+
+const Calendar = {
+    isAfter: (x, y) => {
+        const xd = Date.parse(x);
+        const yd = Date.parse(y);
+        return xd > yd;
+    },
+    max: (x, y) => Calendar.isAfter(x, y) ? x : y,
+    compare: (key=(x)=>x) => (x, y) =>
+        Calendar.isAfter(key(x), key(y)) ? 1 : Calendar.isAfter(key(y), key(x)) ? -1 : 0,
+    showTimestamp: (x) => {
+        const d = new Date(Date.parse(x));
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.getUTCHours()}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} UTC`
+    }
+}
+
+const die = (msg) => {
+    console.error(msg);
+    process.exit(1);
+};
+
+const env = (name, def) => {
+    const val = process.env[name] || def;
+    if (val == null) {
+        die(`no value set for $${name}`);
+    }
+    return val;
+};
+
+const context = () => ({
+    apiToken: env("DEPLOY_CHECK_ACCESS_TOKEN"),
+    apiUrl: env("CI_API_V4_URL"),
+    projectId: env("CI_PROJECT_ID"),
+    commitSha: env("CI_COMMIT_SHA"),
+    stagingEnv: env("DEPLOY_CHECK_STAGING_ENV", "prepdev"),
+    stagingDuration: env("DEPLOY_CHECK_DURATION", 12*60*60),
+});
+
+const showDuration = (duration) => {
+    const r = [
+        [Math.floor(duration / 86400), "d"],
+        [Math.floor((duration % 86400) / 3600), "h"],
+        [Math.floor((duration % 86400 % 3600) / 60), "m"],
+        [Math.floor(duration % 86400 % 3600 % 60), "s"]
+    ]
+          .reduce((acc, [count, suffix]) => count > 0 ? `${acc} ${count}${suffix}` : acc, "")
+          .trim();
+    return r.length > 0 ? r : "zero seconds";
+};
+
+const calculateDeploymentDurations = (timeline, mergeRequest) => {
+    const matchesMR = ({ref, sha}) => {
+        return sha === mergeRequest.sha
+            || ref === mergeRequest.source_branch
+            || ref === `refs/merge-requests/${mergeRequest.iid}/merge`;
+    };
+
+    const mapPairs = (f) => (xs) => {
+        if (xs.length === 0) {
+            return xs;
+        }
+        const {result, last} = xs.reduce(({result, last}, x) => ({
+            result: last != null ? [...result, f (last, x)] : result,
+            last: x,
+        }), {result: [], last: null});
+        return [...result, f(last, null)];
+    };
+
+    const refsWithDuration = mapPairs(
+        (deployment, replacement) => {
+            const start = Date.parse(deployment.deployable.finished_at);
+            const end = Date.parse(replacement?.deployable.started_at || mergeRequest.merged_at);
+            return [Math.floor((end - start) / 1000), {
+                iid: deployment.iid,
+                ref: deployment.ref,
+                sha: deployment.sha,
+                started_at: deployment.deployable.started_at,
+                finished_at: deployment.deployable.finished_at,
+            }];
+        }
+    );
+
+    const durations = refsWithDuration(timeline);
+    return {
+        merge_request: durations
+            .filter(([_, refs]) => matchesMR(refs))
+            .reduce((acc, [duration]) => acc + duration, 0),
+        last_commit: durations
+            .filter(([duration, refs]) => refs.sha === mergeRequest.sha)
+            .reduce((acc, [duration]) => acc + duration, 0),
+    };
+};
+
+const main = async (ctx) => {
+    const gitlab = GitLab(ctx);
+
+    const mergeRequest = await gitlab.combinators.findFirst(gitlab.queries.merge_requests)({state: "merged"})(
+        ({merge_commit_sha}) => merge_commit_sha === ctx.commitSha
+    );
+    if (mergeRequest == null) {
+        throw `No merge request found with merge commit ${ctx.commitSha}`;
+    }
+
+    const lastCommit = await gitlab.queries.commit(mergeRequest.sha);
+
+    const deployments = await gitlab.combinators.findAll(gitlab.queries.deployments)({
+        environment: ctx.stagingEnv,
+        finished_after: Calendar.max(lastCommit.created_at, mergeRequest.created_at),
+        order_by: "finished_at",
+        status: "success",
+    })();
+    const timeline = [...deployments].sort(Calendar.compare((x) => x.finished_at))
+          .reduce((acc, x) => acc.find(({id}) => id === x.id) != null ? acc : [...acc, x], [])
+          .reduce(({result, pastMerge}, x) =>
+              pastMerge ? { result, pastMerge } : {
+                  result: [...result, x],
+                  pastMerge: Calendar.isAfter(x.finished_at, mergeRequest.merged_at)
+              },
+              {result: [], pastMerge: false}
+          ).result;
+
+    const durations = calculateDeploymentDurations(timeline, mergeRequest);
+    const passesThreshold = durations.merge_request > ctx.stagingDuration;
+
+    process.stdout.write(`
+[#${mergeRequest.iid}] ${mergeRequest.title}
+
+Branch ${mergeRequest.source_branch} at ${lastCommit.id} was merged into ${mergeRequest.target_branch} at ${Calendar.showTimestamp(mergeRequest.merged_at)}.
+
+The changes in #${mergeRequest.iid} ran on ${ctx.stagingEnv} for ${showDuration(durations.merge_request)}. The last commit ran for ${showDuration(durations.last_commit)}.
+
+${passesThreshold ? "✅" : "❌"} Minimum required staging period of ${showDuration (ctx.stagingDuration)} is ${passesThreshold ? "met" : "not met"}.
+`);
+
+    if (!passesThreshold) {
+        throw "Merge request failed the staging deployment control.";
+    }
+};
+
+main(context()).catch(
+    (err) => die(err)
+);

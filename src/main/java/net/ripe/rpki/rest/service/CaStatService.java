@@ -131,7 +131,7 @@ public class CaStatService extends RestService {
         final Map<Boolean, Collection<BgpRisEntry>> announcements = bgpRisEntryViewService.findMostSpecificContainedAndNotContained(certifiedResources);
         final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(caId);
         final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, caId);
-        final List<BgpAnnouncement> bgpAnnouncements = Utils.makeBgpAnnouncementList(announcements, roaConfiguration.toAllowedRoutes(), ignoredAnnouncements);
+        final List<BgpAnnouncement> bgpAnnouncements = Utils.makeBgpAnnouncementList(announcements, roaConfiguration.getPrefixes(), ignoredAnnouncements);
 
         int valid = 0, invalid = 0, unknown = 0;
         for (BgpAnnouncement bgpAnnouncement : bgpAnnouncements) {

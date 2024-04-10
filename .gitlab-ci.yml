@@ -138,6 +138,17 @@ sonarqube:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "next"
 
+control/run-on-staging:
+  image: node:21-alpine
+  stage: qa
+  script:
+    - ./scripts/gitlab-deploy-check
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: always
+    - when: never
+
 ######## Deploy stage ########
 .delivr-deploy: &delivr-deploy
   stage: deploy

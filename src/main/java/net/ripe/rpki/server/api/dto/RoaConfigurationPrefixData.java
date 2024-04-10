@@ -1,6 +1,7 @@
 package net.ripe.rpki.server.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
@@ -8,8 +9,10 @@ import lombok.Getter;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaPrefix;
+import net.ripe.rpki.commons.validation.roa.RoaPrefixData;
 import net.ripe.rpki.server.api.support.objects.ValueObjectSupport;
 
+import java.time.Instant;
 import java.util.Comparator;
 
 import static com.google.common.base.Objects.*;
@@ -29,20 +32,7 @@ import static com.google.common.base.Preconditions.*;
  *    ...
  * </pre>
  */
-public class RoaConfigurationPrefixData extends ValueObjectSupport {
-
-    public static final Comparator<RoaConfigurationPrefixData> COMPARATOR = (a, b) -> {
-        int rc = a.getAsn().compareTo(b.getAsn());
-        if (rc != 0) {
-            return rc;
-        }
-        rc = a.getPrefix().compareTo(b.getPrefix());
-        if (rc != 0) {
-            return rc;
-        }
-        return -Integer.compare(a.getMaximumLength(), b.getMaximumLength());
-    };
-
+public class RoaConfigurationPrefixData extends ValueObjectSupport implements RoaPrefixData {
     // cycle when serialised using default serialiser
     @Getter
     @JsonSerialize(using = ToStringSerializer.class)
@@ -55,16 +45,39 @@ public class RoaConfigurationPrefixData extends ValueObjectSupport {
 
     private final Integer maximumLength;
 
+    /**
+     * The point in time this prefix was last updated.
+     *
+     * No object can have a updatedAt before the point in time this feature was added.
+     */
+    @Getter
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private final Instant updatedAt;
+
+    public RoaConfigurationPrefixData(Asn asn, RoaPrefix roaPrefix, Instant updatedAt) {
+        this.asn = checkNotNull(asn, "asn is required");
+        checkNotNull(roaPrefix, "roaPrefix is required");
+        this.prefix = roaPrefix.getPrefix();
+        this.maximumLength = roaPrefix.getMaximumLength();
+        this.updatedAt = updatedAt;
+    }
+
     public RoaConfigurationPrefixData(Asn asn, RoaPrefix roaPrefix) {
         this.asn = checkNotNull(asn, "asn is required");
         checkNotNull(roaPrefix, "roaPrefix is required");
         this.prefix = roaPrefix.getPrefix();
         this.maximumLength = roaPrefix.getMaximumLength();
+        this.updatedAt = null;
     }
 
     public RoaConfigurationPrefixData(Asn asn, IpRange prefix, Integer maximumLength) {
         // Ensure correct validation of prefix and maximum length by using RoaPrefix constructor.
         this(asn, new RoaPrefix(prefix, maximumLength));
+    }
+
+    public RoaConfigurationPrefixData(Asn asn, IpRange prefix, Integer maximumLength, Instant updatedAt) {
+        // Ensure correct validation of prefix and maximum length by using RoaPrefix constructor.
+        this(asn, new RoaPrefix(prefix, maximumLength), updatedAt);
     }
 
     @JsonIgnore
@@ -75,10 +88,6 @@ public class RoaConfigurationPrefixData extends ValueObjectSupport {
     @JsonProperty("maxLength")
     public int getMaximumLength() {
         return maximumLength == null ? getPrefix().getPrefixLength() : maximumLength;
-    }
-
-    public Integer getNullableMaxLength() {
-        return maximumLength;
     }
 
     @Override

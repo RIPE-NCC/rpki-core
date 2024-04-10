@@ -15,10 +15,11 @@ import net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.rest.exception.BadRequestException;
 import net.ripe.rpki.rest.pojo.BgpAnnouncement;
-import net.ripe.rpki.rest.pojo.ROA;
+import net.ripe.rpki.rest.pojo.ApiRoaPrefix;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
+import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
@@ -78,17 +79,17 @@ public class AnnouncementService extends AbstractCaRestService {
         final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
         final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, ca.getId());
 
-        final List<BgpAnnouncement> announcedAnnouncements = Utils.makeBgpAnnouncementList(announcements, roaConfiguration.toAllowedRoutes(), ignoredAnnouncements);
+        final List<BgpAnnouncement> announcedAnnouncements = Utils.makeBgpAnnouncementList(announcements, roaConfiguration.getPrefixes(), ignoredAnnouncements);
 
         // ignoredAnnouncements \ bgp announcements
         final Set<AnnouncedRoute> notSeenIgnoredAnnouncedRoutes = Sets.difference(ignoredAnnouncements, bgpRisMapToAnnouncedRoutes(announcements));
 
-        final NestedIntervalMap<IpResource, List<AllowedRoute>> currentRouteMap = allowedRoutesToNestedIntervalMap(roaConfiguration.toAllowedRoutes());
+        final NestedIntervalMap<IpResource, List<RoaConfigurationPrefixData>> currentRouteMap = allowedRoutesToNestedIntervalMap(roaConfiguration.getPrefixes());
 
         // Create synthetic 'not seen' announcements for which a suppression exists.
         final List<BgpAnnouncement> notSeenAnnouncements = notSeenIgnoredAnnouncedRoutes.stream().map(
                 ar -> new BgpAnnouncement(ar.getOriginAsn().toString(), ar.getPrefix().toString(),
-                        0, Utils.ROUTE_VALIDATION_POLICY.validateAnnouncedRoute(currentRouteMap, ar),
+                        0, RouteOriginValidationPolicy.validateAnnouncedRoute(currentRouteMap, ar),
                         true)
         ).collect(Collectors.toList());
 
@@ -105,7 +106,7 @@ public class AnnouncementService extends AbstractCaRestService {
 
     @PostMapping("/affected")
     @Operation(summary = "Get all announcements affected by the given ROA configuration of a CA")
-    public ResponseEntity<List<BgpAnnouncement>> getAffectedAnnouncementsForCaAndRoa(@PathVariable("caName") final CaName caName, @RequestBody final ROA roa) {
+    public ResponseEntity<List<BgpAnnouncement>> getAffectedAnnouncementsForCaAndRoa(@PathVariable("caName") final CaName caName, @RequestBody final ApiRoaPrefix roa) {
         log.info("Get all announcements affected by the given ROA configuration for CA: {}", caName);
 
         final Optional<String> addedRoasErrorMessage = Utils.errorsInUserInputRoas(roa);
@@ -125,14 +126,13 @@ public class AnnouncementService extends AbstractCaRestService {
         final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, ca.getId());
 
         final Set<AnnouncedRoute> routesValidatedByOthers = new HashSet<>();
-        final NestedIntervalMap<IpResource, List<AllowedRoute>> currentRouteMap = allowedRoutesToNestedIntervalMap(roaConfiguration.toAllowedRoutes());
-        final RouteOriginValidationPolicy routeOriginValidationPolicy = new RouteOriginValidationPolicy();
+        final NestedIntervalMap<IpResource, List<RoaConfigurationPrefixData>> currentRouteMap = allowedRoutesToNestedIntervalMap(roaConfiguration.getPrefixes());
         Stream.of(true, false)
                 .filter(announcements::containsKey)
                 .flatMap(verifiedOrNot -> announcements.get(verifiedOrNot).stream())
                 .map(BgpRisEntry::toAnnouncedRoute)
                 .forEach(announcedRoute -> {
-                    final RouteValidityState currentValidityState = routeOriginValidationPolicy.validateAnnouncedRoute(currentRouteMap, announcedRoute);
+                    final RouteValidityState currentValidityState = RouteOriginValidationPolicy.validateAnnouncedRoute(currentRouteMap, announcedRoute);
                     if (currentValidityState == RouteValidityState.VALID &&
                             !(roaAsn.equals(announcedRoute.getOriginAsn()) && roaPrefix.equals(announcedRoute.getPrefix()))) {
                         routesValidatedByOthers.add(announcedRoute);

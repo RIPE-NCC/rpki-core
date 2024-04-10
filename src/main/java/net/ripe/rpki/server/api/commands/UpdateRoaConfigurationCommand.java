@@ -2,6 +2,7 @@ package net.ripe.rpki.server.api.commands;
 
 import lombok.Getter;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.commons.validation.roa.RoaPrefixData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import org.apache.commons.lang.StringUtils;
 
@@ -25,9 +26,9 @@ public class UpdateRoaConfigurationCommand extends CertificateAuthorityModificat
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
         this.ifMatch = ifMatch;
         this.additions = new ArrayList<>(added);
-        this.additions.sort(RoaConfigurationPrefixData.COMPARATOR);
+        this.additions.sort(RoaPrefixData.ROA_PREFIX_DATA_COMPARATOR);
         this.deletions = new ArrayList<>(deleted);
-        this.deletions.sort(RoaConfigurationPrefixData.COMPARATOR);
+        this.deletions.sort(RoaPrefixData.ROA_PREFIX_DATA_COMPARATOR);
     }
 
     public List<RoaConfigurationPrefixData> getAdditions() {

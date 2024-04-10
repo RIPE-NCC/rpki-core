@@ -57,7 +57,7 @@ public class RepositoryConfigurationBean implements RepositoryConfiguration {
                 Files.createDirectories(repository.toPath());
             } catch (IOException e) {
                 throw new CertificationConfigurationException("Local repository " +
-                        " (" + repository.toPath() + " surely for testing!) does not exist and cannot be created", e);
+                        " (" + repository.toPath() + ") does not exist and cannot be created", e);
             }
         }
 

@@ -1,7 +1,7 @@
 package net.ripe.rpki.rest.service;
 
 import net.ripe.ipresource.IpRange;
-import net.ripe.rpki.rest.pojo.ROA;
+import net.ripe.rpki.rest.pojo.ApiRoaPrefix;
 import org.junit.Test;
 
 import static net.ripe.rpki.rest.service.Utils.errorsInUserInputRoas;
@@ -13,7 +13,7 @@ import static org.junit.Assert.assertTrue;
 public class UtilsTest {
     @Test
     public void shouldCheckMaxLength() {
-        assertThat(errorsInUserInputRoas(new ROA("AS65536", "192.0.2.0/24", 23)))
+        assertThat(errorsInUserInputRoas(new ApiRoaPrefix("AS65536", "192.0.2.0/24", 23)))
             .hasValue("Max length '23' must be between 24 and 32 for prefix '192.0.2.0/24'");
     }
 
@@ -27,7 +27,7 @@ public class UtilsTest {
 
     @Test
     public void shouldRejectMissingMaxLength() {
-        assertThat(errorsInUserInputRoas(new ROA("AS65536", "192.0.2.0/24", null)))
+        assertThat(errorsInUserInputRoas(new ApiRoaPrefix("AS65536", "192.0.2.0/24", null)))
             .hasValue("Max length must be specified and must be between 24 and 32 for prefix '192.0.2.0/24'");
     }
 

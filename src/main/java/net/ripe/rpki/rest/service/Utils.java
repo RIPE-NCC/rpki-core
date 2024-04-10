@@ -1,23 +1,17 @@
 package net.ripe.rpki.rest.service;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Streams;
-import com.nimbusds.jose.util.Pair;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.Value;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResource;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.etree.NestedIntervalMap;
-import net.ripe.rpki.commons.validation.roa.AllowedRoute;
-import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
-import net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy;
-import net.ripe.rpki.commons.validation.roa.RouteValidityState;
+import net.ripe.rpki.commons.validation.roa.*;
 import net.ripe.rpki.rest.pojo.BgpAnnouncement;
-import net.ripe.rpki.rest.pojo.ROA;
+import net.ripe.rpki.rest.pojo.ApiRoaPrefix;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
@@ -31,14 +25,10 @@ import static net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy.a
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 class Utils {
-    // current implementation in commons is stateless, however, likely not made static to be able to parameterize it
-    // later.
-    public static final RouteOriginValidationPolicy ROUTE_VALIDATION_POLICY = new RouteOriginValidationPolicy();
-
-    static List<BgpAnnouncement> makeBgpAnnouncementList(Map<Boolean, Collection<BgpRisEntry>> announcements,
-                                                         Iterable<? extends AllowedRoute> currentAllowedRoutes,
-                                                         Set<AnnouncedRoute> ignoredAnnouncements) {
-        final NestedIntervalMap<IpResource, List<AllowedRoute>> currentRouteMap = allowedRoutesToNestedIntervalMap(currentAllowedRoutes);
+    static <T extends RoaPrefixData> List<BgpAnnouncement> makeBgpAnnouncementList(Map<Boolean, Collection<BgpRisEntry>> announcements,
+                                                                                  Iterable<T> currentAllowedRoutes,
+                                                                                  Set<AnnouncedRoute> ignoredAnnouncements) {
+        final NestedIntervalMap<IpResource, List<T>> currentRouteMap = allowedRoutesToNestedIntervalMap(currentAllowedRoutes);
 
         // Verified announcements first, then the rest.
         return Stream.of(true, false)
@@ -47,7 +37,7 @@ class Utils {
                     // Create BgbAnnouncement, this needs the BgpRisEntry as well as the derived AnnouncedRoute
                     final AnnouncedRoute announcedRoute = announcement.toAnnouncedRoute();
 
-                    final RouteValidityState currentValidityState = ROUTE_VALIDATION_POLICY.validateAnnouncedRoute(currentRouteMap, announcedRoute);
+                    final RouteValidityState currentValidityState = RouteOriginValidationPolicy.validateAnnouncedRoute(currentRouteMap, announcedRoute);
                     final boolean isSuppressed = ignoredAnnouncements.contains(announcedRoute);
                     return new BgpAnnouncement(
                         announcement.getOrigin().toString(), announcement.getPrefix().toString(),
@@ -69,15 +59,15 @@ class Utils {
         return ignoredAnnouncements;
     }
 
-    public static Optional<String> errorsInUserInputRoas(final List<ROA> roas) {
+    public static Optional<String> errorsInUserInputRoas(final List<ApiRoaPrefix> roas) {
         return errorsInUserInputRoas(roas.stream());
     }
 
-    public static Optional<String> errorsInUserInputRoas(final ROA... roas) {
+    public static Optional<String> errorsInUserInputRoas(final ApiRoaPrefix... roas) {
         return errorsInUserInputRoas(Stream.of(roas));
     }
 
-    private static Optional<String> errorsInUserInputRoas(final Stream<ROA> roas) {
+    private static Optional<String> errorsInUserInputRoas(final Stream<ApiRoaPrefix> roas) {
         final List<String> errors = new ArrayList<>();
         roas.forEach(r -> {
             if (r == null) {
@@ -90,7 +80,7 @@ class Utils {
         return errors.isEmpty() ? Optional.empty() : Optional.of(String.join(", ", errors));
     }
 
-    private static void validateAsn(List<String> errors, @NonNull ROA r) {
+    private static void validateAsn(List<String> errors, @NonNull ApiRoaPrefix r) {
         if (r.getAsn() == null) {
             errors.add("ASN is empty in (" + r + ")");
         } else {
@@ -102,7 +92,7 @@ class Utils {
         }
     }
 
-    private static void validatePrefixAndMaxLength(List<String> errors, @NonNull ROA r) {
+    private static void validatePrefixAndMaxLength(List<String> errors, @NonNull ApiRoaPrefix r) {
         if (r.getPrefix() == null) {
             errors.add("Prefix is empty in (" + r + ")");
         } else {

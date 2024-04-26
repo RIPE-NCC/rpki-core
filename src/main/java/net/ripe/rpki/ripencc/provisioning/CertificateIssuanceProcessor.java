@@ -28,8 +28,8 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Component;
 
-import javax.inject.Inject;
-import javax.validation.constraints.Null;
+import jakarta.inject.Inject;
+
 import java.math.BigInteger;
 import java.net.URI;
 import java.security.PublicKey;
@@ -232,8 +232,7 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
         try {
             PKCS10CertificationRequest pkc10Request = requestElement.getCertificateRequest();
             return new RpkiCaCertificateRequestParser(pkc10Request);
-            // TODO: NPE can be removed after rpki-commons 1.38/2.0.0 is removed.
-        } catch (NullPointerException | RpkiCaCertificateRequestParserException e) {
+        } catch (RpkiCaCertificateRequestParserException e) {
             log.error("Failed to parse certificate request", e);
             throw new NotPerformedException(NotPerformedError.REQ_BADLY_FORMED_CERTIFICATE_REQUEST);
         }

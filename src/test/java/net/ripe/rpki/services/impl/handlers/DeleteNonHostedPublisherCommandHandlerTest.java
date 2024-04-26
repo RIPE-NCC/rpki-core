@@ -11,9 +11,9 @@ import net.ripe.rpki.server.api.commands.DeleteNonHostedPublisherCommand;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;

@@ -21,9 +21,9 @@ import org.joda.time.Duration;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.security.auth.x500.X500Principal;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.net.URI;
 import java.security.PublicKey;
 import java.util.*;
@@ -358,15 +358,13 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
             .collect(Collectors.toSet());
 
         Collection<OutgoingResourceCertificate> outgoingResourceCertificates = parent.getKeyPairs().stream()
-            .filter(KeyPairEntity::isPublishable)
-            .flatMap(kp -> resourceCertificateRepository.findAllBySigningKeyPair(kp).stream())
-            .filter(c -> c.isCurrent() && PublicationStatus.ACTIVE_STATUSES.contains(c.getPublishedObject().getStatus()))
-            .filter(c -> childPublicKeys.contains(c.getSubjectPublicKey()))
-            .collect(Collectors.toList());
+                .filter(KeyPairEntity::isPublishable)
+                .flatMap(kp -> resourceCertificateRepository.findAllBySigningKeyPair(kp).stream())
+                .filter(c -> c.isCurrent() && PublicationStatus.ACTIVE_STATUSES.contains(c.getPublishedObject().getStatus()))
+                .filter(c -> childPublicKeys.contains(c.getSubjectPublicKey())).toList();
         Collection<IncomingResourceCertificate> incomingResourceCertificates = child.getKeyPairs().stream()
-            .filter(KeyPairEntity::isPublishable)
-            .flatMap(kp -> kp.findCurrentIncomingCertificate().stream())
-            .collect(Collectors.toList());
+                .filter(KeyPairEntity::isPublishable)
+                .flatMap(kp -> kp.findCurrentIncomingCertificate().stream()).toList();
 
         assertThat(childPublicKeys).hasSize(outgoingResourceCertificates.size());
         assertThat(outgoingResourceCertificates).hasSize(incomingResourceCertificates.size());
@@ -379,13 +377,5 @@ public class ChildParentCertificateUpdateSagaHostedTest extends CertificationDom
                 .orElseThrow(() -> new AssertionError("missing incoming certificate with serial " + outgoing.getSerial()));
             assertThat(outgoing.getCertificate()).isEqualTo(incoming.getCertificate());
         });
-    }
-
-    private CommandStatus execute(CertificateAuthorityCommand command) {
-        try {
-            return subject.execute(command);
-        } finally {
-            entityManager.flush();
-        }
     }
 }

@@ -12,8 +12,8 @@ import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.inject.Inject;
-import javax.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 import java.util.Collections;
 import java.util.List;

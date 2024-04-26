@@ -8,7 +8,7 @@ import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.ActivateNonHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Handler
 public class ActivateNonHostedCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<ActivateNonHostedCertificateAuthorityCommand> {

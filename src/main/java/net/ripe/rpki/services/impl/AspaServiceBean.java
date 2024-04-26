@@ -34,7 +34,6 @@ public class AspaServiceBean implements AspaViewService {
             return Collections.emptyList();
         }
         return aspaConfigurationRepository.findByCertificateAuthority(ca).values().stream()
-            .map(AspaConfiguration::toData)
-            .collect(Collectors.toList());
+                .map(AspaConfiguration::toData).toList();
     }
 }

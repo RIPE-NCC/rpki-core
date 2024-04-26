@@ -10,10 +10,12 @@ import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.domain.manifest.ManifestEntityRepository;
 import net.ripe.rpki.domain.manifest.ManifestPublicationService;
 import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
+import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.configuration.Environment;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.services.command.CommandService;
+import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -23,8 +25,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import javax.inject.Named;
-import javax.persistence.EntityManager;
+import jakarta.inject.Named;
+import jakarta.persistence.EntityManager;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -105,7 +107,7 @@ public abstract class CertificationDomainTestCase {
 
     protected void clearDatabase() {
         // Clean the test database. Note that this is not transactional, but the test database should be empty anyway.
-        entityManager.createNativeQuery("TRUNCATE TABLE certificateauthority, ta_published_object, resource_cache CASCADE").executeUpdate();
+        entityManager.createNativeQuery("TRUNCATE TABLE certificateauthority, commandaudit, ta_published_object, resource_cache CASCADE").executeUpdate();
         resourceCache.populateCache(Map.of(CaName.of(repositoryConfiguration.getProductionCaPrincipal()), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES));
     }
 
@@ -144,13 +146,13 @@ public abstract class CertificationDomainTestCase {
     }
 
     public ProductionCertificateAuthority createInitialisedProdCaWithRipeResources() {
-        ProductionCertificateAuthority ca = TestObjects.createInitialisedProdCaWithRipeResources(resourceCertificateRepository, repositoryConfiguration);
+        ProductionCertificateAuthority ca = TestObjects.createInitialisedProdCaWithRipeResources(certificateAuthorityRepository, resourceCertificateRepository, repositoryConfiguration);
         certificateAuthorityRepository.add(ca);
         return ca;
     }
 
     public KeyPairEntity createInitialisedProductionCaKeyPair(ProductionCertificateAuthority ca, String keyPairName) {
-        return TestObjects.createInitialisedKeyPair(resourceCertificateRepository, repositoryConfiguration, ca, keyPairName);
+        return TestObjects.createInitialisedKeyPair(certificateAuthorityRepository, resourceCertificateRepository, repositoryConfiguration, ca, keyPairName);
     }
 
     protected void inTx(Runnable r) {
@@ -168,5 +170,13 @@ public abstract class CertificationDomainTestCase {
             return certificateAuthorityRepository.find(ca.getId());
         }
         return existing;
+    }
+
+    protected CommandStatus execute(CertificateAuthorityCommand command) {
+        try {
+            return commandService.execute(command);
+        } finally {
+            entityManager.flush();
+        }
     }
 }

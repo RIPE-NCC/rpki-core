@@ -24,7 +24,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.view.RedirectView;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.security.auth.x500.X500Principal;
 import java.util.*;
 import java.util.function.Function;

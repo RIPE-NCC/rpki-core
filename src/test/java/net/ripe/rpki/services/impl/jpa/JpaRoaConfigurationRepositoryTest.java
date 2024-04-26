@@ -11,7 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Arrays;
@@ -120,7 +120,7 @@ public class JpaRoaConfigurationRepositoryTest extends CertificationDomainTestCa
     }
 
     long countQuery(String sql) {
-        final BigInteger count = (BigInteger) entityManager
+        final var count = (Long) entityManager
             .createNativeQuery(sql)
             .getSingleResult();
         return count.longValue();

@@ -7,7 +7,7 @@ import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.commands.AllResourcesCaResourcesCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Handler
 public class AllResourcesCaResourcesCommandHandler extends AbstractCertificateAuthorityCommandHandler<AllResourcesCaResourcesCommand> {

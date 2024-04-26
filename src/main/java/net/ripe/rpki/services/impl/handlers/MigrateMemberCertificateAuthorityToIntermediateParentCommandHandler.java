@@ -9,8 +9,8 @@ import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 import net.ripe.rpki.util.DBComponent;
 
-import javax.inject.Inject;
-import javax.persistence.EntityNotFoundException;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityNotFoundException;
 import java.security.PublicKey;
 import java.util.Objects;
 

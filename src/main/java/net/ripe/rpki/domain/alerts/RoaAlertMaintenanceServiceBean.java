@@ -67,8 +67,7 @@ public class RoaAlertMaintenanceServiceBean implements CertificateAuthorityEvent
         // Update subscriptions, removing subscriptions for resources that do not overlap with the current resources.
         final List<AnnouncedRoute> alertsToRemove = roaAlertConfiguration.getIgnored().stream()
                 .map(RoaAlertIgnoredAnnouncement::toData)
-                .filter(ignoredAnnouncement -> !nowCurrentResources.intersects(ignoredAnnouncement.getPrefix()))
-                .collect(Collectors.toList());
+                .filter(ignoredAnnouncement -> !nowCurrentResources.intersects(ignoredAnnouncement.getPrefix())).toList();
 
         if (!alertsToRemove.isEmpty()) {
             roaAlertConfiguration.update(Collections.emptyList(), alertsToRemove);

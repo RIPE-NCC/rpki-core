@@ -4,10 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.rest.exception.RequestEntityTooLargeException;
 import org.apache.commons.io.IOUtils;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @Slf4j

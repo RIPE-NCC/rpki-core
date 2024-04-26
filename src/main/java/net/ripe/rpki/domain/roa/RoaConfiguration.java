@@ -12,17 +12,17 @@ import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 
-import javax.persistence.CollectionTable;
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -81,8 +81,7 @@ public class RoaConfiguration extends EntitySupport {
 
     public RoaConfigurationData convertToData() {
         return new RoaConfigurationData(prefixes.stream()
-                .map(RoaConfigurationPrefix::toData)
-                .collect(Collectors.toList()));
+                .map(RoaConfigurationPrefix::toData).toList());
     }
 
     public final void addPrefix(Collection<? extends RoaConfigurationPrefix> roaPrefixes) {

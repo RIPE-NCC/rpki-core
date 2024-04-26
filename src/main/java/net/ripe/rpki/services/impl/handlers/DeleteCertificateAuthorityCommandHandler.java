@@ -12,7 +12,7 @@ import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Slf4j
 @Handler

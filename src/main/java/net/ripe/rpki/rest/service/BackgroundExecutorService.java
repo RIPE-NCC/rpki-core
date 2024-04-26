@@ -17,9 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.OK;
@@ -74,12 +73,11 @@ public class BackgroundExecutorService extends RestService {
             // Restrict parameter names to known values and parameter values to short, simple strings to avoid
             // potential injection attacks.
             List<Map.Entry<String, String>> badParameters = parameters.entrySet().stream()
-                .filter(entry ->
-                    !supportedParameters.contains(entry.getKey())
-                        || entry.getValue().length() > 100
-                        || !entry.getValue().matches("[0-9a-zA-Z_:-]*")
-                )
-                .collect(Collectors.toList());
+                    .filter(entry ->
+                            !supportedParameters.contains(entry.getKey())
+                                    || entry.getValue().length() > 100
+                                    || !entry.getValue().matches("[0-9a-zA-Z_:-]*")
+                    ).toList();
             if (!badParameters.isEmpty()) {
                 return logAndReturnResponse(BAD_REQUEST, "incorrect job parameter(s) - " + badParameters);
             }

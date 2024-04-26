@@ -3,7 +3,7 @@ package net.ripe.rpki.rest.service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 public class RestService {
     public static final String API_URL_PREFIX = "/api/ca";

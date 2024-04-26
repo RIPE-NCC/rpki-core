@@ -2,8 +2,8 @@ package net.ripe.rpki.ncc.core.domain.support;
 
 import net.ripe.rpki.commons.util.VersionedId;
 
-import javax.persistence.Id;
-import javax.persistence.MappedSuperclass;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
 
 @MappedSuperclass
 public abstract class AggregateRoot extends EntitySupport {

@@ -35,12 +35,11 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
 import java.security.PublicKey;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.v;
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
@@ -64,7 +63,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
 
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL )
     @JoinColumn(name = "ca_id", nullable = false)
-    private Set<KeyPairEntity> keyPairs = new HashSet<>();
+    private final Set<KeyPairEntity> keyPairs = new HashSet<>();
 
     /**
      * The last time the ASPA or ROA configuration was updated. This can bever be equal to {@link #configurationAppliedAt}.
@@ -101,8 +100,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         TrustAnchorRequest upStreamCARequest = getUpStreamCARequestEntity() != null ? getUpStreamCARequestEntity().getUpStreamCARequest() : null;
 
         final List<KeyPairData> keys = getKeyPairs().stream()
-            .map(KeyPairEntity::toData)
-            .collect(Collectors.toList());
+                .map(KeyPairEntity::toData).toList();
 
         return new ManagedCertificateAuthorityData(
             getVersionedId(), getName(), getUuid(),
@@ -118,7 +116,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
 
     @Override
     public Collection<PublicKey> getSignedPublicKeys() {
-        return keyPairs.stream().map(KeyPairEntity::getPublicKey).collect(Collectors.toList());
+        return keyPairs.stream().map(KeyPairEntity::getPublicKey).toList();
     }
 
     public Collection<KeyPairEntity> getKeyPairs() {
@@ -228,8 +226,8 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     private boolean subjectInformationAccessChanged(CertificateIssuanceRequest request, OutgoingResourceCertificate currentCertificate) {
         // Sort by key since order across different keys does not matter. If the same key appears multiple times the order does matter,
         // but since the sorting is stable this will be detected.
-        List<X509CertificateInformationAccessDescriptor> a = Arrays.stream(request.getSubjectInformationAccess()).sorted(Comparator.comparing(x -> x.getMethod().getId())).collect(Collectors.toList());
-        List<X509CertificateInformationAccessDescriptor> b = Arrays.stream(currentCertificate.getSia()).sorted(Comparator.comparing(x -> x.getMethod().getId())).collect(Collectors.toList());
+        List<X509CertificateInformationAccessDescriptor> a = Arrays.stream(request.getSubjectInformationAccess()).sorted(Comparator.comparing(x -> x.getMethod().getId())).toList();
+        List<X509CertificateInformationAccessDescriptor> b = Arrays.stream(currentCertificate.getSia()).sorted(Comparator.comparing(x -> x.getMethod().getId())).toList();
         if (Objects.equals(a, b)) {
             return false;
         }
@@ -354,10 +352,9 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
      */
     public List<CertificateRevocationRequest> requestOldKeysRevocation(ResourceCertificateRepository resourceCertificateRepository) {
         return getKeyPairs().stream()
-            .filter(KeyPairEntity::isOld)
-            .filter(kp -> !resourceCertificateRepository.existsCurrentOutgoingCertificatesExceptForManifest(kp))
-            .map(kp -> new CertificateRevocationRequest(kp.getPublicKey()))
-            .collect(Collectors.toList());
+                .filter(KeyPairEntity::isOld)
+                .filter(kp -> !resourceCertificateRepository.existsCurrentOutgoingCertificatesExceptForManifest(kp))
+                .map(kp -> new CertificateRevocationRequest(kp.getPublicKey())).toList();
     }
 
     @Override

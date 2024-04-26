@@ -44,7 +44,7 @@ class Utils {
                         announcement.getVisibility(), currentValidityState,
                         isSuppressed, verifiedOrNot);
                 }))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     static Set<AnnouncedRoute> getIgnoredAnnouncements(RoaAlertConfigurationViewService roaAlertConfigurationViewService, long caId) {
@@ -121,7 +121,7 @@ class Utils {
     }
 
     public static List<String> toStringList(ImmutableResourceSet resources) {
-        return resources.stream().map(Object::toString).collect(Collectors.toList());
+        return resources.stream().map(Object::toString).toList();
     }
 
     /**

@@ -6,7 +6,6 @@ import lombok.Value;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.util.Streams;
 
-import javax.validation.constraints.NotEmpty;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.SortedMap;

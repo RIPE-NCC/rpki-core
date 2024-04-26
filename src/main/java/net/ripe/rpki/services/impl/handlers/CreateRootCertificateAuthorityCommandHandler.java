@@ -10,7 +10,7 @@ import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import org.apache.commons.lang.Validate;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Handler
 public class CreateRootCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<CreateRootCertificateAuthorityCommand> {

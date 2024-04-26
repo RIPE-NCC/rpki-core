@@ -7,7 +7,7 @@ import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.Objects;
 
 public abstract class AbstractCertificateAuthorityCommandHandler<T extends CertificateAuthorityCommand> implements CertificateAuthorityCommandHandler<T> {

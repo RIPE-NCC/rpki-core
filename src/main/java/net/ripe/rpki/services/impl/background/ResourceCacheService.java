@@ -136,7 +136,7 @@ public class ResourceCacheService {
             final Update membersUpdate = memberResourcesUpdate(allResources.getAllMembersResources());
 
             final List<Update> updates = List.of(productionUpdate, membersUpdate);
-            final List<Update> rejected = updates.stream().filter(Update::isRejected).collect(Collectors.toList());
+            final List<Update> rejected = updates.stream().filter(Update::isRejected).toList();
 
             String expectedForceUpdateVerificationCode = resourceStats.get().expectedForceUpdateVerificationCode();
             boolean forceUpdate = forceUpdateCode.stream().anyMatch(code -> Objects.equals(code, expectedForceUpdateVerificationCode));

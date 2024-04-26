@@ -1,5 +1,6 @@
 package net.ripe.rpki.services.impl.background;
 
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.server.api.services.background.BackgroundService;
 import org.quartz.JobDataMap;
@@ -18,8 +19,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;

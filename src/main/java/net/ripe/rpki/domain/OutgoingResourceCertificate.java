@@ -8,17 +8,17 @@ import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToOne;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 
 import static java.util.Objects.requireNonNull;
@@ -67,7 +67,7 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
         super(certificate);
         Validate.isTrue(embedded || filename != null, "embedded or filename must be set");
         Validate.isTrue(embedded || parentPublicationDirectory != null, "embedded or parentPublicationDirectory must be set");
-        Validate.notNull(signingKeyPair);
+        Validate.notNull(signingKeyPair, "signingKeyPair must be set");
         this.signingKeyPair = signingKeyPair;
         this.embedded = embedded;
         this.status = OutgoingResourceCertificateStatus.CURRENT;

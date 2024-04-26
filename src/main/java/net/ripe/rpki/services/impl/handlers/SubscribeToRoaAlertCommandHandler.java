@@ -11,7 +11,7 @@ import net.ripe.rpki.server.api.dto.RoaAlertSubscriptionData;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.services.impl.EmailSender;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;

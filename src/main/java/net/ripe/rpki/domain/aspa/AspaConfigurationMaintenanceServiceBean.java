@@ -61,18 +61,16 @@ public class AspaConfigurationMaintenanceServiceBean implements CertificateAutho
         SortedMap<Asn, AspaConfiguration> configuration = aspaConfigurationRepository.findByCertificateAuthority(ca);
 
         List<AspaConfiguration> toBeRemoved = configuration.values().stream()
-            .filter(entry -> !certifiedResources.contains(entry.getCustomerAsn()))
-            .collect(Collectors.toList());
+                .filter(entry -> !certifiedResources.contains(entry.getCustomerAsn())).toList();
         if (toBeRemoved.isEmpty()) {
             return;
         }
 
         context.recordEvent(
             new AspaConfigurationUpdatedDueToChangedResourcesEvent(
-                ca.getVersionedId(),
-                toBeRemoved.stream()
-                    .map(AspaConfiguration::toData)
-                    .collect(Collectors.toList()))
+                    ca.getVersionedId(),
+                    toBeRemoved.stream()
+                            .map(AspaConfiguration::toData).toList())
         );
 
         toBeRemoved.forEach(aspaConfigurationRepository::remove);

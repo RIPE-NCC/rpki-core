@@ -5,7 +5,7 @@ import net.ripe.rpki.server.api.dto.CaStatEvent;
 import net.ripe.rpki.server.api.dto.CaStat;
 import org.joda.time.DateTime;
 
-import javax.persistence.LockModeType;
+import jakarta.persistence.LockModeType;
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
 import java.util.List;

@@ -8,7 +8,7 @@ import net.ripe.rpki.server.api.commands.CreateIntermediateCertificateAuthorityC
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Handler
 @ConditionalOnProperty(prefix="intermediate.ca", value="enabled", havingValue = "true")

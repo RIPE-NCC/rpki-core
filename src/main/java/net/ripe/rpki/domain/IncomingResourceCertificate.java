@@ -6,8 +6,8 @@ import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import org.apache.commons.lang3.Validate;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -35,7 +35,7 @@ public class IncomingResourceCertificate extends ResourceCertificate {
 
     public IncomingResourceCertificate(@NonNull CertificateIssuanceResponse issuanceResponse, @NonNull KeyPairEntity subjectKeyPair) {
         super(issuanceResponse.getCertificate());
-        Validate.notNull(issuanceResponse);
+        Validate.notNull(issuanceResponse, "issuance response is required");
         setPublicationUri(issuanceResponse.getPublicationUri());
         this.inheritedResources = issuanceResponse.getInheritedResources();
         this.subjectKeyPair = subjectKeyPair;
@@ -61,8 +61,8 @@ public class IncomingResourceCertificate extends ResourceCertificate {
     }
 
     protected void revalidate() {
-        Validate.notNull(subjectKeyPair);
-        Validate.notNull(inheritedResources);
+        Validate.notNull(subjectKeyPair, "subject keypair is required");
+        Validate.notNull(inheritedResources, "inhereted resources are required");
         revalidateCertificate();
     }
 }

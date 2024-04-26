@@ -8,9 +8,8 @@ import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 @Transactional
@@ -31,11 +30,11 @@ public class RoaAlertConfigurationViewServiceBean implements RoaAlertConfigurati
 
     @Override
     public List<RoaAlertConfigurationData> findAll() {
-        return repository.findAll().stream().map(RoaAlertConfiguration::toData).collect(Collectors.toList());
+        return repository.findAll().stream().map(RoaAlertConfiguration::toData).toList();
     }
 
     @Override
     public List<RoaAlertConfigurationData> findByFrequency(RoaAlertFrequency frequency) {
-        return repository.findByFrequency(frequency).stream().map(RoaAlertConfiguration::toData).collect(Collectors.toList());
+        return repository.findByFrequency(frequency).stream().map(RoaAlertConfiguration::toData).toList();
     }
 }

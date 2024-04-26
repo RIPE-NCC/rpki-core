@@ -8,8 +8,8 @@ import net.ripe.rpki.server.api.services.command.CommandStatus;
 import org.apache.commons.lang.Validate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 
-import javax.inject.Inject;
-import javax.persistence.EntityNotFoundException;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.UUID;
 
 @Handler

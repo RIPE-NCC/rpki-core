@@ -62,10 +62,10 @@ public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject>
             .getResultStream()
             .map((o) -> {
                 Object[] row = (Object[]) o;
-                return new PublishedObjectData((Timestamp) row[0], URI.create((String) row[1]), (byte[]) row[2]);
+                return new PublishedObjectData((java.time.Instant) row[0], URI.create((String) row[1]), (byte[]) row[2]);
             });
 
-        return stream.collect(Collectors.toList());
+        return stream.toList();
     }
 
     @SuppressWarnings("unchecked")

@@ -74,10 +74,10 @@ public interface ResourceCertificateRepository extends Repository<ResourceCertif
 
     @Value
     class ExpireOutgoingResourceCertificatesResult {
-        int expiredCertificateCount;
-        int deletedRoaCount;
-        int deletedAspaCount;
-        int withdrawnObjectCount;
+        long expiredCertificateCount;
+        long deletedRoaCount;
+        long deletedAspaCount;
+        long withdrawnObjectCount;
     }
 
     /**

@@ -7,8 +7,8 @@ import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
 import org.apache.commons.lang.Validate;
 import org.springframework.stereotype.Repository;
 
-import javax.persistence.NoResultException;
-import javax.persistence.Query;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.Query;
 
 @Repository
 public class JpaManifestEntityRepository extends JpaRepository<ManifestEntity> implements ManifestEntityRepository {

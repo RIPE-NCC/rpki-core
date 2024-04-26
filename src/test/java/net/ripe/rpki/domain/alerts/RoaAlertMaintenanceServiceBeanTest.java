@@ -21,9 +21,8 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.security.auth.x500.X500Principal;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static net.ripe.ipresource.ImmutableResourceSet.parse;
 import static net.ripe.rpki.commons.validation.roa.RouteValidityState.*;
@@ -37,7 +36,7 @@ public class RoaAlertMaintenanceServiceBeanTest extends CertificationDomainTestC
     private static final X500Principal CHILD_CA_NAME = new X500Principal("CN=child");
     public static final ImmutableResourceSet INITIAL_CHILD_RESOURCES = parse("fc00::/8");
 
-    private static List<AnnouncedRoute> ALL_ROUTES = Lists.newArrayList(
+    private static final List<AnnouncedRoute> ALL_ROUTES = Lists.newArrayList(
             // The /7 private use resource - less specific than allocation
             new AnnouncedRoute(Asn.parse("64496"), IpRange.parse("fc00::/7")),
             // The allocation
@@ -128,8 +127,7 @@ public class RoaAlertMaintenanceServiceBeanTest extends CertificationDomainTestC
                 .map(ig -> ig.toData())
                 .containsExactlyInAnyOrderElementsOf(
                         ALL_ROUTES.stream()
-                                .filter(r -> !IpRange.parse("fc80::/9").contains(r.getPrefix()))
-                                .collect(Collectors.toList())
+                                .filter(r -> !IpRange.parse("fc80::/9").contains(r.getPrefix())).toList()
                 )
                 .hasSize(4);
 
@@ -149,13 +147,5 @@ public class RoaAlertMaintenanceServiceBeanTest extends CertificationDomainTestC
                 .isNotNull()
                 .extracting(RoaAlertConfiguration::getIgnored, InstanceOfAssertFactories.ITERABLE)
                 .isEmpty();
-    }
-
-    private CommandStatus execute(CertificateAuthorityCommand command) {
-        try {
-            return subject.execute(command);
-        } finally {
-            entityManager.flush();
-        }
     }
 }

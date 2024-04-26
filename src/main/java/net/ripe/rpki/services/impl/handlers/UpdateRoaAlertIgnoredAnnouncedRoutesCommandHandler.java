@@ -7,7 +7,7 @@ import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
 import net.ripe.rpki.server.api.commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 
 @Handler

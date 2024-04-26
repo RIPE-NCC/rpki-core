@@ -1,6 +1,5 @@
 package net.ripe.rpki.ripencc.provisioning;
 
-import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
 import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningResponsePayload;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
@@ -9,8 +8,7 @@ import net.ripe.rpki.domain.SingleUseKeyPairFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.inject.Named;
-import javax.persistence.LockModeType;
+import jakarta.persistence.LockModeType;
 import java.util.UUID;
 
 /**

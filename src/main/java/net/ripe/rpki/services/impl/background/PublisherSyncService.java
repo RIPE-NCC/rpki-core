@@ -5,7 +5,7 @@ import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import org.springframework.stereotype.Service;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import java.util.Map;
 

@@ -19,9 +19,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opentest4j.AssertionFailedError;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.security.auth.x500.X500Principal;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.net.URI;
 import java.security.PublicKey;
 import java.util.Arrays;
@@ -279,15 +279,13 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
             .collect(Collectors.toSet());
 
         Collection<OutgoingResourceCertificate> outgoingResourceCertificates = parent.getKeyPairs().stream()
-            .filter(KeyPairEntity::isPublishable)
-            .flatMap(kp -> resourceCertificateRepository.findAllBySigningKeyPair(kp).stream())
-            .filter(c -> c.isCurrent() && PublicationStatus.ACTIVE_STATUSES.contains(c.getPublishedObject().getStatus()))
-            .filter(c -> childPublicKeys.contains(c.getSubjectPublicKey()))
-            .collect(Collectors.toList());
+                .filter(KeyPairEntity::isPublishable)
+                .flatMap(kp -> resourceCertificateRepository.findAllBySigningKeyPair(kp).stream())
+                .filter(c -> c.isCurrent() && PublicationStatus.ACTIVE_STATUSES.contains(c.getPublishedObject().getStatus()))
+                .filter(c -> childPublicKeys.contains(c.getSubjectPublicKey())).toList();
         Collection<OutgoingResourceCertificate> incomingResourceCertificates = child.getPublicKeyEntities().stream()
-            .filter(x -> !x.isRevoked())
-            .flatMap(x -> x.findCurrentOutgoingResourceCertificate().stream())
-            .collect(Collectors.toList());
+                .filter(x -> !x.isRevoked())
+                .flatMap(x -> x.findCurrentOutgoingResourceCertificate().stream()).toList();
 
         // Not all non-hosted public keys will have a certificate after a certificate revocation request,
         // so number of keys could be greater.
@@ -306,13 +304,5 @@ public class ChildParentCertificateUpdateSagaNonHostedTest extends Certification
 
     private Optional<OutgoingResourceCertificate> findCurrentResourceCertificate(NonHostedCertificateAuthority ca) {
         return ca.getPublicKeyEntities().iterator().next().findCurrentOutgoingResourceCertificate();
-    }
-
-    private CommandStatus execute(CertificateAuthorityCommand command) {
-        try {
-            return commandService.execute(command);
-        } finally {
-            entityManager.flush();
-        }
     }
 }

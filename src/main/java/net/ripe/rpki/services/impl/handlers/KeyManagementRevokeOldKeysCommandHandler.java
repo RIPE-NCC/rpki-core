@@ -15,9 +15,8 @@ import net.ripe.rpki.server.api.commands.KeyManagementRevokeOldKeysCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 
@@ -71,10 +70,7 @@ public class KeyManagementRevokeOldKeysCommandHandler implements CertificateAuth
 
     private List<TaRequest> toTaRequests(List<CertificateRevocationRequest> requests) {
         return requests.stream()
-            .map(request -> new RevocationRequest(DEFAULT_RESOURCE_CLASS,
-                KeyPairUtil.getEncodedKeyIdentifier(request.getSubjectPublicKey())))
-            .collect(Collectors.toList());
+            .map(request -> (TaRequest) new RevocationRequest(DEFAULT_RESOURCE_CLASS, KeyPairUtil.getEncodedKeyIdentifier(request.getSubjectPublicKey())))
+            .toList();
     }
-
-
 }

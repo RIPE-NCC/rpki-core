@@ -5,7 +5,7 @@ import net.ripe.rpki.offline.ra.service.TrustAnchorResponseProcessor;
 import net.ripe.rpki.server.api.commands.ProcessTrustAnchorResponseCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Handler
 public class ProcessTrustAnchorResponseCommandHandler extends AbstractCertificateAuthorityCommandHandler<ProcessTrustAnchorResponseCommand> {

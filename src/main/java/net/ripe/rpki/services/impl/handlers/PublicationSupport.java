@@ -17,7 +17,7 @@ import net.ripe.rpki.util.Streams;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -56,8 +56,7 @@ public class PublicationSupport {
         log.info("Interfacing with {} external publication servers: {}", publicationServerUris.size(), publicationServerUris);
 
         externalPublishingServers = publicationServerUris.stream()
-            .map(uri -> new ExternalPublishingServer(publishingServerClient, meterRegistry, uri))
-            .collect(Collectors.toList());
+                .map(uri -> new ExternalPublishingServer(publishingServerClient, meterRegistry, uri)).toList();
         forkJoinPool = new ForkJoinPool(Math.max(1, externalPublishingServers.size()));
 
         rrdpPublicationSuccesses = Counter.builder("rpkicore.publication.total")
@@ -175,8 +174,7 @@ public class PublicationSupport {
         final List<ListRequest> messages = Collections.singletonList(new ListRequest());
         return externalPublishingServer.execute(messages, clientId).stream()
                 .filter(PublicationMessage.isListReply)
-                .map(x -> (ListReply) x)
-                .collect(Collectors.toList());
+                .map(x -> (ListReply) x).toList();
     }
 
     public static String objectHash(byte[] bytes) {

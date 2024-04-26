@@ -17,10 +17,9 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping(ProductionCaController.PRODUCTION_CA_HISTORY)
@@ -52,7 +51,7 @@ public class ProductionCaController extends BaseController {
                 .map(caHistoryItem -> {
                     final String humanizedUserPrincipal = getHumanizedUserPrincipal(caHistoryItem);
                     return new HistoryItem(humanizedUserPrincipal, caHistoryItem);
-                }).collect(Collectors.toList());
+                }).toList();
     }
 
     private String getHumanizedUserPrincipal(CertificateAuthorityHistoryItem historyItem) {

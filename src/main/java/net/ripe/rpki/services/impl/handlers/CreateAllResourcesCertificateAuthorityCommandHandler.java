@@ -7,7 +7,7 @@ import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.CreateAllResourcesCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Handler
 public class CreateAllResourcesCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<CreateAllResourcesCertificateAuthorityCommand> {

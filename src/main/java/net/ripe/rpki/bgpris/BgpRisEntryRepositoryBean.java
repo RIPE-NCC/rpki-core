@@ -29,7 +29,7 @@ public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
     /*
      * All BgpRisEntries that have enough visibility.
      */
-    private AtomicReference<IntervalMap<IpRange, ArrayList<BgpRisEntry>>> entries = new AtomicReference<>(emptyEntries());
+    private final AtomicReference<IntervalMap<IpRange, ArrayList<BgpRisEntry>>> entries = new AtomicReference<>(emptyEntries());
 
     @Override
     public boolean isEmpty() {
@@ -43,9 +43,8 @@ public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
         Collection<BgpRisEntry> result = new HashSet<>();
         for (IpRange prefix : getPrefixes(resources)) {
             final List<BgpRisEntry> exactAndMoreSpecific = current.findExactAndAllMoreSpecific(prefix)
-                .stream()
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+                    .stream()
+                    .flatMap(Collection::stream).toList();
             result.addAll(exactAndMoreSpecific);
 
             final ImmutableResourceSet remaining = findResourcesNotCovered(prefix, exactAndMoreSpecific);
@@ -62,9 +61,8 @@ public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
         Collection<BgpRisEntry> notContainedEntries = new HashSet<>();
         for (IpRange prefix : getPrefixes(resources)) {
             final List<BgpRisEntry> exactAndMoreSpecific = current.findExactAndAllMoreSpecific(prefix)
-                .stream()
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+                    .stream()
+                    .flatMap(Collection::stream).toList();
             containedEntries.addAll(exactAndMoreSpecific);
             final ImmutableResourceSet remaining = findResourcesNotCovered(prefix, exactAndMoreSpecific);
             addLessSpecificAnnouncements(current, notContainedEntries, remaining);
@@ -133,8 +131,7 @@ public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
     private static List<IpRange> getPrefixes(final ImmutableResourceSet resources) {
         List<IpRange> result = new ArrayList<>();
         for (IpResource resource : resources) {
-            if (resource instanceof IpRange) {
-                IpRange range = (IpRange) resource;
+            if (resource instanceof IpRange range) {
                 result.addAll(range.splitToPrefixes());
             } else if (resource instanceof IpAddress) {
                 result.add(IpRange.range((IpAddress) resource, (IpAddress) resource));

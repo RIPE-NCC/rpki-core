@@ -24,19 +24,18 @@ import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.FlushModeType;
-import javax.persistence.OptimisticLockException;
-import javax.persistence.PessimisticLockException;
-import javax.persistence.Query;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.FlushModeType;
+import jakarta.persistence.OptimisticLockException;
+import jakarta.persistence.PessimisticLockException;
+import jakarta.persistence.Query;
 import java.math.BigInteger;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
@@ -90,8 +89,8 @@ public class CommandServiceImpl implements CommandService {
     public VersionedId getNextId() {
         Query q = entityManager.createNativeQuery("SELECT nextval('seq_all')");
         q.setFlushMode(FlushModeType.COMMIT); // no need to do dirty checking
-        BigInteger next = (BigInteger) q.getSingleResult();
-        return new VersionedId(next.longValue());
+        long next = (long) q.getSingleResult();
+        return new VersionedId(next);
     }
 
     @SuppressWarnings("try")
@@ -155,7 +154,7 @@ public class CommandServiceImpl implements CommandService {
         transactionTemplate.executeWithoutResult(status -> {
             EventDelegateTracker.get().reset();
             CommandContext commandContext = commandAuditService.startRecording(command);
-            List<EventSubscription> subscriptions = eventVisitors.stream().map(visitor -> ManagedCertificateAuthority.subscribe(visitor, commandContext)).collect(Collectors.toList());
+            List<EventSubscription> subscriptions = eventVisitors.stream().map(visitor -> ManagedCertificateAuthority.subscribe(visitor, commandContext)).toList();
             try (
                 EventSubscription commandAuditSubscription = ManagedCertificateAuthority.EVENTS.subscribe(commandContext::recordEvent)
             ) {

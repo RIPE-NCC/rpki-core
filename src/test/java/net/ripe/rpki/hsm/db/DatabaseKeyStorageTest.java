@@ -19,7 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.security.auth.x500.X500Principal;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.cert.Certificate;

@@ -4,17 +4,15 @@ import com.google.common.collect.ImmutableSortedSet;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import net.ripe.rpki.server.api.dto.AspaConfigurationData;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotEmpty;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static net.ripe.rpki.util.Streams.streamToSortedMap;
 

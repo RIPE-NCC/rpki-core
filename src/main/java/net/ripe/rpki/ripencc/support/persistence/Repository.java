@@ -2,8 +2,8 @@ package net.ripe.rpki.ripencc.support.persistence;
 
 import net.ripe.rpki.ncc.core.domain.support.Entity;
 
-import javax.persistence.EntityNotFoundException;
-import javax.persistence.LockModeType;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.LockModeType;
 import java.util.Collection;
 
 public interface Repository<T extends Entity> {

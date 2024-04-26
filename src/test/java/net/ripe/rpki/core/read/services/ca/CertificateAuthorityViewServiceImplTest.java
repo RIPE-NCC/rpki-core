@@ -3,15 +3,16 @@ package net.ripe.rpki.core.read.services.ca;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.domain.*;
+import net.ripe.rpki.server.api.commands.*;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.junit.Test;
 
-import javax.inject.Inject;
-import javax.persistence.EntityNotFoundException;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -104,5 +105,19 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("non-hosted CA '" + principal.getName() + "' not found");
 
+    }
+
+    /**
+     * The {@link CertificateAuthorityViewService#getCaStats()} function makes assumptions about a number of constant
+     * strings in the audit log. Check this invariant.
+     */
+
+    @Test
+    public void testGetCaEventStatsMagicConstants() {
+        assertThat(UpdateRoaConfigurationCommand.class.getSimpleName()).isEqualTo("UpdateRoaConfigurationCommand");
+        assertThat(ActivateHostedCertificateAuthorityCommand.class.getSimpleName()).isEqualTo("ActivateHostedCertificateAuthorityCommand");
+        assertThat(ActivateNonHostedCertificateAuthorityCommand.class.getSimpleName()).isEqualTo("ActivateNonHostedCertificateAuthorityCommand");
+        assertThat(DeleteCertificateAuthorityCommand.class.getSimpleName()).isEqualTo("DeleteCertificateAuthorityCommand");
+        assertThat(DeleteNonHostedCertificateAuthorityCommand.class.getSimpleName()).isEqualTo("DeleteNonHostedCertificateAuthorityCommand");
     }
 }

@@ -14,13 +14,12 @@ import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
 import org.assertj.core.api.Condition;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.Instant;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.persistence.PersistenceException;
-import javax.transaction.Transactional;
+import jakarta.persistence.PersistenceException;
+import jakarta.transaction.Transactional;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;

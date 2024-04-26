@@ -24,9 +24,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Component;
 
-import javax.persistence.LockTimeoutException;
-import javax.persistence.OptimisticLockException;
-import javax.persistence.PessimisticLockException;
+import jakarta.persistence.LockTimeoutException;
+import jakarta.persistence.OptimisticLockException;
+import jakarta.persistence.PessimisticLockException;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -170,8 +171,9 @@ class ProvisioningRequestProcessorBean implements ProvisioningRequestProcessor {
         if (ca instanceof NonHostedCertificateAuthorityData) {
             NonHostedCertificateAuthorityData result = (NonHostedCertificateAuthorityData) ca;
 
-            Optional<DateTime> lastSigningTimeForCA = provisioningCmsSigningTimeStore.getLastSeenProvisioningCmsSignedAt(result);
-            provisioningValidator.validateProvisioningCmsAndIdentityCertificate(unvalidatedProvisioningObject, lastSigningTimeForCA, result.getProvisioningIdentityCertificate());
+            Optional<DateTime> lastSigningJodaTimeForCA = provisioningCmsSigningTimeStore.getLastSeenProvisioningCmsSignedAt(result)
+                    .map(st -> new org.joda.time.Instant(st.toEpochMilli()).toDateTime());
+            provisioningValidator.validateProvisioningCmsAndIdentityCertificate(unvalidatedProvisioningObject, lastSigningJodaTimeForCA, result.getProvisioningIdentityCertificate());
 
             return result;
         }

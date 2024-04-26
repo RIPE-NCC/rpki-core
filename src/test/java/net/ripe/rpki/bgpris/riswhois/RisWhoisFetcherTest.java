@@ -1,53 +1,39 @@
 package net.ripe.rpki.bgpris.riswhois;
 
-import org.apache.commons.io.IOUtils;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-import static org.junit.Assert.assertTrue;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 
-public class RisWhoisFetcherTest {
+@WireMockTest
+class RisWhoisFetcherTest {
+    byte[] risDumpContent;
 
-    private RisWhoisFetcher subject;
+    RisWhoisFetcher subject;
 
-    private Server server;
-
-    @Before
-    public void setupJetty() throws Exception {
+    @BeforeEach
+    void setup() throws Exception {
         subject = new RisWhoisFetcher();
-        server = new Server(39443);
-        Handler handler = new AbstractHandler() {
-            @Override
-            public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
-                response.setContentType("application/x-gzip");
-                response.setStatus(HttpServletResponse.SC_OK);
-                IOUtils.copy(RisWhoisFetcherTest.class.getResourceAsStream("/static/riswhois/riswhoisdump-head-1000.IPv4.gz"), response.getOutputStream());
-                ((Request) request).setHandled(true);
-            }
-        };
-        server.setHandler(handler);
-        server.start();
-    }
 
-    @After
-    public void cleanup() throws Exception {
-        server.stop();
+        risDumpContent = RisWhoisFetcherTest.class.getResourceAsStream("/static/riswhois/riswhoisdump-head-1000.IPv4.gz").readAllBytes();
     }
-
     @Test
-    public void test() throws Exception {
-        String data = subject.fetch("http://localhost:39443/");
-        assertTrue(data, data.contains("45528\t1.22.52.0/23\t99"));
-    }
+    void testFetch(WireMockRuntimeInfo wmRuntimeInfo) throws IOException {
+        var path = "/" + RandomStringUtils.randomAlphanumeric(16) + ".gz";
 
+        stubFor(
+                get(urlEqualTo(path))
+                .willReturn(aResponse().withBody(risDumpContent))
+        );
+
+        String data = subject.fetch(wmRuntimeInfo.getHttpBaseUrl() + path);
+        assertThat(data).contains("45528\t1.22.52.0/23\t99");
+    }
 }

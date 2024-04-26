@@ -9,16 +9,15 @@ import net.ripe.rpki.commons.provisioning.payload.PayloadMessageType;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import net.ripe.rpki.server.api.dto.NonHostedPublicKeyData;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import javax.security.auth.x500.X500Principal;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * KeyPairs for remote (non-hosted) child CAs.
@@ -42,7 +41,7 @@ public class PublicKeyEntity extends EntitySupport {
 
     @OneToMany(cascade={})
     @JoinColumn(name="subject_public_key_id")
-    private Collection<OutgoingResourceCertificate> outgoingResourceCertificates = new ArrayList<>();
+    private final Collection<OutgoingResourceCertificate> outgoingResourceCertificates = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Getter
@@ -97,13 +96,13 @@ public class PublicKeyEntity extends EntitySupport {
     }
 
     public List<X509CertificateInformationAccessDescriptor> getRequestedSia() {
-        return requestedSia.stream().map(EmbeddedInformationAccessDescriptor::toDescriptor).collect(Collectors.toList());
+        return requestedSia.stream().map(EmbeddedInformationAccessDescriptor::toDescriptor).toList();
     }
 
     public void setLatestIssuanceRequest(RequestedResourceSets requestedResourceSets, List<X509CertificateInformationAccessDescriptor> sia) {
         this.latestProvisioningRequestType = PayloadMessageType.issue;
         this.requestedResourceSets = requestedResourceSets;
-        this.requestedSia = sia.stream().map(EmbeddedInformationAccessDescriptor::of).collect(Collectors.toList());
+        this.requestedSia = sia.stream().map(EmbeddedInformationAccessDescriptor::of).toList();
     }
 
     public void setLatestRevocationRequest() {

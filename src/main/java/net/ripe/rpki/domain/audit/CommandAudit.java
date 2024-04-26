@@ -12,7 +12,7 @@ import org.apache.commons.lang.builder.ToStringStyle;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import javax.security.auth.x500.X500Principal;
 import java.sql.Timestamp;
 import java.util.UUID;

@@ -11,7 +11,7 @@ import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.UUID;
 
 import static net.ripe.rpki.domain.NonHostedCertificateAuthority.PUBLISHER_REPOSITORIES_LIMIT;

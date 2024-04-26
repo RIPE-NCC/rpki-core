@@ -77,9 +77,8 @@ public class BackgroundTaskRunner implements SmartLifecycle {
     public <T> List<T> runParallel(Stream<Task<T>> tasks) {
         MaxExceptionsTemplate maxExceptionsTemplate = new MaxExceptionsTemplate(20);
         List<T> result = forkJoinPool.submit(
-            () -> tasks.parallel()
-                .flatMap(task -> maxExceptionsTemplate.wrap(task).stream())
-                .collect(Collectors.toList())
+                () -> tasks.parallel()
+                        .flatMap(task -> maxExceptionsTemplate.wrap(task).stream()).toList()
         ).join();
         if (maxExceptionsTemplate.maxExceptionsOccurred()) {
             throw new BackgroundServiceException("Too many exceptions encountered, suspecting problems that affect ALL CAs.");

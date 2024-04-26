@@ -145,8 +145,7 @@ public class RoaEntityServiceBean implements CertificateAuthorityEventVisitor, R
     private List<RoaSpecification> getUnsatisfiedSpecifications(List<RoaEntity> validRoas, Map<Asn, RoaSpecification> specifications) {
         Map<Asn, List<RoaEntity>> validRoasByAsn = validRoas.stream().collect(Collectors.groupingBy(RoaEntity::getAsn));
         return specifications.values().stream()
-            .filter(specification -> isUnsatisfiedSpecification(validRoasByAsn, specification))
-            .collect(Collectors.toList());
+                .filter(specification -> isUnsatisfiedSpecification(validRoasByAsn, specification)).toList();
     }
 
     private boolean isUnsatisfiedSpecification(Map<Asn, List<RoaEntity>> validRoasByAsn, RoaSpecification specification) {

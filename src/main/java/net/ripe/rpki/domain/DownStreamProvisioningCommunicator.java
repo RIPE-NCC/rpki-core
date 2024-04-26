@@ -11,9 +11,9 @@ import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import net.ripe.rpki.util.SerialNumberSupplier;
 import org.apache.commons.lang.Validate;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import javax.security.auth.x500.X500Principal;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.cert.X509CRL;

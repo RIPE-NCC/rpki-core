@@ -10,7 +10,7 @@ import net.ripe.rpki.server.api.commands.GenerateOfflineCARepublishRequestComman
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import org.apache.commons.lang.Validate;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 
 @Handler

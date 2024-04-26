@@ -3,12 +3,13 @@ package net.ripe.rpki.domain;
 import com.google.common.hash.HashCode;
 import lombok.*;
 
+import java.time.Instant;
 import java.util.Date;
 
 @NoArgsConstructor
 @Data
 public class PublishedObjectEntry {
-    private Date updatedAt;
+    private Instant updatedAt;
     private PublicationStatus status;
 
     private String uri;
@@ -21,7 +22,7 @@ public class PublishedObjectEntry {
     /**
      * Constructor that maps the SQL types to the entity
      */
-    public PublishedObjectEntry(Date updatedAt, String status, String uri, byte[] sha256) {
+    public PublishedObjectEntry(Instant updatedAt, String status, String uri, byte[] sha256) {
         this.updatedAt = updatedAt;
         this.status = PublicationStatus.valueOf(status);
         this.uri = uri;

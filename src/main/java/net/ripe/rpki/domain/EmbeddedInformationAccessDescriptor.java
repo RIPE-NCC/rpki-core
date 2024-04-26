@@ -6,9 +6,9 @@ import lombok.NoArgsConstructor;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 
 @Embeddable

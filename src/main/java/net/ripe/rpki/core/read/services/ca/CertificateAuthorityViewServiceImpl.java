@@ -12,11 +12,11 @@ import org.joda.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityNotFoundException;
-import javax.persistence.LockModeType;
-import javax.persistence.TypedQuery;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.TypedQuery;
 import javax.security.auth.x500.X500Principal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -76,11 +76,11 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     @Override
     public Collection<CertificateAuthorityData> findAllChildrenForCa(X500Principal caName) {
         CertificateAuthority parent = certificateAuthorityRepository.findByTypeAndName(CertificateAuthority.class, caName);
-        return parent instanceof ParentCertificateAuthority
-            ? certificateAuthorityRepository.findAllByParent((ParentCertificateAuthority) parent).stream()
-                .map(this::convertToCaData)
-                .collect(Collectors.toList())
-            : Collections.emptyList();
+        if (parent instanceof ParentCertificateAuthority parentCa) {
+            return certificateAuthorityRepository.findAllByParent(parentCa)
+                .stream().map(this::convertToCaData).toList();
+        }
+        return List.of();
     }
 
     @Override
@@ -91,14 +91,13 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     @Override
     public Collection<ManagedCertificateAuthorityData> findManagedCasEligibleForKeyRevocation() {
         return entityManager.createQuery(
-                "FROM ManagedCertificateAuthority ca " +
-                    "WHERE EXISTS (FROM ca.keyPairs kp WHERE kp.status = :old)",
-                ManagedCertificateAuthority.class
-            )
-            .setParameter("old", KeyPairStatus.OLD)
-            .getResultStream()
-            .map(ManagedCertificateAuthority::toData)
-            .collect(Collectors.toList());
+                        "FROM ManagedCertificateAuthority ca " +
+                                "WHERE EXISTS (FROM ca.keyPairs kp WHERE kp.status = :old)",
+                        ManagedCertificateAuthority.class
+                )
+                .setParameter("old", KeyPairStatus.OLD)
+                .getResultStream()
+                .map(ManagedCertificateAuthority::toData).toList();
     }
 
     @Override
@@ -124,8 +123,7 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
             .setParameter("maxKpAge", oldestKpCreationTime);
         batchSize.ifPresent(query::setMaxResults);
         return query.getResultStream()
-            .map(ManagedCertificateAuthority::toData)
-            .collect(Collectors.toList());
+                .map(ManagedCertificateAuthority::toData).toList();
     }
 
     @Override
@@ -178,8 +176,8 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
             .getResultStream();
         return certificateAuthorities
             .sorted(Comparator.comparingInt(CertificateAuthority::depth))
-            .map(ManagedCertificateAuthority::toData)
-            .collect(Collectors.toList());
+            .map((x) -> (CertificateAuthorityData) x.toData())
+            .toList();
     }
 
     private CertificateAuthorityData convertToCaData(CertificateAuthority ca) {

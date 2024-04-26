@@ -1,4 +1,4 @@
-name: JUnit Tests 
+name: JUnit Tests
 on:
   pull_request:
   push:
@@ -9,12 +9,12 @@ jobs:
     # runs-on: gradle:7.5.1-jdk8
     services:
       postgres:
-        image: postgres:12.15
+        image: postgres:15
         env:
           POSTGRES_USER: certdb
           POSTGRES_PASSWORD: certdb
           POSTGRES_DB: certdb_test
-        ports:          
+        ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
@@ -25,6 +25,6 @@ jobs:
         uses: dorny/test-reporter@v1
         if: success() || failure()    # run this step even if previous step failed
         with:
-          name: JUnit Tests            
+          name: JUnit Tests
           path: 'build/test-results/test/TEST-*.xml'
           reporter: java-junit

@@ -4,11 +4,11 @@ import lombok.Getter;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
 import org.joda.time.DateTime;
 
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.validation.constraints.NotNull;
 
 @Embeddable
 public class KeyPairStatusHistory {

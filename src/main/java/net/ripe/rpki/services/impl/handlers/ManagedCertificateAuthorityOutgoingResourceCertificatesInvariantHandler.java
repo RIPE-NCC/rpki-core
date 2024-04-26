@@ -17,8 +17,8 @@ import net.ripe.rpki.server.api.commands.ChildSharedParentCertificateAuthorityCo
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import java.util.Set;
 import java.util.stream.Collectors;
 

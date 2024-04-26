@@ -2,12 +2,12 @@ package net.ripe.rpki.rest.exception;
 
 import net.ripe.rpki.rest.security.RequestEntitySizeLimiterServletFilter;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
 /**
  * Thrown by the {@link RequestEntitySizeLimiterServletFilter request body size limiter filter} when the
- * {@link javax.servlet.ServletInputStream input stream} of the {@link javax.servlet.http.HttpServletRequest request}
+ * {@link jakarta.servlet.ServletInputStream input stream} of the {@link jakarta.servlet.http.HttpServletRequest request}
  * is too large.
  *
  * Translated by {@link RestExceptionControllerAdvice#exceptionsResultingInRequestEntityTooLargeHandler(HttpServletRequest, RequestEntityTooLargeException)

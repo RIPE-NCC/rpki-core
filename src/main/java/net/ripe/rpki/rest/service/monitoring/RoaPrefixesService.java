@@ -50,11 +50,11 @@ public class RoaPrefixesService {
         }
 
         List<RoaConfigurationPrefixData> roas = roaConfigurationRepository.findAll()
-                        .stream()
-                        .flatMap(rc -> rc.getPrefixes().stream())
-                        .map(RoaConfigurationPrefix::toData)
-                        .sorted(RoaPrefixData.ROA_PREFIX_DATA_COMPARATOR)
-                        .collect(Collectors.toList());
+                .stream()
+                .flatMap(rc -> rc.getPrefixes().stream())
+                .map(RoaConfigurationPrefix::toData)
+                .sorted(RoaPrefixData.ROA_PREFIX_DATA_COMPARATOR)
+                .toList();
         return ResponseEntity.ok(ValidatedObjectsResponse.of(roas, Collections.singletonMap("origin", "rpki-core")));
     }
 

@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 
 @Slf4j
@@ -139,8 +139,7 @@ public class AlertService extends AbstractCaRestService {
 
     private Collection<AnnouncedRoute> getAnnouncedRoutes(List<BgpAnnouncement> announcements) {
         return announcements.stream()
-            .map(bgp -> new AnnouncedRoute(Asn.parse(bgp.getAsn()), IpRange.parse(bgp.getPrefix())))
-            .collect(Collectors.toList());
+                .map(bgp -> new AnnouncedRoute(Asn.parse(bgp.getAsn()), IpRange.parse(bgp.getPrefix()))).toList();
     }
 
 }

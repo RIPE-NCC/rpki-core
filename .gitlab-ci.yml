@@ -1,5 +1,5 @@
 default:
-  image: gradle:8.6-jdk11
+  image: gradle:8.7-jdk17
 
 # Explicit version of the Mergerequests-Pipelines workflow, with the main branch
 # added.
@@ -67,6 +67,7 @@ build:
     - ./gradlew -i build integrationTest
     - cat build/reports/jacoco/test/html/index.html
   artifacts:
+    when: always
     paths:
       - build
       - scripts/*

@@ -24,6 +24,7 @@ import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
 
 import javax.security.auth.x500.X500Principal;
+import java.security.SecureRandom;
 import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -85,7 +86,7 @@ public class EmailSenderBeanTest {
                     new VersionedId(42L),
                     new X500Principal("CN=org.example"),
                     UUID.randomUUID(),
-                    RandomUtils.nextLong(),
+                    new SecureRandom().nextLong(),
                     ImmutableResourceSet.empty(),
                     List.of()
             );

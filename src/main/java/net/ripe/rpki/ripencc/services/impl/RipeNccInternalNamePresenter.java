@@ -11,7 +11,7 @@ import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.springframework.stereotype.Component;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.security.auth.x500.X500Principal;
 import java.util.List;
 import java.util.Optional;

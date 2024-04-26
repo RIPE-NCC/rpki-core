@@ -1,5 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Setter;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
@@ -10,14 +11,12 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.persistence.OptimisticLockException;
-import javax.persistence.PessimisticLockException;
+import jakarta.persistence.OptimisticLockException;
+import jakarta.persistence.PessimisticLockException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 public class MessageDispatcher {
@@ -41,8 +40,7 @@ public class MessageDispatcher {
         final Map<String, Object> beansWithAnnotation = applicationContext.getBeansWithAnnotation(Handler.class);
         return beansWithAnnotation.values().stream()
                 .map(bean -> (CertificateAuthorityCommandHandler<CertificateAuthorityCommand>) bean)
-                .sorted(Comparator.comparingInt(MessageDispatcher::orderOf))
-                .collect(Collectors.toList());
+                .sorted(Comparator.comparingInt(MessageDispatcher::orderOf)).toList();
     }
 
     private static int orderOf(Object bean) {

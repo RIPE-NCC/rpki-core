@@ -34,7 +34,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Map.of;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy.allowedRoutesToNestedIntervalMap;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -139,8 +139,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
                     final ApiRoaPrefix roa = new ApiRoaPrefix(routeAsn, certifiedRoute.getPrefix().toString(), certifiedRoute.getMaximumLength());
                     final RouteValidityState validityState = determineValidityState(announcedPrefix, announcementAsn, certifiedRoute);
                     return new ROAWithAnnouncementStatus(roa, validityState);
-                })
-                .collect(Collectors.toList());
+                }).toList();
 
         return ok(affectingROAs);
     }
@@ -319,8 +318,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
                 .map(roa -> new RoaConfigurationPrefixData(
                         Asn.parse(roa.getAsn()),
                         IpRange.parse(roa.getPrefix()),
-                        roa.getMaxLength()))
-                .collect(Collectors.toList());
+                        roa.getMaxLength())).toList();
     }
 
     private static Set<AnnouncedRoute> getIgnoredAnnouncement(RoaAlertConfigurationViewService service, Long caId) {

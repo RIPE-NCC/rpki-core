@@ -6,8 +6,8 @@ import lombok.NonNull;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import org.joda.time.DateTime;
 
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
 /**
  * JPA mappable version of a ValidityPeriod

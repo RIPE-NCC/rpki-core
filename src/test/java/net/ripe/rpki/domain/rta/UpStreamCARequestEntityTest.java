@@ -6,8 +6,7 @@ import net.ripe.rpki.commons.ta.domain.request.RevocationRequest;
 import net.ripe.rpki.commons.ta.domain.request.SigningRequest;
 import net.ripe.rpki.commons.ta.domain.request.TaRequest;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
@@ -16,13 +15,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 
 public class UpStreamCARequestEntityTest {
 
     @Test
-    @Ignore ("the test should not look at the instance")
     public void shouldUnderstandRevokeKey() {
         RevocationRequest revokeRequest = new RevocationRequest("test resource class", "CN=whoevah");
         List<TaRequest> requests = new ArrayList<>();
@@ -32,8 +30,8 @@ public class UpStreamCARequestEntityTest {
 
         UpStreamCARequestEntity subject = new UpStreamCARequestEntity(null, trustAnchorRequest);
 
-        TrustAnchorRequest actual = subject.getUpStreamCARequest();
-        assertEquals(trustAnchorRequest, actual);
+        // No equals on TrustAnchorRequest
+        assertThat(subject.getUpStreamCARequest()).usingRecursiveComparison().isEqualTo(trustAnchorRequest);
     }
 
     @Test
@@ -52,14 +50,13 @@ public class UpStreamCARequestEntityTest {
                 "</net.ripe.rpki.offline.requests.TrustAnchorRequest>";
 
         UpStreamCARequestEntity subject = mkUpstreamCARequestWithXML(request);
-        assertNotNull("Invalid UpStreamCARequest", subject.getUpStreamCARequest());
+        assertThat(subject.getUpStreamCARequest()).isNotNull().withFailMessage("Invalid UpStreamCARequest");
         TaRequest taRequest = subject.getUpStreamCARequest().getTaRequests().get(0);
-        assertEquals(requestId, taRequest.getRequestId().toString());
-        assertTrue("Parsed TA request should be a 'SigningRequest'", taRequest instanceof SigningRequest);
+        assertThat(requestId).isEqualTo(taRequest.getRequestId().toString());
+        assertThat(taRequest).isInstanceOf(SigningRequest.class).withFailMessage("Parsed TA request should be a 'SigningRequest'");
         SigningRequest signingRequest = (SigningRequest) taRequest;
-        assertTrue(
-                "Signing request should container IP resource set 193.0.0.0/8",
-                signingRequest.getResourceCertificateRequest().getIpResourceSet().contains(IpResource.parse("193.0.0.0/8"))
+        assertThat(signingRequest.getResourceCertificateRequest().getIpResourceSet()).contains(IpResource.parse("193.0.0.0/8")).withFailMessage(
+                "Signing request should container IP resource set 193.0.0.0/8"
         );
     }
 
@@ -79,7 +76,7 @@ public class UpStreamCARequestEntityTest {
 
         UpStreamCARequestEntity entity = mkUpstreamCARequestWithXML(request);
         UpStreamCARequestEntity subject = new UpStreamCARequestEntity(null, entity.getUpStreamCARequest());
-        assertEquals(request, getUpstreamCARequestXML(subject));
+        assertThat(request).isEqualTo(getUpstreamCARequestXML(subject));
     }
 
     private static UpStreamCARequestEntity mkUpstreamCARequestWithXML(String caRequestXml) {
@@ -97,7 +94,7 @@ public class UpStreamCARequestEntityTest {
 
     private static Field upstreamCARequestField() {
         Field upStreamCARequest = ReflectionUtils.findField(UpStreamCARequestEntity.class, "upStreamCARequest", String.class);
-        assertNotNull("Field 'upStreamCARequest' of type String not found in class UpStreamCARequestEntity", upStreamCARequest);
+        assertThat(upStreamCARequest).isNotNull().withFailMessage("Field 'upStreamCARequest' of type String not found in class UpStreamCARequestEntity");
         ReflectionUtils.makeAccessible(upStreamCARequest);
         return upStreamCARequest;
     }

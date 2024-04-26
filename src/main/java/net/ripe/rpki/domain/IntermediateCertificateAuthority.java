@@ -5,8 +5,8 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import javax.security.auth.x500.X500Principal;
 import java.util.Optional;
 import java.util.UUID;

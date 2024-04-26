@@ -8,8 +8,8 @@ import org.apache.commons.lang.Validate;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nullable;
-import javax.persistence.NoResultException;
-import javax.persistence.Query;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.Query;
 
 @Component
 public class JpaPropertyEntityRepository extends JpaRepository<PropertyEntity> implements PropertyEntityRepository {

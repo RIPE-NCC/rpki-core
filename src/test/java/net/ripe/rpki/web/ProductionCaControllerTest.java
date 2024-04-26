@@ -1,6 +1,7 @@
 package net.ripe.rpki.web;
 
 import lombok.NonNull;
+import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -13,15 +14,17 @@ import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.server.api.services.system.CaHistoryService;
 import org.joda.time.DateTime;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MvcResult;
 
 import javax.security.auth.x500.X500Principal;
@@ -37,8 +40,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-@SpringBootTest
-@RunWith(MockitoJUnitRunner.class)
+@ActiveProfiles("test")
+@SpringBootTest(classes = TestRpkiBootApplication.class)
+@ExtendWith(MockitoExtension.class)
 public class ProductionCaControllerTest extends SpringWebControllerTestCase {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private CertificateAuthorityViewService certificateAuthorityViewService;
@@ -65,7 +69,7 @@ public class ProductionCaControllerTest extends SpringWebControllerTestCase {
         );
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         CertificateAuthorityData ca = mock(CertificateAuthorityData.class);
 

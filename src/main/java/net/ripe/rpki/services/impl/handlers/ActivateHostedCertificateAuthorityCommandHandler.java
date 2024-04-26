@@ -8,7 +8,7 @@ import net.ripe.rpki.domain.manifest.ManifestPublicationService;
 import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Handler
 public class ActivateHostedCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<ActivateHostedCertificateAuthorityCommand> {

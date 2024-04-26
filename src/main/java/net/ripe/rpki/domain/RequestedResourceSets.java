@@ -7,9 +7,9 @@ import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceType;
 import org.apache.commons.lang3.Validate;
 
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
-import javax.persistence.PrePersist;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.PrePersist;
 import java.io.Serializable;
 import java.util.Optional;
 

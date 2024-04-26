@@ -13,7 +13,7 @@ import net.ripe.rpki.server.api.support.objects.CaName;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 import javax.security.auth.x500.X500Principal;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -22,7 +22,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Repository
 @Transactional
@@ -66,19 +65,18 @@ public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguratio
                 .stream()
                 .map(o -> {
                     final Object[] row = (Object[]) o;
-                    final Long caId = ((BigInteger) row[0]).longValue();
+                    final Long caId = ((Long) row[0]);
                     final X500Principal principal = new X500Principal((String) row[1]);
                     final CaName caName = CaName.of(principal);
                     final Asn asn = new Asn(((BigDecimal) row[2]).longValue());
-                    final Integer prefixType = (Integer) row[3];
+                    final Short prefixType = (Short) row[3];
                     final BigInteger begin = ((BigDecimal) row[4]).toBigInteger();
                     final BigInteger end = ((BigDecimal) row[5]).toBigInteger();
                     final Integer maximumLength = (Integer) row[6];
                     final IpResourceType resourceType = IpResourceType.values()[prefixType];
                     final IpResourceRange range = resourceType.fromBigInteger(begin).upTo(resourceType.fromBigInteger(end));
                     return new RoaConfigurationPerCa(caId, caName, asn, range, maximumLength);
-                })
-                .collect(Collectors.toList());
+                }).toList();
     }
 
     @Override
@@ -104,7 +102,7 @@ public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguratio
     @Override
     public int countRoaPrefixes() {
         String sql = "SELECT count(*) from roaconfiguration_prefixes";
-        return ((BigInteger)createNativeQuery(sql).getSingleResult()).intValue();
+        return ((Long)createNativeQuery(sql).getSingleResult()).intValue();
     }
 
     @Override
@@ -115,8 +113,8 @@ public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguratio
                 "SELECT max(deleted_at) as last from deleted_roaconfiguration_prefixes" +
                 ") last_changes";
         // empty table -> null.
-        Timestamp res = (Timestamp) createNativeQuery(sql).getSingleResult();
-        return Optional.ofNullable(res).map(t -> t.toInstant());
+        var res = (Instant) createNativeQuery(sql).getSingleResult();
+        return Optional.ofNullable(res);
     }
 
     @Override

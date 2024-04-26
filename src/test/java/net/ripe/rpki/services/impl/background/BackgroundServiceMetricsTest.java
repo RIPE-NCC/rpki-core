@@ -7,6 +7,9 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.Test;
 
+import java.security.SecureRandom;
+import java.util.Random;
+
 import static net.ripe.rpki.services.impl.background.BackgroundServiceMetrics.SERVICE_RESULT_COUNTER_METRIC;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
@@ -25,7 +28,9 @@ public class BackgroundServiceMetricsTest {
     @Test
     public void shouldTrackSuccessfulServiceExecution() {
         String service = RandomStringUtils.randomAlphanumeric(16);
-        BackgroundServiceExecutionResult job = new BackgroundServiceExecutionResult(RandomUtils.nextLong(), RandomUtils.nextLong(), BackgroundServiceExecutionResult.Status.SUCCESS);
+        var random = new SecureRandom();
+
+        BackgroundServiceExecutionResult job = new BackgroundServiceExecutionResult(random.nextLong(), random.nextLong(), BackgroundServiceExecutionResult.Status.SUCCESS);
         subject.trackStartTime(service);
         subject.trackResult(service, job);
 

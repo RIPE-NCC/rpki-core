@@ -1,6 +1,7 @@
 package net.ripe.rpki.web;
 
 import lombok.NonNull;
+import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.server.api.commands.AllResourcesCaResourcesCommand;
@@ -15,14 +16,17 @@ import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.services.impl.background.AllCaCertificateUpdateServiceBean;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.info.GitProperties;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.net.URI;
@@ -44,7 +48,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 
-@RunWith(MockitoJUnitRunner.class)
+@ActiveProfiles("test")
+@SpringBootTest(classes = TestRpkiBootApplication.class)
+@ExtendWith(MockitoExtension.class)
 public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -67,14 +73,14 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
             certificateAuthorityViewService, commandService, allCaCertificateUpdateServiceBean, Collections.emptyMap(),  new GitProperties(new Properties()));
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(repositoryConfiguration.getPublicRepositoryUri()).thenReturn(URI.create("rsync://example.com/rpki/repository"));
         when(activeNodeService.getActiveNodeName()).thenReturn("active-node");
 
         aca = mock(ManagedCertificateAuthorityData.class);
-        when(aca.getVersionedId()).thenReturn(new VersionedId(1));
-        when(aca.getType()).thenReturn(CertificateAuthorityType.ALL_RESOURCES);
+        Mockito.lenient().when(aca.getVersionedId()).thenReturn(new VersionedId(1));
+        Mockito.lenient().when(aca.getType()).thenReturn(CertificateAuthorityType.ALL_RESOURCES);
         when(certificateAuthorityViewService.findCertificateAuthorityByName(any())).thenReturn(aca);
     }
 

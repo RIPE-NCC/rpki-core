@@ -5,7 +5,7 @@ import net.ripe.rpki.ripencc.ui.daemon.health.Health;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Component
 @ConditionalOnBean(KrillNonHostedPublisherRepositoryBean.class)

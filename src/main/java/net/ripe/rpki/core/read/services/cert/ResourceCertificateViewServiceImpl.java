@@ -1,5 +1,6 @@
 package net.ripe.rpki.core.read.services.cert;
 
+import jakarta.annotation.Resource;
 import lombok.NonNull;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
@@ -13,10 +14,9 @@ import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.Resource;
-import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.PersistenceContext;
 import java.security.PublicKey;
 import java.util.Optional;
 

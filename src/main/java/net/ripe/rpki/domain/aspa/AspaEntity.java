@@ -14,7 +14,7 @@ import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import net.ripe.rpki.server.api.services.command.UnparseableRpkiObjectException;
 import org.apache.commons.lang.Validate;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.net.URI;
 import java.util.List;
 import java.util.SortedMap;

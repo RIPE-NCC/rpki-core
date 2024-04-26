@@ -3,8 +3,8 @@ package net.ripe.rpki.ripencc.support.persistence;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponseSerializer;
 
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 
 @Converter(autoApply = true)
 public class RepositoryResponsePersistenceConverter implements AttributeConverter<RepositoryResponse, String> {

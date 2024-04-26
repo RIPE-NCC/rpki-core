@@ -9,7 +9,7 @@ import net.ripe.rpki.domain.ResourceCertificateRepository;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Map;
 
 @Slf4j

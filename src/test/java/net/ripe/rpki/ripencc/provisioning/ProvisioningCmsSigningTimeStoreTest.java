@@ -5,14 +5,15 @@ import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.domain.ProductionCertificateAuthority;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.security.auth.x500.X500Principal;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,23 +43,37 @@ public class ProvisioningCmsSigningTimeStoreTest extends CertificationDomainTest
 
     @Test
     public void should_track_last_seen_signing_time() {
-        DateTime cmsSigningTime = DateTime.now(DateTimeZone.UTC);
+        // Truncate to milliseconds due to the JVM dependant precision of Instant
+        Instant cmsSigningTime = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
         assertThat(subject.getLastSeenProvisioningCmsSignedAt(nonHostedCa)).isEmpty();
 
         boolean updated = subject.updateLastSeenProvisioningCmsSeenAt(nonHostedCa, cmsSigningTime);
         assertThat(updated).isTrue();
         assertThat(subject.getLastSeenProvisioningCmsSignedAt(nonHostedCa))
-            .get().isEqualTo(cmsSigningTime);
+            .hasValue(cmsSigningTime);
 
-        updated = subject.updateLastSeenProvisioningCmsSeenAt(nonHostedCa, cmsSigningTime.plusMinutes(1));
+        updated = subject.updateLastSeenProvisioningCmsSeenAt(nonHostedCa, cmsSigningTime.plus(1, ChronoUnit.MINUTES));
         assertThat(updated).isTrue();
         assertThat(subject.getLastSeenProvisioningCmsSignedAt(nonHostedCa))
-            .get().isEqualTo(cmsSigningTime.plusMinutes(1));
+            .hasValue(cmsSigningTime.plus(1, ChronoUnit.MINUTES));
 
-        updated = subject.updateLastSeenProvisioningCmsSeenAt(nonHostedCa, cmsSigningTime.minusMinutes(1));
+        updated = subject.updateLastSeenProvisioningCmsSeenAt(nonHostedCa, cmsSigningTime.minus(1, ChronoUnit.MINUTES));
         assertThat(updated).isFalse();
         assertThat(subject.getLastSeenProvisioningCmsSignedAt(nonHostedCa))
-            .get().isEqualTo(cmsSigningTime.plusMinutes(1));
+            .hasValue(cmsSigningTime.plus(1, ChronoUnit.MINUTES));
+    }
+
+    @Test
+    public void should_track_last_seen_signing_time_jodatime() {
+        Instant cmsSigningTime = Instant.now();
+
+        assertThat(subject.getLastSeenProvisioningCmsSignedAt(nonHostedCa)).isEmpty();
+        boolean updated = subject.updateLastSeenProvisioningCmsSeenAt(nonHostedCa, org.joda.time.Instant.ofEpochMilli(cmsSigningTime.toEpochMilli()).toDateTime());
+        assertThat(updated).isTrue();
+
+        // Java instant has microsecond precision while the conversion has millisecond precision
+        assertThat(subject.getLastSeenProvisioningCmsSignedAt(nonHostedCa).map(st -> st.truncatedTo(ChronoUnit.MILLIS)))
+                .hasValue(cmsSigningTime.truncatedTo(ChronoUnit.MILLIS));
     }
 }

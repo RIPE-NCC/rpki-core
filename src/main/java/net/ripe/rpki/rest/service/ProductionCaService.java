@@ -25,16 +25,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.security.auth.x500.X500Principal;
-import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Positive;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Positive;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_FORM_URLENCODED;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_FORM_URLENCODED;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 
 @Slf4j
 @Scope("prototype")
@@ -100,16 +100,15 @@ public class ProductionCaService {
         try {
             final X500Principal productionCaName = certificationConfiguration.getProductionCaPrincipal();
             Collection<CertificateAuthorityData> productionCaChildren = certificateAuthorityViewService.findAllChildrenForCa(productionCaName);
-            List<CertificateAuthorityData> intermediateCas = productionCaChildren.stream().filter(ca -> ca.getType() == CertificateAuthorityType.INTERMEDIATE).collect(Collectors.toList());
+            List<CertificateAuthorityData> intermediateCas = productionCaChildren.stream().filter(ca -> ca.getType() == CertificateAuthorityType.INTERMEDIATE).toList();
             if (intermediateCas.isEmpty()) {
                 log.error("No intermediate CAs found");
                 return Utils.badRequestError("no intermediate CAs found");
             }
 
             List<CertificateAuthorityData> memberCasToMigrate = productionCaChildren.stream()
-                .filter(ca -> ca.getType() == CertificateAuthorityType.HOSTED || ca.getType() == CertificateAuthorityType.NONHOSTED)
-                .limit(count)
-                .collect(Collectors.toList());
+                    .filter(ca -> ca.getType() == CertificateAuthorityType.HOSTED || ca.getType() == CertificateAuthorityType.NONHOSTED)
+                    .limit(count).toList();
 
             if (memberCasToMigrate.isEmpty()) {
                 log.info("No member CAs to migrate found");

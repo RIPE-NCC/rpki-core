@@ -45,7 +45,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.security.ApiKeySecurity.API_KEY_HEADER;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static net.ripe.rpki.rest.service.Rest.TESTING_API_KEY;

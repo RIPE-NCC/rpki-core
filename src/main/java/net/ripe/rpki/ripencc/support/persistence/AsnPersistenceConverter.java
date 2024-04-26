@@ -2,8 +2,8 @@ package net.ripe.rpki.ripencc.support.persistence;
 
 import net.ripe.ipresource.Asn;
 
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 import java.math.BigInteger;
 
 @Converter(autoApply = true)

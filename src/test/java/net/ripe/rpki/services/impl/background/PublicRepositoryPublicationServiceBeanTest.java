@@ -8,7 +8,7 @@ import net.ripe.rpki.domain.PublishedObjectEntry;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;

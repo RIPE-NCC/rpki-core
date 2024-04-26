@@ -21,7 +21,7 @@ import org.springframework.transaction.support.DefaultTransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import javax.persistence.OptimisticLockException;
+import jakarta.persistence.OptimisticLockException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -59,7 +59,7 @@ public class CommandServiceImplTest {
         final TransactionTemplate transactionTemplate = new TransactionTemplate() {
             @Override
             public <T> T execute(TransactionCallback<T> action) throws TransactionException {
-                transactionStatuses.add(new DefaultTransactionStatus(null,true,true,true,true,null));
+                transactionStatuses.add(new DefaultTransactionStatus("CommandServiceImplTest", null,true,true, false, true,true,null));
                 return action.doInTransaction(transactionStatuses.get(transactionStatuses.size()-1));
             }
         };

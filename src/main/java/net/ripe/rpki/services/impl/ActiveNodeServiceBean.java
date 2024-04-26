@@ -9,7 +9,7 @@ import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 
 @Service

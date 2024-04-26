@@ -12,20 +12,19 @@ import net.ripe.rpki.server.api.services.read.RoaViewService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 @Transactional(readOnly = true)
 public class RoaServiceBean implements RoaViewService {
 
-    private CertificateAuthorityRepository caRepository;
+    private final CertificateAuthorityRepository caRepository;
 
-    private RoaConfigurationRepository roaConfigurationRepository;
+    private final RoaConfigurationRepository roaConfigurationRepository;
 
-    private RoaEntityRepository roaEntityRepository;
+    private final RoaEntityRepository roaEntityRepository;
 
     public RoaServiceBean(CertificateAuthorityRepository caRepository,
                           RoaConfigurationRepository roaConfigurationRepository,
@@ -42,7 +41,7 @@ public class RoaServiceBean implements RoaViewService {
     @Override
     public List<RoaEntityData> findAllRoasForCa(Long caId) {
         ManagedCertificateAuthority ca = caRepository.findManagedCa(caId);
-        return findAllRoas(ca).stream().map(this::convertToRoaEntityData).collect(Collectors.toList());
+        return findAllRoas(ca).stream().map(this::convertToRoaEntityData).toList();
     }
 
     @Override

@@ -11,7 +11,7 @@ import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;

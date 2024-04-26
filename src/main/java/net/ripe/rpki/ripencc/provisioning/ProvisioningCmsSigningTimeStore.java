@@ -1,14 +1,13 @@
 package net.ripe.rpki.ripencc.provisioning;
 
-import net.ripe.rpki.ripencc.support.persistence.DateTimePersistenceConverter;
 import net.ripe.rpki.server.api.dto.NonHostedCertificateAuthorityData;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
-import java.sql.Timestamp;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -18,21 +17,20 @@ import java.util.Optional;
 @Component
 @Transactional
 class ProvisioningCmsSigningTimeStore {
-    private static final DateTimePersistenceConverter DATE_TIME_PERSISTENCE_CONVERTER = new DateTimePersistenceConverter();
     private final EntityManager entityManager;
 
     public ProvisioningCmsSigningTimeStore(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
 
-    public Optional<DateTime> getLastSeenProvisioningCmsSignedAt(NonHostedCertificateAuthorityData nonHostedCertificateAuthority) {
+    public Optional<Instant> getLastSeenProvisioningCmsSignedAt(NonHostedCertificateAuthorityData nonHostedCertificateAuthority) {
         try {
             Object result = entityManager.createNativeQuery(
                     "SELECT last_seen_signed_at FROM provisioning_request_signing_time WHERE ca_id = :caId"
                 )
                 .setParameter("caId", nonHostedCertificateAuthority.getId())
                 .getSingleResult();
-            return Optional.of(DATE_TIME_PERSISTENCE_CONVERTER.convertToEntityAttribute((Timestamp) result));
+            return Optional.of((Instant) result);
         } catch (NoResultException notFound) {
             return Optional.empty();
         }
@@ -43,7 +41,7 @@ class ProvisioningCmsSigningTimeStore {
      * @return true if the signing time was updated, false if the provided signing time is earlier than the currently
      * stored signing time.
      */
-    public boolean updateLastSeenProvisioningCmsSeenAt(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, DateTime cmsSigningTime) {
+    public boolean updateLastSeenProvisioningCmsSeenAt(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, Instant cmsSigningTime) {
         int count = entityManager.createNativeQuery(
                 "INSERT INTO provisioning_request_signing_time AS t (ca_id, last_seen_signed_at) " +
                     "     VALUES (:caId, :cmsSigningTime) " +
@@ -51,8 +49,15 @@ class ProvisioningCmsSigningTimeStore {
                     "      WHERE t.last_seen_signed_at < EXCLUDED.last_seen_signed_at"
             )
             .setParameter("caId", nonHostedCertificateAuthority.getId())
-            .setParameter("cmsSigningTime", DATE_TIME_PERSISTENCE_CONVERTER.convertToDatabaseColumn(cmsSigningTime))
+            .setParameter("cmsSigningTime", cmsSigningTime)
             .executeUpdate();
         return count > 0;
+    }
+
+    /**
+     * Wrap for joda-time DateTime
+     */
+    public boolean updateLastSeenProvisioningCmsSeenAt(NonHostedCertificateAuthorityData nonHostedCertificateAuthority, DateTime cmsSigningJodaTime) {
+        return updateLastSeenProvisioningCmsSeenAt(nonHostedCertificateAuthority, Instant.ofEpochMilli(cmsSigningJodaTime.getMillis()));
     }
 }

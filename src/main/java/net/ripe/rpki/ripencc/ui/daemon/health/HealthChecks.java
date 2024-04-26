@@ -2,7 +2,7 @@ package net.ripe.rpki.ripencc.ui.daemon.health;
 
 import org.springframework.stereotype.Component;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.List;
 
 @Component

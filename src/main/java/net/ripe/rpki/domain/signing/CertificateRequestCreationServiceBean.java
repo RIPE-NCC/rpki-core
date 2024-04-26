@@ -94,8 +94,7 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
     @Override
     public List<CertificateRevocationRequest> createCertificateRevocationRequestForAllKeys(ManagedCertificateAuthority ca) {
         return ca.getKeyPairs().stream()
-            .map(keyPair -> new CertificateRevocationRequest(keyPair.getPublicKey()))
-            .collect(Collectors.toList());
+                .map(keyPair -> new CertificateRevocationRequest(keyPair.getPublicKey())).toList();
     }
 
     @Override

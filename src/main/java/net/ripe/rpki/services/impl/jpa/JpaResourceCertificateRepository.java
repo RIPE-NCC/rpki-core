@@ -16,9 +16,9 @@ import org.joda.time.DateTime;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.NoResultException;
-import javax.persistence.Query;
-import javax.persistence.TypedQuery;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.Query;
+import jakarta.persistence.TypedQuery;
 import javax.security.auth.x500.X500Principal;
 import java.math.BigInteger;
 import java.security.PublicKey;
@@ -133,12 +133,7 @@ public class JpaResourceCertificateRepository extends JpaRepository<ResourceCert
             .setParameter("toBeWithdrawn", PublicationStatus.TO_BE_WITHDRAWN.name())
             .setParameter("withdrawn", PublicationStatus.WITHDRAWN.name())
             .getSingleResult();
-        return new ExpireOutgoingResourceCertificatesResult(
-            ((BigInteger) counts[0]).intValueExact(),
-            ((BigInteger) counts[1]).intValueExact(),
-            ((BigInteger) counts[2]).intValueExact(),
-            ((BigInteger) counts[3]).intValueExact()
-        );
+        return new ExpireOutgoingResourceCertificatesResult((long)counts[0], (long)counts[1], (long)counts[2], (long)counts[3]);
     }
 
     @Override

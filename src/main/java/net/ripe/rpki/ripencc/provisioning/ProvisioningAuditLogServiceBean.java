@@ -1,5 +1,6 @@
 package net.ripe.rpki.ripencc.provisioning;
 
+import com.google.common.xml.XmlEscapers;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,8 +9,6 @@ import net.ripe.rpki.application.impl.CommandAuditServiceBean;
 import net.ripe.rpki.commons.provisioning.payload.PayloadMessageType;
 import net.ripe.rpki.domain.ProvisioningAuditLogEntity;
 import net.ripe.rpki.server.api.dto.ProvisioningAuditData;
-import org.apache.tomcat.util.codec.binary.Base64;
-import org.apache.commons.text.StringEscapeUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -19,13 +18,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.TypedQuery;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
+import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
@@ -72,8 +71,7 @@ class ProvisioningAuditLogServiceBean implements ProvisioningAuditLogService {
         query.setMaxResults(CommandAuditServiceBean.MAX_HISTORY_ENTRIES_RETURNED);
         List<ProvisioningAuditLogEntity> messages = query.getResultList();
         return messages.stream()
-            .map(ProvisioningAuditLogEntity::toData)
-            .collect(Collectors.toList());
+                .map(ProvisioningAuditLogEntity::toData).toList();
     }
 
     @Getter
@@ -93,15 +91,15 @@ class ProvisioningAuditLogServiceBean implements ProvisioningAuditLogService {
             final DateTime utcDate = new DateTime(entry.getExecutionTime().getTime(), DateTimeZone.UTC);
             return new LogEntry(
                 entry.getRequestMessageType().toString(),
-                Base64.encodeBase64String(entry.getProvisioningCmsObject()),
+                Base64.getEncoder().encodeToString(entry.getProvisioningCmsObject()),
                 entry.getPrincipal(),
                 Objects.toString(entry.getNonHostedCaUUID(), null),
                 // Escape all non-printable characters to avoid problems with user input in our logs
-                StringEscapeUtils.escapeJava(entry.getSummary()),
+                XmlEscapers.xmlAttributeEscaper().escape(entry.getSummary()),
                 Objects.toString(entry.getEntryUuid(), null),
                 dateFormat.print(utcDate),
                 // since request is a DER binary, encode it as base64 as well
-                Base64.encodeBase64String(request));
+                Base64.getEncoder().encodeToString(request));
         }
     }
 }

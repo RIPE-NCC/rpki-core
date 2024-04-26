@@ -98,7 +98,7 @@ public class SequentialBackgroundQueuedTaskRunnerTest {
 
         start.countDown();
         assertThat(done.await(1, TimeUnit.SECONDS)).isTrue();
-        assertThat(data).isEqualTo(Stream.iterate(0, x -> x + 1).limit(threadCount).collect(Collectors.toList()));
+        assertThat(data).isEqualTo(Stream.iterate(0, x -> x + 1).limit(threadCount).toList());
     }
 
     @Test

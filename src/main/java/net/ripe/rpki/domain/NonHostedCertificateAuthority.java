@@ -27,9 +27,9 @@ import net.ripe.rpki.server.api.services.command.CertificationResourceLimitExcee
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.Validate;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import javax.security.auth.x500.X500Principal;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.security.PublicKey;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -69,13 +69,13 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
 
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL)
     @JoinColumn(name = "ca_id", nullable = false)
-    private Set<PublicKeyEntity> publicKeys = new HashSet<>();
+    private final Set<PublicKeyEntity> publicKeys = new HashSet<>();
 
     @Getter
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL)
     @JoinColumn(name = "ca_id", nullable = false)
     @MapKey(name = "publisherHandle")
-    private Map<UUID, NonHostedPublisherRepository> publisherRepositories = new HashMap<>();
+    private final Map<UUID, NonHostedPublisherRepository> publisherRepositories = new HashMap<>();
 
     protected NonHostedCertificateAuthority() {
     }
@@ -136,7 +136,7 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     }
 
     public Collection<PublicKey> getSignedPublicKeys() {
-        return publicKeys.stream().map(PublicKeyEntity::getPublicKey).collect(Collectors.toList());
+        return publicKeys.stream().map(PublicKeyEntity::getPublicKey).toList();
     }
 
     public Collection<PublicKeyEntity> getPublicKeyEntities() {
@@ -184,25 +184,24 @@ public class NonHostedCertificateAuthority extends CertificateAuthority {
     @Override
     public List<? extends CertificateProvisioningMessage> processResourceClassListResponse(ResourceClassListResponse response, CertificateRequestCreationService certificateRequestCreationService) {
         return publicKeys.stream()
-            .flatMap(pk -> {
-                ImmutableResourceSet certifiableResources = response.getResourceExtension().map(ResourceExtension::getResources).orElse(ImmutableResourceSet.empty());
-                ImmutableResourceSet certificateResources = pk.getRequestedResourceSets().calculateEffectiveResources(certifiableResources);
-                if (pk.isRevoked() || certificateResources.isEmpty()) {
-                    if (pk.getOutgoingResourceCertificates().stream().anyMatch(rc -> rc.isCurrent())) {
-                        return Stream.of(new CertificateRevocationRequest(pk.getPublicKey()));
-                    } else {
-                        return Stream.empty();
+                .flatMap(pk -> {
+                    ImmutableResourceSet certifiableResources = response.getResourceExtension().map(ResourceExtension::getResources).orElse(ImmutableResourceSet.empty());
+                    ImmutableResourceSet certificateResources = pk.getRequestedResourceSets().calculateEffectiveResources(certifiableResources);
+                    if (pk.isRevoked() || certificateResources.isEmpty()) {
+                        if (pk.getOutgoingResourceCertificates().stream().anyMatch(rc -> rc.isCurrent())) {
+                            return Stream.of(new CertificateRevocationRequest(pk.getPublicKey()));
+                        } else {
+                            return Stream.empty();
+                        }
                     }
-                }
 
-                return Stream.of(new CertificateIssuanceRequest(
-                    ResourceExtension.ofResources(certificateResources),
-                    pk.getSubjectForCertificateRequest(),
-                    pk.getPublicKey(),
-                    pk.getRequestedSia().toArray(X509CertificateInformationAccessDescriptor[]::new)
-                ));
-            })
-            .collect(Collectors.toList());
+                    return Stream.of(new CertificateIssuanceRequest(
+                            ResourceExtension.ofResources(certificateResources),
+                            pk.getSubjectForCertificateRequest(),
+                            pk.getPublicKey(),
+                            pk.getRequestedSia().toArray(X509CertificateInformationAccessDescriptor[]::new)
+                    ));
+                }).toList();
     }
 
     public void addNonHostedPublisherRepository(UUID publisherHandle, PublisherRequest publisherRequest, RepositoryResponse repositoryResponse) {

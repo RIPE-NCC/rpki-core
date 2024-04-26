@@ -18,9 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 
 @Slf4j
@@ -48,7 +47,7 @@ public class HistoryService extends AbstractCaRestService {
                 .map(caHistoryItem -> {
                     final String humanizedUserPrincipal = getHumanizedUserPrincipal(caHistoryItem);
                     return new HistoryItem(humanizedUserPrincipal, caHistoryItem);
-                }).collect(Collectors.toList());
+                }).toList();
 
         return ok(items);
     }

@@ -111,8 +111,7 @@ public class CaAspaConfigurationServiceTest {
     @Test
     public void shouldUpdateAspaConfigurationForCa_with_multiple_provider() throws Exception {
         var providers = IntStream.range(1000, 1100)
-                .mapToObj(i -> "AS"+i)
-                .collect(Collectors.toList());
+                .mapToObj(i -> "AS" + i).toList();
 
         mockMvc.perform(Rest.put(API_URL_PREFIX + "/123/aspa")
                         .header(HttpHeaders.IF_MATCH, ASPA_CONFIGURATION_ETAG)

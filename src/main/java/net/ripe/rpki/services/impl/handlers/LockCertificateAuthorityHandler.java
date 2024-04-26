@@ -8,7 +8,7 @@ import net.ripe.rpki.server.api.commands.ChildSharedParentCertificateAuthorityCo
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.util.DBComponent;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 

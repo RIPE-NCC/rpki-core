@@ -10,13 +10,12 @@ import net.ripe.rpki.server.api.dto.KeyPairData;
 import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import javax.security.auth.x500.X500Principal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Locally hosted certificate authority on behalf of a RIPE NCC member.
@@ -41,8 +40,7 @@ public class HostedCertificateAuthority extends ManagedCertificateAuthority {
     @Override
     public HostedCertificateAuthorityData toData() {
         final List<KeyPairData> keys = getKeyPairs().stream()
-            .map(KeyPairEntity::toData)
-            .collect(Collectors.toList());
+                .map(KeyPairEntity::toData).toList();
 
         return new HostedCertificateAuthorityData(
             getVersionedId(), getName(), getUuid(),

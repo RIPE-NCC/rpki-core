@@ -33,7 +33,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import javax.persistence.LockTimeoutException;
+import jakarta.persistence.LockTimeoutException;
 import javax.security.auth.x500.X500Principal;
 import java.security.InvalidKeyException;
 import java.security.PublicKey;

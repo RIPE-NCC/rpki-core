@@ -23,7 +23,7 @@ public class StreamsTest {
         grouped.stream().limit(grouped.size() - 1).forEach(g -> assertThat(g).hasSize(chunk));
         assertThat(grouped).last().satisfies(last -> assertThat(last.size()).isLessThanOrEqualTo(chunk));
 
-        final List<Integer> concatenated = grouped.stream().flatMap(Collection::stream).collect(Collectors.toList());
+        final List<Integer> concatenated = grouped.stream().flatMap(Collection::stream).toList();
         assertThat(s).isEqualTo(concatenated);
     }
 }

@@ -22,6 +22,9 @@ background-services:
   schedule.enable: false
 system.setup.and.testing.api.enabled: true
 
+# **Disable** authentication for the administration web UI.
+admin.authorization.enabled: false
+
 #
 # Integrations
 #

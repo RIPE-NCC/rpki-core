@@ -18,6 +18,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -55,8 +56,9 @@ public class PublicationSupportTest extends TestCase {
 
     @Before
     public void setUp() throws SecurityException, URISyntaxException {
-        published1 = new PublishedObjectData(new Timestamp(System.currentTimeMillis()), BASE_URI.resolve("object.cer"), new byte[]{4, 5, 6});
-        published2 = new PublishedObjectData(new Timestamp(System.currentTimeMillis()), BASE_URI.resolve("manifest.mft"), new byte[]{1, 2, 3});
+        var now = Instant.now();
+        published1 = new PublishedObjectData(now, BASE_URI.resolve("object.cer"), new byte[]{4, 5, 6});
+        published2 = new PublishedObjectData(now, BASE_URI.resolve("manifest.mft"), new byte[]{1, 2, 3});
 
         when(publishedObjectRepository.findCurrentlyPublishedObjects()).thenReturn(Arrays.asList(published1, published2));
 

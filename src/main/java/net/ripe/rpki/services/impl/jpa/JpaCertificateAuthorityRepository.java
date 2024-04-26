@@ -2,7 +2,7 @@ package net.ripe.rpki.services.impl.jpa;
 
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
-import net.ripe.rpki.server.api.commands.CertificateAuthorityCommandGroup;
+import net.ripe.rpki.server.api.commands.*;
 import net.ripe.rpki.server.api.dto.CaStat;
 import net.ripe.rpki.server.api.dto.CaStatCaEvent;
 import net.ripe.rpki.server.api.dto.CaStatEvent;
@@ -16,12 +16,13 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.springframework.stereotype.Repository;
 
-import javax.persistence.EntityNotFoundException;
-import javax.persistence.LockModeType;
-import javax.persistence.NoResultException;
-import javax.persistence.PersistenceException;
-import javax.persistence.Query;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.PersistenceException;
+import jakarta.persistence.Query;
 import javax.security.auth.x500.X500Principal;
+import java.time.Instant;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -150,27 +151,26 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
         return rowStream.map(row -> {
             String caName = toStr(row[0]);
             int roaCount = toInt(row[1]);
-            Date createdAt = (Date) row[2];
-            return new CaStat(caName, roaCount, ISO_DATE_FORMAT.print(new DateTime(createdAt)));
-        }).collect(Collectors.toList());
+            Instant createdAt = (Instant) row[2];
+            return new CaStat(caName, roaCount, ISO_DATE_FORMAT.print(new DateTime(createdAt.toEpochMilli())));
+        }).toList();
     }
 
     @Override
     public Collection<CaStatEvent> getCAStatEvents() {
-        final String updateRoaConf = "UpdateRoaConfigurationCommand";
+        // Two legacy command types that _may_ be present
         final String createRoaSpec = "CreateRoaSpecificationCommand";
         final String deleteRoaSpec = "DeleteRoaSpecificationCommand";
-        final String activateCaSpec = "ActivateHostedCertificateAuthorityCommand";
-        final String activateNonHostedCaSpec = "ActivateNonHostedCertificateAuthorityCommand";
-        final String deleteCaSpec = "DeleteCertificateAuthorityCommand";
-        final String deleteNonHostedCaSpec = "DeleteNonHostedCertificateAuthorityCommand";
 
-        final List<String> commandTypes = Arrays.asList(updateRoaConf, createRoaSpec, deleteRoaSpec,
-                activateCaSpec, activateNonHostedCaSpec, deleteCaSpec, deleteNonHostedCaSpec);
-
-        final Pattern updateConfPattern = Pattern.compile("Updated ROA configuration. Additions: (.+). Deletions: (.+)\\.");
-        final Pattern createSpecPattern = Pattern.compile("Created ROA specification '.+' (.+).");
-        final Pattern deleteSpecPattern = Pattern.compile("Deleted ROA specification '.+' (.+).");
+        // recall: prefix/suffix for Collectors.joining are not in between elements, so it can not be
+        final var commandTypesSqlList = Stream.of(
+                createRoaSpec, deleteRoaSpec,
+                UpdateRoaConfigurationCommand.class.getSimpleName(),
+                ActivateHostedCertificateAuthorityCommand.class.getSimpleName(),
+                ActivateNonHostedCertificateAuthorityCommand.class.getSimpleName(),
+                DeleteCertificateAuthorityCommand.class.getSimpleName(),
+                DeleteNonHostedCertificateAuthorityCommand.class.getSimpleName()
+            ).map(s -> "'" + s + "'").collect(Collectors.joining(","));
 
         final Query q = manager.createNativeQuery("SELECT " +
                 "ca.name, " +
@@ -179,8 +179,12 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
                 "au.commandsummary " +
                 "FROM commandAudit au " +
                 "LEFT JOIN certificateAuthority ca ON ca.id = au.ca_id " +
-                "WHERE commandtype IN (" + inClause(commandTypes) + ")" +
+                "WHERE commandtype IN (" + commandTypesSqlList + ") " +
                 "ORDER BY au.executiontime ASC, ca.name");
+
+        final Pattern updateConfPattern = Pattern.compile("Updated ROA configuration. Additions: (.+). Deletions: (.+)\\.");
+        final Pattern createSpecPattern = Pattern.compile("Created ROA specification '.+' (.+).");
+        final Pattern deleteSpecPattern = Pattern.compile("Deleted ROA specification '.+' (.+).");
 
         final List<?> resultList = q.getResultList();
         final List<CaStatEvent> result = new ArrayList<>();
@@ -188,9 +192,10 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
             final Object[] columns = (Object[]) r;
             final String caName = toStr(columns[0]);
             final String type = toStr(columns[1]);
-            final String date = ISO_DATE_FORMAT.print(new DateTime(columns[2]));
+            final String date = ISO_DATE_FORMAT.print(new DateTime(((Instant)columns[2]).toEpochMilli()));
             final String summary = toStr(columns[3]);
-            if (updateRoaConf.equals(type)) {
+
+            if (UpdateRoaConfigurationCommand.class.getSimpleName().equals(type)) {
                 final Matcher m = updateConfPattern.matcher(summary);
                 if (m.matches()) {
                     final String additions = m.group(1);
@@ -213,9 +218,9 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
                     if (deleted > 0)
                         result.add(new CaStatRoaEvent(caName, date, 0, deleted));
                 }
-            } else if (activateCaSpec.equals(type) || activateNonHostedCaSpec.equals(type)) {
+            } else if (ActivateHostedCertificateAuthorityCommand.class.getSimpleName().equals(type) || ActivateNonHostedCertificateAuthorityCommand.class.getSimpleName().equals(type)) {
                 result.add(CaStatCaEvent.created(caName, date));
-            } else if (deleteCaSpec.equals(type) || deleteNonHostedCaSpec.equals(type)) {
+            } else if (DeleteCertificateAuthorityCommand.class.getSimpleName().equals(type) || DeleteNonHostedCertificateAuthorityCommand.class.getSimpleName().equals(type)) {
                 result.add(CaStatCaEvent.deleted(date));
             }
         }
@@ -268,25 +273,24 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
     @Override
     public List<ManagedCertificateAuthority> findAllWithManifestsExpiringBefore(DateTime notValidAfterCutoff, int maxResult) {
         return manager.createQuery(
-                "SELECT DISTINCT ca, MIN(po.validityPeriod.notValidAfter) " +
-                    "  FROM ManagedCertificateAuthority ca" +
-                    "  JOIN ca.keyPairs kp," +
-                    "       ManifestEntity mft" +
-                    "  JOIN mft.publishedObject po" +
-                    "  JOIN mft.certificate crt" +
-                    " WHERE kp.status IN :publishable" +
-                    "   AND crt.signingKeyPair = kp" +
-                    "   AND po.validityPeriod.notValidAfter < :notValidAfterCutoff" +
-                    " GROUP BY ca" +
-                    " ORDER BY MIN(po.validityPeriod.notValidAfter) ASC",
-                Object[].class)
-            // See KeyPairEntity.isPublishable for the next two parameters
-            .setParameter("publishable", Arrays.asList(KeyPairStatus.PENDING, KeyPairStatus.CURRENT, KeyPairStatus.OLD))
-            .setParameter("notValidAfterCutoff", notValidAfterCutoff)
-            .setMaxResults(maxResult)
-            .getResultStream()
-            .map(row -> (ManagedCertificateAuthority) row[0])
-            .collect(Collectors.toList());
+                        "SELECT DISTINCT ca, MIN(po.validityPeriod.notValidAfter) " +
+                                "  FROM ManagedCertificateAuthority ca" +
+                                "  JOIN ca.keyPairs kp," +
+                                "       ManifestEntity mft" +
+                                "  JOIN mft.publishedObject po" +
+                                "  JOIN mft.certificate crt" +
+                                " WHERE kp.status IN :publishable" +
+                                "   AND crt.signingKeyPair = kp" +
+                                "   AND po.validityPeriod.notValidAfter < :notValidAfterCutoff" +
+                                " GROUP BY ca" +
+                                " ORDER BY MIN(po.validityPeriod.notValidAfter) ASC",
+                        Object[].class)
+                // See KeyPairEntity.isPublishable for the next two parameters
+                .setParameter("publishable", Arrays.asList(KeyPairStatus.PENDING, KeyPairStatus.CURRENT, KeyPairStatus.OLD))
+                .setParameter("notValidAfterCutoff", notValidAfterCutoff)
+                .setMaxResults(maxResult)
+                .getResultStream()
+                .map(row -> (ManagedCertificateAuthority) row[0]).toList();
     }
 
     @Override
@@ -340,10 +344,6 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
         } catch (NoResultException e) {
             return Optional.empty();
         }
-    }
-
-    private static String inClause(final Collection<String> items) {
-        return items.stream().collect(Collectors.joining(",", "'", "'"));
     }
 
     private static int countRoasUpdateSpecPattern(String summary) {

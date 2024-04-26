@@ -1,7 +1,6 @@
 package net.ripe.rpki.domain;
 
 import lombok.Getter;
-import lombok.NonNull;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
@@ -15,9 +14,9 @@ import net.ripe.rpki.server.api.dto.ResourceCertificateData;
 import org.apache.commons.lang.Validate;
 import org.joda.time.DateTime;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import javax.security.auth.x500.X500Principal;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigInteger;
 import java.net.URI;
 import java.security.PublicKey;

@@ -13,7 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.security.auth.x500.X500Principal;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 import java.util.UUID;
 

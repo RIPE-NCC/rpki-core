@@ -19,12 +19,11 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.security.auth.x500.X500Principal;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static net.ripe.ipresource.ImmutableResourceSet.parse;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,9 +49,6 @@ public class RoaConfigurationMaintenanceServiceTest extends CertificationDomainT
 
     @Autowired
     private JpaResourceCacheImpl resourceCache;
-
-    @Autowired
-    private CommandService subject;
 
     @Autowired
     private RoaConfigurationRepository roaConfigurationRepository;
@@ -122,8 +118,7 @@ public class RoaConfigurationMaintenanceServiceTest extends CertificationDomainT
         assertThat(roaConfiguration.getPrefixes())
                 .containsExactlyInAnyOrderElementsOf(
                         ALL_ROA_CONFIGURATIONS.stream()
-                        .filter(r -> IpRange.parse("fc00::/9").contains(r.getPrefix()))
-                        .collect(Collectors.toList())
+                                .filter(r -> IpRange.parse("fc00::/9").contains(r.getPrefix())).toList()
                 )
                 .hasSize(2);
 
@@ -141,13 +136,5 @@ public class RoaConfigurationMaintenanceServiceTest extends CertificationDomainT
 
         assertThat(roaConfigurationRepository.findByCertificateAuthority(child))
                 .hasValueSatisfying(config -> assertThat(config.getPrefixes()).isEmpty());
-    }
-
-    private CommandStatus execute(CertificateAuthorityCommand command) {
-        try {
-            return subject.execute(command);
-        } finally {
-            entityManager.flush();
-        }
     }
 }

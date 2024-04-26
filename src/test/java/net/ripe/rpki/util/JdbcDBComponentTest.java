@@ -15,7 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.persistence.LockModeType;
+import jakarta.persistence.LockModeType;
 import javax.security.auth.x500.X500Principal;
 import javax.sql.DataSource;
 import java.sql.Connection;

@@ -7,7 +7,7 @@ import net.ripe.rpki.domain.manifest.ManifestEntity;
 import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.net.URI;
 import java.util.Objects;
 

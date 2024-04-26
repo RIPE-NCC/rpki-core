@@ -12,12 +12,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class BaseController {
 
@@ -42,8 +41,7 @@ public class BaseController {
 
     @ModelAttribute(name = "currentUser", binding = false)
     public UserData currentUser(@AuthenticationPrincipal Object user) {
-        if (user instanceof OAuth2User) {
-            OAuth2User oAuth2User = (OAuth2User) user;
+        if (user instanceof OAuth2User oAuth2User) {
             return new UserData(oAuth2User.getName(), oAuth2User.getAttribute("name"), oAuth2User.getAttribute("email"));
         } else {
             String id = String.valueOf(user);
@@ -108,9 +106,8 @@ public class BaseController {
 
         static List<BackgroundServiceData> fromBackgroundServices(Map<String, BackgroundService> backgroundServiceMap) {
             return backgroundServiceMap.entrySet().stream()
-                .map(entry -> new BackgroundServiceData(entry.getKey(), entry.getValue()))
-                .sorted(Comparator.comparing(s -> s.name))
-                .collect(Collectors.toList());
+                    .map(entry -> new BackgroundServiceData(entry.getKey(), entry.getValue()))
+                    .sorted(Comparator.comparing(s -> s.name)).toList();
         }
     }
 

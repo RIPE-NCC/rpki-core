@@ -45,7 +45,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy.allowedRoutesToNestedIntervalMap;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 
@@ -91,9 +91,9 @@ public class AnnouncementService extends AbstractCaRestService {
                 ar -> new BgpAnnouncement(ar.getOriginAsn().toString(), ar.getPrefix().toString(),
                         0, RouteOriginValidationPolicy.validateAnnouncedRoute(currentRouteMap, ar),
                         true)
-        ).collect(Collectors.toList());
+        ).toList();
 
-        return ok(Stream.concat(announcedAnnouncements.stream(), notSeenAnnouncements.stream()).collect(Collectors.toList()));
+        return ok(Stream.concat(announcedAnnouncements.stream(), notSeenAnnouncements.stream()).toList());
     }
 
     private Set<AnnouncedRoute> bgpRisMapToAnnouncedRoutes(Map<Boolean, Collection<BgpRisEntry>> announcements) {

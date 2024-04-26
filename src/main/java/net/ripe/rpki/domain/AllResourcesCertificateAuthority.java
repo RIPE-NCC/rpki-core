@@ -10,9 +10,9 @@ import net.ripe.rpki.domain.signing.CertificateRequestCreationService;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
-import javax.persistence.OneToOne;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+import jakarta.persistence.OneToOne;
 import javax.security.auth.x500.X500Principal;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +26,7 @@ public class AllResourcesCertificateAuthority extends ManagedCertificateAuthorit
 
     @Getter
     @Setter
-    @OneToOne(mappedBy = "certificateAuthority", cascade = {javax.persistence.CascadeType.ALL}, orphanRemoval = true)
+    @OneToOne(mappedBy = "certificateAuthority", cascade = {jakarta.persistence.CascadeType.ALL}, orphanRemoval = true)
     private UpStreamCARequestEntity upStreamCARequestEntity;
 
     protected AllResourcesCertificateAuthority() {

@@ -15,7 +15,7 @@ import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.security.auth.x500.X500Principal;
 import java.util.Map;
 

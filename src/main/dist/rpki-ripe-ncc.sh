@@ -5,7 +5,7 @@
 #   APPLICATION_ENVIRONMENT=prepdev rpki-ripe-ncc.sh
 #
 
-JAVA_HOME=${JAVA_HOME:-"/usr/lib/jvm/jre-11-openjdk"}
+JAVA_HOME=${JAVA_HOME:-"/usr/lib/jvm/jre-17-openjdk"}
 LANG=${LANG:-"en_US.UTF-8"}
 
 cd "$(dirname "$0")" || exit 1

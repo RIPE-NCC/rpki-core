@@ -10,6 +10,10 @@ keystore:
 instance.name: local
 system.setup.and.testing.api.enabled: true
 
+# **Disable** authentication for the administration web UI.
+admin.authorization.enabled: false
+
+
 # local setup should not be able to deliver mail by default.
 mail:
     host: localhost

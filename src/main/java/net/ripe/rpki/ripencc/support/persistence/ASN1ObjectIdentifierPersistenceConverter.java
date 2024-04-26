@@ -2,8 +2,8 @@ package net.ripe.rpki.ripencc.support.persistence;
 
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 
 @Converter(autoApply = true)
 public class ASN1ObjectIdentifierPersistenceConverter implements AttributeConverter<ASN1ObjectIdentifier, String> {

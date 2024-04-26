@@ -1,6 +1,7 @@
 package net.ripe.rpki.web;
 
 import lombok.NonNull;
+import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
@@ -8,16 +9,17 @@ import net.ripe.rpki.server.api.services.background.BackgroundService;
 import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import net.ripe.rpki.services.impl.background.BackgroundServices;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.net.URI;
@@ -35,8 +37,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-@SpringBootTest
-@RunWith(MockitoJUnitRunner.class)
+@ActiveProfiles("test")
+@SpringBootTest(classes = TestRpkiBootApplication.class)
+@ExtendWith(MockitoExtension.class)
 public class AdminControllerTest extends SpringWebControllerTestCase {
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -57,7 +60,7 @@ public class AdminControllerTest extends SpringWebControllerTestCase {
         return new AdminController(repositoryConfiguration, activeNodeService, backgroundServiceMap, backgroundServices, provisioningIdentityViewService, new GitProperties(new Properties()));
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(repositoryConfiguration.getPublicRepositoryUri()).thenReturn(URI.create("rsync://example.com/rpki/repository"));
         when(activeNodeService.getActiveNodeName()).thenReturn("active-node");

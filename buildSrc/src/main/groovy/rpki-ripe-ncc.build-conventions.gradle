@@ -35,11 +35,14 @@ repositories {
     maven {
         url = uri('https://maven.nexus.ripe.net/repository/maven-third-party')
     }
+    maven {
+        url = uri('https://maven.nexus.ripe.net/repository/maven-third-party-snapshots')
+    }
 }
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 

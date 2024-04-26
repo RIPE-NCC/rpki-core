@@ -35,7 +35,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.springframework.stereotype.Service;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
 import java.security.KeyPair;
@@ -135,8 +135,7 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
                         difference.entriesOnlyOnRight().keySet().stream(),
                         difference.entriesDiffering().keySet().stream()
                 ).map(validAspaEntitiesByAsn::get)
-            )
-            .collect(Collectors.toList());
+        ).toList();
 
         SortedMap<Asn, AspaConfiguration> unmatchedAspaConfiguration = Stream.concat(
                 difference.entriesOnlyOnLeft().keySet().stream(),

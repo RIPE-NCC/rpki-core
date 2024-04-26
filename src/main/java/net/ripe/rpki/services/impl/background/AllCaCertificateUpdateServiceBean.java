@@ -14,7 +14,7 @@ import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
 import java.util.Collection;
 import java.util.Collections;

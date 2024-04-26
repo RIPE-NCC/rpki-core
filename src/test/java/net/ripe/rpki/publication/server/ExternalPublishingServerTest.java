@@ -143,13 +143,13 @@ public class ExternalPublishingServerTest {
         String clientId = RandomStringUtils.randomAlphanumeric(8);
         String reply = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
         when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(clientId))).thenReturn(Mono.just(reply));
-        List<PublicationMessage> messages = Stream.of(
-            new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx.cer"), new byte[]{1, 2, 3}, Optional.empty()),
-            new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx2.cer"), new byte[]{1, 2, 3, 4}, Optional.empty()),
-            new PublicationMessage.WithdrawRequest(new URI("rsync://blabla.com/yyy.cer"), "not important"),
-            new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx.roa"), new byte[]{1, 2, 3}, java.util.Optional.of("aHash")),
-            new PublicationMessage.WithdrawRequest(new URI("rsync://blabla.com/zzz.weird-extension"), "not important")
-        ).collect(Collectors.toList());
+        List<? extends PublicationMessage> messages = Stream.of(
+                new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx.cer"), new byte[]{1, 2, 3}, Optional.empty()),
+                new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx2.cer"), new byte[]{1, 2, 3, 4}, Optional.empty()),
+                new PublicationMessage.WithdrawRequest(new URI("rsync://blabla.com/yyy.cer"), "not important"),
+                new PublicationMessage.PublishRequest(new URI("rsync://blabla.com/xxx.roa"), new byte[]{1, 2, 3}, Optional.of("aHash")),
+                new PublicationMessage.WithdrawRequest(new URI("rsync://blabla.com/zzz.weird-extension"), "not important")
+        ).toList();
         externalPublishingServer.execute(messages, clientId);
         assertEquals(2.0, meterRegistry.get("rpkicore.publication.operations").tag("operation", "publish").tag("type", "cer").counter().count(), 0.1);
         assertEquals(1.0, meterRegistry.get("rpkicore.publication.operations").tag("operation", "publish").tag("type", "roa").counter().count(), 0.1);

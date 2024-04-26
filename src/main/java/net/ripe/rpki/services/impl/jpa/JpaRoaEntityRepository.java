@@ -37,7 +37,7 @@ public class JpaRoaEntityRepository extends JpaRepository<RoaEntity> implements 
     @Override
     public int deleteByCertificateSigningKeyPair(KeyPairEntity certificateSigningKeyPair) {
         return manager
-            .createQuery("DELETE FROM RoaEntity WHERE certificate_id IN (SELECT id FROM OutgoingResourceCertificate orc WHERE orc.signingKeyPair = :cskp)")
+            .createQuery("DELETE FROM RoaEntity WHERE certificate.id IN (SELECT id FROM OutgoingResourceCertificate orc WHERE orc.signingKeyPair = :cskp)")
             .setParameter("cskp", certificateSigningKeyPair)
             .executeUpdate();
     }

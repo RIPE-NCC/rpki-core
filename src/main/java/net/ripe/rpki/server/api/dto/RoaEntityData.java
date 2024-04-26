@@ -3,7 +3,7 @@ package net.ripe.rpki.server.api.dto;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCms;
 import net.ripe.rpki.server.api.support.objects.ValueObjectSupport;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * DTO object for actual ROA objects (as opposed to specification objects)

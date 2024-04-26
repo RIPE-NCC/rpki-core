@@ -5,8 +5,8 @@ import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.junit.Test;
 
-import javax.inject.Inject;
-import javax.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -33,8 +33,7 @@ public class AspaService {
     public ResponseEntity<ValidatedObjectsResponse<AspaConfigurationData>> listAspaConfigs() {
         final Collection<AspaConfiguration> aspaConfigurations = aspaConfigurationRepository.findAll();
         final List<AspaConfigurationData> aspas = aspaConfigurations.stream()
-            .map(AspaConfiguration::toData)
-            .collect(Collectors.toList());
+                .map(AspaConfiguration::toData).toList();
         return ResponseEntity.ok(ValidatedObjectsResponse.of(aspas, Collections.singletonMap("origin", "rpki-core")));
     }
 

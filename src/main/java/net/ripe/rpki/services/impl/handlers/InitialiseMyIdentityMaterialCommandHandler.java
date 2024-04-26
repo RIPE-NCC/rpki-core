@@ -6,7 +6,7 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import org.apache.commons.lang.NotImplementedException;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 
 @Handler

@@ -15,9 +15,9 @@ import net.ripe.rpki.server.api.security.RoleBasedAuthenticationStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.Query;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
 import javax.security.auth.x500.X500Principal;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +59,7 @@ public class CommandAuditServiceBean implements CommandAuditService {
     }
 
     private List<CommandAuditData> convertToData(List<CommandAudit> commandAuditList) {
-        return commandAuditList.stream().map(CommandAudit::toData).collect(Collectors.toList());
+        return commandAuditList.stream().map(CommandAudit::toData).toList();
     }
 
     @SuppressWarnings("unchecked")
@@ -79,8 +79,7 @@ public class CommandAuditServiceBean implements CommandAuditService {
         VersionedId caVersionedId;
         X500Principal caName;
         UUID caUuid;
-        if (command instanceof CertificateAuthorityCreationCommand) {
-            CertificateAuthorityCreationCommand activationCommand = (CertificateAuthorityCreationCommand) command;
+        if (command instanceof CertificateAuthorityCreationCommand activationCommand) {
             caVersionedId = activationCommand.getCertificateAuthorityVersionedId();
             caName = activationCommand.getName();
             caUuid = activationCommand.getUuid();
@@ -104,7 +103,7 @@ public class CommandAuditServiceBean implements CommandAuditService {
         CommandAudit commandAudit = context.getCommandAudit();
         CertificateAuthorityCommand command = context.getCommand();
 
-        List<String> events = context.getRecordedEvents().stream().map(Object::toString).collect(Collectors.toList());
+        List<String> events = context.getRecordedEvents().stream().map(Object::toString).toList();
         String commandEvents = events.stream().collect(Collectors.joining("\n    ", "\n    ", ""));
 
         log.info(

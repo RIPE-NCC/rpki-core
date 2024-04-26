@@ -21,7 +21,7 @@ public class Roas {
         for (var e : newOnes.entrySet()) {
             var maxLengths = e.getValue();
             if (maxLengths.size() > 1) {
-                var sorted = maxLengths.stream().sorted().collect(Collectors.toList());
+                var sorted = maxLengths.stream().sorted().toList();
                 return Optional.of(String.format("%s: there are more than one pair (%s, %s), max lengths: %s",
                         prefix, e.getKey().getOriginAsn(), e.getKey().getPrefix(), sorted));
             }
@@ -53,7 +53,7 @@ public class Roas {
         var futureMap = futureRoutes.stream().collect(Collectors.toMap(
                 r -> new AnnouncedRoute(r.getAsn(), r.getPrefix()),
                 r -> Collections.singletonList(r.getMaximumLength()),
-                (a, b) -> Streams.concat(a.stream(), b.stream()).collect(Collectors.toList())));
+                (a, b) -> Streams.concat(a.stream(), b.stream()).toList()));
 
         return validateUniqueROAs("Error in future ROAs", futureMap);
     }

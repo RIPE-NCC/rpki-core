@@ -63,12 +63,11 @@ public class KeyPairActivationManagementServiceBean extends SequentialBackground
             log.info("checking {} certificate authorities with pending keys for activation", casWithPendingKeys.size());
 
             List<CertificateAuthorityData> casWithActivatedKeys = casWithPendingKeys.parallelStream()
-                .filter(ca -> {
-                    CommandStatus status =
-                        commandService.execute(KeyManagementActivatePendingKeysCommand.plannedActivationCommand(ca.getVersionedId(), configuration.getStagingPeriod()));
-                    return status.isHasEffect();
-                })
-                .collect(Collectors.toList());
+                    .filter(ca -> {
+                        CommandStatus status =
+                                commandService.execute(KeyManagementActivatePendingKeysCommand.plannedActivationCommand(ca.getVersionedId(), configuration.getStagingPeriod()));
+                        return status.isHasEffect();
+                    }).toList();
             log.info("activated keys for {} certificate authorities", casWithActivatedKeys.size());
 
             casWithActivatedKeys.forEach(parentCA -> {

@@ -55,13 +55,12 @@ class ListResourceClassProcessor extends AbstractProvisioningProcessor {
                 .buildResourceClassListResponseClassElement();
 
             final List<CertificateElement> certificateElements = nonHostedCertificateAuthority.getPublicKeys().stream()
-                .filter(publicKeyData -> publicKeyData.getCurrentCertificate() != null)
-                .map(publicKeyData -> createClassElement(
-                    publicKeyData.getCurrentCertificate().getCertificate(),
-                    publicKeyData.getRequestedResourceSets(),
-                    publicKeyData.getCurrentCertificate().getPublicationUri()
-                ))
-                .collect(Collectors.toList());
+                    .filter(publicKeyData -> publicKeyData.getCurrentCertificate() != null)
+                    .map(publicKeyData -> createClassElement(
+                            publicKeyData.getCurrentCertificate().getCertificate(),
+                            publicKeyData.getRequestedResourceSets(),
+                            publicKeyData.getCurrentCertificate().getPublicationUri()
+                    )).toList();
 
             classElement.setCertificateElements(certificateElements);
             responsePayloadBuilder.addClassElement(classElement);

@@ -2,7 +2,6 @@ package net.ripe.rpki.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
-import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import lombok.Data;
 import org.junit.jupiter.api.Test;
@@ -11,7 +10,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import static net.ripe.rpki.RpkiBootApplication.API_KEY_REFERENCE;
 import static net.ripe.rpki.RpkiBootApplication.USER_ID_REFERENCE;

@@ -10,6 +10,7 @@ import net.ripe.rpki.commons.validation.ValidationResult;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import static net.ripe.rpki.commons.validation.ValidationString.SIGNING_TIME_GREATER_OR_EQUAL;

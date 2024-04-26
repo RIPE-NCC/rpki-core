@@ -8,7 +8,7 @@ import net.ripe.rpki.server.api.commands.ProvisioningCertificateIssuanceCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.security.PublicKey;
 
 @Handler

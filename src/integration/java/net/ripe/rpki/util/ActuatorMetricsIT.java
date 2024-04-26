@@ -4,16 +4,18 @@ import lombok.Setter;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.rest.service.Rest;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.actuate.metrics.AutoConfigureMetrics;
+import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -23,9 +25,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {"management.port="})
 @ComponentScan(value = "net.ripe.rpki", lazyInit = false)
 @ActiveProfiles("test")
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureMockMvc
-@AutoConfigureMetrics
+@AutoConfigureObservability
 @SpringBootTest(classes = TestRpkiBootApplication.class, properties = "instance.name=unittest.local")
 /**
  * Validate that the metrics can be loaded.

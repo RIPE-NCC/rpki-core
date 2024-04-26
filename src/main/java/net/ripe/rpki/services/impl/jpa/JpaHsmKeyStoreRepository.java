@@ -7,7 +7,7 @@ import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.TypedQuery;
+import jakarta.persistence.TypedQuery;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Optional;

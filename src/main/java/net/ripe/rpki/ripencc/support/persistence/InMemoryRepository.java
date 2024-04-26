@@ -3,13 +3,12 @@ package net.ripe.rpki.ripencc.support.persistence;
 import net.ripe.rpki.ncc.core.domain.support.Entity;
 import org.apache.commons.lang.Validate;
 
-import javax.persistence.EntityNotFoundException;
-import javax.persistence.LockModeType;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public abstract class InMemoryRepository<T extends Entity> implements Repository<T> {
 
@@ -48,7 +47,7 @@ public abstract class InMemoryRepository<T extends Entity> implements Repository
 
     @Override
     public Collection<? extends T> findByIds(Collection<?> ids, LockModeType lockModeType) {
-        return ids.stream().map(this::find).filter(Objects::nonNull).collect(Collectors.toList());
+        return ids.stream().map(this::find).filter(Objects::nonNull).toList();
     }
 
     public T get(Object id) throws EntityNotFoundException {

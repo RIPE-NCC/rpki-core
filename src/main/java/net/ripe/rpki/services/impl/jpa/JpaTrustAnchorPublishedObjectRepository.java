@@ -6,8 +6,8 @@ import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
 import org.joda.time.Instant;
 import org.springframework.stereotype.Component;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.util.List;
 
 @Component

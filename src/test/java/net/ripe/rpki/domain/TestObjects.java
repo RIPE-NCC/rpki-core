@@ -6,6 +6,7 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.provisioning.x509.pkcs10.RpkiCaCertificateRequestBuilder;
+import net.ripe.rpki.domain.inmemory.InMemoryCertificateAuthorityRepository;
 import net.ripe.rpki.domain.inmemory.InMemoryResourceCertificateRepository;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.hsm.Keys;
@@ -178,19 +179,21 @@ public class TestObjects {
     public static ProductionCertificateAuthority createInitialisedProdCaWithRipeResources() {
         RepositoryConfiguration certificationConfiguration = mock(RepositoryConfiguration.class);
         when(certificationConfiguration.getPublicRepositoryUri()).thenReturn(BASE_URI);
-        return createInitialisedProdCaWithRipeResources(new InMemoryResourceCertificateRepository(), certificationConfiguration);
+        return createInitialisedProdCaWithRipeResources(new InMemoryCertificateAuthorityRepository(), new InMemoryResourceCertificateRepository(), certificationConfiguration);
     }
 
-    public static ProductionCertificateAuthority createInitialisedProdCaWithRipeResources(ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration) {
+    public static ProductionCertificateAuthority createInitialisedProdCaWithRipeResources(CertificateAuthorityRepository certificateAuthorityRepository, ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration) {
         ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, UUID.randomUUID(), null);
-        createInitialisedKeyPair(resourceCertificateRepository, certificationConfiguration, ca, "TEST-KEY");
+        createInitialisedKeyPair(certificateAuthorityRepository, resourceCertificateRepository, certificationConfiguration, ca, "TEST-KEY");
         Validate.isTrue(ca.hasCurrentKeyPair());
         return ca;
     }
 
-    static KeyPairEntity createInitialisedKeyPair(ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration, ProductionCertificateAuthority ca, String name) {
+    static KeyPairEntity createInitialisedKeyPair(CertificateAuthorityRepository certificateAuthorityRepository, ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration, ProductionCertificateAuthority ca, String name) {
         KeyPairEntity kp = createTestKeyPair(name);
         ca.addKeyPair(kp);
+        // Implicitly persists the keypair before it is used in a outgoing resource certificate
+        certificateAuthorityRepository.add(ca);
         issueSelfSignedCertificates(resourceCertificateRepository, certificationConfiguration, ca);
         return kp;
     }

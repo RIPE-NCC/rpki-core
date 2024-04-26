@@ -16,6 +16,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -32,7 +33,7 @@ public class FileSystemPublicationObjectPersistenceTest {
 
     private static final URI TA_REPOSITORY_BASE_URI = URI.create("rsync://repository/ta/");
     private File taRepositoryBaseDirectory;
-    private static final Timestamp CREATED_AT = new Timestamp(System.currentTimeMillis());
+    private static final Instant CREATED_AT = Instant.now();
 
     private FileSystemPublicationObjectPersistence subject;
 
@@ -49,6 +50,7 @@ public class FileSystemPublicationObjectPersistenceTest {
         this.taRepositoryBaseDirectory = taRepositoryBaseDirectory;
 
         // fix the current time while a test is running
+        // this time is used for the naming of the target directories
         DateTimeUtils.setCurrentMillisFixed(new DateTime().getMillis());
 
         subject = new FileSystemPublicationObjectPersistence(
@@ -77,7 +79,7 @@ public class FileSystemPublicationObjectPersistenceTest {
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
 
-        assertThat(new File(onlineRepositoryBaseDirectory, "published/foo/bar.cer").lastModified() / 1000).isEqualTo(CREATED_AT.getTime() / 1000);
+        assertThat(new File(onlineRepositoryBaseDirectory, "published/foo/bar.cer").lastModified() / 1000).isEqualTo(CREATED_AT.toEpochMilli() / 1000);
     }
 
     @Test
@@ -214,8 +216,7 @@ public class FileSystemPublicationObjectPersistenceTest {
         assertThat(new File(onlineRepositoryBaseDirectory, "published/foo/old.cer")).exists();
 
         DateTimeUtils.setCurrentMillisFixed(DateTimeUtils.currentTimeMillis() + 100);
-
-        subject.writeAll(Collections.singletonList(new PublishedObjectData(new Timestamp(System.currentTimeMillis()), newUri, CONTENTS)));
+        subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT.plusSeconds(100), newUri, CONTENTS)));
 
         assertThat(new File(onlineRepositoryBaseDirectory, "published/foo/new.cer")).exists();
         assertThat(new File(onlineRepositoryBaseDirectory, "published/foo/old.cer")).doesNotExist();

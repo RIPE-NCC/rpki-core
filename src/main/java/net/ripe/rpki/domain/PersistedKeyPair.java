@@ -3,10 +3,10 @@ package net.ripe.rpki.domain;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.hsm.Keys;
 
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
-import javax.persistence.PostRemove;
-import javax.persistence.Transient;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.PostRemove;
+import jakarta.persistence.Transient;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;

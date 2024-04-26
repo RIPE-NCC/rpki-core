@@ -22,9 +22,8 @@ import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
 import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import org.springframework.beans.factory.annotation.Value;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 @Handler
@@ -145,7 +144,6 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
     private List<Asn> findAddedPrivateAsns(SortedMap<Asn, SortedSet<Asn>> configuration) {
         return configuration.values().stream()
                 .flatMap(Collection::stream)
-                .filter(privateAsns::contains)
-                .collect(Collectors.toList());
+                .filter(privateAsns::contains).toList();
     }
 }

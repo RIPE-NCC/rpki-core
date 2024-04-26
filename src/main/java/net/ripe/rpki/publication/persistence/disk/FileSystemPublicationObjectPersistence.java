@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -137,7 +137,7 @@ public class FileSystemPublicationObjectPersistence {
                     Path file = temporaryLocation(temporaryDirectory, object.getUri());
                     Files.write(file, object.getContent());
                     // rsync relies on the correct timestamp for fast synchronization
-                    Files.setLastModifiedTime(file, FileTime.fromMillis(object.getCreatedAt().getTime()));
+                    Files.setLastModifiedTime(file, FileTime.fromMillis(object.getCreatedAt().toEpochMilli()));
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }

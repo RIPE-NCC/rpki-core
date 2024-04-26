@@ -19,7 +19,7 @@ import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import net.ripe.rpki.services.impl.background.RoaMetricsService;
 import org.springframework.beans.factory.annotation.Value;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -97,8 +97,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
 
     private void validateAsns(UpdateRoaConfigurationCommand command) {
         List<Asn> privateAsns = command.getAdditions().stream().map(RoaConfigurationPrefixData::getAsn)
-            .filter(privateAsnRanges::contains)
-            .collect(Collectors.toList());
+                .filter(privateAsnRanges::contains).toList();
         if (!privateAsns.isEmpty()) {
             throw new PrivateAsnsUsedException("ROA configuration", privateAsns);
         }

@@ -140,7 +140,7 @@ sonarqube:
     - if: $CI_COMMIT_BRANCH == "next"
 
 control/run-on-staging:
-  image: node:21-alpine
+  image: node:22-alpine
   stage: qa
   script:
     - ./scripts/gitlab-deploy-check

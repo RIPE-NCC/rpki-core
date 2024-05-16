@@ -9,7 +9,7 @@ import net.ripe.rpki.domain.alerts.RoaAlertConfiguration;
 import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
 import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
 import net.ripe.rpki.server.api.commands.SubscribeToRoaAlertCommand;
-import net.ripe.rpki.services.impl.EmailSender;
+import net.ripe.rpki.services.impl.email.EmailSender;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,10 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -77,7 +74,7 @@ public class SubscribeToRoaAlertCommandHandlerTest {
 
         verify(repository).add(alertCapture.capture());
         verify(emailSender).sendEmail(emailCapture.capture(), isA(String.class),
-                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_WEEKLY), isA(Map.class));
+                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_WEEKLY), isA(Map.class), isA(String.class));
         assertEquals(RoaAlertFrequency.WEEKLY, alertCapture.getValue().getFrequency());
         assertEquals(email, emailCapture.getValue());
     }
@@ -98,7 +95,7 @@ public class SubscribeToRoaAlertCommandHandlerTest {
 
         assertEquals(newValidityStates, configuration.getSubscriptionOrNull().getRouteValidityStates());
         verify(emailSender, times(0)).sendEmail(anyString(), eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY.templateSubject),
-                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY), isA(Map.class));
+                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY), isA(Map.class), isA(String.class));
     }
 
     @SuppressWarnings("unchecked")
@@ -113,8 +110,9 @@ public class SubscribeToRoaAlertCommandHandlerTest {
 
         subject.handle(new SubscribeToRoaAlertCommand(TEST_VERSIONED_CA_ID, newEmail, EnumSet.of(RouteValidityState.INVALID_ASN, RouteValidityState.INVALID_LENGTH)));
 
-        verify(emailSender, times(1)).sendEmail(eq(newEmail), eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY.templateSubject),
-                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY), isA(Map.class));
+        verify(emailSender, times(1)).sendEmail(eq(newEmail),
+                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY.templateSubject),
+                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY), isA(Map.class), isA(String.class));
         List<String> emails = configuration.getSubscriptionOrNull().getEmails();
         assertTrue(emails.contains(oldEmail));
         assertTrue(emails.contains(newEmail));

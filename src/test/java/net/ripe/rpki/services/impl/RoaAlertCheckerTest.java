@@ -14,6 +14,9 @@ import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.ports.InternalNamePresenter;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
 import net.ripe.rpki.services.impl.background.RoaAlertBackgroundServiceDailyBeanTest;
+import net.ripe.rpki.services.impl.email.EmailSender;
+import net.ripe.rpki.services.impl.email.EmailSenderBean;
+import net.ripe.rpki.services.impl.email.EmailTokens;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,18 +24,17 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 
+import jakarta.mail.internet.MimeMessage;
 import javax.security.auth.x500.X500Principal;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.isA;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -59,16 +61,23 @@ public class RoaAlertCheckerTest {
     private BgpRisEntryRepositoryBean bgpRisEntryRepository;
 
     @Mock
-    private MailSender mailSender;
+    private JavaMailSenderImpl mailSender;
 
     @Mock
     private InternalNamePresenter internalNamePresenter;
 
     private RoaAlertChecker subject;
 
+    private final String rpkiDashboardUri = "https://my.ripe.net/#/rpki";
+    private final String authUnsubscribeUri = "http://access.ripe.net/?originalUrl=";
+    private final String apiUnsubscribeUri = "http://my.ripe.net/api/email/unsubscribe-alerts";
+    private final String unsubscribeSecret = UUID.randomUUID().toString();
+
+    private final EmailTokens emailTokens = new EmailTokens(unsubscribeSecret, authUnsubscribeUri, apiUnsubscribeUri);
+
     @Before
     public void setup() {
-        EmailSender emailSenderBean = new EmailSenderBean(mailSender, "https://my.ripe.net/#/rpki");
+        EmailSender emailSenderBean = new EmailSenderBean(mailSender, emailTokens, rpkiDashboardUri);
         subject = new RoaAlertChecker(roaService, bgpRisEntryRepository, internalNamePresenter, emailSenderBean, new SimpleMeterRegistry());
 
         System.setProperty(Environment.APPLICATION_ENVIRONMENT_KEY, "junit");
@@ -80,14 +89,15 @@ public class RoaAlertCheckerTest {
     }
 
     @Test
-    public void shouldCheckRoasAgainstBgpForInvalidLength() {
+    public void shouldCheckRoasAgainstBgpForInvalidLength() throws Exception {
         when(internalNamePresenter.humanizeCaName(isA(X500Principal.class))).thenReturn("zz.example");
         when(roaService.getRoaConfiguration(CA_ID)).thenReturn(ROA_CONFIGURATION_DATA);
         when(bgpRisEntryRepository.findMostSpecificOverlapping(CERTIFIED_RESOURCES)).thenReturn(Arrays.asList(BGP_RIS_ENTRY_1, BGP_RIS_ENTRY_1_1));
 
+        when(mailSender.createMimeMessage()).thenReturn(new JavaMailSenderImpl().createMimeMessage());
         subject.checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_DATA);
 
-        ArgumentCaptor<SimpleMailMessage> capturedMessage = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        ArgumentCaptor<MimeMessage> capturedMessage = ArgumentCaptor.forClass(MimeMessage.class);
         verify(mailSender).send(capturedMessage.capture());
 
         String expected = "Dear colleague,\n" +
@@ -112,21 +122,32 @@ public class RoaAlertCheckerTest {
             "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
             "You are able to fix and ignore reported issues, change your alert\n" +
-            "settings, or unsubscribe by visiting https://my.ripe.net/#/rpki.\n";
+            "settings, or unsubscribe by visiting " + rpkiDashboardUri + " or\n" +
+            "directly using " + unsubscribeUrl() + ".";
 
         assertEquals("Resource Certification (RPKI) alerts for zz.example", capturedMessage.getValue().getSubject());
-        assertEquals(expected, capturedMessage.getValue().getText());
+        assertEquals(expected, capturedMessage.getValue().getContent());
+    }
+
+    private String unsubscribeUrl() {
+        String emails1 = ALERT_SUBSCRIPTION_DATA.getSubscription().getEmails().get(0);
+        var encodedEmail = EmailTokens.enc(emails1);
+        var uniqueId = EmailTokens.uniqueId(ALERT_SUBSCRIPTION_DATA.getCertificateAuthority().getUuid());
+        var unsubscribeToken = emailTokens.createUnsubscribeToken(uniqueId, emails1);
+        return authUnsubscribeUri + EmailTokens.enc(apiUnsubscribeUri + "/" + encodedEmail + "/" + unsubscribeToken);
     }
 
     @Test
-    public void shouldCheckRoasAgainstBgpForInvalidAsn() {
+    public void shouldCheckRoasAgainstBgpForInvalidAsn() throws Exception {
         when(internalNamePresenter.humanizeCaName(isA(X500Principal.class))).thenReturn("zz.example");
         when(roaService.getRoaConfiguration(CA_ID)).thenReturn(ROA_CONFIGURATION_DATA);
         when(bgpRisEntryRepository.findMostSpecificOverlapping(CERTIFIED_RESOURCES)).thenReturn(Arrays.asList(BGP_RIS_ENTRY_2, BGP_RIS_ENTRY_2_1, BGP_RIS_ENTRY_2_2));
 
+        when(mailSender.createMimeMessage()).thenReturn(new JavaMailSenderImpl().createMimeMessage());
+
         subject.checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_DATA);
 
-        ArgumentCaptor<SimpleMailMessage> capturedMessage = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        ArgumentCaptor<MimeMessage> capturedMessage = ArgumentCaptor.forClass(MimeMessage.class);
         verify(mailSender).send(capturedMessage.capture());
 
         String expected = "Dear colleague,\n" +
@@ -155,10 +176,11 @@ public class RoaAlertCheckerTest {
             "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
             "You are able to fix and ignore reported issues, change your alert\n" +
-            "settings, or unsubscribe by visiting https://my.ripe.net/#/rpki.\n";
+            "settings, or unsubscribe by visiting " + rpkiDashboardUri + " or\n" +
+            "directly using " + unsubscribeUrl() + ".";
 
         assertEquals("Resource Certification (RPKI) alerts for zz.example", capturedMessage.getValue().getSubject());
-        assertEquals(expected, capturedMessage.getValue().getText());
+        assertEquals(expected, capturedMessage.getValue().getContent());
     }
 
     @Test
@@ -172,11 +194,12 @@ public class RoaAlertCheckerTest {
     }
 
     @Test
-    public void shouldListIgnoredAnnouncementsInEmail() {
+    public void shouldListIgnoredAnnouncementsInEmail() throws Exception {
         when(roaService.getRoaConfiguration(CA_ID)).thenReturn(ROA_CONFIGURATION_DATA);
         when(bgpRisEntryRepository.findMostSpecificOverlapping(CERTIFIED_RESOURCES)).thenReturn(Collections.singleton(BGP_RIS_ENTRY_1));
 
-        subject.checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_DATA.withIgnoredAnnouncements(Collections.singleton(new AnnouncedRoute(Asn.parse("AS65535"), IpRange.parse("127.0.0.0/12")))));
+        subject.checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_DATA.withIgnoredAnnouncements(
+                Collections.singleton(new AnnouncedRoute(Asn.parse("AS65535"), IpRange.parse("127.0.0.0/12")))));
 
         verify(mailSender, never()).send(isA(SimpleMailMessage.class));
 
@@ -184,9 +207,12 @@ public class RoaAlertCheckerTest {
         when(roaService.getRoaConfiguration(CA_ID)).thenReturn(ROA_CONFIGURATION_DATA);
         when(bgpRisEntryRepository.findMostSpecificOverlapping(CERTIFIED_RESOURCES)).thenReturn(Collections.singleton(BGP_RIS_ENTRY_2));
 
-        subject.checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_DATA.withIgnoredAnnouncements(Collections.singleton(new AnnouncedRoute(Asn.parse("AS12345"), IpRange.parse("127.0.0.0/12")))));
 
-        ArgumentCaptor<SimpleMailMessage> capturedMessage = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(new JavaMailSenderImpl().createMimeMessage());
+        subject.checkAndSendRoaAlertEmailToSubscription(ALERT_SUBSCRIPTION_DATA.withIgnoredAnnouncements(
+                Collections.singleton(new AnnouncedRoute(Asn.parse("AS12345"), IpRange.parse("127.0.0.0/12")))));
+
+        ArgumentCaptor<MimeMessage> capturedMessage = ArgumentCaptor.forClass(MimeMessage.class);
         verify(mailSender).send(capturedMessage.capture());
 
         String expected = "Dear colleague,\n" +
@@ -216,9 +242,10 @@ public class RoaAlertCheckerTest {
             "\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n" +
             "\n" +
             "You are able to fix and ignore reported issues, change your alert\n" +
-            "settings, or unsubscribe by visiting https://my.ripe.net/#/rpki.\n";
+            "settings, or unsubscribe by visiting " + rpkiDashboardUri + " or\n" +
+            "directly using " + unsubscribeUrl() + ".";
 
         assertEquals("Resource Certification (RPKI) alerts for zz.example", capturedMessage.getValue().getSubject());
-        assertEquals(expected, capturedMessage.getValue().getText());
+        assertEquals(expected, capturedMessage.getValue().getContent());
     }
 }

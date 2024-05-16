@@ -19,6 +19,9 @@ resource.services.url: https://rsng.ripe.net/resource-services
 #
 mail.template.parameters:
     rpkiDashboardUri: "https://localcert.ripe.net/#/rpki"
+    authUnsubscribeUri: "https://access.ripe.net/?originalUrl="
+    apiUnsubscribeUri: "https://localcert.ripe.net/api/rpki/unsubscribe-alerts"
+
 
 key.management.data:
     archive.directory: /cert/hsmkeys/shared-keys.archive

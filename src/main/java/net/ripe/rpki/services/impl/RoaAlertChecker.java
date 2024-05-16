@@ -12,6 +12,8 @@ import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.ports.InternalNamePresenter;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
+import net.ripe.rpki.services.impl.email.EmailSender;
+import net.ripe.rpki.services.impl.email.EmailTokens;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -152,7 +154,8 @@ public class RoaAlertChecker {
                 email,
                 String.format(EmailSender.EmailTemplates.ROA_ALERT.templateSubject, humanizedCaName),
                 EmailSender.EmailTemplates.ROA_ALERT,
-                parameters)
+                parameters,
+                EmailTokens.uniqueId(configuration.getCertificateAuthority().getUuid()))
         );
     }
 

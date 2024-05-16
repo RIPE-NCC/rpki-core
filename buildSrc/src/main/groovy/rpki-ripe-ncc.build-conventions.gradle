@@ -35,9 +35,10 @@ repositories {
     maven {
         url = uri('https://maven.nexus.ripe.net/repository/maven-third-party')
     }
-    maven {
-        url = uri('https://maven.nexus.ripe.net/repository/maven-third-party-snapshots')
-    }
+    // Use when testing new third party dependencies
+    // maven {
+    //     url = uri('https://maven.nexus.ripe.net/repository/maven-third-party-snapshots')
+    // }
 }
 
 java {

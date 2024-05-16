@@ -23,6 +23,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import javax.security.auth.x500.X500Principal;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.Mockito.doThrow;
@@ -38,8 +39,9 @@ public class RoaAlertBackgroundServiceDailyBeanTest {
         ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
     public static final RoaAlertConfigurationData ALERT_SUBSCRIPTION_DATA = new RoaAlertConfigurationData(CA_DATA,
-            new RoaAlertSubscriptionData("joeok@example.com", Arrays.asList(RouteValidityState.INVALID_ASN,
+            new RoaAlertSubscriptionData(List.of("joeok@example.com"), Arrays.asList(RouteValidityState.INVALID_ASN,
                     RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN), RoaAlertFrequency.DAILY));
+
     private static final RoaAlertConfigurationData ALERT_SUBSCRIPTION_ERROR = new RoaAlertConfigurationData(CA_DATA,
             new RoaAlertSubscriptionData("errorjohn@example.com", Arrays.asList(RouteValidityState.INVALID_ASN,
                     RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN), RoaAlertFrequency.DAILY));

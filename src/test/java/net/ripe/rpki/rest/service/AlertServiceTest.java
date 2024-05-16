@@ -33,10 +33,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import javax.security.auth.x500.X500Principal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -68,7 +65,7 @@ public class AlertServiceTest {
     @MockBean
     private CommandService commandService;
 
-    private HostedCertificateAuthorityData certificateAuthorityData = mock(HostedCertificateAuthorityData.class);
+    private final HostedCertificateAuthorityData certificateAuthorityData = mock(HostedCertificateAuthorityData.class);
 
     @Autowired
     private MockMvc mockMvc;

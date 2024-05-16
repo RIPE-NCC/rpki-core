@@ -1,4 +1,4 @@
-package net.ripe.rpki.services.impl;
+package net.ripe.rpki.services.impl.email;
 
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.ImmutableResourceSet;
@@ -12,7 +12,6 @@ import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaAlertSubscriptionData;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,31 +19,34 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mail.MailSender;
-import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 
+import jakarta.mail.internet.MimeMessage;
 import javax.security.auth.x500.X500Principal;
 import java.security.SecureRandom;
 import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class EmailSenderBeanTest {
 
     @Mock
-    private MailSender mailSender;
-    private ArgumentCaptor<SimpleMailMessage> messageCapture;
+    private JavaMailSenderImpl mailSender;
+    private ArgumentCaptor<MimeMessage> messageCapture;
     private EmailSenderBean subject;
+
+    private final String rpkiDashboardUri = "http://localhost/unit-testing";
+    private final String authUnsubscribeUri = "http://localhost/?originalUrl=";
+    private final String apiUnsubscribeUri = "http://localhost/api/rpki/unsubscribe-alerts";
+    private final String uniqueId = "12345678";
 
     @BeforeEach
     public void setUp() {
-        messageCapture = ArgumentCaptor.forClass(SimpleMailMessage.class);
-
-        subject = new EmailSenderBean(mailSender, "http://localhost/unit-testing");
-
+        messageCapture = ArgumentCaptor.forClass(MimeMessage.class);
+        var emails = new EmailTokens("secret", authUnsubscribeUri, apiUnsubscribeUri);
+        subject = new EmailSenderBean(mailSender, emails, rpkiDashboardUri);
         System.setProperty(Environment.APPLICATION_ENVIRONMENT_KEY, "junit");
     }
 
@@ -54,24 +56,29 @@ public class EmailSenderBeanTest {
     }
 
     @Test
-    public void shouldSendEmail() {
+    void shouldSendEmail() throws Exception {
         String emailTo = "email@example.com";
         var template = EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE;
 
-        subject.sendEmail(emailTo, template.templateSubject, template, Collections.singletonMap("field", "value"));
+        when(mailSender.createMimeMessage()).thenReturn(new JavaMailSenderImpl().createMimeMessage());
+        subject.sendEmail(emailTo, template.templateSubject, template, Collections.singletonMap("field", "value"), uniqueId);
 
         verify(mailSender).send(messageCapture.capture());
-        assertThat(messageCapture.getValue().getTo()[0]).isEqualTo(emailTo);
+        assertThat(messageCapture.getValue().getAllRecipients()[0].toString()).isEqualTo(emailTo);
         assertThat(messageCapture.getValue().getSubject()).isEqualTo(template.templateSubject);
-        assertThat(messageCapture.getValue().getText()).hasSizeGreaterThan(100);
+        assertThat((String)messageCapture.getValue().getContent()).hasSizeGreaterThan(100);
     }
 
     @Test
-    public void shouldRenderAllTemplates() {
-        for (var template : EmailSender.EmailTemplates.values()) {
-            subject.sendEmail("user@example.org", template.templateSubject, template, variablesFor(template));
+    void shouldRenderAllTemplates() throws Exception {
+        for (var template : List.of(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_WEEKLY, EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY)) {
+            when(mailSender.createMimeMessage()).thenReturn(new JavaMailSenderImpl().createMimeMessage());
+            subject.sendEmail("user@example.org", template.templateSubject, template, variablesFor(template), uniqueId);
             verify(mailSender).send(messageCapture.capture());
-            assertThat(messageCapture.getValue().getText()).isNotBlank();
+            String content = (String) messageCapture.getValue().getContent();
+            assertThat(content).isNotBlank();
+            assertThat(content).contains(rpkiDashboardUri);
+            assertThat(content).contains(authUnsubscribeUri);
             reset(mailSender);
         }
     }

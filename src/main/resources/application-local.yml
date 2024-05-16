@@ -18,6 +18,8 @@ admin.authorization.enabled: false
 mail:
     host: localhost
     port: 1025
+    unsubscribe:
+        secret: dQl9TJEu3JQMvyEOEwkut4T1zOiHN0lyLYRUWI7q8jWejnDtGT30WrVCGVFmY7iZ
 
 spring:
     main:
@@ -56,7 +58,7 @@ resource.services:
 #
 # Application specific settings
 #
-authorization.admin.role: ROLE_ANONYMOUS
+
 # We externalise application secrets in a file outside the application on the classpath.
 api-keys.properties: "classpath:/test-api-keys.properties"
 

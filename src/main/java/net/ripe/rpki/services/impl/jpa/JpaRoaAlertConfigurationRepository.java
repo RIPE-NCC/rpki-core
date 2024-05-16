@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.Query;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class JpaRoaAlertConfigurationRepository extends JpaRepository<RoaAlertConfiguration> implements RoaAlertConfigurationRepository {
@@ -43,5 +45,13 @@ public class JpaRoaAlertConfigurationRepository extends JpaRepository<RoaAlertCo
         Query query = createQuery("SELECT rac FROM RoaAlertConfiguration rac WHERE email LIKE :email");
         query.setParameter("email", "%" + email + "%");
         return query.getResultList();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Optional<RoaAlertConfiguration> findByUnsubscribeToken(UUID unsubscribeToken) {
+        return createQuery("SELECT rac FROM RoaAlertConfiguration rac WHERE unsubscribeToken = :token")
+                .setParameter("token", unsubscribeToken)
+                .getResultList().stream().findAny();
     }
 }

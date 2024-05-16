@@ -46,4 +46,5 @@ alerts have been muted.[/]
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 You are able to fix and ignore reported issues, change your alert
-settings, or unsubscribe by visiting [[${rpkiDashboardUri}]].
+settings, or unsubscribe by visiting [[${rpkiDashboardUri}]] or
+directly using [(${unsubscribeUri})].

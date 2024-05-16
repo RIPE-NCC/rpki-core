@@ -9,7 +9,7 @@ import net.ripe.rpki.domain.alerts.RoaAlertConfiguration;
 import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
 import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
 import net.ripe.rpki.server.api.commands.UnsubscribeFromRoaAlertCommand;
-import net.ripe.rpki.services.impl.EmailSender;
+import net.ripe.rpki.services.impl.email.EmailSender;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,7 +70,9 @@ public class UnsubscribeFromRoaAlertCommandHandlerTest {
 
         subject.handle(new UnsubscribeFromRoaAlertCommand(TEST_VERSIONED_CA_ID, email));
 
-        verify(emailSender).sendEmail(emailCapture.capture(), eq(EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE.templateSubject), eq(EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE), isA(Map.class));
+        verify(emailSender).sendEmail(emailCapture.capture(),
+                eq(EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE.templateSubject),
+                eq(EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE), isA(Map.class), isA(String.class));
         assertEquals(email, emailCapture.getValue());
     }
 }

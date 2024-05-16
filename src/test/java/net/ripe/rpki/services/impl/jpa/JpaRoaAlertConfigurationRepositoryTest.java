@@ -9,14 +9,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.nio.charset.StandardCharsets;
 import jakarta.transaction.Transactional;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import static net.ripe.rpki.commons.validation.roa.RouteValidityState.INVALID_ASN;
-import static net.ripe.rpki.commons.validation.roa.RouteValidityState.INVALID_LENGTH;
-import static net.ripe.rpki.commons.validation.roa.RouteValidityState.UNKNOWN;
+import static net.ripe.rpki.commons.validation.roa.RouteValidityState.*;
 import static org.junit.Assert.assertEquals;
 
 @Transactional
@@ -25,12 +25,10 @@ public class JpaRoaAlertConfigurationRepositoryTest extends CertificationDomainT
     @Autowired
     private RoaAlertConfigurationRepository subject;
 
-    private ProductionCertificateAuthority ca;
-
     @Before
     public void setUp() {
         clearDatabase();
-        ca = createInitialisedProdCaWithRipeResources();
+        ProductionCertificateAuthority ca = createInitialisedProdCaWithRipeResources();
         entityManager.persist(ca);
         RoaAlertConfiguration weekly = new RoaAlertConfiguration(ca, "weekly@alert", Arrays.asList(INVALID_ASN, INVALID_LENGTH, UNKNOWN), RoaAlertFrequency.WEEKLY);
         subject.add(weekly);
@@ -46,5 +44,12 @@ public class JpaRoaAlertConfigurationRepositoryTest extends CertificationDomainT
     public void shouldFindAll() {
         Collection<RoaAlertConfiguration> all = subject.findAll();
         assertEquals(1, all.size());
+    }
+
+    @Test
+    public void shouldFindByEmail() {
+        List<RoaAlertConfiguration> all = subject.findAll().stream().collect(Collectors.toList());
+        var c = subject.findByEmail(all.get(0).getSubscriptionOrNull().getEmails().get(0));
+        assertEquals(c, all);
     }
 }

@@ -2,6 +2,8 @@ package net.ripe.rpki.domain.alerts;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 
 public interface RoaAlertConfigurationRepository {
@@ -16,4 +18,6 @@ public interface RoaAlertConfigurationRepository {
     void remove(RoaAlertConfiguration entity);
 
     List<RoaAlertConfiguration> findByEmail(String email);
+
+    Optional<RoaAlertConfiguration> findByUnsubscribeToken(UUID unsubscribeToken);
 }

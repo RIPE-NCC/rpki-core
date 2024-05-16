@@ -31,8 +31,8 @@ dependencies {
         }
     }
     thalesImplementation "net.ripe.rpki:rpki-commons:$rpki_commons_version"
-    // 2024-4-16: Test DBProvider snapshot provided by Entrust
-    thalesImplementation 'com.thales.esecurity.asg.ripe.db-jceprovider:DBProvider:1.6-SNAPSHOT'
+    // 2024-4-26: Final DBProvider 1.6 provided by Entrust
+    thalesImplementation 'com.thales.esecurity.asg.ripe.db-jceprovider:DBProvider:1.6'
     // **When using JDK 11** make sure the matching version of nCipherKM is on classpath because DBProvider depends on it.
     thalesImplementation 'com.ncipher.nfast:nCipherKM:13.4.5'
 

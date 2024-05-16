@@ -40,7 +40,7 @@ public class JpaPropertyEntityRepository extends JpaRepository<PropertyEntity> i
     }
 
     @Override
-    public void createOrUpdate(String key, String value) {
+    public synchronized void createOrUpdate(String key, String value) {
         PropertyEntity entity = findByKey(key);
         if (entity == null) {
             entity = new PropertyEntity(key, value);

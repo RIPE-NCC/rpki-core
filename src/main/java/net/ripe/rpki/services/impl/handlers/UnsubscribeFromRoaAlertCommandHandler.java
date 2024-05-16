@@ -6,9 +6,11 @@ import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
 import net.ripe.rpki.server.api.commands.UnsubscribeFromRoaAlertCommand;
 import net.ripe.rpki.server.api.dto.RoaAlertSubscriptionData;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
-import net.ripe.rpki.services.impl.EmailSender;
+import net.ripe.rpki.services.impl.email.EmailSender;
 
 import jakarta.inject.Inject;
+import net.ripe.rpki.services.impl.email.EmailTokens;
+
 import java.util.Collections;
 
 import static net.ripe.rpki.domain.alerts.RoaAlertConfiguration.normEmail;
@@ -43,7 +45,10 @@ public class UnsubscribeFromRoaAlertCommandHandler extends AbstractCertificateAu
         }
         configuration.removeEmail(command.getEmail());
 
-        emailSender.sendEmail(normEmail(command.getEmail()), EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE.templateSubject, EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE,
-                Collections.singletonMap("subscription", configuration.toData()));
+        emailSender.sendEmail(normEmail(command.getEmail()),
+                EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE.templateSubject,
+                EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE,
+                Collections.singletonMap("subscription", configuration.toData()),
+                EmailTokens.uniqueId(configuration.getCertificateAuthority().getUuid()));
     }
 }

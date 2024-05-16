@@ -9,8 +9,10 @@ signature:
     provider: SunRsaSign
 
 mail:
-    host: localhost
-    port: 1025
+  host: localhost
+  port: 1025
+  unsubscribe:
+    secret: dQl9TJEu3JQMvyEOEwkut4T1zOiHN0lyLYRUWI7q8jWejnDtGT30WrVCGVFmY7iZ
 
 spring:
     datasource:
@@ -20,6 +22,7 @@ spring:
 
 background-services:
   schedule.enable: false
+
 system.setup.and.testing.api.enabled: true
 
 # **Disable** authentication for the administration web UI.
@@ -53,7 +56,6 @@ riswhoisdump.base.url: http://localhost:8080/certification/static/riswhois/
 # Application specific settings
 #
 # bcrypt.using(rounds=14).hash("test")
-authorization.admin.role: ROLE_ANONYMOUS
 api-keys.properties: "classpath:/test-api-keys.properties"
 
 intermediate.ca:
@@ -105,3 +107,5 @@ non-hosted:
       token: "krill-dev-token"
 
 certificate.authority.invariant.checking.enabled: true
+
+

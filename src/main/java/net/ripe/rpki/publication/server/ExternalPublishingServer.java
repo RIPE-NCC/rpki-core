@@ -132,9 +132,10 @@ public class ExternalPublishingServer {
             .register(meterRegistry);
     }
 
-    private static Timer createTimer(MeterRegistry meterRegistry, String status) {
+    private Timer createTimer(MeterRegistry meterRegistry, String status) {
         return Timer.builder("rpkicore.publication.request.duration")
             .tag("status", status)
+            .tag("uri", this.publishingServerUrl.toString())
             .description("Time for publication HTTP request")
             .publishPercentileHistogram()
             .minimumExpectedValue(Duration.ofMillis(4))

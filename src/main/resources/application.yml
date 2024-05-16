@@ -50,7 +50,9 @@ mail:
     host: localhost
     port: 25
     template.parameters:
-            rpkiDashboardUri: "https://my.ripe.net/#/rpki"
+        rpkiDashboardUri: "https://my.ripe.net/#/rpki"
+        authUnsubscribeUri: "https://access.ripe.net/?originalUrl="
+        apiUnsubscribeUri: "https://my.ripe.net/api/rpki/unsubscribe-alerts"
 
 # do not expose the default endpoints for security.
 # opt-in to prometheus and info endpoint.

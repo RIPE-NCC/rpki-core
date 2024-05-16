@@ -9,9 +9,11 @@ import net.ripe.rpki.server.api.commands.SubscribeToRoaAlertCommand;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaAlertSubscriptionData;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
-import net.ripe.rpki.services.impl.EmailSender;
+import net.ripe.rpki.services.impl.email.EmailSender;
 
 import jakarta.inject.Inject;
+import net.ripe.rpki.services.impl.email.EmailTokens;
+
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -52,7 +54,8 @@ public class SubscribeToRoaAlertCommandHandler extends AbstractCertificateAuthor
         var emailTemplate = getConfirmationTemplate(configuration);
 
         emailSender.sendEmail(command.getEmail(), emailTemplate.templateSubject, emailTemplate,
-                Collections.singletonMap(SUBSCRIPTION, configuration.toData()));
+                Collections.singletonMap(SUBSCRIPTION, configuration.toData()),
+                EmailTokens.uniqueId(configuration.getCertificateAuthority().getUuid()));
     }
 
     private EmailSender.EmailTemplates getConfirmationTemplate(RoaAlertConfiguration configuration) {
@@ -81,12 +84,15 @@ public class SubscribeToRoaAlertCommandHandler extends AbstractCertificateAuthor
         Sets.difference(newEmailAddress, oldEmailAddress).forEach(email -> {
             var emailTemplate = getConfirmationTemplate(configuration);
             emailSender.sendEmail(email, emailTemplate.templateSubject, emailTemplate,
-                    Collections.singletonMap(SUBSCRIPTION, newConfiguration));
+                    Collections.singletonMap(SUBSCRIPTION, newConfiguration),
+                    EmailTokens.uniqueId(configuration.getCertificateAuthority().getUuid()));
         });
 
-        Sets.difference(oldEmailAddress, newEmailAddress).forEach(email -> {
-            emailSender.sendEmail(email, EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE.templateSubject, EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE, Collections.singletonMap(SUBSCRIPTION, oldConfiguration));
-        });
+        Sets.difference(oldEmailAddress, newEmailAddress).forEach(email ->
+                emailSender.sendEmail(email, EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE.templateSubject,
+                        EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE,
+                        Collections.singletonMap(SUBSCRIPTION, oldConfiguration),
+                        EmailTokens.uniqueId(configuration.getCertificateAuthority().getUuid())));
     }
 
     private RoaAlertConfiguration createConfiguration(SubscribeToRoaAlertCommand command) {

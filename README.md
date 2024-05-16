@@ -219,7 +219,7 @@ spring.security.oauth2.client:
             client-secret: '<github-client-secret>'
 ```
 
-Also change the `authorization.admin.role` to `ROLE_USER`.
+Also change the `admin.authorization.enabled` to `true`.
 
 Make sure you do not check in your secrets!
 

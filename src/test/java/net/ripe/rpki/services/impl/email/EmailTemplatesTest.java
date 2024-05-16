@@ -1,14 +1,13 @@
-package net.ripe.rpki.services.impl;
+package net.ripe.rpki.services.impl.email;
 
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.services.impl.email.EmailSenderBean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 @Slf4j
 public class EmailTemplatesTest {

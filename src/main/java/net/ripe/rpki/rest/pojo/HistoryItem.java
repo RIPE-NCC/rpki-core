@@ -8,7 +8,7 @@ import net.ripe.rpki.server.api.dto.CommandAuditData;
 import org.joda.time.DateTime;
 
 import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -26,8 +26,7 @@ public class HistoryItem {
         this.time = toJavaTime(input.getExecutionTime());
         this.principal = humanizedUserPrincipal;
         this.summary = input.getSummary();
-        if (input instanceof CommandAuditData) {
-            final CommandAuditData commandData = (CommandAuditData) input;
+        if (input instanceof CommandAuditData commandData) {
             this.caId = commandData.getCertificateAuthorityId();
             this.commandType = commandData.getCommandType();
             this.commandGroup = commandData.getCommandGroup().toString();
@@ -40,7 +39,6 @@ public class HistoryItem {
 
     private ZonedDateTime toJavaTime(DateTime joda) {
         Instant t = Instant.ofEpochMilli(joda.getMillis());
-        ZoneId z = ZoneId.of(joda.getZone().getID());
-        return ZonedDateTime.ofInstant(t, z);
+        return ZonedDateTime.ofInstant(t, ZoneOffset.UTC);
     }
 }

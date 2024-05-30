@@ -6,6 +6,7 @@ import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDes
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,7 +32,7 @@ public class IncomingResourceCertificateTest {
     @Test
     public void shouldUpdateCertificate() {
         X509ResourceCertificate updatedCertificate = TestObjects.createResourceCertificate(15L, keyPair,
-            new ValidityPeriod(new DateTime(), new DateTime().plusDays(10)), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES,
+            new ValidityPeriod(new DateTime(DateTimeZone.UTC), new DateTime(DateTimeZone.UTC).plusDays(10)), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES,
             new X509CertificateInformationAccessDescriptor[] {
                 new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_CA_REPOSITORY,
                     BASE_URI),

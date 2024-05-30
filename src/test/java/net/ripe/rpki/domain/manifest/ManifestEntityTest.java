@@ -64,7 +64,7 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
     }
 
     private DateTime getUtcNowWithoutMillis() {
-        return new DateTime(new DateTime().getMillis() / DateTimeConstants.MILLIS_PER_SECOND  * DateTimeConstants.MILLIS_PER_SECOND, DateTimeZone.UTC);
+        return new DateTime(new DateTime(DateTimeZone.UTC).getMillis() / DateTimeConstants.MILLIS_PER_SECOND  * DateTimeConstants.MILLIS_PER_SECOND, DateTimeZone.UTC);
     }
 
     @After

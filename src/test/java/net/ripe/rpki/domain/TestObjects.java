@@ -171,7 +171,7 @@ public class TestObjects {
         builder.withAuthorityInformationAccess(AUTHORITY_INFORMATION_ACCESS);
         builder.withSubjectInformationAccess(SUBJECT_INFORMATION_ACCESS);
         builder.withParentPublicationDirectory(CERTIFICATE_REPOSITORY_LOCATION);
-        DateTime now = new DateTime();
+        DateTime now = new DateTime(DateTimeZone.UTC);
         builder.withValidityPeriod(new ValidityPeriod(now, now.plusYears(1)));
         return builder;
     }

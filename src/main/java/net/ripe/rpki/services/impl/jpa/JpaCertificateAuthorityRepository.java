@@ -11,6 +11,7 @@ import net.ripe.rpki.server.api.dto.KeyPairStatus;
 import net.ripe.rpki.util.JdbcDBComponent;
 import org.apache.commons.lang.Validate;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -321,7 +322,7 @@ public class JpaCertificateAuthorityRepository extends JpaRepository<Certificate
                 "   SELECT rac FROM RoaAlertConfiguration rac " +
                 "   WHERE rac.certificateAuthority = ca" +
                 ")");
-        final DateTime yearAgo = new DateTime().minus(Duration.standardDays(366));
+        final DateTime yearAgo = new DateTime(DateTimeZone.UTC).minus(Duration.standardDays(366));
         return sql
             .setParameter("threshold", yearAgo)
             .setParameter("user", CertificateAuthorityCommandGroup.USER)

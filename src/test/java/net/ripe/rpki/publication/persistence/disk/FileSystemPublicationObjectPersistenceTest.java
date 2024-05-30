@@ -5,6 +5,7 @@ import net.ripe.rpki.domain.PublishedObjectData;
 import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
+import org.joda.time.DateTimeZone;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,7 +52,7 @@ public class FileSystemPublicationObjectPersistenceTest {
 
         // fix the current time while a test is running
         // this time is used for the naming of the target directories
-        DateTimeUtils.setCurrentMillisFixed(new DateTime().getMillis());
+        DateTimeUtils.setCurrentMillisFixed(new DateTime(DateTimeZone.UTC).getMillis());
 
         subject = new FileSystemPublicationObjectPersistence(
             ONLINE_REPOSITORY_BASE_URI, onlineRepositoryBaseDirectory.toString(),

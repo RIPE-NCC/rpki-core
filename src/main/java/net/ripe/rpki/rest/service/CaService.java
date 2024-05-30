@@ -24,6 +24,7 @@ import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.apache.commons.io.IOUtils;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -218,7 +219,7 @@ public class CaService extends AbstractCaRestService {
         if (parentId != null) {
             final String xml = new ParentIdentitySerializer().serialize(parentId);
             final DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyyMMdd");
-            final String fileName = "issuer-identity-" + new DateTime().toString(fmt) + ".xml";
+            final String fileName = "issuer-identity-" + new DateTime(DateTimeZone.UTC).toString(fmt) + ".xml";
             return ResponseEntity
                     .status(HttpStatus.OK)
                     .contentType(TEXT_XML)

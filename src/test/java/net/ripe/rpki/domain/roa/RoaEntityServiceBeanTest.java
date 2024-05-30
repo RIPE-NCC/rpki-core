@@ -12,6 +12,7 @@ import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
+import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -103,7 +104,7 @@ public class RoaEntityServiceBeanTest  {
 
     @Test
     public void should_not_create_expired_roa_entity() {
-        DateTimeUtils.setCurrentMillisFixed(new DateTime().plusYears(3).getMillis());
+        DateTimeUtils.setCurrentMillisFixed(new DateTime(DateTimeZone.UTC).plusYears(3).getMillis());
         RoaEntity roaEntity = handleRoaSpecificationCreatedEvent().getAddedRoa();
         assertNull(roaEntity);
     }

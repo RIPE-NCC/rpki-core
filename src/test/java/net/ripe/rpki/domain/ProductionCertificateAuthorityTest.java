@@ -8,6 +8,7 @@ import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
+import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +46,7 @@ public class ProductionCertificateAuthorityTest extends CertificationDomainTestC
         IncomingResourceCertificate currentCertificate = TestObjects.createResourceCertificate(
             123L,
             kp,
-            new ValidityPeriod(new DateTime().minusYears(2), new DateTime().plusYears(5).plusMinutes(1)),
+            new ValidityPeriod(new DateTime(DateTimeZone.UTC).minusYears(2), new DateTime(DateTimeZone.UTC).plusYears(5).plusMinutes(1)),
             ImmutableResourceSet.parse("10/8"),
             createSia()
         );

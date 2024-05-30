@@ -16,6 +16,7 @@ import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -82,7 +83,7 @@ public class ListResourceClassProcessorTest {
         assertEquals(DEFAULT_RESOURCE_CLASS, resourceClassListResponseClassElement.getClassName());
         assertSame(uri, resourceClassListResponseClassElement.getCertificateAuthorityUri().get(0));
         assertSame(issuerCertificate, resourceClassListResponseClassElement.getIssuer());
-        assertTrue(new DateTime().isBefore(resourceClassListResponseClassElement.getValidityNotAfter()));
+        assertTrue(new DateTime(DateTimeZone.UTC).isBefore(resourceClassListResponseClassElement.getValidityNotAfter()));
     }
 
     @Test

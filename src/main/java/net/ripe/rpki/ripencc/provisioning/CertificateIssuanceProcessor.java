@@ -26,6 +26,7 @@ import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.springframework.stereotype.Component;
 
 import jakarta.inject.Inject;
@@ -144,7 +145,7 @@ class CertificateIssuanceProcessor extends AbstractProvisioningProcessor {
                 .withClassName(request.getClassName())
                 .withIssuer(currentIncomingResourceCertificate.getCertificate())
                 .withCertificateAuthorityUri(Collections.singletonList(currentIncomingResourceCertificate.getPublicationUri()))
-                .withValidityNotAfter(CertificateAuthority.calculateValidityNotAfter(new DateTime()))
+                .withValidityNotAfter(CertificateAuthority.calculateValidityNotAfter(new DateTime(DateTimeZone.UTC)))
                 .withIpResourceSet(new IpResourceSet(ipResources))
                 .withCertificateElements(Collections.singletonList(certificateElement))
                 .buildCertificateIssuanceResponseClassElement();

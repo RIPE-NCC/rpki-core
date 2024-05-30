@@ -70,7 +70,7 @@ public class OutgoingResourceCertificateTest {
 
     @Test(expected=IllegalArgumentException.class)
     public void shouldRequireClosedValidityPeriod() {
-        TestObjects.createResourceCertificate(TestObjects.TEST_SERIAL_NUMBER, keyPair, new ValidityPeriod(new DateTime(), null), TestObjects.TEST_RESOURCE_SET, TestObjects.SUBJECT_INFORMATION_ACCESS);
+        TestObjects.createResourceCertificate(TestObjects.TEST_SERIAL_NUMBER, keyPair, new ValidityPeriod(new DateTime(DateTimeZone.UTC), null), TestObjects.TEST_RESOURCE_SET, TestObjects.SUBJECT_INFORMATION_ACCESS);
     }
 
     @Test

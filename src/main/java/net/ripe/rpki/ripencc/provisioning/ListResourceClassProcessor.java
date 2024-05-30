@@ -14,6 +14,7 @@ import net.ripe.rpki.server.api.ports.ResourceInformationNotAvailableException;
 import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -51,7 +52,7 @@ class ListResourceClassProcessor extends AbstractProvisioningProcessor {
                 .withIpResourceSet(new IpResourceSet(resources))
                 .withCertificateAuthorityUri(Collections.singletonList(currentIncomingResourceCertificate.getPublicationUri()))
                 .withIssuer(currentIncomingResourceCertificate.getCertificate())
-                .withValidityNotAfter(CertificateAuthority.calculateValidityNotAfter(new DateTime()))
+                .withValidityNotAfter(CertificateAuthority.calculateValidityNotAfter(new DateTime(DateTimeZone.UTC)))
                 .buildResourceClassListResponseClassElement();
 
             final List<CertificateElement> certificateElements = nonHostedCertificateAuthority.getPublicKeys().stream()

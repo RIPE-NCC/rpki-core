@@ -26,6 +26,7 @@ import org.assertj.core.api.Assertions;
 import org.bouncycastle.asn1.pkcs.CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -110,7 +111,7 @@ public class CertificateIssuanceProcessorTest {
 
         assertEquals(requestPayload.getRequestElement().getClassName(), classElement.getClassName());
         //assertEquals(caRepositoryUri, classElement.getCertificateAuthorityUri().get(0));
-        assertTrue(new DateTime().isBefore(classElement.getValidityNotAfter()));
+        assertTrue(new DateTime(DateTimeZone.UTC).isBefore(classElement.getValidityNotAfter()));
 
         // Certifiable resources
         assertEquals(IpResourceSet.parse(""), classElement.getResourceSetAsn());

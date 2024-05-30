@@ -3,6 +3,7 @@ package net.ripe.rpki.rest.json;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
+import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -85,7 +86,7 @@ public class ObjectMapperProviderTest {
     }
 
     static class DateTimeWrapper {
-        private DateTime dateTime = new DateTime();
+        private DateTime dateTime = new DateTime(DateTimeZone.UTC);
 
         public void setDateTime(DateTime dateTime) {
             this.dateTime = dateTime;

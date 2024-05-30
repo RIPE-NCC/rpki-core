@@ -337,7 +337,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
      * @return false if NO key was activated
      */
     public boolean activatePendingKeys(Duration minStagingTime) {
-        DateTime cutOffTime = new DateTime().minus(minStagingTime);
+        DateTime cutOffTime = new DateTime(DateTimeZone.UTC).minus(minStagingTime);
         return findPendingKeyPair()
             .filter(pkp -> pkp.getStatusChangedAt(KeyPairStatus.PENDING).isBefore(cutOffTime))
             .map(pkp -> {
@@ -442,7 +442,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
 
     public boolean currentKeyPairIsOlder(int ageDays) {
         return findCurrentKeyPair().map(keyPairEntity -> {
-            final DateTime maxCreationTime = new DateTime().minusDays(ageDays);
+            final DateTime maxCreationTime = new DateTime(DateTimeZone.UTC).minusDays(ageDays);
             return keyPairEntity.getCreatedAt().isBefore(maxCreationTime);
         }).orElse(false);
     }

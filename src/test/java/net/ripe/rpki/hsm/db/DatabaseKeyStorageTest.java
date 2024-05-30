@@ -9,6 +9,7 @@ import net.ripe.rpki.domain.hsm.HsmKeyRepository;
 import net.ripe.rpki.domain.hsm.HsmKeyStoreRepository;
 import net.ripe.rpki.hsm.api.KeyStorage;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -168,7 +169,7 @@ public class DatabaseKeyStorageTest {
         final X509CertificateBuilderHelper builder = new X509CertificateBuilderHelper();
         builder.withSignatureProvider("SunRsaSign");
         builder.withSerial(BigInteger.ONE);
-        builder.withValidityPeriod(new ValidityPeriod(new DateTime().minusYears(2), new DateTime().minusYears(1)));
+        builder.withValidityPeriod(new ValidityPeriod(new DateTime(DateTimeZone.UTC).minusYears(2), new DateTime(DateTimeZone.UTC).minusYears(1)));
         builder.withCa(false);
         builder.withIssuerDN(new X500Principal("CN=issuer" + random.nextInt()));
         builder.withSubjectDN(new X500Principal("CN=subject" + random.nextInt()));

@@ -9,6 +9,7 @@ import net.ripe.rpki.commons.crypto.cms.roa.RoaPrefix;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 public class RoaSpecificationTest {
 
-    private static final DateTime NOW = new DateTime();
+    private static final DateTime NOW = new DateTime(DateTimeZone.UTC);
 
     private static final Asn ASN = Asn.parse("AS123");
 

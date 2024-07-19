@@ -33,13 +33,6 @@ public class JpaPropertyEntityRepository extends JpaRepository<PropertyEntity> i
     }
 
     @Override
-    public PropertyEntity getByKey(String key) {
-        PropertyEntity entity = findByKey(key);
-        Preconditions.checkNotNull(entity, "Could not find property by key: " + key);
-        return entity;
-    }
-
-    @Override
     public synchronized void createOrUpdate(String key, String value) {
         PropertyEntity entity = findByKey(key);
         if (entity == null) {

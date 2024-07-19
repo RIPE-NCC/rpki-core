@@ -54,7 +54,7 @@ public class RoaConfigurationMaintenanceServiceBean implements CertificateAuthor
 
     private void updateRoaConfigurationsForResources(ManagedCertificateAuthority ca, ImmutableResourceSet nowCurrentResources, CommandContext context) {
         final Optional<RoaConfiguration> maybeConfig = roaConfigurationRepository.findByCertificateAuthority(ca);
-        if (!maybeConfig.isPresent()) {
+        if (maybeConfig.isEmpty()) {
             return;
         }
 

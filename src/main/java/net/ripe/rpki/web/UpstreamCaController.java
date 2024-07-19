@@ -5,6 +5,8 @@ import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.ta.domain.response.TrustAnchorResponse;
 import net.ripe.rpki.commons.ta.serializers.TrustAnchorRequestSerializer;
 import net.ripe.rpki.commons.ta.serializers.TrustAnchorResponseSerializer;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
+import net.ripe.rpki.core.services.background.SequentialBackgroundQueuedTaskRunner;
 import net.ripe.rpki.server.api.commands.*;
 import net.ripe.rpki.server.api.configuration.RepositoryConfiguration;
 import net.ripe.rpki.server.api.dto.*;
@@ -29,6 +31,7 @@ import javax.security.auth.x500.X500Principal;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -48,6 +51,7 @@ public class UpstreamCaController extends BaseController {
     private final CommandService commandService;
     private final AllCaCertificateUpdateServiceBean allCaCertificateUpdateServiceBean;
     private final Map<String, BackgroundService> backgroundServiceMap;
+    private final SequentialBackgroundQueuedTaskRunner sequentialBackgroundQueuedTaskRunner;
 
     @Inject
     public UpstreamCaController(RepositoryConfiguration repositoryConfiguration,
@@ -56,12 +60,14 @@ public class UpstreamCaController extends BaseController {
                                 CommandService commandService,
                                 AllCaCertificateUpdateServiceBean allCaCertificateUpdateServiceBean,
                                 Map<String, BackgroundService> backgroundServiceMap,
-                                GitProperties gitProperties) {
+                                GitProperties gitProperties,
+                                SequentialBackgroundQueuedTaskRunner sequentialBackgroundQueuedTaskRunner) {
         super(repositoryConfiguration, activeNodeService, gitProperties);
         this.certificateAuthorityViewService = certificateAuthorityViewService;
         this.commandService = commandService;
         this.allCaCertificateUpdateServiceBean = allCaCertificateUpdateServiceBean;
         this.backgroundServiceMap = backgroundServiceMap;
+        this.sequentialBackgroundQueuedTaskRunner = sequentialBackgroundQueuedTaskRunner;
     }
 
     @ModelAttribute(name = "backgroundServices", binding = false)
@@ -131,7 +137,9 @@ public class UpstreamCaController extends BaseController {
             final X500Principal allResourcesCaName = repositoryConfiguration.getAllResourcesCaPrincipal();
             final CertificateAuthorityData allResourcesCa = certificateAuthorityViewService.findCertificateAuthorityByName(allResourcesCaName);
             commandService.execute(new ProcessTrustAnchorResponseCommand(allResourcesCa.getVersionedId(), response));
-            allCaCertificateUpdateServiceBean.execute(Collections.emptyMap());
+            sequentialBackgroundQueuedTaskRunner.submit("Updating all certificates after uploading TA response",
+                    () -> allCaCertificateUpdateServiceBean.execute(Collections.emptyMap()),
+                    e -> log.error("Exception in updating certificates", e));
 
             redirectAttributes.addFlashAttribute("success", "Successfully uploaded " + file.getName());
             return new RedirectView(UPSTREAM_CA, true);
@@ -158,7 +166,9 @@ public class UpstreamCaController extends BaseController {
         return withAllResourcesCa(allResourcesCa ->
                 requireACAState(allResourcesCa, KeyPairStatus.PENDING, () -> {
                     commandService.execute(KeyManagementActivatePendingKeysCommand.manualActivationCommand(allResourcesCa.getVersionedId()));
-                    allCaCertificateUpdateServiceBean.execute(Collections.emptyMap());
+                    sequentialBackgroundQueuedTaskRunner.submit("Updating all certificates after activating All resources CA key pair",
+                            () -> allCaCertificateUpdateServiceBean.execute(Collections.emptyMap()),
+                            e -> log.error("Exception in updating certificates", e));
                     return new RedirectView(UPSTREAM_CA, true);
                 }));
     }

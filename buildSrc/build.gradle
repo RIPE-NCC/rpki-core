@@ -13,6 +13,6 @@ dependencies {
     implementation('com.gorylenko.gradle-git-properties:com.gorylenko.gradle-git-properties.gradle.plugin:2.4.2') {
         exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit'
     }
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.9.0.202403050737-r'
-    implementation 'org.sonarqube:org.sonarqube.gradle.plugin:5.0.0.4638'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.10.0.202406032230-r'
+    implementation 'org.sonarqube:org.sonarqube.gradle.plugin:5.1.0.4882'
 }

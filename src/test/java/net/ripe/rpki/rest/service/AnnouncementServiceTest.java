@@ -34,6 +34,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import javax.security.auth.x500.X500Principal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,8 +51,7 @@ import static net.ripe.rpki.rest.security.ApiKeySecurity.API_KEY_HEADER;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 import static net.ripe.rpki.rest.service.Rest.TESTING_API_KEY;
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -78,7 +78,6 @@ public class AnnouncementServiceTest {
     @MockBean
     private RoaAlertConfigurationViewService roaAlertConfigurationViewService;
 
-    @MockBean
     private HostedCertificateAuthorityData certificateAuthorityData;
 
     @Autowired
@@ -86,6 +85,7 @@ public class AnnouncementServiceTest {
 
     @Before
     public void init() {
+        certificateAuthorityData = mock(HostedCertificateAuthorityData.class);
         when(certificateAuthorityViewService.findCertificateAuthorityByName(any(X500Principal.class))).thenReturn(certificateAuthorityData);
         when(certificateAuthorityData.getId()).thenReturn(CA_ID);
     }
@@ -93,7 +93,7 @@ public class AnnouncementServiceTest {
     @Test
     public void announcements_shouldGetAnnouncement() throws Exception {
 
-        final ImmutableResourceSet ipResourceSet = ImmutableResourceSet.empty();
+        final ImmutableResourceSet ipResourceSet = ImmutableResourceSet.empty().add(IpRange.parse("192.168.0.0/16"));
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
@@ -102,6 +102,7 @@ public class AnnouncementServiceTest {
         bgpRisEntries.put(true, Collections.singletonList(e1));
         bgpRisEntries.put(false, Collections.singletonList(e2));
         when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
+        when(bgpRisEntryViewService.getLastUpdated()).thenReturn(Instant.now());
 
         when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(getRoaAlertConfigurationData(e1.getOrigin(), e1.getPrefix()));
 
@@ -115,6 +116,8 @@ public class AnnouncementServiceTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(jsonPath("$.length()").value("2"))
+                .andExpect(jsonPath("$.emptyAnnouncementsReason").doesNotExist())
+                .andExpect(jsonPath("$.lastUpdated").doesNotExist())
                 .andExpect(jsonPath("$.[0].asn").value("AS10"))
                 .andExpect(jsonPath("$.[0].prefix").value("192.168.0.0/16"))
                 .andExpect(jsonPath("$.[0].visibility").value("10"))
@@ -125,9 +128,88 @@ public class AnnouncementServiceTest {
     }
 
     @Test
-    public void announcements_shouldIncludeSilencesThatAreNotVisibleInBGP() throws Exception {
+    public void announcements_shouldGetAnnouncementExtended() throws Exception {
 
         final ImmutableResourceSet ipResourceSet = ImmutableResourceSet.empty();
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
+
+        final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
+        Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
+        bgpRisEntries.put(true, Collections.singletonList(e1));
+
+        when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
+        when(bgpRisEntryViewService.getLastUpdated()).thenReturn(Instant.now());
+
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(getRoaAlertConfigurationData(e1.getOrigin(), e1.getPrefix()));
+
+        when(roaService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(new ArrayList<>()));
+
+        mockMvc.perform(
+                        Rest.get(API_URL_PREFIX + "/123/announcements/extended")
+                                .accept(APPLICATION_JSON)
+                                .contentType(APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(jsonPath("$.emptyAnnouncementsReason").value(AnnouncementService.NO_CA_RESOURCES));
+    }
+
+
+    @Test
+    public void announcements_shouldGetAnnouncementNoRisUpdates() throws Exception {
+
+        final ImmutableResourceSet ipResourceSet = ImmutableResourceSet.empty().add(IpRange.parse("192.168.0.0/16"));
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
+
+        final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
+        Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
+        bgpRisEntries.put(true, Collections.singletonList(e1));
+
+        when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
+
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(getRoaAlertConfigurationData(e1.getOrigin(), e1.getPrefix()));
+
+        when(roaService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(new ArrayList<>()));
+
+        mockMvc.perform(
+                        Rest.get(API_URL_PREFIX + "/123/announcements/extended")
+                                .accept(APPLICATION_JSON)
+                                .contentType(APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(jsonPath("$.emptyAnnouncementsReason").value(AnnouncementService.NO_RIS_UPDATES));
+    }
+
+    @Test
+    public void announcements_shouldGetAnnouncementNoOverlapsBetweenRisAndResources() throws Exception {
+
+        final ImmutableResourceSet ipResourceSet = ImmutableResourceSet.empty().add(IpRange.parse("192.167.0.0/16"));
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
+
+        final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
+        Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
+        bgpRisEntries.put(true, Collections.emptyList());
+
+        when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
+        when(bgpRisEntryViewService.getLastUpdated()).thenReturn(Instant.now());
+
+        when(roaService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(new ArrayList<>()));
+
+        mockMvc.perform(
+                        Rest.get(API_URL_PREFIX + "/123/announcements/extended")
+                                .accept(APPLICATION_JSON)
+                                .contentType(APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(jsonPath("$.emptyAnnouncementsReason").value(AnnouncementService.NO_OVERLAP_WITH_RIS));
+    }
+
+    @Test
+    public void announcements_shouldIncludeSilencesThatAreNotVisibleInBGP() throws Exception {
+
+        final ImmutableResourceSet ipResourceSet = ImmutableResourceSet.empty().add(IpRange.parse("192.168.0.0/16"));
         when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
 
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
@@ -136,6 +218,7 @@ public class AnnouncementServiceTest {
         bgpRisEntries.put(true, Collections.singletonList(e1));
         bgpRisEntries.put(false, Collections.singletonList(e2));
         when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
+        when(bgpRisEntryViewService.getLastUpdated()).thenReturn(Instant.now());
 
         when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(
                 getRoaAlertConfigurationData(e1.getOrigin(), e1.getPrefix()).withIgnoredAnnouncements(

@@ -1,9 +1,12 @@
 package net.ripe.rpki.web;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.NonNull;
 import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.util.VersionedId;
+import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
+import net.ripe.rpki.core.services.background.SequentialBackgroundQueuedTaskRunner;
 import net.ripe.rpki.server.api.commands.AllResourcesCaResourcesCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
@@ -35,6 +38,7 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,8 +73,20 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
     @NonNull
     @Override
     protected UpstreamCaController createSubjectController() {
+        var sequentialBackgroundQueuedTaskRunner = new SequentialBackgroundQueuedTaskRunner(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry())) {
+            // Override submit to just execute the action without any background logic
+            @Override
+            public void submit(@NonNull String description, @NonNull Runnable action, @NonNull Consumer<Exception> onException) {
+                try {
+                    action.run();
+                } catch (Exception e) {
+                    onException.accept(e);
+                }
+            }
+        };
         return new UpstreamCaController(repositoryConfiguration, activeNodeService,
-            certificateAuthorityViewService, commandService, allCaCertificateUpdateServiceBean, Collections.emptyMap(),  new GitProperties(new Properties()));
+            certificateAuthorityViewService, commandService, allCaCertificateUpdateServiceBean, Collections.emptyMap(),
+                new GitProperties(new Properties()), sequentialBackgroundQueuedTaskRunner);
     }
 
     @BeforeEach

@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -68,11 +69,30 @@ public class AnnouncementService extends AbstractCaRestService {
         this.roaAlertConfigurationViewService = roaAlertConfigurationViewService;
     }
 
+    /**
+     * @deprecated This end-point only exists for the current RPKI dashboard. Remove this call as soon as either it's
+     * not used from ripe-portal anymore or the whole ripe-portal-based RPKI dashboard is not used anymore.
+     */
     @GetMapping
-    @Operation(summary = "Get all announcements, as well as not-announced ignored announcements for the CA")
-    public ResponseEntity<List<BgpAnnouncement>> getResourcesForCa(@PathVariable("caName") final CaName caName) {
+    @Operation(summary = "Get all announcements, as well as not-announced ignored announcements for the CA", deprecated = true)
+    @Deprecated(since = "2024-07-17", forRemoval = true)
+    public ResponseEntity<?> getResourcesForCa(@PathVariable("caName") final CaName caName) {
         log.info("Getting resources for CA: {}", caName);
+        var response = getAnnouncements(caName);
+        if (response instanceof AnnouncementResponse.Announcements as) {
+            return ok(as.announcements);
+        }
+        return ok(new AnnouncementResponse.Announcements(Collections.emptyList(), null));
+    }
 
+    @GetMapping("extended")
+    @Operation(summary = "Get all announcements, metadata for them and not-announced ignored announcements for the CA")
+    public ResponseEntity<AnnouncementResponse> getResourcesForCaWithMetadata(@PathVariable("caName") final CaName caName) {
+        log.info("Getting resources for CA: {}", caName);
+        return ok(getAnnouncements(caName));
+    }
+
+    private AnnouncementResponse getAnnouncements(CaName caName) {
         final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         final ImmutableResourceSet certifiedResources = ca.getResources();
         final Map<Boolean, Collection<BgpRisEntry>> announcements = bgpRisEntryViewService.findMostSpecificContainedAndNotContained(certifiedResources);
@@ -93,7 +113,17 @@ public class AnnouncementService extends AbstractCaRestService {
                         true)
         ).toList();
 
-        return ok(Stream.concat(announcedAnnouncements.stream(), notSeenAnnouncements.stream()).toList());
+        Instant risLastUpdated = bgpRisEntryViewService.getLastUpdated();
+        if (certifiedResources.isEmpty())
+            return new AnnouncementResponse.Problem(NO_CA_RESOURCES);
+        else if (risLastUpdated == null)
+            return new AnnouncementResponse.Problem(NO_RIS_UPDATES);
+        else if (!announcements.isEmpty() &&
+                announcements.values().stream().allMatch(Collection::isEmpty))
+            return new AnnouncementResponse.Problem(NO_OVERLAP_WITH_RIS);
+
+        var announcement = Stream.concat(announcedAnnouncements.stream(), notSeenAnnouncements.stream()).toList();
+        return new AnnouncementResponse.Announcements(announcement, risLastUpdated);
     }
 
     private Set<AnnouncedRoute> bgpRisMapToAnnouncedRoutes(Map<Boolean, Collection<BgpRisEntry>> announcements) {
@@ -102,7 +132,6 @@ public class AnnouncementService extends AbstractCaRestService {
                 .map(BgpRisEntry::toAnnouncedRoute)
                 .collect(Collectors.toSet());
     }
-
 
     @PostMapping("/affected")
     @Operation(summary = "Get all announcements affected by the given ROA configuration of a CA")
@@ -154,6 +183,17 @@ public class AnnouncementService extends AbstractCaRestService {
             }
         }
         return ok(knownAnnouncements);
+    }
+
+    public static final String NO_CA_RESOURCES = "no-ca-resources";
+    public static final String NO_RIS_UPDATES = "no-ris-updates";
+    public static final String NO_OVERLAP_WITH_RIS = "no-overlap-with-ris";
+
+    public interface AnnouncementResponse {
+        record Problem(String emptyAnnouncementsReason) implements AnnouncementResponse {}
+
+        record Announcements(List<BgpAnnouncement> announcements,
+                             Instant lastUpdated) implements AnnouncementResponse { }
     }
 
 }

@@ -1,6 +1,7 @@
 package net.ripe.rpki.rest.service;
 
 import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
@@ -135,9 +136,9 @@ public class AbstractCaRestService extends RestService {
         OWNERSHIP_ERROR("ownership", "You are not a holder of the prefix %s"),
         OK("ok", "");
 
+        @Getter
         private final String type;
         private final String message;
-
 
         PrefixValidationResult(String type, String message) {
             this.type = type;
@@ -146,10 +147,6 @@ public class AbstractCaRestService extends RestService {
 
         public String getMessage(String resource) {
             return String.format(message, resource);
-        }
-
-        public String getType() {
-            return type;
         }
     }
 

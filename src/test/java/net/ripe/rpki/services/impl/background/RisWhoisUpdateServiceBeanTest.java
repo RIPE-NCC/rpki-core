@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -59,13 +60,13 @@ public class RisWhoisUpdateServiceBeanTest {
     @Test
     public void shouldNotFailOnPartiallyBrokenFile() throws IOException {
         when(fetcher.fetch(IPV4_FILE_URL)).thenReturn(getTestLines(100001));
-        when(fetcher.fetch(IPV6_FILE_URL)).thenReturn(
+        when(fetcher.fetch(IPV6_FILE_URL)).thenReturn(Pair.of(
                 "207841\t::ffff:0.0.0.0/96\t1\n" +
                 "268624\t::ffff:45.164.124.0/120\t1\n" +
                 "268624\t::ffff:45.164.125.0/120\t1\n" +
                 "268624\t::ffff:45.164.126.0/120\t1\n" +
                 "268624\t::ffff:45.164.127.0/120\t1\n" +
-                "268624\t::ffff:80.94.90.0/120\t1\n"
+                "268624\t::ffff:80.94.90.0/120\t1\n", 11L)
         );
 
         subject.runService(Collections.emptyMap());
@@ -93,11 +94,11 @@ public class RisWhoisUpdateServiceBeanTest {
         subject.runService(Collections.emptyMap());
     }
 
-    private String getTestLines(int lines) {
+    private Pair<String, Long> getTestLines(int lines) {
         StringBuilder responseBuilder = new StringBuilder();
         for (int i = 0; i < lines; i++) {
             responseBuilder.append(i + 1).append("\t10.0.0.0/8\t10\n");
         }
-        return responseBuilder.toString();
+        return Pair.of(responseBuilder.toString(), 10L);
     }
 }

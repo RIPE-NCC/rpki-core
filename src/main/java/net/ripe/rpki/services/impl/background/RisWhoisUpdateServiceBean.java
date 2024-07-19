@@ -69,16 +69,17 @@ public class RisWhoisUpdateServiceBean extends ConcurrentBackgroundServiceWithAd
     protected void runService(Map<String, String> parameters) {
         List<BgpRisEntry> entries = new ArrayList<>();
 
+        AtomicLong lastUpdated = new AtomicLong(0);
         for (String filename : FILENAMES) {
             String url = risWhoisBaseUrl + "/" + filename;
             try {
                 log.info("fetching RIS whois entries from {}", url);
 
-                String text = fetcher.fetch(url);
-                final Collection<BgpRisEntry> currentEntries = RisWhoisParser.parse(text);
+                var result = fetcher.fetch(url);
+                final Collection<BgpRisEntry> currentEntries = RisWhoisParser.parse(result.getLeft());
                 updateMetrics(url, currentEntries);
-
                 entries.addAll(currentEntries);
+                lastUpdated.updateAndGet(i -> Long.max(result.getRight(), i));
             } catch (IOException | NullPointerException e) {
                 log.error(String.format("Exception while handling RIS dump from %s - aborting update", url), e);
             }
@@ -87,6 +88,7 @@ public class RisWhoisUpdateServiceBean extends ConcurrentBackgroundServiceWithAd
         if (entries.size() >= MINIMUM_EXPECTED_UPDATES) {
             log.info("fetched {} RIS whois entries.", entries.size());
             repository.resetEntries(entries);
+            repository.setLastUpdated(Instant.ofEpochMilli(lastUpdated.get()));
         } else {
             log.error("Found an unusually small number of RIS whois entries, please check files at: {}", risWhoisBaseUrl);
         }

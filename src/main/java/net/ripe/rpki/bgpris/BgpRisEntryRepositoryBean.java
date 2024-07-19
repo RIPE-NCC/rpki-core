@@ -1,5 +1,7 @@
 package net.ripe.rpki.bgpris;
 
+import lombok.Getter;
+import lombok.Setter;
 import net.ripe.ipresource.IpAddress;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResource;
@@ -11,6 +13,7 @@ import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -19,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 @Component
 public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
@@ -30,6 +32,10 @@ public class BgpRisEntryRepositoryBean implements BgpRisEntryViewService {
      * All BgpRisEntries that have enough visibility.
      */
     private final AtomicReference<IntervalMap<IpRange, ArrayList<BgpRisEntry>>> entries = new AtomicReference<>(emptyEntries());
+
+    @Getter
+    @Setter
+    private Instant lastUpdated;
 
     @Override
     public boolean isEmpty() {

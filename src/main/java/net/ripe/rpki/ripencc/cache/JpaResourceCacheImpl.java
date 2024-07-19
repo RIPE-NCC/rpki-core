@@ -129,6 +129,7 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
     private void registerUpdateCompleted() {
         propertyEntityRepository.createOrUpdate(RESOURCE_CACHE_UPDATE_KEY, Instant.now().toString());
     }
+
     public void updateEntry(CaName caName, ImmutableResourceSet resources) {
         entityManager.createNativeQuery(
             "insert into resource_cache (name, resources) values (:name, :resources)\n" +

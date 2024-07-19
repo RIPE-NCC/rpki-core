@@ -33,7 +33,7 @@ class RisWhoisFetcherTest {
                 .willReturn(aResponse().withBody(risDumpContent))
         );
 
-        String data = subject.fetch(wmRuntimeInfo.getHttpBaseUrl() + path);
+        String data = subject.fetch(wmRuntimeInfo.getHttpBaseUrl() + path).getLeft();
         assertThat(data).contains("45528\t1.22.52.0/23\t99");
     }
 }

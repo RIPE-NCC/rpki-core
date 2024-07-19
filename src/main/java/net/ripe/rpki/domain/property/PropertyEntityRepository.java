@@ -6,7 +6,5 @@ public interface PropertyEntityRepository extends Repository<PropertyEntity> {
 
     PropertyEntity findByKey(String key);
 
-    PropertyEntity getByKey(String key);
-
     void createOrUpdate(String key, String value);
 }

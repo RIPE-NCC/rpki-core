@@ -57,3 +57,4 @@ rpki-ripe-ncc-ui/bin/
 logfile
 .metals
 bin/
+.jqwik-database

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
@@ -14,6 +15,7 @@ import net.ripe.rpki.rest.service.RestService;
 import net.ripe.rpki.server.api.ports.NonHostedPublisherRepositoryService;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
@@ -29,6 +31,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -119,14 +122,10 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
                     case "pub-duplicate":
                         throw new DuplicateRepositoryException(publisherHandle);
                     default:
-                        throw new CertificateAuthorityException(
-                            String.format("krill call failed with %d: %s: %s", post.getStatus(), post.getStatusInfo(), error)
-                        );
+                        throw krillCallException(post);
                 }
             } else {
-                throw new CertificateAuthorityException(
-                    String.format("krill call failed with %d: %s", post.getStatus(), post.getStatusInfo())
-                );
+                throw krillCallException(post);
             }
         }
     }
@@ -135,7 +134,7 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
     public Set<UUID> listPublishers() {
         try (Response response = clientForTarget(PUBD_PUBLISHERS).get()) {
             if (HttpStatus.Series.resolve(response.getStatus()) != HttpStatus.Series.SUCCESSFUL) {
-                throw new CertificateAuthorityException(String.format("krill call failed with %d: %s", response.getStatus(), response.getStatusInfo()));
+                throw krillCallException(response);
             }
             return response.readEntity(PublishersDto.class).publishers.stream().flatMap(handle -> {
                 try {
@@ -170,6 +169,49 @@ public class KrillNonHostedPublisherRepositoryBean implements NonHostedPublisher
         } catch (Exception t) {
             return false;
         }
+    }
+
+    @Override
+    public Optional<Publisher> publisherInfo(UUID publisherHandle) {
+        try (Response response = clientForTarget(PUBD_PUBLISHERS + "/" + publisherHandle).get()) {
+            if (response.getStatus() == HttpStatus.NOT_FOUND.value()) {
+                return Optional.empty();
+            }
+            if (HttpStatus.Series.resolve(response.getStatus()) != HttpStatus.Series.SUCCESSFUL) {
+                throw krillCallException(response);
+            }
+            return Optional.of(response.readEntity(Publisher.class))
+                    .map(this::extractUpdateTimestamp);
+        }
+    }
+
+    /**
+     * Extract thisUpdteTime from the publisher's manifest and assume it a last update time for the publisher.
+     * We may change it to something more straightforward if/when Krill API has such option.
+     */
+    private Publisher extractUpdateTimestamp(Publisher publisher) {
+        for (var file : publisher.getCurrentFiles()) {
+            if (file.getUri().endsWith(".mft")) {
+                try {
+                    var decoded = Base64.getDecoder().decode(file.getBase64());
+                    ManifestCmsParser parser = new ManifestCmsParser();
+                    parser.parse(file.getUri(), decoded);
+                    if (parser.isSuccess()) {
+                        DateTime thisUpdateTime = parser.getManifestCms().getThisUpdateTime();
+                        return publisher.withLastUpdate(Instant.ofEpochMilli(thisUpdateTime.getMillis()));
+                    }
+                } catch (Exception ignore) {
+                    // We don't want exceptions in our logs caused by unlikely broken data
+                    // published to PaaS by someone.
+                }
+            }
+        }
+        return publisher;
+    }
+
+    private CertificateAuthorityException krillCallException(Response response) {
+        return new CertificateAuthorityException(
+                String.format("krill call failed with %d: %s", response.getStatus(), response.getStatusInfo()));
     }
 
     @AllArgsConstructor

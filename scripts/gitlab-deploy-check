@@ -80,6 +80,7 @@ const Calendar = {
         return xd > yd;
     },
     max: (x, y) => Calendar.isAfter(x, y) ? x : y,
+    min: (x, y) => Calendar.isAfter(x, y) ? y : x,
     compare: (key=(x)=>x) => (x, y) =>
         Calendar.isAfter(key(x), key(y)) ? 1 : Calendar.isAfter(key(y), key(x)) ? -1 : 0,
     showTimestamp: (x) => {
@@ -180,7 +181,7 @@ const main = async (ctx) => {
 
     const deployments = await gitlab.combinators.findAll(gitlab.queries.deployments)({
         environment: ctx.stagingEnv,
-        finished_after: Calendar.max(lastCommit.created_at, mergeRequest.created_at),
+        finished_after: Calendar.min(lastCommit.created_at, mergeRequest.created_at),
         order_by: "finished_at",
         status: "success",
     })();

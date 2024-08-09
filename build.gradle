@@ -44,7 +44,7 @@ dependencies {
     implementation "org.thymeleaf:thymeleaf:3.1.2.RELEASE"
     implementation "org.thymeleaf:thymeleaf-spring6:3.1.2.RELEASE"
 
-    implementation platform('io.sentry:sentry-bom:7.12.0')
+    implementation platform('io.sentry:sentry-bom:7.13.0')
     implementation 'io.sentry:sentry-spring-boot-starter'
     implementation 'io.sentry:sentry-logback'
 
@@ -62,7 +62,7 @@ dependencies {
     implementation 'commons-io:commons-io:2.16.1'
     implementation 'ch.qos.logback.contrib:logback-json-classic:0.1.5'
     implementation 'ch.qos.logback.contrib:logback-jackson:0.1.5'
-    implementation 'net.logstash.logback:logstash-logback-encoder:7.3'
+    implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
     implementation 'commons-lang:commons-lang:2.6'
 
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
@@ -72,7 +72,7 @@ dependencies {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
 
-    testImplementation "org.wiremock:wiremock-jetty12:3.8.0"
+    testImplementation "org.wiremock:wiremock-jetty12:3.9.1"
     testImplementation 'net.jqwik:jqwik:1.9.0'
     testImplementation "net.ripe.rpki:rpki-commons:$rpki_commons_version:tests"
     testImplementation 'org.assertj:assertj-core'

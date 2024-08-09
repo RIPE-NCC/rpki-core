@@ -27,7 +27,7 @@ public class Rest {
         ));
     }
 
-    static MockHttpServletRequestBuilder post(String url) {
+    public static MockHttpServletRequestBuilder post(String url) {
         return authenticated(withUserId(
             MockMvcRequestBuilders.post(url)
                 .accept(APPLICATION_JSON)

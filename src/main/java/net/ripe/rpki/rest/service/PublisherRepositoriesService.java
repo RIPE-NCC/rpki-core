@@ -3,13 +3,12 @@ package net.ripe.rpki.rest.service;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.MediaType;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.rpki.commons.provisioning.identity.IdentitySerializer;
-import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
-import net.ripe.rpki.commons.provisioning.identity.PublisherRequestSerializer;
-import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
-import net.ripe.rpki.commons.provisioning.identity.RepositoryResponseSerializer;
+import net.ripe.rpki.commons.provisioning.identity.*;
 import net.ripe.rpki.domain.NonHostedCertificateAuthority;
 import net.ripe.rpki.rest.exception.CaNotFoundException;
 import net.ripe.rpki.rest.exception.ObjectNotFoundException;
@@ -27,18 +26,9 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -46,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -64,6 +55,8 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
     private final CertificateAuthorityViewService certificateAuthorityViewService;
     private final CommandService commandService;
     private final Optional<NonHostedPublisherRepositoryService> maybeNonHostedPublisherRepositoryService;
+
+    private static final ForkJoinPool krillCommunicationPool = new ForkJoinPool(4);
 
     /**
      * A workaround for the long-standing issue https://github.com/NLnetLabs/krill/issues/984 that appears to be a wont-fix.
@@ -231,6 +224,30 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         }
     }
 
+    @GetMapping(path = "non-hosted/publisher-content")
+    @Operation(summary = "Get content for every publisher for the CA")
+    public ResponseEntity<?> getPublishers(@PathVariable("caName") final CaName caName) {
+        if (maybeNonHostedPublisherRepositoryService.isEmpty()) {
+            return ResponseEntity.status(NOT_ACCEPTABLE).body(NON_HOSTED_PUBLISHERS_ARE_NOT_AVAILABLE);
+        }
+        var nonHostedPublisherRepositoryService = this.maybeNonHostedPublisherRepositoryService.orElseThrow();
+
+        log.info("Getting full information about publishers for CA: {}", caName);
+
+        NonHostedCertificateAuthorityData ca = getCa(NonHostedCertificateAuthorityData.class, caName);
+
+        var nonHostedPublisherRepositories = certificateAuthorityViewService.findNonHostedPublisherRepositories(ca.getName());
+        var publisherContent = krillCommunicationPool.submit(() ->
+                nonHostedPublisherRepositories
+                        .keySet()
+                        .parallelStream()
+                        .flatMap(handle -> nonHostedPublisherRepositoryService.publisherInfo(handle).stream())
+                        .toList()
+        ).join();
+
+        return ResponseEntity.ok(publisherContent);
+    }
+
     @Value
     private static class RepositoryResponseDto {
         @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -252,5 +269,4 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
             );
         }
     }
-
 }

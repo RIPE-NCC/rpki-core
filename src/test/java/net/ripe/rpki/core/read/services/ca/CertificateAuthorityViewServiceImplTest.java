@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Transactional
 public class CertificateAuthorityViewServiceImplTest extends CertificationDomainTestCase {
     public static final ImmutableResourceSet CHILD_CA_RESOURCES = ImmutableResourceSet.parse("10.0.0.0/8");
+
     private static final long HOSTED_CA_ID = 7L;
 
     private static final X500Principal CHILD_CA_NAME = new X500Principal("CN=child");

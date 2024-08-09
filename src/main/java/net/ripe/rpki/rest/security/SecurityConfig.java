@@ -53,6 +53,7 @@ public class SecurityConfig {
                 .build();
     }
 
+
     @Order(2)
     @Bean
     public SecurityFilterChain webSecurityFilterChainAllowProvisioningEndpoint(HttpSecurity http) throws Exception {

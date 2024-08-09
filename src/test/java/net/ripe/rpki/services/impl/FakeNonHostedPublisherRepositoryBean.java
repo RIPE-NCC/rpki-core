@@ -55,4 +55,12 @@ public class FakeNonHostedPublisherRepositoryBean implements NonHostedPublisherR
     public boolean isInitialized() {
         return true;
     }
+
+    @Override
+    public Optional<Publisher> publisherInfo(UUID publisherHandle) {
+        return Optional.of(new Publisher(publisherHandle.toString(),
+                new IdCert("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu1b41M0NiNAbxu7wp3D90FWWRQVNJS0dsbDcekDOvtyEYMe",
+                        "MIIDEzCCAfugAwIBAgIB", "e4a2aa8725584679b79c316ec428c605a518da86df81f70fa8976681314032c5"),
+                "https://fake.rpki.example.com/pubserver", Collections.emptyList(), null));
+    }
 }

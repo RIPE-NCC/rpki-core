@@ -42,7 +42,6 @@ public class OpenAPIConfig {
     }
 
     private Info getInfo() {
-
         return new Info().title("Resource Certification (RPKI) API")
                 .termsOfService("https://www.ripe.net/lir-services/resource-management/certification/legal/ripe-ncc-certification-service-terms-and-conditions")
                 .description("Rest API for RIPE NCC Resource Certification (RPKI)")

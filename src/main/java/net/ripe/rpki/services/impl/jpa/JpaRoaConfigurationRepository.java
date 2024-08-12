@@ -1,26 +1,22 @@
 package net.ripe.rpki.services.impl.jpa;
 
-import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResourceRange;
-import net.ripe.ipresource.IpResourceType;
+import jakarta.persistence.Query;
+import net.ripe.ipresource.*;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
-import net.ripe.rpki.server.api.support.objects.CaName;
+import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.NoResultException;
-import javax.security.auth.x500.X500Principal;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -49,54 +45,24 @@ public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguratio
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<RoaConfigurationPerCa> findAllPerCa() {
-        return (List<RoaConfigurationPerCa>) createNativeQuery("SELECT DISTINCT\n" +
-                "    ca.id,\n" +
-                "    ca.name,\n" +
-                "    rcp.asn,\n" +
-                "    rcp.prefix_type_id,\n" +
-                "    rcp.prefix_start,\n" +
-                "    rcp.prefix_end,\n" +
-                "    rcp.maximum_length\n" +
-                "FROM certificateauthority ca\n" +
-                "JOIN roaconfiguration rc ON rc.certificateauthority_id = ca.id\n" +
-                "JOIN roaconfiguration_prefixes rcp ON rcp.roaconfiguration_id = rc.id")
+    public Collection<RoaConfigurationPrefixData> findAllPrefixes() {
+        return createNativeQuery(
+                "SELECT DISTINCT asn, prefix_type_id, prefix_start, prefix_end, maximum_length FROM roaconfiguration_prefixes")
                 .getResultList()
                 .stream()
                 .map(o -> {
                     final Object[] row = (Object[]) o;
-                    final Long caId = ((Long) row[0]);
-                    final X500Principal principal = new X500Principal((String) row[1]);
-                    final CaName caName = CaName.of(principal);
-                    final Asn asn = new Asn(((BigDecimal) row[2]).longValue());
-                    final Short prefixType = (Short) row[3];
-                    final BigInteger begin = ((BigDecimal) row[4]).toBigInteger();
-                    final BigInteger end = ((BigDecimal) row[5]).toBigInteger();
-                    final Integer maximumLength = (Integer) row[6];
+                    final Asn asn = new Asn(((BigDecimal) row[0]).longValue());
+                    final Short prefixType = (Short) row[1];
+                    final BigInteger begin = ((BigDecimal) row[2]).toBigInteger();
+                    final BigInteger end = ((BigDecimal) row[3]).toBigInteger();
+                    final Integer maximumLength = (Integer) row[4];
                     final IpResourceType resourceType = IpResourceType.values()[prefixType];
-                    final IpResourceRange range = resourceType.fromBigInteger(begin).upTo(resourceType.fromBigInteger(end));
-                    return new RoaConfigurationPerCa(caId, caName, asn, range, maximumLength);
+                    final IpRange range = IpRange.range(
+                            (IpAddress)resourceType.fromBigInteger(begin),
+                            (IpAddress)resourceType.fromBigInteger(end));
+                    return new RoaConfigurationPrefixData(asn, range, maximumLength);
                 }).toList();
-    }
-
-    @Override
-    public void logRoaPrefixDeletion(RoaConfiguration configuration, Collection<? extends RoaConfigurationPrefix> deletedPrefixes) {
-        // do it in SQL because Hibernate makes it harder to have the same enity
-        String sql = "INSERT INTO deleted_roaconfiguration_prefixes " +
-            "               (roaconfiguration_id, asn, prefix_type_id, prefix_start, prefix_end, maximum_length)" +
-            "         VALUES (:roaconfiguration_id, :asn, :prefix_type_id, :prefix_start, :prefix_end, :maximum_length)";
-
-        deletedPrefixes.forEach(dp -> {
-            final IpRange prefix = dp.getPrefix();
-            createNativeQuery(sql)
-                .setParameter("roaconfiguration_id", configuration.getId())
-                .setParameter("asn", dp.getAsn().longValue())
-                .setParameter("prefix_type_id", prefix.getType() == IpResourceType.IPv4 ? 1 : 2)
-                .setParameter("prefix_start", prefix.getStart().getValue())
-                .setParameter("prefix_end", prefix.getEnd().getValue())
-                .setParameter("maximum_length", dp.getMaximumLength())
-                .executeUpdate();
-        });
     }
 
     @Override
@@ -115,6 +81,66 @@ public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguratio
         // empty table -> null.
         var res = (Instant) createNativeQuery(sql).getSingleResult();
         return Optional.ofNullable(res);
+    }
+
+    @Override
+    public void mergePrefixes(RoaConfiguration configuration,
+                              Collection<RoaConfigurationPrefix> prefixesToAdd,
+                              Collection<RoaConfigurationPrefix> prefixesToRemove) {
+        var diff = configuration.mergePrefixes(prefixesToAdd, prefixesToRemove);
+        applyDiff(configuration, diff);
+    }
+
+    public void applyDiff(RoaConfiguration configuration,
+                          RoaConfiguration.PrefixDiff diff) {
+
+        diff.removed().forEach(r -> {
+            String sql = """
+                    WITH deleted AS (
+                        DELETE FROM roaconfiguration_prefixes
+                        WHERE roaconfiguration_id = :roaconfiguration_id
+                        AND asn = :asn
+                        AND prefix_type_id = :prefix_type_id
+                        AND prefix_start = :prefix_start
+                        AND prefix_end = :prefix_end
+                        AND maximum_length = :maximum_length
+                        RETURNING *
+                    )
+                    INSERT INTO deleted_roaconfiguration_prefixes
+                    SELECT * FROM deleted
+                    """;
+            executeForPrefix(configuration, r, sql);
+        });
+
+        diff.added().forEach(r -> {
+            String sql = """
+                    INSERT INTO roaconfiguration_prefixes (roaconfiguration_id, asn, prefix_type_id, prefix_start, prefix_end, maximum_length)
+                    VALUES (:roaconfiguration_id, :asn, :prefix_type_id, :prefix_start, :prefix_end, :maximum_length)
+                    RETURNING updated_at
+                    """;
+            Instant updatedAt = extractForPrefix(configuration, r, sql);
+            r.setUpdatedAt(updatedAt);
+        });
+    }
+
+    private void executeForPrefix(RoaConfiguration configuration, RoaConfigurationPrefix dp, String sql) {
+        final IpRange prefix = dp.getPrefix();
+        makeQuery(configuration, dp, sql, prefix).executeUpdate();
+    }
+
+    private Instant extractForPrefix(RoaConfiguration configuration, RoaConfigurationPrefix dp, String sql) {
+        final IpRange prefix = dp.getPrefix();
+        return (Instant) makeQuery(configuration, dp, sql, prefix).getSingleResult();
+    }
+
+    private Query makeQuery(RoaConfiguration configuration, RoaConfigurationPrefix dp, String sql, IpRange prefix) {
+        return createNativeQuery(sql)
+                .setParameter("roaconfiguration_id", configuration.getId())
+                .setParameter("asn", dp.getAsn().longValue())
+                .setParameter("prefix_type_id", prefix.getType() == IpResourceType.IPv4 ? 1 : 2)
+                .setParameter("prefix_start", prefix.getStart().getValue())
+                .setParameter("prefix_end", prefix.getEnd().getValue())
+                .setParameter("maximum_length", dp.getMaximumLength());
     }
 
     @Override

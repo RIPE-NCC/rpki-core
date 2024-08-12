@@ -107,7 +107,7 @@ public abstract class CertificationDomainTestCase {
 
     protected void clearDatabase() {
         // Clean the test database. Note that this is not transactional, but the test database should be empty anyway.
-        entityManager.createNativeQuery("TRUNCATE TABLE certificateauthority, commandaudit, ta_published_object, resource_cache CASCADE").executeUpdate();
+        entityManager.createNativeQuery("TRUNCATE TABLE certificateauthority, commandaudit, ta_published_object, resource_cache, roaconfiguration CASCADE").executeUpdate();
         resourceCache.populateCache(Map.of(CaName.of(repositoryConfiguration.getProductionCaPrincipal()), ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES));
     }
 

@@ -1,47 +1,79 @@
 package net.ripe.rpki.domain.roa;
 
-import lombok.Getter;
+import jakarta.persistence.*;
+import lombok.*;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
+import net.ripe.rpki.ripencc.support.persistence.AsnPersistenceConverter;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.List;
 
-import static com.google.common.base.Objects.*;
 
-@Embeddable
+@EqualsAndHashCode
+@Entity
+@Table(name = "roaconfiguration_prefixes")
+@IdClass(RoaConfigurationPrefix.RoaConfigurationPrefixIdClass.class)
 public class RoaConfigurationPrefix {
+
+    @NoArgsConstructor
+    @Data
+    public static class RoaConfigurationPrefixIdClass implements Serializable {
+        // via https://stackoverflow.com/a/61258208
+        @Column(name = "asn", nullable = false)
+        @Convert(converter = AsnPersistenceConverter.class)
+        private Asn asn;
+        private BigInteger prefixStart;
+        private BigInteger prefixEnd;
+        @Column(name = "prefix_type_id", nullable = false)
+        private IpResourceType prefixType;
+    }
+
+    @Id
     @Column(name = "asn", nullable = false)
     @Getter
     private Asn asn;
 
+    @Id
     @Column(name = "prefix_start", nullable = false)
     private BigInteger prefixStart;
 
+    @Id
     @Column(name = "prefix_end", nullable = false)
     private BigInteger prefixEnd;
 
+    @Id
     @Column(name = "prefix_type_id", nullable = false)
     private IpResourceType prefixType;
 
-    // Nullable for database compatibility reasons.
-    @Column(name = "maximum_length", nullable = true)
+    @Column(name = "maximum_length")
     private Integer maximumLength;
 
+    @ManyToOne
+    @JoinColumn(name = "roaconfiguration_id", nullable = false)
+    @Setter
+    private RoaConfiguration roaConfiguration;
+
     @Getter
-    @Column(name = "updated_at", insertable = false, updatable = false)
+    @Setter
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
     protected RoaConfigurationPrefix() {
         // JPA uses this
+    }
+
+    @PreUpdate
+    @PrePersist
+    void prePersist() {
+        this.updatedAt = Instant.now();
     }
 
     public RoaConfigurationPrefix(Asn asn, IpRange prefix) {
@@ -52,12 +84,17 @@ public class RoaConfigurationPrefix {
         this(new RoaConfigurationPrefixData(asn, prefix, maximumLength));
     }
 
+    public RoaConfigurationPrefix(Asn asn, IpRange prefix, Integer maximumLength, Instant updatedAt) {
+        this(new RoaConfigurationPrefixData(asn, prefix, maximumLength, updatedAt));
+    }
+
     public RoaConfigurationPrefix(RoaConfigurationPrefixData data) {
         this.asn = data.getAsn();
         this.prefixType = data.getPrefix().getType();
         this.prefixStart = data.getPrefix().getStart().getValue();
         this.prefixEnd = data.getPrefix().getEnd().getValue();
         this.maximumLength = data.getMaximumLength();
+        this.updatedAt = data.getUpdatedAt();
     }
 
     public RoaConfigurationPrefix(AnnouncedRoute route, Integer maximumLength) {
@@ -77,35 +114,12 @@ public class RoaConfigurationPrefix {
     }
 
     @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + getAsn().hashCode();
-        result = prime * result + getPrefix().hashCode();
-        result = prime * result + getMaximumLength();
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        RoaConfigurationPrefix that = (RoaConfigurationPrefix) obj;
-        return equal(getAsn(), that.getAsn())
-                && equal(this.getPrefix(), that.getPrefix())
-                && this.getMaximumLength() == that.getMaximumLength();
-    }
-
-    @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
                 .append("asn", getAsn())
                 .append("prefix", getPrefix())
                 .append("maximumLength", getMaximumLength())
+                .append("updatedAt", getUpdatedAt())
                 .toString();
     }
 

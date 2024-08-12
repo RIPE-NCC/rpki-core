@@ -3,10 +3,12 @@ package net.ripe.rpki.domain.roa;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpResourceRange;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
+import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.support.objects.CaName;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,9 +24,7 @@ public interface RoaConfigurationRepository {
 
     Collection<RoaConfiguration> findAll();
 
-    List<RoaConfigurationPerCa> findAllPerCa();
-
-    void logRoaPrefixDeletion(RoaConfiguration configuration, Collection<? extends RoaConfigurationPrefix> deletedPrefixes);
+    Collection<RoaConfigurationPrefixData> findAllPrefixes();
 
     int countRoaPrefixes();
 
@@ -32,18 +32,15 @@ public interface RoaConfigurationRepository {
 
     void remove(RoaConfiguration roaConfiguration);
 
-    class RoaConfigurationPerCa {
-        public final Long caId;
-        public final CaName caName;
-        public final Asn asn;
-        public final IpResourceRange prefix;
-        public final Integer maximumLength;
-        public RoaConfigurationPerCa(Long caId, CaName caName, Asn asn, IpResourceRange prefix, Integer maximumLength) {
-            this.caId = caId;
-            this.caName = caName;
-            this.asn = asn;
-            this.prefix = prefix;
-            this.maximumLength = maximumLength;
-        }
+    default void addPrefixes(RoaConfiguration roaConfiguration, Collection<RoaConfigurationPrefix> prefixes) {
+        mergePrefixes(roaConfiguration, prefixes, Collections.emptyList());
     }
+
+    default void removePrefixes(RoaConfiguration roaConfiguration, Collection<RoaConfigurationPrefix> prefixes) {
+        mergePrefixes(roaConfiguration, Collections.emptyList(), prefixes);
+    }
+
+    void mergePrefixes(RoaConfiguration configuration,
+                       Collection<RoaConfigurationPrefix> prefixesToAdd,
+                       Collection<RoaConfigurationPrefix> prefixesToRemove);
 }

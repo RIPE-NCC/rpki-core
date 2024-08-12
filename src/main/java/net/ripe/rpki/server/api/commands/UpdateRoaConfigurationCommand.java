@@ -22,7 +22,10 @@ public class UpdateRoaConfigurationCommand extends CertificateAuthorityModificat
 
     private final List<RoaConfigurationPrefixData> deletions;
 
-    public UpdateRoaConfigurationCommand(VersionedId certificateAuthorityId, Optional<String> ifMatch, Collection<RoaConfigurationPrefixData> added, Collection<RoaConfigurationPrefixData> deleted) {
+    public UpdateRoaConfigurationCommand(VersionedId certificateAuthorityId,
+                                         Optional<String> ifMatch,
+                                         Collection<RoaConfigurationPrefixData> added,
+                                         Collection<RoaConfigurationPrefixData> deleted) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
         this.ifMatch = ifMatch;
         this.additions = new ArrayList<>(added);

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.context.request.WebRequest;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -49,12 +50,10 @@ public class RoaPrefixesService {
             return ResponseEntity.status(HttpStatus.NOT_MODIFIED).build();
         }
 
-        List<RoaConfigurationPrefixData> roas = roaConfigurationRepository.findAll()
-                .stream()
-                .flatMap(rc -> rc.getPrefixes().stream())
-                .map(RoaConfigurationPrefix::toData)
+        List<RoaConfigurationPrefixData> roas = roaConfigurationRepository.findAllPrefixes().stream()
                 .sorted(RoaPrefixData.ROA_PREFIX_DATA_COMPARATOR)
                 .toList();
+
         return ResponseEntity.ok(ValidatedObjectsResponse.of(roas, Collections.singletonMap("origin", "rpki-core")));
     }
 

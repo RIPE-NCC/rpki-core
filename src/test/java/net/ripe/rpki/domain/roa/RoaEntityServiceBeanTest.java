@@ -113,7 +113,7 @@ public class RoaEntityServiceBeanTest  {
     public void should_create_new_roa_entity_from_updated_specification() {
         RoaEntity roaEntity = handleRoaSpecificationCreatedEvent().getAddedRoa();
 
-        configuration.addPrefix(Collections.singleton(new RoaConfigurationPrefix(ASN, IpRange.parse("192.168.0.0/26"))));
+        configuration.addPrefixes(Collections.singleton(new RoaConfigurationPrefix(ASN, IpRange.parse("192.168.0.0/26"))));
 
         RoaEntity newRoaEntity = handleRoaSpecificationUpdatedEvent(roaEntity).getAddedRoa();
 
@@ -125,7 +125,7 @@ public class RoaEntityServiceBeanTest  {
     public void should_revoke_invalidated_roa_on_specification_update() {
         RoaEntity oldRoa = handleRoaSpecificationCreatedEvent().getAddedRoa();
 
-        configuration.addPrefix(Collections.singleton(new RoaConfigurationPrefix(ASN, IpRange.parse("192.168.0.0/26"))));
+        configuration.addPrefixes(Collections.singleton(new RoaConfigurationPrefix(ASN, IpRange.parse("192.168.0.0/26"))));
 
         RoaEntity removedRoa = handleRoaSpecificationUpdatedEvent(oldRoa).getRemovedRoa();
 
@@ -210,7 +210,7 @@ public class RoaEntityServiceBeanTest  {
         RoaEntity roaEntity = handleRoaSpecificationCreatedEvent().getAddedRoa();
         assertNotNull(roaEntity);
 
-        configuration.addPrefix(Collections.singletonList(new RoaConfigurationPrefix(ASN, notCoveredPrefix, 24)));
+        configuration.addPrefixes(Collections.singletonList(new RoaConfigurationPrefix(ASN, notCoveredPrefix, 24)));
         RoaEntity newRoaEntity = handleRoaSpecificationUpdatedEvent(roaEntity).getAddedRoa();
 
         assertNull(newRoaEntity);

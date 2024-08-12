@@ -84,7 +84,7 @@ public class RoaServiceBeanTest {
     @Test
     public void getRoaConfiguration_should_return_ca_roa_configuration() {
         RoaConfiguration roaConfiguration = new RoaConfiguration(certificateAuthority);
-        roaConfiguration.addPrefix(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("127.0.0.0/8"))));
+        roaConfiguration.addPrefixes(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("127.0.0.0/8"))));
 
         when(caRepository.findManagedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
         when(roaConfigurationRepository.findByCertificateAuthority(certificateAuthority)).thenReturn(Optional.of(roaConfiguration));

@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.security.auth.x500.X500Principal;
 import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -75,14 +76,14 @@ public class CertificateAuthorityViewServiceStatisticsTest extends Certification
         // Add the ROA configuration
         var ca = certificateAuthorityRepository.findManagedCa(HOSTED_CA_ID);
         var roaConfiguration = roaConfigurationRepository.getOrCreateByCertificateAuthority(ca);
-        roaConfiguration.addPrefix(ALL_ROA_CONFIGURATIONS);
+        roaConfigurationRepository.addPrefixes(roaConfiguration, ALL_ROA_CONFIGURATIONS);
 
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse("fc00::/8"));
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
     }
 
     private Pair<X500Principal, Long> createAnotherCa(int roaCount) {
-        var randomId = HOSTED_CA_ID + new SecureRandom().nextLong(1<<60);
+        var randomId = HOSTED_CA_ID + new SecureRandom().nextLong(1L << 60);
         // Add another CA with ROAs
         final var secondChildCaName = new X500Principal("CN=" + randomId);
 
@@ -97,7 +98,7 @@ public class CertificateAuthorityViewServiceStatisticsTest extends Certification
                 .mapToObj(i -> new RoaConfigurationPrefix(Asn.parse(Integer.toString(65443 + i)), IpRange.parse("192.0.2.0/24"))
                 ).collect(Collectors.toList());
 
-        roaConfiguration.addPrefix(randomRoas);
+        roaConfigurationRepository.addPrefixes(roaConfiguration, randomRoas);
 
         resourceCache.updateEntry(CaName.of(secondChildCaName), parse("192.0.2.0/24"));
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(randomId, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));
@@ -112,7 +113,7 @@ public class CertificateAuthorityViewServiceStatisticsTest extends Certification
                 .allMatch(ca -> ca.caName.equals(CHILD_CA_NAME.getName()));
 
         var second = createAnotherCa(42);
-        // Should have two CAs, one of which as 42 ROAs
+        // Should have two CAs, one of which has 42 ROAs
         assertThat(subject.getCaStats())
                 .hasSize(2)
                 .anyMatch(thatCa -> second.getKey().getName().equals(thatCa.caName) && thatCa.roas == 42);

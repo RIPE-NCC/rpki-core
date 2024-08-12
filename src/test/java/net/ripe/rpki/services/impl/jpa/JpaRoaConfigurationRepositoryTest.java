@@ -12,7 +12,7 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import jakarta.transaction.Transactional;
-import java.math.BigInteger;
+
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -51,16 +51,15 @@ public class JpaRoaConfigurationRepositoryTest extends CertificationDomainTestCa
     }
 
     @Test
-    public void shouldFindAllPerCaAndCountPrefixes() {
+    public void shouldFindAllPrefixesAndCountPrefixes() {
         RoaConfiguration roaConfig = subject.getOrCreateByCertificateAuthority(ca);
         RoaConfigurationPrefix p1 = new RoaConfigurationPrefix(new Asn(1), IpRange.parse("10.11.0.0/16"), 16);
         RoaConfigurationPrefix p2 = new RoaConfigurationPrefix(new Asn(2), IpRange.parse("10.12.0.0/16"), 16);
         RoaConfigurationPrefix p3 = new RoaConfigurationPrefix(new Asn(3), IpRange.parse("10.13.0.0/16"), null);
-        roaConfig.addPrefix(Arrays.asList(p1, p2, p3));
-        List<RoaConfigurationRepository.RoaConfigurationPerCa> allPerCa = subject.findAllPerCa();
+        subject.addPrefixes(roaConfig, Arrays.asList(p1, p2, p3));
+        var allPerCa = subject.findAllPrefixes();
         assertNotNull(allPerCa);
         assertEquals(3, allPerCa.size());
-
         assertEquals(3, subject.countRoaPrefixes());
     }
 
@@ -77,7 +76,7 @@ public class JpaRoaConfigurationRepositoryTest extends CertificationDomainTestCa
         RoaConfigurationPrefix p1 = new RoaConfigurationPrefix(new Asn(1), IpRange.parse("10.11.0.0/16"), 16);
         RoaConfigurationPrefix p2 = new RoaConfigurationPrefix(new Asn(2), IpRange.parse("10.12.0.0/16"), 16);
         RoaConfigurationPrefix p3 = new RoaConfigurationPrefix(new Asn(3), IpRange.parse("10.13.0.0/16"), null);
-        roaConfig.addPrefix(Arrays.asList(p1, p2, p3));
+        roaConfig.addPrefixes(Arrays.asList(p1, p2, p3));
 
         // And check not modified
         then(subject.lastModified().get()).isAfterOrEqualTo(Instant.ofEpochMilli(roaConfig.getUpdatedAt().getMillis()));
@@ -88,16 +87,9 @@ public class JpaRoaConfigurationRepositoryTest extends CertificationDomainTestCa
      */
     @Test
     public void shouldSetRecentLastModifiedForDeletes() {
-        RoaConfigurationPrefix p1 = new RoaConfigurationPrefix(new Asn(1), IpRange.parse("10.11.0.0/16"), 16);
-        RoaConfigurationPrefix p2 = new RoaConfigurationPrefix(new Asn(2), IpRange.parse("10.12.0.0/16"), 16);
-        RoaConfigurationPrefix p3 = new RoaConfigurationPrefix(new Asn(3), IpRange.parse("10.13.0.0/16"), null);
-        final List<RoaConfigurationPrefix> prefixes = Arrays.asList(p1, p2, p3);
-
         RoaConfiguration roaConfig = subject.getOrCreateByCertificateAuthority(ca);
-        // add prefixes since logRoaPrefixDeletion iterates over them
         transactionTemplate.execute((status) -> entityManager.merge(roaConfig));
 
-        subject.logRoaPrefixDeletion(roaConfig, prefixes);
         // And check that not modified has updated
         then(subject.lastModified().get()).isAfterOrEqualTo(Instant.ofEpochMilli(roaConfig.getUpdatedAt().toInstant().getMillis()));
     }
@@ -110,8 +102,8 @@ public class JpaRoaConfigurationRepositoryTest extends CertificationDomainTestCa
         RoaConfigurationPrefix p3 = new RoaConfigurationPrefix(Asn.parse("AS12"), IpRange.parse("2a03:600::/32"));
 
         final List<RoaConfigurationPrefix> prefixes = Arrays.asList(p1, p2, p3);
-        roaConfig.addPrefix(prefixes);
-        subject.logRoaPrefixDeletion(roaConfig, prefixes);
+        subject.addPrefixes(roaConfig, prefixes);
+        subject.removePrefixes(roaConfig, prefixes);
 
         assertEquals(3L, countQuery("SELECT COUNT(*) FROM deleted_roaconfiguration_prefixes"));
         assertEquals(1L, countQuery("SELECT COUNT(*) FROM deleted_roaconfiguration_prefixes WHERE asn = 10 AND prefix_type_id = 1 AND maximum_length = 8"));
@@ -119,11 +111,38 @@ public class JpaRoaConfigurationRepositoryTest extends CertificationDomainTestCa
         assertEquals(1L, countQuery("SELECT COUNT(*) FROM deleted_roaconfiguration_prefixes WHERE asn = 12 AND prefix_type_id = 2 AND maximum_length = 32"));
     }
 
+    @Test
+    public void shouldInsertDeletedPrefixesToSeparateTableWhenUpdatingPrefix() {
+        RoaConfiguration roaConfig = subject.getOrCreateByCertificateAuthority(ca);
+        RoaConfigurationPrefix p1 = new RoaConfigurationPrefix(Asn.parse("AS10"), IpRange.parse("20.0.0.0/8"));
+        RoaConfigurationPrefix p2 = new RoaConfigurationPrefix(Asn.parse("AS11"), IpRange.parse("21.21.0.0/16"));
+        RoaConfigurationPrefix p3 = new RoaConfigurationPrefix(Asn.parse("AS12"), IpRange.parse("2a03:600::/32"));
+
+        subject.addPrefixes(roaConfig, Arrays.asList(p1, p2, p3));
+
+        assertEquals(3L, countQuery("SELECT COUNT(*) FROM roaconfiguration_prefixes"));
+        assertEquals(1L, countQuery("SELECT COUNT(*) FROM roaconfiguration_prefixes WHERE asn = 10 AND maximum_length = 8"));
+        assertEquals(1L, countQuery("SELECT COUNT(*) FROM roaconfiguration_prefixes WHERE asn = 11"));
+        assertEquals(1L, countQuery("SELECT COUNT(*) FROM roaconfiguration_prefixes WHERE asn = 12"));
+
+        // replace max length 8 with 12
+        subject.mergePrefixes(roaConfig,
+                List.of(new RoaConfigurationPrefix(Asn.parse("AS10"), IpRange.parse("20.0.0.0/8"), 12)),
+                List.of(new RoaConfigurationPrefix(Asn.parse("AS10"), IpRange.parse("20.0.0.0/8"), 8)));
+
+        assertEquals(3L, countQuery("SELECT COUNT(*) FROM roaconfiguration_prefixes"));
+        assertEquals(1L, countQuery("SELECT COUNT(*) FROM roaconfiguration_prefixes WHERE asn = 10 AND maximum_length = 12"));
+        assertEquals(1L, countQuery("SELECT COUNT(*) FROM roaconfiguration_prefixes WHERE asn = 11"));
+        assertEquals(1L, countQuery("SELECT COUNT(*) FROM roaconfiguration_prefixes WHERE asn = 12"));
+
+        assertEquals(1L, countQuery("SELECT COUNT(*) FROM deleted_roaconfiguration_prefixes"));
+        assertEquals(1L, countQuery("SELECT COUNT(*) FROM deleted_roaconfiguration_prefixes WHERE asn = 10 AND prefix_type_id = 1 AND maximum_length = 8"));
+    }
+
     long countQuery(String sql) {
-        final var count = (Long) entityManager
-            .createNativeQuery(sql)
-            .getSingleResult();
-        return count.longValue();
+        return (Long) entityManager
+                .createNativeQuery(sql)
+                .getSingleResult();
     }
 
 }

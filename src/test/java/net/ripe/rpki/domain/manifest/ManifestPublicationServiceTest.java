@@ -148,7 +148,9 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
         publishedObjectRepository.findAll().forEach(po -> po.published());
         entityManager.flush();
 
-        roaConfigurationRepository.getOrCreateByCertificateAuthority(ca).addPrefix(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"))));
+        var configuration = roaConfigurationRepository.getOrCreateByCertificateAuthority(ca);
+        roaConfigurationRepository.addPrefixes(configuration,
+                Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"))));
         roaEntityService.updateRoasIfNeeded(ca);
 
         subject.updateManifestAndCrlIfNeeded(ca.getCurrentKeyPair());

@@ -21,10 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import jakarta.inject.Inject;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 
 @Handler
@@ -47,7 +44,6 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
         Preconditions.checkArgument(privateAsnRanges.stream().allMatch(a -> a.getType() == IpResourceType.ASN), "Only ASNs allowed for private ASN ranges: %s", privateAsnRanges);
     }
 
-
     @Override
     public Class<UpdateRoaConfigurationCommand> commandType() {
         return UpdateRoaConfigurationCommand.class;
@@ -62,28 +58,14 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
         validateAsns(command);
         validateAddedPrefixes(ca, command.getAdditions());
 
-        applyUpdates(command, configuration);
+        roaConfigurationRepository.mergePrefixes(configuration,
+                RoaConfigurationPrefix.fromData(command.getAdditions()),
+                RoaConfigurationPrefix.fromData(command.getDeletions()));
 
         ca.markConfigurationUpdated();
 
         roaMetricsService.countAdded(command.getAdditions().size());
         roaMetricsService.countDeleted(command.getDeletions().size());
-    }
-
-    private void applyUpdates(UpdateRoaConfigurationCommand command, RoaConfiguration configuration) {
-        final Set<RoaConfigurationPrefix> formerPrefixes = new HashSet<>(configuration.getPrefixes());
-
-        Collection<RoaConfigurationPrefix> addedPrefixes = RoaConfigurationPrefix.fromData(command.getAdditions());
-        Collection<RoaConfigurationPrefix> deletedPrefixes = RoaConfigurationPrefix.fromData(command.getDeletions());
-
-        configuration.addPrefix(addedPrefixes);
-        configuration.removePrefix(deletedPrefixes);
-
-        if (!deletedPrefixes.isEmpty()) {
-            final Set<? extends RoaConfigurationPrefix> actualDeletable =
-                deletedPrefixes.stream().filter(formerPrefixes::contains).collect(Collectors.toSet());
-            roaConfigurationRepository.logRoaPrefixDeletion(configuration, actualDeletable);
-        }
     }
 
     private void validateEntityTag(UpdateRoaConfigurationCommand command, RoaConfiguration configuration) {

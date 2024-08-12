@@ -9,6 +9,7 @@ import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.rest.service.Rest;
+import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,17 +100,13 @@ public class RoaPrefixesServiceTest {
     public void shouldReturnObjectsAsJsonMatchingValidatedObjectsShape() throws Exception {
         when(roaConfigurationRepository.lastModified()).thenReturn(Optional.of(Instant.now()));
 
-        when(roaConfigurationRepository.findAll()).thenReturn(Arrays.asList(
-                new RoaConfiguration(mock(ManagedCertificateAuthority.class), Arrays.asList(
-                    new RoaConfigurationPrefix(Asn.parse("AS64496"), IpRange.parse("192.0.2.0/25"), 32),
-                    new RoaConfigurationPrefix(Asn.parse("AS65536"), IpRange.parse("192.0.2.128/25"), 32),
-                    new RoaConfigurationPrefix(Asn.parse("AS64496"), IpRange.parse("192.0.2.128/25"), 25)
-                )),
-                new RoaConfiguration(mock(ManagedCertificateAuthority.class), Arrays.asList(
-                        new RoaConfigurationPrefix(Asn.parse("AS65551"), IpRange.parse("2001:DB8::/32"), 33),
-                        new RoaConfigurationPrefix(Asn.parse("AS65550"), IpRange.parse("2001:DB8:ABCD::/48"), 48)
-                ))
-        ));
+        when(roaConfigurationRepository.findAllPrefixes()).thenReturn(Arrays.asList(
+                    new RoaConfigurationPrefixData(Asn.parse("AS64496"), IpRange.parse("192.0.2.0/25"), 32),
+                    new RoaConfigurationPrefixData(Asn.parse("AS65536"), IpRange.parse("192.0.2.128/25"), 32),
+                    new RoaConfigurationPrefixData(Asn.parse("AS64496"), IpRange.parse("192.0.2.128/25"), 25),
+                    new RoaConfigurationPrefixData(Asn.parse("AS65551"), IpRange.parse("2001:DB8::/32"), 33),
+                    new RoaConfigurationPrefixData(Asn.parse("AS65550"), IpRange.parse("2001:DB8:ABCD::/48"), 48)
+                ));
 
         // shape:
         // ...

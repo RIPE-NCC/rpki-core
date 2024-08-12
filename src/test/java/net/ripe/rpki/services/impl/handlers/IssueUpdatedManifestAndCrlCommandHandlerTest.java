@@ -79,7 +79,7 @@ public class IssueUpdatedManifestAndCrlCommandHandlerTest extends CertificationD
 
     @Test
     public void should_update_roa_entities() {
-        roaConfigurationRepository.getOrCreateByCertificateAuthority(ca).addPrefix(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"))));
+        roaConfigurationRepository.getOrCreateByCertificateAuthority(ca).addPrefixes(Collections.singleton(new RoaConfigurationPrefix(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"))));
         ca.markConfigurationUpdated();
 
         assertThat(roaEntityRepository.findCurrentByCertificateAuthority(ca)).describedAs("current ROA entities").isEmpty();

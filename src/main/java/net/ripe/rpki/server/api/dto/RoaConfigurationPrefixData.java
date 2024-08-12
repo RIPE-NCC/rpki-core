@@ -13,7 +13,6 @@ import net.ripe.rpki.commons.validation.roa.RoaPrefixData;
 import net.ripe.rpki.server.api.support.objects.ValueObjectSupport;
 
 import java.time.Instant;
-import java.util.Comparator;
 
 import static com.google.common.base.Objects.*;
 import static com.google.common.base.Preconditions.*;
@@ -51,6 +50,7 @@ public class RoaConfigurationPrefixData extends ValueObjectSupport implements Ro
      * No object can have a updatedAt before the point in time this feature was added.
      */
     @Getter
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final Instant updatedAt;
 

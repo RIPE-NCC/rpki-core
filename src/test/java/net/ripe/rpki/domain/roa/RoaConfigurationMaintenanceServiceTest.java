@@ -14,16 +14,15 @@ import net.ripe.rpki.server.api.commands.UpdateAllIncomingResourceCertificatesCo
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.support.objects.CaName;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.security.auth.x500.X500Principal;
 import jakarta.transaction.Transactional;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+
+import java.util.*;
 
 import static net.ripe.ipresource.ImmutableResourceSet.parse;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,9 +68,8 @@ public class RoaConfigurationMaintenanceServiceTest extends CertificationDomainT
         certificateAuthorityRepository.add(child);
 
         // Add the ROA configuration
-        var ca = certificateAuthorityRepository.findManagedCa(HOSTED_CA_ID);
-        var roaConfiguration = roaConfigurationRepository.getOrCreateByCertificateAuthority(ca);
-        roaConfiguration.addPrefix(ALL_ROA_CONFIGURATIONS);
+        var roaConfiguration = roaConfigurationRepository.getOrCreateByCertificateAuthority(child);
+        roaConfigurationRepository.addPrefixes(roaConfiguration, ALL_ROA_CONFIGURATIONS);
 
         resourceCache.updateEntry(CaName.of(CHILD_CA_NAME), parse("fc00::/8"));
         execute(new UpdateAllIncomingResourceCertificatesCommand(new VersionedId(HOSTED_CA_ID, VersionedId.INITIAL_VERSION), Integer.MAX_VALUE));

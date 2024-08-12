@@ -65,11 +65,8 @@ public class RoaConfigurationMaintenanceServiceBean implements CertificateAuthor
                 .collect(Collectors.toSet());
 
         if (!toBeRemoved.isEmpty()) {
-            // Update the config, log the removed prefixes [...]
-            config.removePrefix(toBeRemoved);
+            roaConfigurationRepository.removePrefixes(config, toBeRemoved);
             ca.markConfigurationUpdated();
-
-            roaConfigurationRepository.logRoaPrefixDeletion(config, toBeRemoved);
 
             context.recordEvent(
                     new RoaConfigurationUpdatedDueToChangedResourcesEvent(

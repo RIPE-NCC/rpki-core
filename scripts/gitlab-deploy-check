@@ -130,6 +130,8 @@ const calculateDeploymentDurations = (timeline, mergeRequest) => {
             || ref === mergeRequest.source_branch
             || ref === `refs/merge-requests/${mergeRequest.iid}/merge`;
     };
+    const matchesLastCommit = ({sha, parent_ids}) =>
+          sha === mergeRequest.sha || (parent_ids.length > 1 && parent_ids.includes(mergeRequest.sha));
 
     const mapPairs = (f) => (xs) => {
         if (xs.length === 0) {
@@ -149,9 +151,10 @@ const calculateDeploymentDurations = (timeline, mergeRequest) => {
             return [Math.floor((end - start) / 1000), {
                 iid: deployment.iid,
                 ref: deployment.ref,
-                sha: deployment.sha,
+                sha: deployment.deployable.commit.id,
                 started_at: deployment.deployable.started_at,
                 finished_at: deployment.deployable.finished_at,
+                parent_ids: deployment.deployable.commit.parent_ids,
             }];
         }
     );
@@ -162,7 +165,7 @@ const calculateDeploymentDurations = (timeline, mergeRequest) => {
             .filter(([_, refs]) => matchesMR(refs))
             .reduce((acc, [duration]) => acc + duration, 0),
         last_commit: durations
-            .filter(([duration, refs]) => refs.sha === mergeRequest.sha)
+            .filter(([_, refs]) => matchesLastCommit(refs))
             .reduce((acc, [duration]) => acc + duration, 0),
     };
 };
@@ -186,14 +189,8 @@ const main = async (ctx) => {
         status: "success",
     })();
     const timeline = [...deployments].sort(Calendar.compare((x) => x.finished_at))
-          .reduce((acc, x) => acc.find(({id}) => id === x.id) != null ? acc : [...acc, x], [])
-          .reduce(({result, pastMerge}, x) =>
-              pastMerge ? { result, pastMerge } : {
-                  result: [...result, x],
-                  pastMerge: Calendar.isAfter(x.finished_at, mergeRequest.merged_at)
-              },
-              {result: [], pastMerge: false}
-          ).result;
+          .filter((x) => !Calendar.isAfter(x.deployable.created_at, mergeRequest.merged_at))
+          .reduce((acc, x) => acc.find(({id}) => id === x.id) != null ? acc : [...acc, x], []);
 
     const durations = calculateDeploymentDurations(timeline, mergeRequest);
     const passesThreshold = durations.merge_request > ctx.stagingDuration;

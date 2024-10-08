@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.security.auth.x500.X500Principal;
 import jakarta.transaction.Transactional;
+import org.springframework.test.annotation.Commit;
 
 import java.util.*;
 
@@ -30,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Setter
 @Slf4j
 @Transactional
+@Commit // don't rollback, we want all constrains to be checked
 public class RoaConfigurationMaintenanceServiceTest extends CertificationDomainTestCase {
     private static final long HOSTED_CA_ID = 8L;
 

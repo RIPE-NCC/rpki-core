@@ -97,7 +97,7 @@ public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguratio
         diff.removed().forEach(r -> {
             String sql = """
                     WITH deleted AS (
-                        DELETE FROM roaconfiguration_prefixes
+                        DELETE FROM roaconfiguration_prefixes rp
                         WHERE roaconfiguration_id = :roaconfiguration_id
                         AND asn = :asn
                         AND prefix_type_id = :prefix_type_id
@@ -106,8 +106,9 @@ public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguratio
                         AND maximum_length = :maximum_length
                         RETURNING *
                     )
-                    INSERT INTO deleted_roaconfiguration_prefixes
-                    SELECT * FROM deleted
+                    INSERT INTO deleted_roaconfiguration_prefixes(roaconfiguration_id, asn, prefix_type_id, prefix_start, prefix_end, maximum_length, deleted_at)
+                    SELECT roaconfiguration_id, asn, prefix_type_id, prefix_start, prefix_end, maximum_length, NOW()
+                    FROM deleted
                     """;
             executeForPrefix(configuration, r, sql);
         });
@@ -124,16 +125,15 @@ public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguratio
     }
 
     private void executeForPrefix(RoaConfiguration configuration, RoaConfigurationPrefix dp, String sql) {
-        final IpRange prefix = dp.getPrefix();
-        makeQuery(configuration, dp, sql, prefix).executeUpdate();
+        makeQuery(configuration, dp, sql).executeUpdate();
     }
 
     private Instant extractForPrefix(RoaConfiguration configuration, RoaConfigurationPrefix dp, String sql) {
-        final IpRange prefix = dp.getPrefix();
-        return (Instant) makeQuery(configuration, dp, sql, prefix).getSingleResult();
+        return (Instant) makeQuery(configuration, dp, sql).getSingleResult();
     }
 
-    private Query makeQuery(RoaConfiguration configuration, RoaConfigurationPrefix dp, String sql, IpRange prefix) {
+    private Query makeQuery(RoaConfiguration configuration, RoaConfigurationPrefix dp, String sql) {
+        IpRange prefix = dp.getPrefix();
         return createNativeQuery(sql)
                 .setParameter("roaconfiguration_id", configuration.getId())
                 .setParameter("asn", dp.getAsn().longValue())

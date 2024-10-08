@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import jakarta.transaction.Transactional;
+import org.springframework.test.annotation.Commit;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -22,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 @Transactional
+@Commit // don't rollback, we want all constrains to be checked
 public class JpaRoaConfigurationRepositoryTest extends CertificationDomainTestCase {
 
     @Autowired

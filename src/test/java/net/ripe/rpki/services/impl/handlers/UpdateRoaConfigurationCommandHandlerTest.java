@@ -17,6 +17,7 @@ import net.ripe.rpki.services.impl.background.RoaMetricsService;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.Commit;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @Transactional
+@Commit // don't rollback, we want all constrains to be checked
 public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomainTestCase {
 
     private static final Asn ASN = Asn.parse("1234");
@@ -89,6 +91,7 @@ public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomai
     }
 
     @Test(expected = PrivateAsnsUsedException.class)
+    @Commit // don't rollback, we want all constrains to be checked
     public void should_reject_new_additions_of_private_ASN() {
         subject.handle(new UpdateRoaConfigurationCommand(
             certificateAuthority.getVersionedId(),

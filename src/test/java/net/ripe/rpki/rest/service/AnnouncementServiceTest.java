@@ -192,7 +192,8 @@ public class AnnouncementServiceTest {
         bgpRisEntries.put(true, Collections.emptyList());
 
         when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
-        when(bgpRisEntryViewService.getLastUpdated()).thenReturn(Instant.now());
+        Instant now = Instant.now();
+        when(bgpRisEntryViewService.getLastUpdated()).thenReturn(now);
 
         when(roaService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(new ArrayList<>()));
 
@@ -203,7 +204,8 @@ public class AnnouncementServiceTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(APPLICATION_JSON))
-                .andExpect(jsonPath("$.emptyAnnouncementsReason").value(AnnouncementService.NO_OVERLAP_WITH_RIS));
+                .andExpect(jsonPath("$.emptyAnnouncementsReason").value(AnnouncementService.NO_OVERLAP_WITH_RIS))
+                .andExpect(jsonPath("$.lastUpdated").value(now.toString()));
     }
 
     @Test

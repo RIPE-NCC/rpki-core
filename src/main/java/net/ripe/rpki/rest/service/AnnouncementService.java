@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -114,13 +115,18 @@ public class AnnouncementService extends AbstractCaRestService {
         ).toList();
 
         Instant risLastUpdated = bgpRisEntryViewService.getLastUpdated();
+        Function<String, AnnouncementResponse> reportProblem =
+                problem -> risLastUpdated == null ?
+                        new AnnouncementResponse.Problem(problem) :
+                        new AnnouncementResponse.ProblemWithTimestamp(problem, risLastUpdated);
+
         if (certifiedResources.isEmpty())
-            return new AnnouncementResponse.Problem(NO_CA_RESOURCES);
+            return reportProblem.apply(NO_CA_RESOURCES);
         else if (risLastUpdated == null)
-            return new AnnouncementResponse.Problem(NO_RIS_UPDATES);
+            return reportProblem.apply(NO_RIS_UPDATES);
         else if (!announcements.isEmpty() &&
                 announcements.values().stream().allMatch(Collection::isEmpty))
-            return new AnnouncementResponse.Problem(NO_OVERLAP_WITH_RIS);
+            return reportProblem.apply(NO_OVERLAP_WITH_RIS);
 
         var announcement = Stream.concat(announcedAnnouncements.stream(), notSeenAnnouncements.stream()).toList();
         return new AnnouncementResponse.Announcements(announcement, risLastUpdated);
@@ -191,6 +197,7 @@ public class AnnouncementService extends AbstractCaRestService {
 
     public interface AnnouncementResponse {
         record Problem(String emptyAnnouncementsReason) implements AnnouncementResponse {}
+        record ProblemWithTimestamp(String emptyAnnouncementsReason, Instant lastUpdated) implements AnnouncementResponse {}
 
         record Announcements(List<BgpAnnouncement> announcements,
                              Instant lastUpdated) implements AnnouncementResponse { }

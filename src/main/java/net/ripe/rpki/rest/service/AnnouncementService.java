@@ -77,13 +77,13 @@ public class AnnouncementService extends AbstractCaRestService {
     @GetMapping
     @Operation(summary = "Get all announcements, as well as not-announced ignored announcements for the CA", deprecated = true)
     @Deprecated(since = "2024-07-17", forRemoval = true)
-    public ResponseEntity<?> getResourcesForCa(@PathVariable("caName") final CaName caName) {
+    public ResponseEntity<List<BgpAnnouncement>> getResourcesForCa(@PathVariable("caName") final CaName caName) {
         log.info("Getting resources for CA: {}", caName);
         var response = getAnnouncements(caName);
         if (response instanceof AnnouncementResponse.Announcements as) {
             return ok(as.announcements);
         }
-        return ok(new AnnouncementResponse.Announcements(Collections.emptyList(), null));
+        return ok(Collections.emptyList());
     }
 
     @GetMapping("extended")

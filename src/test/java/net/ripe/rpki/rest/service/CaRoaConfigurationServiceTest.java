@@ -5,6 +5,7 @@ import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.AllowedRoute;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
+import net.ripe.rpki.rest.pojo.BgpAnnouncementChange;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
@@ -736,5 +737,30 @@ public class CaRoaConfigurationServiceTest {
         // And reject inputs that are not an AS
         thenThrownBy(() -> CaRoaConfigurationService.determineValidityState(testNet1, "not_an_as", ALLOWED_ROUTE)).isInstanceOf(IllegalArgumentException.class);
         thenThrownBy(() -> CaRoaConfigurationService.determineValidityState(testNet1, "-1", ALLOWED_ROUTE)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void testBuildAffectedRanges() {
+        var as1136 = new Asn(1136);
+        var currentRoutes = new HashSet<>(List.of(
+                new AllowedRoute(as1136, IpRange.parse("31.161.128.0/17"), 17),
+                new AllowedRoute(as1136, IpRange.parse("31.161.0.0/16"), 16),
+                new AllowedRoute(as1136, IpRange.parse("31.161.0.0/17"), 17),
+                new AllowedRoute(as1136, IpRange.parse("31.160.128.0/17"), 17),
+                new AllowedRoute(as1136, IpRange.parse("31.160.0.0/17"), 18)
+        ));
+
+        var futureRoas = List.of(
+                new AllowedRoute(as1136, IpRange.parse("31.161.128.0/17"), 17),
+                new AllowedRoute(as1136, IpRange.parse("31.161.0.0/17"), 17)
+        );
+        var affectedRanges = CaRoaConfigurationService.buildAffectedRanges(futureRoas, currentRoutes);
+        assertThat(affectedRanges).isNotNull();
+
+        Map<Boolean, Collection<BgpRisEntry>> bgpAnnouncements = Map.of(true, List.of(new BgpRisEntry(as1136, IpRange.parse("31.160.0.0/15"), 15)));
+        final List<BgpAnnouncementChange> bgpAnnouncementChanges = CaRoaConfigurationService.getBgpAnnouncementChanges(
+                currentRoutes, new HashSet<>(futureRoas), bgpAnnouncements, affectedRanges, Collections.emptySet());
+
+        assertThat(bgpAnnouncementChanges.get(0).affectedByChange).isFalse();
     }
 }

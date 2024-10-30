@@ -49,7 +49,7 @@ public class Roas {
         return futureRoas;
     }
 
-    public static <T extends RoaPrefixData> Optional<String> validateRoaUpdate(Set<T> futureRoutes) {
+    public static <T extends RoaPrefixData> Optional<String> validateRoaUpdate(Collection<T> futureRoutes) {
         var futureMap = futureRoutes.stream().collect(Collectors.toMap(
                 r -> new AnnouncedRoute(r.getAsn(), r.getPrefix()),
                 r -> Collections.singletonList(r.getMaximumLength()),

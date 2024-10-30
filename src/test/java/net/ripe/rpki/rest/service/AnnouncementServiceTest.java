@@ -358,7 +358,6 @@ public class AnnouncementServiceTest {
                 .andExpect(jsonPath("$.[1].currentState").value("INVALID_ASN"));
     }
 
-
     @Test
     public void affected_shouldNotReturnUnknownAnnouncements() throws Exception {
 
@@ -368,8 +367,8 @@ public class AnnouncementServiceTest {
         final BgpRisEntry e1 = new BgpRisEntry(new Asn(10), IpRange.parse("191.168.0.0/16"), 10);
         final BgpRisEntry e2 = new BgpRisEntry(new Asn(10), IpRange.parse("192.168.0.0/16"), 10);
         Map<Boolean, Collection<BgpRisEntry>> bgpRisEntries = new HashMap<>();
-        bgpRisEntries.put(true, Collections.singletonList(e2));
         bgpRisEntries.put(false, Collections.singletonList(e1));
+        bgpRisEntries.put(true, Collections.singletonList(e2));
         when(bgpRisEntryViewService.findMostSpecificContainedAndNotContained(ipResourceSet)).thenReturn(bgpRisEntries);
 
         when(roaService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(new ArrayList<>()));

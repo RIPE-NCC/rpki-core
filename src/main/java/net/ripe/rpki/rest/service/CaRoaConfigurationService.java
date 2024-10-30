@@ -3,12 +3,10 @@ package net.ripe.rpki.rest.service;
 import com.google.common.base.Preconditions;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.*;
 import net.ripe.ipresource.etree.NestedIntervalMap;
 import net.ripe.rpki.commons.validation.roa.*;
-import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.rest.pojo.BgpAnnouncement;
 import net.ripe.rpki.rest.pojo.BgpAnnouncementChange;
 import net.ripe.rpki.rest.pojo.PublishSet;
@@ -53,7 +51,6 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
 
     @Autowired
     public CaRoaConfigurationService(RoaViewService roaViewService,
-                                     RoaConfigurationRepository roaConfigurationRepository,
                                      BgpRisEntryViewService bgpRisEntryViewService,
                                      RoaAlertConfigurationViewService roaAlertConfigurationViewService,
                                      CommandService commandService) {
@@ -163,10 +160,10 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
     @PostMapping(path = "stage")
     @Operation(summary = "Stage ROA changes for the given CA")
     public ResponseEntity<?> stageRoaChanges(@PathVariable("caName") final CaName caName,
-                                             @RequestBody final List<ApiRoaPrefix> futureRoas) {
+                                             @RequestBody final List<ApiRoaPrefix> futureRoasPrefixes) {
         log.info("REST call: Stage ROAs for CA: {}", caName);
 
-        final Optional<String> errorMessage = Utils.errorsInUserInputRoas(futureRoas);
+        final Optional<String> errorMessage = Utils.errorsInUserInputRoas(futureRoasPrefixes);
         if (errorMessage.isPresent()) {
             return ResponseEntity.status(BAD_REQUEST).body(of(ERROR, "New ROAs are not correct: " + errorMessage.get()));
         }
@@ -177,80 +174,71 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
         final Map<Boolean, Collection<BgpRisEntry>> bgpAnnouncements = bgpRisEntryViewService.findMostSpecificContainedAndNotContained(certifiedResources);
         final RoaConfigurationData currentRoaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
 
-        final Set<RoaConfigurationPrefixData> currentRoutes = new HashSet<>(currentRoaConfiguration.getPrefixes());
+        final Set<RoaConfigurationPrefixData> currentRoas = new HashSet<>(currentRoaConfiguration.getPrefixes());
 
         // MAY throw, but IllegalArgumentExceptions are translated to HTTP 500 through @ControllerAdvice
+        List<AllowedRoute> futureRoas = futureRoasPrefixes.stream()
+                .map(r -> new AllowedRoute(Asn.parse(r.getAsn()), IpRange.parse(r.getPrefix()), r.getMaxLength()))
+                .toList();
 
-        var effectOfFutureRoas = buildAffectedRanges(futureRoas, currentRoutes.stream().map(RoaPrefixData::toAllowedRoute).collect(Collectors.toSet()));
+        var affectedRanges = buildAffectedRanges(
+                futureRoas,
+                currentRoas.stream()
+                        .map(RoaPrefixData::toAllowedRoute)
+                        .collect(Collectors.toSet()));
 
-        Optional<String> validationError = Roas.validateRoaUpdate(effectOfFutureRoas.futureRoutes);
+        Optional<String> validationError = Roas.validateRoaUpdate(futureRoas);
         if (validationError.isPresent()) {
             return ResponseEntity.status(BAD_REQUEST).body(of(ERROR, validationError.get()));
         }
 
         final List<BgpAnnouncementChange> bgpAnnouncementChanges = getBgpAnnouncementChanges(
-                roaAlertConfigurationViewService,
-                ca, currentRoutes, effectOfFutureRoas.futureRoutes, bgpAnnouncements, effectOfFutureRoas.affectedRanges);
+                currentRoas, futureRoas, bgpAnnouncements, affectedRanges,
+                getIgnoredAnnouncement(roaAlertConfigurationViewService, ca.getId()));
 
         return ResponseEntity.ok()
             .contentType(MediaType.APPLICATION_JSON)
             .eTag(currentRoaConfiguration.entityTag())
             .body(bgpAnnouncementChanges);
     }
-
-    /**
-     * Gather the set of resources span by the <code>futureRoas</code> and add an AllowedRoute to futureRoutes for all
-     * ROAs in <code>futureRoas</code> that are not in <code>currentRoutes</code>.
-     */
-    private static AffectedRangesForVRPs buildAffectedRanges(List<ApiRoaPrefix> futureRoas, Set<AllowedRoute> currentRoutes) {
-        var affectedRanges = new IpResourceSet();
+    
+    static Set<IpRange> buildAffectedRanges(List<AllowedRoute> futureRoas, Set<AllowedRoute> currentRoas) {
+        var affectedRanges = new HashSet<IpRange>();
         var futureRoutes = new HashSet<AllowedRoute>();
 
-        for (ApiRoaPrefix roa : futureRoas) {
-            final IpRange roaIpRange = IpRange.parse(roa.getPrefix());
-            final AllowedRoute route = new AllowedRoute(Asn.parse(roa.getAsn()), roaIpRange, roa.getMaxLength());
-            futureRoutes.add(route);
-            if (!currentRoutes.contains(route))
-                affectedRanges.add(roaIpRange);
+        for (var roa : futureRoas) {
+            futureRoutes.add(roa);
+            if (!currentRoas.contains(roa))
+                affectedRanges.add(roa.getPrefix());
         }
-        for (var route : currentRoutes) {
-            if (!futureRoutes.contains(route))
-                affectedRanges.add(route.getPrefix());
+        for (var roa : currentRoas) {
+            if (!futureRoutes.contains(roa))
+                affectedRanges.add(roa.getPrefix());
         }
-
-        return new AffectedRangesForVRPs(affectedRanges, futureRoutes);
+        return affectedRanges;
     }
 
-    @Value
-    private static class AffectedRangesForVRPs {
-        private final IpResourceSet affectedRanges;
-        private final Set<AllowedRoute> futureRoutes;
-    }
+    static <T extends RoaPrefixData> List<BgpAnnouncementChange> getBgpAnnouncementChanges(
+            Collection<T> currentRoutes,
+            Collection<AllowedRoute> futureRoutes,
+            Map<Boolean, Collection<BgpRisEntry>> bgpAnnouncements,
+            Set<IpRange> affectedRanges,
+            Set<AnnouncedRoute> ignoredAnnouncements) {
 
-    private static <T extends RoaPrefixData> List<BgpAnnouncementChange> getBgpAnnouncementChanges(
-            RoaAlertConfigurationViewService service,
-                                                                  HostedCertificateAuthorityData ca,
-                                                                  Set<T> currentRoutes,
-                                                                  Set<AllowedRoute> futureRoutes,
-                                                                  Map<Boolean, Collection<BgpRisEntry>> bgpAnnouncements,
-                                                                  IpResourceSet affectedRanges) {
         final NestedIntervalMap<IpResource, List<T>> currentRouteMap = allowedRoutesToNestedIntervalMap(currentRoutes);
         final NestedIntervalMap<IpResource, List<AllowedRoute>> futureRouteMap = allowedRoutesToNestedIntervalMap(futureRoutes);
-        final Set<AnnouncedRoute> ignoredAnnouncements = getIgnoredAnnouncement(service, ca.getId());
 
         final List<BgpAnnouncementChange> result = new ArrayList<>();
         for (Boolean verifiedOrNot : new Boolean[]{true, false}) {
-            if (bgpAnnouncements.containsKey(verifiedOrNot)) {
-                for (BgpRisEntry bgp : bgpAnnouncements.get(verifiedOrNot)) {
-                    final AnnouncedRoute announcedRoute = bgp.toAnnouncedRoute();
-                    final RouteValidityState currentValidityState = RouteOriginValidationPolicy.validateAnnouncedRoute(currentRouteMap, announcedRoute);
-                    final RouteValidityState futureValidityState = RouteOriginValidationPolicy.validateAnnouncedRoute(futureRouteMap, announcedRoute);
-                    final boolean isSuppressed = ignoredAnnouncements.contains(announcedRoute);
-                    result.add(new BgpAnnouncementChange(bgp.getOrigin().toString(), bgp.getPrefix().toString(),
-                            bgp.getVisibility(), isSuppressed, currentValidityState, futureValidityState,
-                            affectedRanges.contains(bgp.getPrefix()),
-                            verifiedOrNot));
-                }
+            for (BgpRisEntry bgp : bgpAnnouncements.getOrDefault(verifiedOrNot, Collections.emptyList())) {
+                AnnouncedRoute announcedRoute = bgp.toAnnouncedRoute();
+                RouteValidityState currentValidityState = RouteOriginValidationPolicy.validateAnnouncedRoute(currentRouteMap, announcedRoute);
+                RouteValidityState futureValidityState = RouteOriginValidationPolicy.validateAnnouncedRoute(futureRouteMap, announcedRoute);
+                boolean isSuppressed = ignoredAnnouncements.contains(announcedRoute);
+                boolean affectedByChange = affectedRanges.stream().anyMatch(r -> r.contains(bgp.getPrefix()));
+                result.add(new BgpAnnouncementChange(bgp.getOrigin().toString(), bgp.getPrefix().toString(),
+                        bgp.getVisibility(), isSuppressed, currentValidityState, futureValidityState,
+                        affectedByChange, verifiedOrNot));
             }
         }
         return result;

@@ -9,10 +9,8 @@ import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResource;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.etree.NestedIntervalMap;
-import net.ripe.rpki.commons.validation.roa.AllowedRoute;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.commons.validation.roa.RouteOriginValidationPolicy;
-import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.rest.exception.BadRequestException;
 import net.ripe.rpki.rest.pojo.BgpAnnouncement;
 import net.ripe.rpki.rest.pojo.ApiRoaPrefix;
@@ -35,10 +33,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -160,35 +156,10 @@ public class AnnouncementService extends AbstractCaRestService {
         final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
         final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, ca.getId());
 
-        final Set<AnnouncedRoute> routesValidatedByOthers = new HashSet<>();
-        final NestedIntervalMap<IpResource, List<RoaConfigurationPrefixData>> currentRouteMap = allowedRoutesToNestedIntervalMap(roaConfiguration.getPrefixes());
-        Stream.of(true, false)
-                .filter(announcements::containsKey)
-                .flatMap(verifiedOrNot -> announcements.get(verifiedOrNot).stream())
-                .map(BgpRisEntry::toAnnouncedRoute)
-                .forEach(announcedRoute -> {
-                    final RouteValidityState currentValidityState = RouteOriginValidationPolicy.validateAnnouncedRoute(currentRouteMap, announcedRoute);
-                    if (currentValidityState == RouteValidityState.VALID &&
-                            !(roaAsn.equals(announcedRoute.getOriginAsn()) && roaPrefix.equals(announcedRoute.getPrefix()))) {
-                        routesValidatedByOthers.add(announcedRoute);
-                    }
-                });
+        final List<BgpAnnouncement> affectedAnnouncements = Utils.getAffectedAnnouncements(
+                roaConfiguration, announcements, ignoredAnnouncements, roaAsn, roaPrefix, roa.getMaxLength());
 
-        final List<BgpAnnouncement> bgpAnnouncements = Utils.makeBgpAnnouncementList(announcements, Collections.singletonList(
-                new AllowedRoute(roaAsn, roaPrefix, roa.getMaxLength())),
-                ignoredAnnouncements);
-
-        final List<BgpAnnouncement> knownAnnouncements = new ArrayList<>();
-        for (BgpAnnouncement announcement : bgpAnnouncements) {
-            final AnnouncedRoute announcedRoute = new AnnouncedRoute(Asn.parse(announcement.getAsn()), IpRange.parse(announcement.getPrefix()));
-            if (announcement.getCurrentState() == RouteValidityState.VALID ||
-                    ((announcement.getCurrentState() == RouteValidityState.INVALID_ASN ||
-                    announcement.getCurrentState() == RouteValidityState.INVALID_LENGTH) &&
-                    !routesValidatedByOthers.contains(announcedRoute))) {
-                knownAnnouncements.add(announcement);
-            }
-        }
-        return ok(knownAnnouncements);
+        return ok(affectedAnnouncements);
     }
 
     public static final String NO_CA_RESOURCES = "no-ca-resources";

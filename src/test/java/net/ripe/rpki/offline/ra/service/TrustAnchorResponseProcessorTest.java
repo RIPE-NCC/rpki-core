@@ -46,7 +46,6 @@ public class TrustAnchorResponseProcessorTest {
     @Rule
     public FixedDateRule fixedDateRule = new FixedDateRule(1);
 
-
     private static final X500Principal CA_NAME = new X500Principal("CN=test");
     private static final X509ResourceCertificate NEW_CERTIFICATE = createSelfSignedCaResourceCertificate(new IpResourceSet(ALL_PRIVATE_USE_RESOURCES));
     private static final String NEW_CERTIFICATE_FILE_NAME = "cert.cer";
@@ -92,7 +91,9 @@ public class TrustAnchorResponseProcessorTest {
         given(allResourcesCertificateAuthority.getUpStreamCARequestEntity()).willReturn(pendingRequest);
         given(certificateAuthorityRepository.findAllResourcesCAByName(CA_NAME)).willReturn(allResourcesCertificateAuthority);
 
-        subject.process(getResponseWithSignedCertificates(1L, TA_OBJECTS, TEST_SIGN_RESPONSE));
+        UUID requestId = pendingRequest.getUpStreamCARequest().getTaRequests().get(0).getRequestId();
+        var signingResponse = new SigningResponse(requestId, "RIPE", NEW_CERTIFICATE_PUBLICATION_URI, NEW_CERTIFICATE);
+        subject.process(getResponseWithSignedCertificates(1L, TA_OBJECTS, signingResponse));
 
         // expect that the pending request is revoked
         verify(allResourcesCertificateAuthority).setUpStreamCARequestEntity(null);
@@ -168,8 +169,19 @@ public class TrustAnchorResponseProcessorTest {
 
     @Test(expected = OfflineResponseProcessorException.class )
     public void shouldRejectWhenNoPendingRequestFound() {
-
         TrustAnchorResponse taResponse = getResponseWithSignedCertificates(1L, TA_OBJECTS, TEST_SIGN_RESPONSE);
+        when(certificateAuthorityRepository.findAllResourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
+
+        subject.process(taResponse);
+    }
+
+    @Test(expected = OfflineResponseProcessorException.class )
+    public void shouldRejectWhenResponseContainsDifferentRequestIds() {
+        setUpPendingCertificateSigningRequest();
+        Long creationTimestamp = allResourcesCA.getUpStreamCARequestEntity().getUpStreamCARequest().getCreationTimestamp();
+
+        SigningResponse signingResponse = new SigningResponse(UUID.randomUUID(), "RIPE", NEW_CERTIFICATE_PUBLICATION_URI, NEW_CERTIFICATE);
+        TrustAnchorResponse taResponse = getResponseWithSignedCertificates(creationTimestamp, TA_OBJECTS, signingResponse);
         when(certificateAuthorityRepository.findAllResourcesCAByName(CA_NAME)).thenReturn(allResourcesCA);
 
         subject.process(taResponse);
@@ -178,7 +190,6 @@ public class TrustAnchorResponseProcessorTest {
     @Test
     public void shouldNotifyACAAboutRevokedKeys() {
         String pubKeyIdentifier = "CN=testkey";
-        TrustAnchorResponse combinedResponse = getResponseWithRevocationResponse(1L, TA_OBJECTS, pubKeyIdentifier);
 
         // make sure there is a pending request
         setUpPendingRevocationRequest();
@@ -190,6 +201,8 @@ public class TrustAnchorResponseProcessorTest {
         entityManager.remove(isA(UpStreamCARequestEntity.class));
         entityManager.flush();
 
+        UUID requestId = allResourcesCA.getUpStreamCARequestEntity().getUpStreamCARequest().getTaRequests().get(0).getRequestId();
+        TrustAnchorResponse combinedResponse = getResponseWithRevocationResponse(1L, TA_OBJECTS, pubKeyIdentifier, requestId);
         assertThatThrownBy(() -> subject.process(combinedResponse))
                 .isInstanceOf(CertificateAuthorityException.class)
                 .hasMessage("Unknown encoded key: " + pubKeyIdentifier);
@@ -198,8 +211,6 @@ public class TrustAnchorResponseProcessorTest {
 
     @Test
     public void shouldRemoveRequestOnErrorResponse() {
-        TrustAnchorResponse taResponse = getResponseWithErrorResponse(1L, TA_OBJECTS);
-
         // make sure there is a pending request
         setUpPendingRevocationRequest();
 
@@ -209,6 +220,8 @@ public class TrustAnchorResponseProcessorTest {
         entityManager.remove(isA(UpStreamCARequestEntity.class));
         entityManager.flush();
 
+        UUID requestId = allResourcesCA.getUpStreamCARequestEntity().getUpStreamCARequest().getTaRequests().get(0).getRequestId();
+        TrustAnchorResponse taResponse = getResponseWithErrorResponse(1L, TA_OBJECTS, requestId);
         subject.process(taResponse);
 
         assertThat(allResourcesCA.getUpStreamCARequestEntity()).isNull();
@@ -249,33 +262,35 @@ public class TrustAnchorResponseProcessorTest {
                 TestObjects.SUBJECT_INFORMATION_ACCESS, requests);
     }
 
-    public static TrustAnchorResponse getResponseWithSignedCertificates(Long serial, Map<URI, CertificateRepositoryObject> publishedObjects, SigningResponse response) {
+    public static TrustAnchorResponse getResponseWithSignedCertificates(
+            Long serial, Map<URI, CertificateRepositoryObject> publishedObjects, SigningResponse response) {
 
         TrustAnchorResponse.Builder builder = TrustAnchorResponse.newBuilder(serial);
-
         builder.addPublishedObjects(publishedObjects);
         builder.addTaResponse(response);
-
         return builder.build();
     }
 
-    public static TrustAnchorResponse getResponseWithErrorResponse(Long serial, Map<URI, CertificateRepositoryObject> publishedObjects) {
+    public static TrustAnchorResponse getResponseWithErrorResponse(
+            Long serial,
+            Map<URI, CertificateRepositoryObject> publishedObjects,
+            UUID uuid) {
         TrustAnchorResponse.Builder builder = TrustAnchorResponse.newBuilder(serial);
 
         builder.addPublishedObjects(publishedObjects);
-        builder.addTaResponse(new ErrorResponse(UUID.randomUUID(), "User cancelled to proceed. Request will not be processed."));
-
+        builder.addTaResponse(new ErrorResponse(uuid, "User cancelled to proceed. Request will not be processed."));
         return builder.build();
     }
 
-    public static TrustAnchorResponse getResponseWithRevocationResponse(Long serial, Map<URI, CertificateRepositoryObject> publishedObjects, String encodedKey) {
+    public static TrustAnchorResponse getResponseWithRevocationResponse(
+            Long serial, Map<URI, CertificateRepositoryObject> publishedObjects, String encodedKey, UUID uuid) {
         TrustAnchorResponse.Builder builder = TrustAnchorResponse.newBuilder(serial);
 
-        RevocationResponse revocationResponse = new RevocationResponse(UUID.randomUUID(), "test resource class", encodedKey);
+        RevocationResponse revocationResponse = new RevocationResponse(
+                uuid, "test resource class", encodedKey);
 
         builder.addPublishedObjects(publishedObjects);
         builder.addTaResponse(revocationResponse);
-
         return builder.build();
     }
 

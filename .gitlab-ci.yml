@@ -1,5 +1,5 @@
 default:
-  image: gradle:8.10-jdk17
+  image: gradle:8.11-jdk17
 
 # Explicit version of the Mergerequests-Pipelines workflow, with the main branch
 # added.
@@ -15,7 +15,6 @@ stages:
   - test
   - qa
   - package
-  - review
   - deploy
   - publish
 
@@ -27,10 +26,6 @@ include:
     file: '/templates/mend-scanning.yml'
   - project: 'swe/gitlab-ci'
     file: '/templates/mend-generate-badge.yml'
-  # Review Apps
-  - project: 'rpki/helm-charts'
-    file: '/gitlab/review.yml'
-
 
 variables:
   BUILD_NUMBER: ${CI_COMMIT_REF_SLUG}-${CI_PIPELINE_ID}
@@ -207,10 +202,3 @@ publish-to-github:
     - if: $CI_COMMIT_BRANCH == "main"
       when: on_success
     - when: never
-
-review:
-  variables:
-    GIT_STRATEGY: none
-    RPKI_CORE_IMAGE: $CI_REGISTRY_IMAGE/ci:ci-step-$BUILD_NUMBER
-  needs:
-    - build-image

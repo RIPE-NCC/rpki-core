@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.crypto.CertificateRepositoryObject;
 import net.ripe.rpki.commons.crypto.util.EncodedPublicKey;
 import net.ripe.rpki.commons.crypto.util.SignedObjectUtil;
+import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
@@ -29,11 +30,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -196,7 +193,7 @@ public class TrustAnchorResponseProcessor {
 
         validatePendingRequestExists(upStreamCaRequestEntity);
         validateResponseContainsTrustAnchorResponse(response);
-        validateRequestAndResponseHaveSameTimeStamp(response, upStreamCaRequestEntity);
+        validateResponseIsForTheCorrectRequest(response, upStreamCaRequestEntity);
     }
 
     private void validateResponseContainsTrustAnchorResponse(TrustAnchorResponse response) {
@@ -211,14 +208,30 @@ public class TrustAnchorResponseProcessor {
         }
     }
 
-    private void validateRequestAndResponseHaveSameTimeStamp(TrustAnchorResponse response, UpStreamCARequestEntity upStreamCARequestEntity) {
-        long creationTimeMillis = upStreamCARequestEntity.getUpStreamCARequest().getCreationTimestamp();
+    private void validateResponseIsForTheCorrectRequest(TrustAnchorResponse response, UpStreamCARequestEntity upStreamCARequestEntity) {
+        TrustAnchorRequest upStreamCARequest = upStreamCARequestEntity.getUpStreamCARequest();
+        long creationTimeMillis = upStreamCARequest.getCreationTimestamp();
         long correspondingRequestCreationTimeStamp = response.getRequestCreationTimestamp();
 
         if (creationTimeMillis != correspondingRequestCreationTimeStamp) {
             throw new OfflineResponseProcessorException("Response seems related to request dated: "
                 + new DateTime(correspondingRequestCreationTimeStamp) + ", but current pending request is dated: "
                 + new DateTime(creationTimeMillis));
+        }
+
+        Set<UUID> requestIdsInRequests = upStreamCARequest.getTaRequests().stream()
+                .map(TaRequest::getRequestId)
+                .collect(Collectors.toSet());
+
+        Set<UUID> requestIdsInResponse = response.getTaResponses().stream()
+                .map(TaResponse::getRequestId)
+                .collect(Collectors.toSet());
+
+        if (!requestIdsInRequests.equals(requestIdsInResponse)) {
+            throw new OfflineResponseProcessorException(
+                    "Response is generated for the request with the set of IDs: "
+                    + requestIdsInResponse + ", but current pending request has IDs: "
+                    + requestIdsInRequests);
         }
     }
 

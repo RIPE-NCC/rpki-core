@@ -50,7 +50,7 @@ mail:
     host: localhost
     port: 25
     template.parameters:
-        rpkiDashboardUri: "https://my.ripe.net/#/rpki"
+        rpkiDashboardUri: "https://dashboard.rpki.ripe.net"
         authUnsubscribeUri: "https://access.ripe.net/?originalUrl="
         apiUnsubscribeUri: "https://my.ripe.net/api/rpki/unsubscribe-alerts"
 

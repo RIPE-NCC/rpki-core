@@ -68,9 +68,9 @@ public class RoaAlertCheckerTest {
 
     private RoaAlertChecker subject;
 
-    private final String rpkiDashboardUri = "https://my.ripe.net/#/rpki";
+    private final String rpkiDashboardUri = "https://dashboard.rpki.ripe.net";
     private final String authUnsubscribeUri = "http://access.ripe.net/?originalUrl=";
-    private final String apiUnsubscribeUri = "http://my.ripe.net/api/email/unsubscribe-alerts";
+    private final String apiUnsubscribeUri = "https://my.ripe.net/api/email/unsubscribe-alerts";
     private final String unsubscribeSecret = UUID.randomUUID().toString();
 
     private final EmailTokens emailTokens = new EmailTokens(unsubscribeSecret, authUnsubscribeUri, apiUnsubscribeUri);

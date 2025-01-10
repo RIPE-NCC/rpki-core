@@ -1,5 +1,5 @@
 default:
-  image: gradle:8.11-jdk17
+  image: gradle:8.12-jdk17
 
 # Explicit version of the Mergerequests-Pipelines workflow, with the main branch
 # added.
@@ -106,8 +106,6 @@ image-tag-latest:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
       when: never
     - if: $CI_COMMIT_BRANCH == "main"
-    - when: manual
-
 
 ######### Test stage #########
 sonarqube:
@@ -169,6 +167,7 @@ prepdev:
   <<: *delivr-deploy
   environment:
     name: prepdev
+  allow_failure: true
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
       when: never
@@ -178,6 +177,7 @@ pilot:
   <<: *delivr-deploy
   environment:
     name: pilot
+  allow_failure: true
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
       when: never

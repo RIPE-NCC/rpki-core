@@ -2,6 +2,7 @@ package net.ripe.rpki.domain.alerts;
 
 import com.google.common.collect.Sets;
 import lombok.Getter;
+import lombok.Setter;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.domain.CertificateAuthority;
@@ -34,7 +35,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Entity
@@ -44,6 +44,7 @@ public class RoaAlertConfiguration extends EntitySupport {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "roa_alert_conf_seq")
+    @Getter
     private Long id;
 
     @Getter
@@ -68,6 +69,11 @@ public class RoaAlertConfiguration extends EntitySupport {
     @CollectionTable(name = "roa_alert_configuration_ignored", joinColumns = @JoinColumn(name = "roa_alert_configuration_id"))
     private Set<RoaAlertIgnoredAnnouncement> ignored = new HashSet<>();
 
+    @Basic(optional=false)
+    @Getter
+    @Setter
+    private boolean notifyOnRoaChanges;
+
     private static final String EMAIL_SEPARATOR = ",";
 
     public RoaAlertConfiguration() {
@@ -81,12 +87,7 @@ public class RoaAlertConfiguration extends EntitySupport {
     public RoaAlertConfiguration(CertificateAuthority certificateAuthority, String email,
                                  Collection<RouteValidityState> routeValidityStates, RoaAlertFrequency frequency) {
         this(certificateAuthority);
-        setSubscription(new RoaAlertSubscriptionData(email, routeValidityStates, frequency));
-    }
-
-    @Override
-    public Object getId() {
-        return id;
+        setSubscription(new RoaAlertSubscriptionData(List.of(email), routeValidityStates, frequency, false));
     }
 
     public void clearSubscription() {
@@ -100,6 +101,7 @@ public class RoaAlertConfiguration extends EntitySupport {
         addEmails(subscription);
         routeValidityStates = StringUtils.join(subscription.getRouteValidityStates(), ",");
         frequency = subscription.getFrequency();
+        notifyOnRoaChanges = subscription.isNotifyOnRoaChanges();
     }
 
     private void addEmails(RoaAlertSubscriptionData subscription) {
@@ -124,7 +126,7 @@ public class RoaAlertConfiguration extends EntitySupport {
         if (email.isEmpty()) {
             return null;
         }
-        return new RoaAlertSubscriptionData(Arrays.asList(email.split(",")), getRouteValidityStates(), frequency);
+        return new RoaAlertSubscriptionData(Arrays.asList(email.split(",")), getRouteValidityStates(), frequency, notifyOnRoaChanges);
     }
 
     public Set<RoaAlertIgnoredAnnouncement> getIgnored() {

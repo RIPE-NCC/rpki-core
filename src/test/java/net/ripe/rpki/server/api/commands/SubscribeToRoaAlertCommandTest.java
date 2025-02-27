@@ -17,12 +17,24 @@ public class SubscribeToRoaAlertCommandTest {
     @Test
     public void shouldHaveDescriptiveLogEntryForInvalidOnly() {
         subject = new SubscribeToRoaAlertCommand(new VersionedId(1), "bob@example.net", Collections.singletonList(RouteValidityState.INVALID_ASN));
-        assertEquals("Subscribed bob@example.net to daily ROA alerts for invalid announcements only.", subject.getCommandSummary());
+        assertEquals("Subscribed bob@example.net to daily ROA alerts for invalid announcements.", subject.getCommandSummary());
     }
 
     @Test
-    public void shouldHaveDescriptiveLogEntryForInvalidAndUnknown() {
-        subject = new SubscribeToRoaAlertCommand(new VersionedId(1), "bob@example.net", Arrays.asList(RouteValidityState.INVALID_ASN, RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY);
-        assertEquals("Subscribed bob@example.net to weekly ROA alerts for invalid and unknown announcements.", subject.getCommandSummary());
+    public void shouldHaveDescriptiveLogEntryForInvalidAndUnknownWithRoaChanges() {
+        subject = new SubscribeToRoaAlertCommand(new VersionedId(1), "bob@example.net",
+                Arrays.asList(RouteValidityState.INVALID_ASN, RouteValidityState.UNKNOWN),
+                RoaAlertFrequency.WEEKLY, true);
+        assertEquals("Subscribed bob@example.net to weekly ROA alerts for invalid and unknown announcements and ROA changes.",
+                subject.getCommandSummary());
+    }
+
+    @Test
+    public void shouldHaveDescriptiveLogEntryForInvalidAndUnknownNoRoaChanges() {
+        subject = new SubscribeToRoaAlertCommand(new VersionedId(1), "bob@example.net",
+                Arrays.asList(RouteValidityState.INVALID_ASN, RouteValidityState.UNKNOWN),
+                RoaAlertFrequency.WEEKLY, false);
+        assertEquals("Subscribed bob@example.net to weekly ROA alerts for invalid and unknown announcements.",
+                subject.getCommandSummary());
     }
 }

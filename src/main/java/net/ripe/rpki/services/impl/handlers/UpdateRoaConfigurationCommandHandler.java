@@ -7,6 +7,7 @@ import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
+import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
@@ -17,6 +18,7 @@ import net.ripe.rpki.server.api.services.command.EntityTagDoesNotMatchException;
 import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
 import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import net.ripe.rpki.services.impl.background.RoaMetricsService;
+import net.ripe.rpki.services.impl.background.RoaNotificationService;
 import org.springframework.beans.factory.annotation.Value;
 
 import jakarta.inject.Inject;
@@ -30,18 +32,23 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
     private final RoaConfigurationRepository roaConfigurationRepository;
     private final ImmutableResourceSet privateAsnRanges;
     private final RoaMetricsService roaMetricsService;
+    private final RoaNotificationService roaNotificationService;
 
     @Inject
     public UpdateRoaConfigurationCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
                                                 RoaConfigurationRepository roaConfigurationRepository,
                                                 @Value("${private.asns.ranges}") String privateASNS,
-                                                RoaMetricsService roaMetricsService) {
+                                                RoaMetricsService roaMetricsService,
+                                                RoaNotificationService roaNotificationService) {
         super(certificateAuthorityRepository);
         this.roaConfigurationRepository = roaConfigurationRepository;
         this.roaMetricsService = roaMetricsService;
 
         this.privateAsnRanges = ImmutableResourceSet.parse(privateASNS);
-        Preconditions.checkArgument(privateAsnRanges.stream().allMatch(a -> a.getType() == IpResourceType.ASN), "Only ASNs allowed for private ASN ranges: %s", privateAsnRanges);
+        this.roaNotificationService = roaNotificationService;
+
+        Preconditions.checkArgument(privateAsnRanges.stream().allMatch(a -> a.getType() == IpResourceType.ASN),
+                "Only ASNs allowed for private ASN ranges: %s", privateAsnRanges);
     }
 
     @Override
@@ -58,11 +65,13 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
         validateAsns(command);
         validateAddedPrefixes(ca, command.getAdditions());
 
-        roaConfigurationRepository.mergePrefixes(configuration,
+        RoaConfiguration.PrefixDiff prefixDiff = roaConfigurationRepository.mergePrefixes(configuration,
                 RoaConfigurationPrefix.fromData(command.getAdditions()),
                 RoaConfigurationPrefix.fromData(command.getDeletions()));
 
         ca.markConfigurationUpdated();
+
+        roaNotificationService.notifyAboutRoaChanges(ca, command.getUserId(), prefixDiff.added(), prefixDiff.removed());
 
         roaMetricsService.countAdded(command.getAdditions().size());
         roaMetricsService.countDeleted(command.getDeletions().size());

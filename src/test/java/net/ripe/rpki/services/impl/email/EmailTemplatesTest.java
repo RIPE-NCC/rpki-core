@@ -18,6 +18,7 @@ public class EmailTemplatesTest {
         templateEngine = new TemplateEngine();
         templateEngine.addTemplateResolver(EmailSenderBean.textTemplateResolver());
     }
+
     @Test
     public void testTemplateForSyntacticValdidity() {
         // Add required variables (i.e. those that are dereferenced) here

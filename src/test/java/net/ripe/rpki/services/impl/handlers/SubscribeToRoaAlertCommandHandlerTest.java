@@ -17,7 +17,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -45,6 +48,8 @@ public class SubscribeToRoaAlertCommandHandlerTest {
 
     private ArgumentCaptor<RoaAlertConfiguration> alertCapture;
 
+    private ArgumentCaptor<Map<String, Object>> parametersCapture;
+
     private SubscribeToRoaAlertCommandHandler subject;
 
     @Before
@@ -52,6 +57,7 @@ public class SubscribeToRoaAlertCommandHandlerTest {
         certificateAuthority = TestObjects.createInitialisedProdCaWithRipeResources();
         emailCapture = ArgumentCaptor.forClass(String.class);
         alertCapture = ArgumentCaptor.forClass(RoaAlertConfiguration.class);
+        parametersCapture = ArgumentCaptor.captor();
 
         subject = new SubscribeToRoaAlertCommandHandler(certificateAuthorityRepository, repository, emailSender);
     }
@@ -70,13 +76,68 @@ public class SubscribeToRoaAlertCommandHandlerTest {
 
         subject.handle(new SubscribeToRoaAlertCommand(TEST_VERSIONED_CA_ID, email,
                 EnumSet.of(RouteValidityState.INVALID_ASN, RouteValidityState.INVALID_LENGTH,
-                        RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY));
+                        RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY, true));
 
         verify(repository).add(alertCapture.capture());
         verify(emailSender).sendEmail(emailCapture.capture(), isA(String.class),
-                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_WEEKLY), isA(Map.class), isA(String.class));
+                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_WEEKLY),
+                parametersCapture.capture(),
+                isA(String.class));
         assertEquals(RoaAlertFrequency.WEEKLY, alertCapture.getValue().getFrequency());
+        assertTrue(alertCapture.getValue().isNotifyOnRoaChanges());
         assertEquals(email, emailCapture.getValue());
+        assertEquals("", parametersCapture.getValue().get("roaChangeSubscription"));
+    }
+
+    @Test
+    public void shouldCreateRoaAlertSubscriptionAndSendConfirmationEmailWithROAChangesUnsubscribed() {
+        final String email = "joe@example.com";
+        final String email2 = "festeban@ripe.net";
+        when(certificateAuthorityRepository.findManagedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
+
+        RoaAlertConfiguration configuration = new RoaAlertConfiguration(certificateAuthority, email2,
+                EnumSet.of(RouteValidityState.INVALID_ASN), RoaAlertFrequency.DAILY);
+        configuration.setNotifyOnRoaChanges(true);
+
+        when(repository.findByCertificateAuthorityIdOrNull(TEST_CA_ID)).thenReturn(configuration);
+
+        subject.handle(new SubscribeToRoaAlertCommand(TEST_VERSIONED_CA_ID, email,
+                EnumSet.of(RouteValidityState.INVALID_ASN, RouteValidityState.INVALID_LENGTH,
+                        RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY, false));
+
+        verify(emailSender).sendEmail(emailCapture.capture(), isA(String.class),
+                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_WEEKLY),
+                parametersCapture.capture(),
+                isA(String.class));
+
+        assertEquals(email, emailCapture.getValue());
+        assertEquals("", parametersCapture.getValue().get("roaChangeSubscription"));
+    }
+
+    @Test
+    public void shouldCreateRoaAlertSubscriptionAndSendConfirmationEmailWithROAChangesSubscribed() {
+        final String email = "joe@example.com";
+        final String email2 = "festeban@ripe.net";
+        when(certificateAuthorityRepository.findManagedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
+
+        RoaAlertConfiguration configuration = new RoaAlertConfiguration(certificateAuthority, email2,
+                EnumSet.of(RouteValidityState.INVALID_ASN), RoaAlertFrequency.DAILY);
+        configuration.setNotifyOnRoaChanges(false);
+
+        when(repository.findByCertificateAuthorityIdOrNull(TEST_CA_ID)).thenReturn(configuration);
+
+        subject.handle(new SubscribeToRoaAlertCommand(TEST_VERSIONED_CA_ID, email,
+                EnumSet.of(RouteValidityState.INVALID_ASN, RouteValidityState.INVALID_LENGTH,
+                        RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY, true));
+
+        verify(emailSender).sendEmail(emailCapture.capture(), isA(String.class),
+                eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_WEEKLY),
+                parametersCapture.capture(),
+                isA(String.class));
+
+        assertEquals(email, emailCapture.getValue());
+        assertEquals("Also you are subscribed to alerts about ROA changes.",
+                parametersCapture.getValue().get("roaChangeSubscription"));
     }
 
     @SuppressWarnings("unchecked")
@@ -88,7 +149,6 @@ public class SubscribeToRoaAlertCommandHandlerTest {
         RoaAlertConfiguration configuration = new RoaAlertConfiguration(certificateAuthority, email,
                 oldValidityStates, RoaAlertFrequency.DAILY);
 
-//        when(certificateAuthorityRepository.findHostedCa(TEST_CA_ID)).thenReturn(certificateAuthority);
         when(repository.findByCertificateAuthorityIdOrNull(TEST_CA_ID)).thenReturn(configuration);
 
         subject.handle(new SubscribeToRoaAlertCommand(TEST_VERSIONED_CA_ID, email, newValidityStates));
@@ -108,7 +168,8 @@ public class SubscribeToRoaAlertCommandHandlerTest {
 
         when(repository.findByCertificateAuthorityIdOrNull(TEST_CA_ID)).thenReturn(configuration);
 
-        subject.handle(new SubscribeToRoaAlertCommand(TEST_VERSIONED_CA_ID, newEmail, EnumSet.of(RouteValidityState.INVALID_ASN, RouteValidityState.INVALID_LENGTH)));
+        subject.handle(new SubscribeToRoaAlertCommand(TEST_VERSIONED_CA_ID, newEmail,
+                EnumSet.of(RouteValidityState.INVALID_ASN, RouteValidityState.INVALID_LENGTH)));
 
         verify(emailSender, times(1)).sendEmail(eq(newEmail),
                 eq(EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY.templateSubject),

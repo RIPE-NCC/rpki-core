@@ -15,6 +15,7 @@ import net.ripe.rpki.rest.pojo.ApiRoaPrefixExtended;
 import net.ripe.rpki.rest.pojo.ROAWithAnnouncementStatus;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.*;
+import net.ripe.rpki.server.api.security.RunAsUserHolder;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
@@ -293,7 +294,8 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
                     ca.getVersionedId(),
                     Optional.ofNullable(ifMatch),
                     getRoaConfigurationPrefixDatas(publishSet.getAdded()),
-                    getRoaConfigurationPrefixDatas(publishSet.getDeleted())
+                    getRoaConfigurationPrefixDatas(publishSet.getDeleted()),
+                    RunAsUserHolder.get().getCertificationUserId()
             ));
             return noContent();
         } catch (Exception e) {

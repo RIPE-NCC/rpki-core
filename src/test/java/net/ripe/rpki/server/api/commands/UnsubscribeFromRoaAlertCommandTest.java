@@ -1,22 +1,18 @@
 package net.ripe.rpki.server.api.commands;
 
 import net.ripe.rpki.commons.util.VersionedId;
-import org.junit.Before;
 import org.junit.Test;
+
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 
 public class UnsubscribeFromRoaAlertCommandTest {
 
-    private UnsubscribeFromRoaAlertCommand subject;
-
-    @Before
-    public void setUp() {
-        subject = new UnsubscribeFromRoaAlertCommand(new VersionedId(1), "bob@example.net");
-    }
-
     @Test
     public void shouldHaveDescriptiveLogEntry() {
-        assertEquals("Unsubscribed bob@example.net from ROA alerts.", subject.getCommandSummary());
+        Function<Boolean, UnsubscribeFromRoaAlertCommand> makeCommand = notify -> new UnsubscribeFromRoaAlertCommand(new VersionedId(1), "bob@example.net", notify);
+        assertEquals("Unsubscribed bob@example.net from ROA alerts.", makeCommand.apply(false).getCommandSummary());
+        assertEquals("Unsubscribed bob@example.net from ROA alerts and ROA changes.", makeCommand.apply(true).getCommandSummary());
     }
 }

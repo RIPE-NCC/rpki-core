@@ -61,10 +61,10 @@ public class EmailSenderBean implements EmailSender {
     }
 
     @Override
-    public void sendEmail(String emailTo, String subject, EmailTemplates template, Map<String, Object> parameters, String uniqueId) {
+    public ResultingEmail sendEmail(String emailTo, String subject, EmailTemplates template, Map<String, Object> parameters, String uniqueId) {
         if (!(mailSender instanceof JavaMailSenderImpl)) {
             log.error("mailSender is not configured properly, {}", mailSender.getClass());
-            return;
+            return null;
         }
 
         try {
@@ -75,7 +75,7 @@ public class EmailSenderBean implements EmailSender {
             message.setRecipient(Message.RecipientType.TO, new InternetAddress(emailTo));
             message.setSubject(subject);
             var parametersUpdated = parameters;
-            if (template.generateUnsubcribeUrl) {
+            if (template.generateUnsubscribeUrl) {
                 var unsubscribeUri = emailTokens.makeUnsubscribeUrl(uniqueId, emailTo);
                 message.addHeader("List-Unsubscribe", "<" + unsubscribeUri + ">");
                 message.addHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
@@ -83,7 +83,8 @@ public class EmailSenderBean implements EmailSender {
             }
 
             log.info("Rendering Email template {}", template.templateName);
-            message.setText(renderTemplate(template.templateName, parametersUpdated));
+            var body = renderTemplate(template.templateName, parametersUpdated);
+            message.setText(body);
 
             if (!Environment.isLocal()) {
                 try {
@@ -95,8 +96,10 @@ public class EmailSenderBean implements EmailSender {
             } else {
                 log.info("Not sending message in DEVELOPMENT mode:\n" + message);
             }
+            return new ResultingEmail(emailTo, subject, body);
         } catch (Exception e) {
             log.error("Failed to send email", e);
+            return null;
         }
     }
 

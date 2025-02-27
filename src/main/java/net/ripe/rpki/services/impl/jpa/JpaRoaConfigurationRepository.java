@@ -84,11 +84,12 @@ public class JpaRoaConfigurationRepository extends JpaRepository<RoaConfiguratio
     }
 
     @Override
-    public void mergePrefixes(RoaConfiguration configuration,
-                              Collection<RoaConfigurationPrefix> prefixesToAdd,
-                              Collection<RoaConfigurationPrefix> prefixesToRemove) {
+    public RoaConfiguration.PrefixDiff mergePrefixes(RoaConfiguration configuration,
+                                                     Collection<RoaConfigurationPrefix> prefixesToAdd,
+                                                     Collection<RoaConfigurationPrefix> prefixesToRemove) {
         var diff = configuration.mergePrefixes(prefixesToAdd, prefixesToRemove);
         applyDiff(configuration, diff);
+        return diff;
     }
 
     public void applyDiff(RoaConfiguration configuration,

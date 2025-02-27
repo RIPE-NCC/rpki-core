@@ -163,15 +163,6 @@ public abstract class CertificationDomainTestCase {
         return transactionTemplate.execute(transactionStatus -> c.get());
     }
 
-    protected CertificateAuthority createCaIfDoesntExist(CertificateAuthority ca) {
-        final CertificateAuthority existing = certificateAuthorityRepository.find(ca.getId());
-        if (existing == null) {
-            certificateAuthorityRepository.add(ca);
-            return certificateAuthorityRepository.find(ca.getId());
-        }
-        return existing;
-    }
-
     protected CommandStatus execute(CertificateAuthorityCommand command) {
         try {
             return commandService.execute(command);

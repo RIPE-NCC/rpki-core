@@ -66,7 +66,7 @@ public class EmailService extends RestService {
             if (subscriptionOrNull != null
                     && subscriptionOrNull.getEmails().contains(email)
                     && token.equals(configurationToken)) {
-                commandService.execute(new UnsubscribeFromRoaAlertCommand(ca.getVersionedId(), email));
+                commandService.execute(new UnsubscribeFromRoaAlertCommand(ca.getVersionedId(), email, configuration.isNotifyOnRoaChanges()));
                 unsubscribedAnyone.set(true);
             }
         });

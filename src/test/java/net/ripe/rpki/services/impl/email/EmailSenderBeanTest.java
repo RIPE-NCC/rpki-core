@@ -99,7 +99,7 @@ public class EmailSenderBeanTest {
             );
             var configuration = new RoaAlertConfigurationData(
                     ca,
-                    new RoaAlertSubscriptionData("user@example.org", List.of(RouteValidityState.values()), RoaAlertFrequency.DAILY)
+                    new RoaAlertSubscriptionData("user@example.org", List.of(RouteValidityState.values()), RoaAlertFrequency.DAILY, false)
             );
             return Map.of(
                     "humanizedCaName", RandomStringUtils.randomAlphabetic(12),

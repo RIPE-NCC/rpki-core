@@ -96,7 +96,7 @@ public class CommandAuditServiceBeanTest extends CertificationDomainTestCase {
         String email = "user_some.email+ripe.net@gmail.com";
 
         recordCommand(new SubscribeToRoaAlertCommand(ca.getVersionedId(), email, List.of(RouteValidityState.INVALID_ASN)), "some event");
-        recordCommand(new UnsubscribeFromRoaAlertCommand(ca.getVersionedId(), email), "some event 2");
+        recordCommand(new UnsubscribeFromRoaAlertCommand(ca.getVersionedId(), email, false), "some event 2");
 
         entityManager.flush();
         Map<String, Long> emailMentions = subject.findMentionsInSummary(email);

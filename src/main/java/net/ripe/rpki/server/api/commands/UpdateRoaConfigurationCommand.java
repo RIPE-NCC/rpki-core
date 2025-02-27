@@ -4,6 +4,7 @@ import lombok.Getter;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.RoaPrefixData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
+import net.ripe.rpki.server.api.security.CertificationUserId;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.*;
@@ -21,17 +22,21 @@ public class UpdateRoaConfigurationCommand extends CertificateAuthorityModificat
     private final List<RoaConfigurationPrefixData> additions;
 
     private final List<RoaConfigurationPrefixData> deletions;
+    @Getter
+    private final CertificationUserId userId;
 
     public UpdateRoaConfigurationCommand(VersionedId certificateAuthorityId,
                                          Optional<String> ifMatch,
                                          Collection<RoaConfigurationPrefixData> added,
-                                         Collection<RoaConfigurationPrefixData> deleted) {
+                                         Collection<RoaConfigurationPrefixData> deleted,
+                                         CertificationUserId certificationUserId) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
         this.ifMatch = ifMatch;
         this.additions = new ArrayList<>(added);
         this.additions.sort(RoaPrefixData.ROA_PREFIX_DATA_COMPARATOR);
         this.deletions = new ArrayList<>(deleted);
         this.deletions.sort(RoaPrefixData.ROA_PREFIX_DATA_COMPARATOR);
+        this.userId = certificationUserId;
     }
 
     public List<RoaConfigurationPrefixData> getAdditions() {

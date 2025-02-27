@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.security.auth.x500.X500Principal;
 import java.security.SecureRandom;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,7 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static net.ripe.ipresource.ImmutableResourceSet.parse;
-import static org.assertj.core.api.Assertions.as;
+import static net.ripe.rpki.server.api.security.RunAsUser.ADMIN;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Transactional
@@ -138,7 +137,8 @@ public class CertificateAuthorityViewServiceStatisticsTest extends Certification
         commandService.execute(new UpdateRoaConfigurationCommand(
                 child.getVersionedId(), Optional.empty(),
                 List.of(),
-                ALL_ROA_CONFIGURATIONS.stream().map(ca -> ca.toData()).collect(Collectors.toList()))
+                ALL_ROA_CONFIGURATIONS.stream().map(ca -> ca.toData()).toList(),
+                ADMIN.getCertificationUserId())
         );
 
         assertThat(subject.getCaStatEvents())
@@ -151,7 +151,8 @@ public class CertificateAuthorityViewServiceStatisticsTest extends Certification
         commandService.execute(new UpdateRoaConfigurationCommand(
                 child.getVersionedId(), Optional.empty(),
                 ALL_ROA_CONFIGURATIONS.stream().map(ca -> ca.toData()).collect(Collectors.toList()),
-                List.of())
+                List.of(),
+                ADMIN.getCertificationUserId())
         );
         assertThat(subject.getCaStatEvents())
                 .asInstanceOf(InstanceOfAssertFactories.list(CaStatRoaEvent.class))

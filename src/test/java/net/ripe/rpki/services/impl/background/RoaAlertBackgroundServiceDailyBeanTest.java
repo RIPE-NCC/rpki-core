@@ -39,12 +39,12 @@ public class RoaAlertBackgroundServiceDailyBeanTest {
         ImmutableResourceSet.ALL_PRIVATE_USE_RESOURCES, Collections.emptyList());
 
     public static final RoaAlertConfigurationData ALERT_SUBSCRIPTION_DATA = new RoaAlertConfigurationData(CA_DATA,
-            new RoaAlertSubscriptionData(List.of("joeok@example.com"), Arrays.asList(RouteValidityState.INVALID_ASN,
-                    RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN), RoaAlertFrequency.DAILY));
+            new RoaAlertSubscriptionData("joeok@example.com", Arrays.asList(RouteValidityState.INVALID_ASN,
+                    RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN), RoaAlertFrequency.DAILY, false));
 
     private static final RoaAlertConfigurationData ALERT_SUBSCRIPTION_ERROR = new RoaAlertConfigurationData(CA_DATA,
             new RoaAlertSubscriptionData("errorjohn@example.com", Arrays.asList(RouteValidityState.INVALID_ASN,
-                    RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN), RoaAlertFrequency.DAILY));
+                    RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN), RoaAlertFrequency.DAILY, true));
 
     @Mock
     private ActiveNodeService activeNodeService;

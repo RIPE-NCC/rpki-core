@@ -182,14 +182,20 @@ public class TestObjects {
         return createInitialisedProdCaWithRipeResources(new InMemoryCertificateAuthorityRepository(), new InMemoryResourceCertificateRepository(), certificationConfiguration);
     }
 
-    public static ProductionCertificateAuthority createInitialisedProdCaWithRipeResources(CertificateAuthorityRepository certificateAuthorityRepository, ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration) {
+    public static ProductionCertificateAuthority createInitialisedProdCaWithRipeResources(CertificateAuthorityRepository certificateAuthorityRepository,
+                                                                                          ResourceCertificateRepository resourceCertificateRepository,
+                                                                                          RepositoryConfiguration certificationConfiguration) {
         ProductionCertificateAuthority ca = new ProductionCertificateAuthority(CA_ID, PRODUCTION_CA_NAME, UUID.randomUUID(), null);
         createInitialisedKeyPair(certificateAuthorityRepository, resourceCertificateRepository, certificationConfiguration, ca, "TEST-KEY");
         Validate.isTrue(ca.hasCurrentKeyPair());
         return ca;
     }
 
-    static KeyPairEntity createInitialisedKeyPair(CertificateAuthorityRepository certificateAuthorityRepository, ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration, ProductionCertificateAuthority ca, String name) {
+    static KeyPairEntity createInitialisedKeyPair(CertificateAuthorityRepository certificateAuthorityRepository,
+                                                  ResourceCertificateRepository resourceCertificateRepository,
+                                                  RepositoryConfiguration certificationConfiguration,
+                                                  ProductionCertificateAuthority ca,
+                                                  String name) {
         KeyPairEntity kp = createTestKeyPair(name);
         ca.addKeyPair(kp);
         // Implicitly persists the keypair before it is used in a outgoing resource certificate
@@ -198,7 +204,9 @@ public class TestObjects {
         return kp;
     }
 
-    static void issueSelfSignedCertificates(ResourceCertificateRepository resourceCertificateRepository, RepositoryConfiguration certificationConfiguration, ProductionCertificateAuthority ca) {
+    static void issueSelfSignedCertificates(ResourceCertificateRepository resourceCertificateRepository,
+                                            RepositoryConfiguration certificationConfiguration,
+                                            ProductionCertificateAuthority ca) {
         for (KeyPairEntity kp : ca.getKeyPairs()) {
             if (kp.findCurrentIncomingCertificate().isEmpty()) {
                 ResourceCertificateInformationAccessStrategy ias = new ResourceCertificateInformationAccessStrategyBean();

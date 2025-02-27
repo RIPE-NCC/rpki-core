@@ -17,7 +17,9 @@ public class UpdateRoaAlertIgnoredAnnouncedRoutesCommand extends CertificateAuth
 
     private final List<AnnouncedRoute> deletions;
 
-    public UpdateRoaAlertIgnoredAnnouncedRoutesCommand(VersionedId certificateAuthorityId, Collection<AnnouncedRoute> added, Collection<AnnouncedRoute> deleted) {
+    public UpdateRoaAlertIgnoredAnnouncedRoutesCommand(VersionedId certificateAuthorityId,
+                                                       Collection<AnnouncedRoute> added,
+                                                       Collection<AnnouncedRoute> deleted) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
         this.additions = new ArrayList<>(added);
         this.additions.sort(RouteData.ROUTE_DATA_COMPARATOR);

@@ -7,10 +7,7 @@ import net.ripe.rpki.TestRpkiBootApplication;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
-import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
-import net.ripe.rpki.server.api.commands.SubscribeToRoaAlertCommand;
-import net.ripe.rpki.server.api.commands.UnsubscribeFromRoaAlertCommand;
-import net.ripe.rpki.server.api.commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand;
+import net.ripe.rpki.server.api.commands.*;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
@@ -39,8 +36,7 @@ import java.util.stream.IntStream;
 
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -78,14 +74,28 @@ public class AlertServiceTest {
     }
 
     @Test
-    public void shouldGetExistingAlerts() throws Exception {
+    public void shouldNotCrashWithEmptySubscription() throws Exception {
+        CertificateAuthorityData caData = mock(CertificateAuthorityData.class);
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(
+                new RoaAlertConfigurationData(caData, null));
 
+        mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/alerts"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(jsonPath("$.frequency").value("DAILY"))
+                .andExpect(jsonPath("$.notifyOnRoaChanges").value("false"));
+    }
+
+    @Test
+    public void shouldGetExistingAlerts() throws Exception {
         CertificateAuthorityData caData = mock(CertificateAuthorityData.class);
         RoaAlertSubscriptionData roaSubscriptionData = new RoaAlertSubscriptionData(
                 Arrays.asList("festeban@ripe.net", "bad@ripe.net"),
-                Arrays.asList(RouteValidityState.INVALID_ASN, RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY);
+                Arrays.asList(RouteValidityState.INVALID_ASN, RouteValidityState.UNKNOWN),
+                RoaAlertFrequency.WEEKLY, true);
 
-        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(
+                new RoaAlertConfigurationData(caData, roaSubscriptionData));
 
         mockMvc.perform(Rest.get(API_URL_PREFIX + "/123/alerts"))
                 .andExpect(status().isOk())
@@ -94,7 +104,8 @@ public class AlertServiceTest {
                 .andExpect(jsonPath("$.routeValidityStates[1]").value("UNKNOWN"))
                 .andExpect(jsonPath("$.emails[0]").value("festeban@ripe.net"))
                 .andExpect(jsonPath("$.emails[1]").value("bad@ripe.net"))
-                .andExpect(jsonPath("$.frequency").value("WEEKLY"));
+                .andExpect(jsonPath("$.frequency").value("WEEKLY"))
+                .andExpect(jsonPath("$.notifyOnRoaChanges").value("true"));
     }
 
     @Test
@@ -105,19 +116,23 @@ public class AlertServiceTest {
         CertificateAuthorityData caData = mock(CertificateAuthorityData.class);
         RoaAlertSubscriptionData roaSubscriptionData = new RoaAlertSubscriptionData(
                 Arrays.asList("festeban@ripe.net", "bad@ripe.net"),
-                Arrays.asList(RouteValidityState.INVALID_ASN, RouteValidityState.UNKNOWN), RoaAlertFrequency.DAILY);
-        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
+                Arrays.asList(RouteValidityState.INVALID_ASN, RouteValidityState.UNKNOWN),
+                RoaAlertFrequency.DAILY, true);
+
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID))
+                .thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
 
         ArgumentCaptor<CertificateAuthorityCommand> commandArgument = ArgumentCaptor.forClass(CertificateAuthorityCommand.class);
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/alerts",
-                "{\"routeValidityStates\" : [\"INVALID_LENGTH\"], \"emails\" : [\"bad1@ripe.net\"]}"))
+                "{\"routeValidityStates\" : [\"INVALID_LENGTH\"], " +
+                         "\"emails\" : [\"bad1@ripe.net\"]," +
+                         "\"frequency\" : \"WEEKLY\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(APPLICATION_JSON));
 
         verify(commandService, times(3)).execute(commandArgument.capture());
         List<CertificateAuthorityCommand> commands = commandArgument.getAllValues();
-
 
         UnsubscribeFromRoaAlertCommand unsubscribe1 = (UnsubscribeFromRoaAlertCommand) commands.get(0);
         UnsubscribeFromRoaAlertCommand unsubscribe2 = (UnsubscribeFromRoaAlertCommand) commands.get(1);
@@ -135,18 +150,33 @@ public class AlertServiceTest {
     }
 
     @Test
+    public void shouldRejectNoFrequency() throws Exception {
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/alerts",
+                        "{\"routeValidityStates\" : [\"INVALID_LENGTH\"], " +
+                                "\"emails\" : [\"bad1@ripe.net\"]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("{\"error\":\"No valid subscription frequency provided\"}"));
+    }
+
+    @Test
     public void shouldSubscribeToAlertsWhenOnlyValidityStatusChanges() throws Exception {
 
         CertificateAuthorityData caData = mock(CertificateAuthorityData.class);
         RoaAlertSubscriptionData roaSubscriptionData = new RoaAlertSubscriptionData(
                 Collections.singletonList("bad@ripe.net"),
-                Collections.singletonList(RouteValidityState.INVALID_ASN), RoaAlertFrequency.DAILY);
-        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
+                Collections.singletonList(RouteValidityState.INVALID_ASN),
+                RoaAlertFrequency.DAILY, true);
+
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(
+                new RoaAlertConfigurationData(caData, roaSubscriptionData));
 
         ArgumentCaptor<CertificateAuthorityCommand> commandArgument = ArgumentCaptor.forClass(CertificateAuthorityCommand.class);
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/alerts",
-                "{\"routeValidityStates\" : [\"INVALID_LENGTH\", \"INVALID_ASN\"], \"emails\" : [\"bad@ripe.net\"], \"frequency\":\"WEEKLY\"}"))
+                "{\"routeValidityStates\" : [\"INVALID_LENGTH\", \"INVALID_ASN\"], " +
+                         "\"emails\" : [\"bad@ripe.net\"], " +
+                         "\"notifyOnRoaChanges\" : \"false\", " +
+                         "\"frequency\" : \"WEEKLY\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(APPLICATION_JSON));
 
@@ -156,6 +186,7 @@ public class AlertServiceTest {
         SubscribeToRoaAlertCommand subscribe = (SubscribeToRoaAlertCommand) commands.get(0);
         assertEquals("bad@ripe.net", subscribe.getEmail());
         assertEquals(RoaAlertFrequency.WEEKLY, subscribe.getFrequency());
+        assertFalse(subscribe.isNotifyOnRoaChanges());
 
         assertEquals(
                 Sets.newHashSet(RouteValidityState.INVALID_LENGTH, RouteValidityState.INVALID_ASN),
@@ -168,14 +199,19 @@ public class AlertServiceTest {
         CertificateAuthorityData caData = mock(CertificateAuthorityData.class);
         RoaAlertSubscriptionData roaSubscriptionData = new RoaAlertSubscriptionData(
                 Arrays.asList("badweekly@ripe.net"),
-                Collections.singletonList(RouteValidityState.INVALID_ASN), RoaAlertFrequency.WEEKLY);
-        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
+                Collections.singletonList(RouteValidityState.INVALID_ASN),
+                RoaAlertFrequency.WEEKLY, false);
+
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID))
+                .thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
 
         ArgumentCaptor<CertificateAuthorityCommand> commandArgument = ArgumentCaptor.forClass(CertificateAuthorityCommand.class);
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/alerts",
-                "{\"routeValidityStates\" : [\"INVALID_ASN\"], \"emails\" : [\"badweekly@ripe.net\",\"boyweekly@ripe.net\"], " +
-                        "\"frequency\":\"WEEKLY\"}"))
+                "{\"routeValidityStates\" : [\"INVALID_ASN\"], " +
+                         "\"emails\" : [\"badweekly@ripe.net\",\"boyweekly@ripe.net\"], " +
+                         "\"notifyOnRoaChanges\" : \"true\", " +
+                         "\"frequency\" : \"WEEKLY\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(APPLICATION_JSON));
 
@@ -186,6 +222,7 @@ public class AlertServiceTest {
         SubscribeToRoaAlertCommand subscribe = (SubscribeToRoaAlertCommand) commands.get(0);
         assertEquals("boyweekly@ripe.net", subscribe.getEmail());
         assertEquals(RoaAlertFrequency.WEEKLY, subscribe.getFrequency());
+        assertTrue(subscribe.isNotifyOnRoaChanges());
 
         assertEquals(
                 Sets.newHashSet(RouteValidityState.INVALID_ASN),
@@ -198,14 +235,19 @@ public class AlertServiceTest {
         CertificateAuthorityData caData = mock(CertificateAuthorityData.class);
         RoaAlertSubscriptionData roaSubscriptionData = new RoaAlertSubscriptionData(
                 Arrays.asList("bad@ripe.net","boy@ripe.net"),
-                Collections.singletonList(RouteValidityState.INVALID_ASN), RoaAlertFrequency.WEEKLY);
-        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
+                Collections.singletonList(RouteValidityState.INVALID_ASN),
+                RoaAlertFrequency.WEEKLY, true);
+
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID))
+                .thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
 
         ArgumentCaptor<CertificateAuthorityCommand> commandArgument = ArgumentCaptor.forClass(CertificateAuthorityCommand.class);
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/alerts",
-                "{\"routeValidityStates\" : [\"INVALID_ASN\"], \"emails\" : [\"bad@ripe.net\",\"boy@ripe.net\"], " +
-                        "\"frequency\":\"DAILY\"}"))
+                "{\"routeValidityStates\" : [\"INVALID_ASN\"], " +
+                         "\"emails\" : [\"bad@ripe.net\",\"boy@ripe.net\"], " +
+                         "\"notifyOnRoaChanges\" : \"true\", " +
+                         "\"frequency\":\"DAILY\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(APPLICATION_JSON));
 
@@ -218,13 +260,12 @@ public class AlertServiceTest {
         assertTrue(emails.contains("boy@ripe.net"));
 
         Set<String> frequencies = commands.stream().map(c -> ((SubscribeToRoaAlertCommand) c).getFrequency().toString()).collect(Collectors.toSet());
-        assertTrue(frequencies.size() == 1);
+        assertEquals(1, frequencies.size());
         assertTrue(frequencies.contains("DAILY"));
 
         Set<String> validities = commands.stream().map(c -> ((SubscribeToRoaAlertCommand) c).getRouteValidityStates().toString()).collect(Collectors.toSet());
-        assertTrue(validities.size() == 1);
+        assertEquals(1, validities.size());
         assertTrue(validities.contains("[INVALID_ASN]"));
-
     }
 
     @Test
@@ -234,13 +275,15 @@ public class AlertServiceTest {
         RoaAlertSubscriptionData roaSubscriptionData = new RoaAlertSubscriptionData(
                 Arrays.asList("festeban@ripe.net", "bad@ripe.net"),
                 Arrays.asList(RouteValidityState.INVALID_ASN, RouteValidityState.UNKNOWN),
-                RoaAlertFrequency.DAILY);
+                RoaAlertFrequency.DAILY, false);
         when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
 
         ArgumentCaptor<CertificateAuthorityCommand> commandArgument = ArgumentCaptor.forClass(CertificateAuthorityCommand.class);
 
         mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/alerts",
-                "{\"routeValidityStates\" : [], \"emails\" : [\"bad1@ripe.net\"]}"))
+                "{\"routeValidityStates\" : [], " +
+                         "\"emails\" : [\"bad1@ripe.net\"], " +
+                         "\"frequency\":\"DAILY\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(APPLICATION_JSON));
 
@@ -253,6 +296,102 @@ public class AlertServiceTest {
         assertEquals(
                 Sets.newHashSet("bad@ripe.net", "festeban@ripe.net"),
                 Sets.newHashSet(unsubscribe1.getEmail(), unsubscribe2.getEmail()));
+    }
+
+    @Test
+    public void shouldSubscribeOrUnsubscribeToRoaChanges() throws Exception {
+
+        CertificateAuthorityData caData = mock(CertificateAuthorityData.class);
+        RoaAlertSubscriptionData roaSubscriptionData = new RoaAlertSubscriptionData(
+                Arrays.asList("festeban@ripe.net", "bad@ripe.net"),
+                Arrays.asList(RouteValidityState.INVALID_ASN, RouteValidityState.UNKNOWN),
+                RoaAlertFrequency.DAILY, true);
+
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID))
+                .thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
+
+        ArgumentCaptor<CertificateAuthorityCommand> commandArgument = ArgumentCaptor.forClass(CertificateAuthorityCommand.class);
+
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/alerts",
+                "{\"routeValidityStates\" : [], " +
+                         "\"emails\" : [\"bad1@ripe.net\"]," +
+                         "\"frequency\":\"DAILY\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON));
+
+        verify(commandService, times(2)).execute(commandArgument.capture());
+        List<CertificateAuthorityCommand> commands = commandArgument.getAllValues();
+
+        UnsubscribeFromRoaAlertCommand unsubscribe1 = (UnsubscribeFromRoaAlertCommand) commands.get(0);
+        UnsubscribeFromRoaAlertCommand unsubscribe2 = (UnsubscribeFromRoaAlertCommand) commands.get(1);
+        assertFalse(unsubscribe1.isNotifyOnRoaChanges());
+        assertFalse(unsubscribe2.isNotifyOnRoaChanges());
+
+        assertEquals(
+                Sets.newHashSet("bad@ripe.net", "festeban@ripe.net"),
+                Sets.newHashSet(unsubscribe1.getEmail(), unsubscribe2.getEmail()));
+    }
+
+
+    @Test
+    public void shouldOnlySubscribeOrUnsubscribeToRoaChangesAndNothingElse() throws Exception {
+
+        CertificateAuthorityData caData = mock(CertificateAuthorityData.class);
+        RoaAlertSubscriptionData roaSubscriptionData = new RoaAlertSubscriptionData(
+                Arrays.asList("festeban@ripe.net", "bad@ripe.net"),
+                Arrays.asList(RouteValidityState.INVALID_ASN, RouteValidityState.UNKNOWN),
+                RoaAlertFrequency.DAILY, true);
+
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID))
+                .thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
+
+        ArgumentCaptor<CertificateAuthorityCommand> commandArgument = ArgumentCaptor.forClass(CertificateAuthorityCommand.class);
+
+        // Change nothing except for notifyOnRoaChanges
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/alerts",
+                        "{\"routeValidityStates\" : [\"INVALID_ASN\", \"UNKNOWN\"], " +
+                                 "\"notifyOnRoaChanges\" : \"false\", " +
+                                 "\"emails\" : [\"festeban@ripe.net\", \"bad@ripe.net\"], " +
+                                 "\"frequency\" : \"DAILY\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON));
+
+        verify(commandService, times(1)).execute(commandArgument.capture());
+        List<CertificateAuthorityCommand> commands = commandArgument.getAllValues();
+
+        UpdateRoaChangeAlertCommand roaChangeUpdate = (UpdateRoaChangeAlertCommand) commands.get(0);
+        assertFalse(roaChangeUpdate.isNotifyOnRoaChanges());
+    }
+
+
+    @Test
+    public void shouldSubscribeToRoaChangesWhenSubscribing() throws Exception {
+
+        CertificateAuthorityData caData = mock(CertificateAuthorityData.class);
+        RoaAlertSubscriptionData roaSubscriptionData = new RoaAlertSubscriptionData(
+                Arrays.asList("bad@ripe.net"),
+                Arrays.asList(RouteValidityState.INVALID_ASN),
+                RoaAlertFrequency.DAILY, true);
+
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID))
+                .thenReturn(new RoaAlertConfigurationData(caData, roaSubscriptionData));
+
+        ArgumentCaptor<CertificateAuthorityCommand> commandArgument = ArgumentCaptor.forClass(CertificateAuthorityCommand.class);
+
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/alerts",
+                        "{\"routeValidityStates\" : [\"INVALID_ASN\"], " +
+                                "\"emails\" : [\"bad@ripe.net\", \"festeban@ripe.net\"]," +
+                                "\"frequency\":\"DAILY\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON));
+
+        verify(commandService, times(1)).execute(commandArgument.capture());
+        List<CertificateAuthorityCommand> commands = commandArgument.getAllValues();
+
+        SubscribeToRoaAlertCommand subscribe = (SubscribeToRoaAlertCommand) commands.get(0);
+        assertFalse(subscribe.isNotifyOnRoaChanges());
+
+        assertEquals("festeban@ripe.net", subscribe.getEmail());
     }
 
     @Test

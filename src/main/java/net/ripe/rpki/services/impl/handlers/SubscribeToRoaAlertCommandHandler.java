@@ -1,6 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
-import com.google.common.collect.Sets;
+import jakarta.inject.Inject;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.alerts.RoaAlertConfiguration;
@@ -10,18 +10,17 @@ import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaAlertSubscriptionData;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.services.impl.email.EmailSender;
-
-import jakarta.inject.Inject;
 import net.ripe.rpki.services.impl.email.EmailTokens;
 
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 
 @Handler
 public class SubscribeToRoaAlertCommandHandler extends AbstractCertificateAuthorityCommandHandler<SubscribeToRoaAlertCommand> {
-    public static final String SUBSCRIPTION = "subscription";
 
     private final RoaAlertConfigurationRepository repository;
 
@@ -54,52 +53,50 @@ public class SubscribeToRoaAlertCommandHandler extends AbstractCertificateAuthor
         var emailTemplate = getConfirmationTemplate(configuration);
 
         emailSender.sendEmail(command.getEmail(), emailTemplate.templateSubject, emailTemplate,
-                Collections.singletonMap(SUBSCRIPTION, configuration.toData()),
+                makeParameters(configuration.toData()),
                 EmailTokens.uniqueId(configuration.getCertificateAuthority().getUuid()));
     }
 
     private EmailSender.EmailTemplates getConfirmationTemplate(RoaAlertConfiguration configuration) {
-        switch (configuration.getFrequency()) {
-            case DAILY:
-                return EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY;
-            case WEEKLY:
-                return EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_WEEKLY;
-            default:
-                throw new IllegalStateException("Frequency should not be null");
-        }
+        return switch (configuration.getFrequency()) {
+            case DAILY -> EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_DAILY;
+            case WEEKLY -> EmailSender.EmailTemplates.ROA_ALERT_SUBSCRIBE_CONFIRMATION_WEEKLY;
+        };
     }
 
     private void updateConfigurationAndSendConfirmation(RoaAlertConfiguration configuration, SubscribeToRoaAlertCommand command) {
         RoaAlertConfigurationData oldConfiguration = configuration.toData();
-        configuration.setSubscription(new RoaAlertSubscriptionData(command.getEmail(), command.getRouteValidityStates(), command.getFrequency()));
+        configuration.setSubscription(new RoaAlertSubscriptionData(List.of(command.getEmail()),
+                command.getRouteValidityStates(), command.getFrequency(), command.isNotifyOnRoaChanges()));
         RoaAlertConfigurationData newConfiguration = configuration.toData();
 
-        final Set<String> oldEmailAddress = oldConfiguration.getEmails().stream().map(RoaAlertConfiguration::normEmail).collect(Collectors.toSet());
-        final Set<String> newEmailAddress = newConfiguration.getEmails().stream().map(RoaAlertConfiguration::normEmail).collect(Collectors.toSet());
+        var oldEmailAddress = oldConfiguration.getEmails()
+                .stream().map(RoaAlertConfiguration::normEmail).collect(Collectors.toSet());
 
-        if (oldEmailAddress.equals(newEmailAddress))
-            return;
-
-        // elements LHS not in RHS
-        Sets.difference(newEmailAddress, oldEmailAddress).forEach(email -> {
+        var normNewEmail = RoaAlertConfiguration.normEmail(command.getEmail());
+        if (!oldEmailAddress.contains(normNewEmail)) {
+            var parametersSubscribe = makeParameters(newConfiguration, command.isNotifyOnRoaChanges());
             var emailTemplate = getConfirmationTemplate(configuration);
-            emailSender.sendEmail(email, emailTemplate.templateSubject, emailTemplate,
-                    Collections.singletonMap(SUBSCRIPTION, newConfiguration),
+            emailSender.sendEmail(normNewEmail, emailTemplate.templateSubject, emailTemplate, parametersSubscribe,
                     EmailTokens.uniqueId(configuration.getCertificateAuthority().getUuid()));
-        });
+        }
+    }
 
-        Sets.difference(oldEmailAddress, newEmailAddress).forEach(email ->
-                emailSender.sendEmail(email, EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE.templateSubject,
-                        EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE,
-                        Collections.singletonMap(SUBSCRIPTION, oldConfiguration),
-                        EmailTokens.uniqueId(configuration.getCertificateAuthority().getUuid())));
+    public static Map<String, Object> makeParameters(RoaAlertConfigurationData configuration) {
+        return makeParameters(configuration, false);
+    }
+
+    public static Map<String, Object> makeParameters(RoaAlertConfigurationData configuration, boolean notifyOnChange) {
+        return Map.of("subscription", configuration,
+                "roaChangeSubscription", notifyOnChange ?
+                        "Also you are subscribed to alerts about ROA changes." : "");
     }
 
     private RoaAlertConfiguration createConfiguration(SubscribeToRoaAlertCommand command) {
         ManagedCertificateAuthority certificateAuthority = lookupManagedCa(command.getCertificateAuthorityId());
         RoaAlertConfiguration configuration = new RoaAlertConfiguration(certificateAuthority);
-        configuration.setSubscription(new RoaAlertSubscriptionData(command.getEmail(),
-                command.getRouteValidityStates(), command.getFrequency()));
+        configuration.setSubscription(new RoaAlertSubscriptionData(List.of(command.getEmail()),
+                command.getRouteValidityStates(), command.getFrequency(), command.isNotifyOnRoaChanges()));
         repository.add(configuration);
         return configuration;
     }

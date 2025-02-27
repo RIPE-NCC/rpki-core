@@ -396,7 +396,7 @@ public class AnnouncementServiceTest {
 
         final List<RouteValidityState> routeValidityStates = Arrays.asList(RouteValidityState.INVALID_ASN, RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN);
         final RoaAlertSubscriptionData subscription = new RoaAlertSubscriptionData("joe@example.com",
-                routeValidityStates, RoaAlertFrequency.DAILY);
+                routeValidityStates, RoaAlertFrequency.DAILY, false);
 
         return new RoaAlertConfigurationData(caData, subscription, ignoredAnnouncements);
     }

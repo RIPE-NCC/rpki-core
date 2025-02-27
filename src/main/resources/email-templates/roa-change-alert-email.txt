@@ -1,0 +1,10 @@
+This is an automated email to inform you that user [[${ssoEmail}]] made changes
+to one or more ROAs for your organisation [[${humanizedCaName}]].
+
+ASN        Prefix                                           Max Length  (A)dd/(D)elete
+===============================================================================
+[# th:each="roa : ${roas}" ][(${roa.asn})][( ${roa.prefix})][( ${roa.maxLength})][( ${roa.operation})]
+[/]
+
+You can review and change your ROAs at: [[${rpkiDashboardUri}]]
+You can unsubscribe from these alerts at: [(${unsubscribeUri})]

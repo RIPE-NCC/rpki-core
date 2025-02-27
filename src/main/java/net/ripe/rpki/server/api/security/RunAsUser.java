@@ -1,5 +1,6 @@
 package net.ripe.rpki.server.api.security;
 
+import lombok.Getter;
 import net.ripe.rpki.server.api.support.objects.ValueObjectSupport;
 import org.apache.commons.lang.Validate;
 
@@ -10,7 +11,9 @@ import java.util.UUID;
 public final class RunAsUser extends ValueObjectSupport {
 
     private final CertificationUserId userId;
+    @Getter
     private final String friendlyName;
+    @Getter
     private final List<String> roles;
 
     /**
@@ -37,11 +40,4 @@ public final class RunAsUser extends ValueObjectSupport {
         return userId;
     }
 
-    public String getFriendlyName() {
-        return friendlyName;
-    }
-
-    public List<String> getRoles() {
-        return roles;
-    }
 }

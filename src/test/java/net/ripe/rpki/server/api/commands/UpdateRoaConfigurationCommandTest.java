@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static net.ripe.rpki.server.api.security.RunAsUser.ADMIN;
 import static org.junit.Assert.assertEquals;
 
 public class UpdateRoaConfigurationCommandTest {
@@ -20,8 +21,12 @@ public class UpdateRoaConfigurationCommandTest {
 
     @Before
     public void setUp() {
-        List<RoaConfigurationPrefixData> added = Arrays.asList(new RoaConfigurationPrefixData(Asn.parse("123"), IpRange.parse("10.64.0.0/12"), 24), new RoaConfigurationPrefixData(Asn.parse("123"), IpRange.parse("10.32.0.0/12"), null));
-        subject = new UpdateRoaConfigurationCommand(new VersionedId(1), Optional.empty(), added, Collections.emptyList());
+        List<RoaConfigurationPrefixData> added = Arrays.asList(
+                new RoaConfigurationPrefixData(Asn.parse("123"), IpRange.parse("10.64.0.0/12"), 24),
+                new RoaConfigurationPrefixData(Asn.parse("123"), IpRange.parse("10.32.0.0/12"), null));
+
+        subject = new UpdateRoaConfigurationCommand(
+                new VersionedId(1), Optional.empty(), added, Collections.emptyList(), ADMIN.getCertificationUserId());
     }
 
     @Test

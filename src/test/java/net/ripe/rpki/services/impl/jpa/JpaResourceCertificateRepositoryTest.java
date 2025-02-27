@@ -1,5 +1,7 @@
 package net.ripe.rpki.services.impl.jpa;
 
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpRange;
@@ -17,9 +19,7 @@ import org.joda.time.DateTimeZone;
 import org.junit.Before;
 import org.junit.Test;
 
-import jakarta.inject.Inject;
 import javax.security.auth.x500.X500Principal;
-import jakarta.transaction.Transactional;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +27,7 @@ import java.util.Optional;
 import static net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest.TEST_KEY_PAIR;
 import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_NAME;
 import static net.ripe.rpki.domain.TestObjects.PRODUCTION_CA_RESOURCES;
+import static net.ripe.rpki.server.api.security.RunAsUser.ADMIN;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JpaResourceCertificateRepositoryTest extends CertificationDomainTestCase {
@@ -63,7 +64,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
             ca.getVersionedId(),
             Optional.empty(),
             Collections.singleton(new RoaConfigurationPrefixData(Asn.parse("AS3333"), IpRange.parse("10.0.0.0/8"), null)),
-            Collections.emptyList()));
+            Collections.emptyList(), ADMIN.getCertificationUserId()));
         commandService.execute(new IssueUpdatedManifestAndCrlCommand(ca.getVersionedId()));
 
         // CA certificate, EE certificate for ROA, EE certificate for manifest

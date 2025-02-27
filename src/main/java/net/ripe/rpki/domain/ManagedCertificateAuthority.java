@@ -66,7 +66,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
     private final Set<KeyPairEntity> keyPairs = new HashSet<>();
 
     /**
-     * The last time the ASPA or ROA configuration was updated. This can bever be equal to {@link #configurationAppliedAt}.
+     * The last time the ASPA or ROA configuration was updated. This can never be equal to {@link #configurationAppliedAt}.
      */
     @Column(name = "configuration_updated_at")
     @NonNull

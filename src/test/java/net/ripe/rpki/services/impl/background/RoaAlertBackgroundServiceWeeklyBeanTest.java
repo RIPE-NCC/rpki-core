@@ -39,11 +39,11 @@ public class RoaAlertBackgroundServiceWeeklyBeanTest {
 
     private static final RoaAlertConfigurationData ALERT_SUBSCRIPTION_ERROR = new RoaAlertConfigurationData(CA_DATA,
             new RoaAlertSubscriptionData("errorjohn@example.com", Arrays.asList(RouteValidityState.INVALID_ASN,
-                    RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY));
+                    RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY, false));
 
     private static final RoaAlertConfigurationData ALERT_SUBSCRIPTION_WEEKLY = new RoaAlertConfigurationData(CA_DATA,
             new RoaAlertSubscriptionData("weeklyjoe@example.com", Arrays.asList(RouteValidityState.INVALID_ASN,
-                    RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY));
+                    RouteValidityState.INVALID_LENGTH, RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY, true));
 
     @Mock
     private ActiveNodeService activeNodeService;
@@ -56,7 +56,8 @@ public class RoaAlertBackgroundServiceWeeklyBeanTest {
 
     @Before
     public void setup() {
-        subject = new RoaAlertBackgroundServiceWeeklyBean(new BackgroundTaskRunner(activeNodeService, new SimpleMeterRegistry()), roaAlertConfigurationViewService, roaAlertChecker);
+        subject = new RoaAlertBackgroundServiceWeeklyBean(new BackgroundTaskRunner(
+                activeNodeService, new SimpleMeterRegistry()), roaAlertConfigurationViewService, roaAlertChecker);
     }
 
     @Test

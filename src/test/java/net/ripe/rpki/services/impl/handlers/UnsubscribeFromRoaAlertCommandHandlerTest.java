@@ -68,7 +68,7 @@ public class UnsubscribeFromRoaAlertCommandHandlerTest {
                         RouteValidityState.UNKNOWN), RoaAlertFrequency.DAILY);
         when(repository.findByCertificateAuthorityIdOrNull(TEST_CA_ID)).thenReturn(configuration);
 
-        subject.handle(new UnsubscribeFromRoaAlertCommand(TEST_VERSIONED_CA_ID, email));
+        subject.handle(new UnsubscribeFromRoaAlertCommand(TEST_VERSIONED_CA_ID, email, false));
 
         verify(emailSender).sendEmail(emailCapture.capture(),
                 eq(EmailSender.EmailTemplates.ROA_ALERT_UNSUBSCRIBE.templateSubject),

@@ -1,28 +1,31 @@
 package net.ripe.rpki.rest.pojo;
 
+import com.google.common.collect.Sets;
+import lombok.*;
+import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
+
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
-
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
 public class Subscriptions {
+    @Setter
     private Set<String> emails;
+    @Setter
     private Set<String> routeValidityStates;
+    @Getter
     private RoaAlertFrequency frequency;
-
-    public Subscriptions() {
-    }
-
-    public Subscriptions(Set<String> emails, Set<String> routeValidityStates, RoaAlertFrequency frequency) {
-        this.routeValidityStates = routeValidityStates;
-        this.emails = emails;
-        this.frequency = frequency;
-    }
+    @Getter
+    @Setter
+    private boolean notifyOnRoaChanges = false;
 
     public Subscriptions(Set<String> emails, Set<String> routeValidityStates) {
-        this(emails, routeValidityStates, RoaAlertFrequency.DAILY);
+        this(emails, routeValidityStates, RoaAlertFrequency.DAILY, false);
     }
 
     public Set<String> getRouteValidityStates() {
@@ -31,30 +34,17 @@ public class Subscriptions {
                 routeValidityStates.stream().filter(Objects::nonNull).collect(Collectors.toSet());
     }
 
-    public void setRouteValidityStates(Set<String> routeValidityStates) {
-        this.routeValidityStates = routeValidityStates;
-    }
-
     public Set<String> getEmails() {
         return emails == null ?
                 Collections.emptySet() :
                 emails.stream().filter(Objects::nonNull).collect(Collectors.toSet());
     }
 
-    public void setEmails(Set<String> emails) {
-        this.emails = emails;
+    public static Subscriptions defaultSubscriptions(Collection<String> emails, Set<String> validityStates) {
+        return new Subscriptions(Sets.newHashSet(emails), validityStates);
     }
 
-    public RoaAlertFrequency getFrequency() {
-        return frequency;
-    }
-
-    @Override
-    public String toString() {
-        return "Subscriptions{" +
-                "emails=" + emails +
-                ", routeValidityStates=" + routeValidityStates +
-                ", frequency=" + frequency +
-                '}';
+    public static Subscriptions defaultSubscriptions() {
+        return new Subscriptions(Collections.emptySet(), Collections.emptySet());
     }
 }

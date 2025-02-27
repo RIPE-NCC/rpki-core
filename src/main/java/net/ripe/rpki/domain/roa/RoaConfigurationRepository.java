@@ -1,15 +1,11 @@
 package net.ripe.rpki.domain.roa;
 
-import net.ripe.ipresource.Asn;
-import net.ripe.ipresource.IpResourceRange;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
-import net.ripe.rpki.server.api.support.objects.CaName;
 
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
 public interface RoaConfigurationRepository {
@@ -40,7 +36,7 @@ public interface RoaConfigurationRepository {
         mergePrefixes(roaConfiguration, Collections.emptyList(), prefixes);
     }
 
-    void mergePrefixes(RoaConfiguration configuration,
-                       Collection<RoaConfigurationPrefix> prefixesToAdd,
-                       Collection<RoaConfigurationPrefix> prefixesToRemove);
+    RoaConfiguration.PrefixDiff mergePrefixes(RoaConfiguration configuration,
+                                              Collection<RoaConfigurationPrefix> prefixesToAdd,
+                                              Collection<RoaConfigurationPrefix> prefixesToRemove);
 }

@@ -14,6 +14,7 @@ import net.ripe.rpki.server.api.services.command.EntityTagDoesNotMatchException;
 import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
 import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import net.ripe.rpki.services.impl.background.RoaMetricsService;
+import net.ripe.rpki.services.impl.background.RoaNotificationService;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +23,10 @@ import org.springframework.test.annotation.Commit;
 import java.util.Collections;
 import java.util.Optional;
 
+import static net.ripe.rpki.server.api.security.RunAsUser.ADMIN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.*;
 
 @Transactional
 @Commit // don't rollback, we want all constrains to be checked
@@ -39,7 +39,6 @@ public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomai
 
     private static final IpRange PREFIX1 = IpRange.parse("10.0.0.0/8");
     private static final IpRange PREFIX2 = IpRange.parse("172.16.0.0/12");
-    private static final IpRange PREFIX3 = IpRange.parse("192.168.0.0/16");
 
     private ManagedCertificateAuthority certificateAuthority;
 
@@ -55,8 +54,9 @@ public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomai
         clearDatabase();
         certificateAuthority = createInitialisedProdCaWithRipeResources();
         roaMetricsService = mock(RoaMetricsService.class);
+        var roaNotificationService = mock(RoaNotificationService.class);
         subject = new UpdateRoaConfigurationCommandHandler(certificateAuthorityRepository,
-                roaConfigurationRepository, PRIVATE_ASNS, roaMetricsService);
+                roaConfigurationRepository, PRIVATE_ASNS, roaMetricsService, roaNotificationService);
     }
 
     @Test
@@ -66,7 +66,7 @@ public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomai
             certificateAuthority.getVersionedId(),
             Optional.of(configuration.convertToData().entityTag()),
             Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX1, null)),
-            Collections.emptyList()));
+            Collections.emptyList(), ADMIN.getCertificationUserId()));
 
         var config = roaConfigurationRepository.getOrCreateByCertificateAuthority(certificateAuthority);
         assertThat(config.getPrefixes()).hasSize(1);
@@ -85,8 +85,8 @@ public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomai
             certificateAuthority.getVersionedId(),
             Optional.of("bad-etag"),
             Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX1, null)),
-            Collections.emptyList()
-        );
+            Collections.emptyList(),
+            ADMIN.getCertificationUserId());
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOf(EntityTagDoesNotMatchException.class);
     }
 
@@ -97,7 +97,8 @@ public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomai
             certificateAuthority.getVersionedId(),
         Optional.empty(),
             Collections.singletonList(new RoaConfigurationPrefixData(PRIVATE_ASN, PREFIX1, null)),
-            Collections.emptyList()));
+            Collections.emptyList(),
+            ADMIN.getCertificationUserId()));
         verifyNoMoreInteractions(roaMetricsService);
     }
 
@@ -107,8 +108,8 @@ public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomai
             certificateAuthority.getVersionedId(),
             Optional.empty(),
             Collections.singletonList(new RoaConfigurationPrefixData(ASN, IpRange.parse("1.0.0.0/8"), null)),
-            Collections.emptyList()
-        );
+            Collections.emptyList(),
+            ADMIN.getCertificationUserId());
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOf(NotHolderOfResourcesException.class);
     }
 
@@ -121,7 +122,7 @@ public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomai
             certificateAuthority.getVersionedId(),
             Optional.empty(),
             Collections.emptyList(),
-            Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX1, null))));
+            Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX1, null)), ADMIN.getCertificationUserId()));
 
         var config = roaConfigurationRepository.getOrCreateByCertificateAuthority(certificateAuthority);
         assertThat(config.getPrefixes()).isEmpty();
@@ -138,7 +139,7 @@ public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomai
             certificateAuthority.getVersionedId(),
             Optional.empty(),
             Collections.emptyList(),
-            Collections.emptyList()));
+            Collections.emptyList(), ADMIN.getCertificationUserId()));
 
         assertThat(certificateAuthority.isConfigurationCheckNeeded()).isTrue();
     }
@@ -150,13 +151,13 @@ public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomai
                 certificateAuthority.getVersionedId(),
                 Optional.of(configuration.convertToData().entityTag()),
                 Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX1, null)),
-                Collections.emptyList()));
+                Collections.emptyList(), ADMIN.getCertificationUserId()));
 
         subject.handle(new UpdateRoaConfigurationCommand(
                 certificateAuthority.getVersionedId(),
                 Optional.of(roaConfigurationRepository.getOrCreateByCertificateAuthority(certificateAuthority).convertToData().entityTag()),
                 Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX2, null)),
-                Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX1, null))));
+                Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX1, null)), ADMIN.getCertificationUserId()));
 
         var config = roaConfigurationRepository.getOrCreateByCertificateAuthority(certificateAuthority);
         assertThat(config.getPrefixes()).hasSize(1);
@@ -174,13 +175,13 @@ public class UpdateRoaConfigurationCommandHandlerTest extends CertificationDomai
                 certificateAuthority.getVersionedId(),
                 Optional.of(configuration.convertToData().entityTag()),
                 Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX1, null)),
-                Collections.emptyList()));
+                Collections.emptyList(), ADMIN.getCertificationUserId()));
 
         subject.handle(new UpdateRoaConfigurationCommand(
                 certificateAuthority.getVersionedId(),
                 Optional.of(roaConfigurationRepository.getOrCreateByCertificateAuthority(certificateAuthority).convertToData().entityTag()),
                 Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX1, 17)),
-                Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX1, null))));
+                Collections.singletonList(new RoaConfigurationPrefixData(ASN, PREFIX1, null)), ADMIN.getCertificationUserId()));
 
         var config = roaConfigurationRepository.getOrCreateByCertificateAuthority(certificateAuthority);
         assertThat(config.getPrefixes()).hasSize(1);

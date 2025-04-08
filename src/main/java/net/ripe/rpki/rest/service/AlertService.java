@@ -12,10 +12,7 @@ import net.ripe.rpki.commons.validation.roa.RouteValidityState;
 import net.ripe.rpki.domain.alerts.RoaAlertFrequency;
 import net.ripe.rpki.rest.pojo.BgpAnnouncement;
 import net.ripe.rpki.rest.pojo.Subscriptions;
-import net.ripe.rpki.server.api.commands.SubscribeToRoaAlertCommand;
-import net.ripe.rpki.server.api.commands.UnsubscribeFromRoaAlertCommand;
-import net.ripe.rpki.server.api.commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand;
-import net.ripe.rpki.server.api.commands.UpdateRoaChangeAlertCommand;
+import net.ripe.rpki.server.api.commands.*;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.services.command.CommandService;
@@ -60,8 +57,8 @@ public class AlertService extends AbstractCaRestService {
         }
 
         final Set<String> validityStates = configuration.getRouteValidityStates().stream()
-            .map(RouteValidityState::name)
-            .collect(Collectors.toSet());
+                .map(RouteValidityState::name)
+                .collect(Collectors.toSet());
 
         var subscription = configuration.getSubscription();
         if (subscription == null) {
@@ -128,59 +125,77 @@ public class AlertService extends AbstractCaRestService {
         final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
         final RoaAlertConfigurationData currentConfiguration = roaAlertConfigurationViewService.findRoaAlertSubscription(ca.getId());
 
-        if (currentConfiguration == null) {
-            if (newValidityStates.isEmpty() && newSubscription.isNotifyOnRoaChanges()) {
-                commandService.execute(new UpdateRoaChangeAlertCommand(ca.getVersionedId(), true));
-            } else {
-                newEmails.forEach(email ->
-                        commandService.execute(new SubscribeToRoaAlertCommand(ca.getVersionedId(),
-                                email, newValidityStates,
-                                newSubscription.getFrequency(),
-                                newSubscription.isNotifyOnRoaChanges())));
-            }
-        } else {
-            final Set<String> currentEmails = currentConfiguration.getEmails() == null ?
-                    Collections.emptySet() : new HashSet<>(currentConfiguration.getEmails());
-            final Set<RouteValidityState> currentValidityStates = currentConfiguration.getRouteValidityStates() == null ?
-                    Collections.emptySet() : currentConfiguration.getRouteValidityStates();
-            final RoaAlertFrequency currentFrequency = currentConfiguration.getSubscription() == null ?
-                    null : currentConfiguration.getSubscription().getFrequency();
+        List<? extends CertificateAuthorityCommand> commands = currentConfiguration == null ?
+                initAlertConfiguration(ca, newSubscription, newValidityStates, newEmails) :
+                updateAlertConfiguration(ca, newSubscription, currentConfiguration, newEmails, newValidityStates);
 
-            currentEmails.stream()
-                    .filter(object -> !newEmails.contains(object))
-                    .forEach(email ->
-                            commandService.execute(new UnsubscribeFromRoaAlertCommand(ca.getVersionedId(),
-                                    email, newSubscription.isNotifyOnRoaChanges())));
-
-            // If both validity and frequency stay the same, only subscribe additional email.
-            if (Objects.equals(newValidityStates, currentValidityStates) && Objects.equals(newSubscription.getFrequency(), currentFrequency)) {
-                if (newEmails.equals(currentEmails)) {
-                    // if emails also stay the same, the only thing that can change is notifyOnRoaChanges flag.
-                    // In this case issue special command updating only this flag.
-                    if (newSubscription.isNotifyOnRoaChanges() != currentConfiguration.isNotifyOnRoaChanges()) {
-                        commandService.execute(new UpdateRoaChangeAlertCommand(ca.getVersionedId(), newSubscription.isNotifyOnRoaChanges()));
-                    }
-                } else {
-                    newEmails.stream()
-                            .filter(email -> !currentEmails.contains(email))
-                            .forEach(email ->
-                                    commandService.execute(new SubscribeToRoaAlertCommand(ca.getVersionedId(),
-                                            email, newValidityStates,
-                                            newSubscription.getFrequency(),
-                                            newSubscription.isNotifyOnRoaChanges())));
-                }
-            } else {
-                if (!newValidityStates.isEmpty() && newSubscription.getFrequency() != null) {
-                    // Either validity or frequency changes so these guys have to be subscribed.
-                    newEmails.forEach(email ->
-                            commandService.execute(new SubscribeToRoaAlertCommand(ca.getVersionedId(),
-                                    email, newValidityStates,
-                                    newSubscription.getFrequency(),
-                                    newSubscription.isNotifyOnRoaChanges())));
-                }
-            }
-        }
+        commands.forEach(commandService::execute);
     }
 
+    private List<? extends CertificateAuthorityCommand> updateAlertConfiguration(HostedCertificateAuthorityData ca,
+                                                                                 Subscriptions newSubscription,
+                                                                                 RoaAlertConfigurationData currentConfiguration,
+                                                                                 Set<String> newEmails,
+                                                                                 Set<RouteValidityState> newValidityStates) {
+
+        final Set<String> currentEmails = currentConfiguration.getEmails() == null ?
+                Collections.emptySet() : new HashSet<>(currentConfiguration.getEmails());
+        final Set<RouteValidityState> currentValidityStates = currentConfiguration.getRouteValidityStates() == null ?
+                Collections.emptySet() : currentConfiguration.getRouteValidityStates();
+        final RoaAlertFrequency currentFrequency = currentConfiguration.getSubscription() == null ?
+                null : currentConfiguration.getSubscription().getFrequency();
+
+        List<CertificateAuthorityCommand> commands = new ArrayList<>(
+                currentEmails.stream()
+                        .filter(object -> !newEmails.contains(object))
+                        .map(email ->
+                                new UnsubscribeFromRoaAlertCommand(ca.getVersionedId(),
+                                        email, newSubscription.isNotifyOnRoaChanges()))
+                        .toList());
+
+        // If both validity and frequency stay the same, only subscribe additional email.
+        if (Objects.equals(newValidityStates, currentValidityStates) && Objects.equals(newSubscription.getFrequency(), currentFrequency)) {
+            if (newEmails.equals(currentEmails)) {
+                // if emails also stay the same, the only thing that can change is notifyOnRoaChanges flag.
+                // In this case issue special command updating only this flag.
+                if (newSubscription.isNotifyOnRoaChanges() != currentConfiguration.isNotifyOnRoaChanges()) {
+                    commands.add(new UpdateRoaChangeAlertCommand(ca.getVersionedId(), newSubscription.isNotifyOnRoaChanges()));
+                }
+            } else {
+                commands.addAll(newEmails.stream()
+                        .filter(email -> !currentEmails.contains(email))
+                        .map(email ->
+                                new SubscribeToRoaAlertCommand(ca.getVersionedId(),
+                                        email, newValidityStates,
+                                        newSubscription.getFrequency(),
+                                        newSubscription.isNotifyOnRoaChanges()))
+                        .toList());
+            }
+        } else {
+            if (!newValidityStates.isEmpty() && newSubscription.getFrequency() != null) {
+                // Either validity or frequency changes so these guys have to be subscribed.
+                commands.addAll(newEmails.stream().map(email ->
+                        new SubscribeToRoaAlertCommand(ca.getVersionedId(),
+                                email, newValidityStates,
+                                newSubscription.getFrequency(),
+                                newSubscription.isNotifyOnRoaChanges())).toList());
+            }
+        }
+        return commands;
+    }
+
+    private List<? extends CertificateAuthorityCommand> initAlertConfiguration(HostedCertificateAuthorityData ca,
+                                                                               Subscriptions newSubscription,
+                                                                               Set<RouteValidityState> newValidityStates,
+                                                                               Set<String> newEmails) {
+        if (newValidityStates.isEmpty() && newSubscription.isNotifyOnRoaChanges()) {
+            return List.of(new UpdateRoaChangeAlertCommand(ca.getVersionedId(), true));
+        }
+        return newEmails.stream().map(email ->
+                new SubscribeToRoaAlertCommand(ca.getVersionedId(),
+                        email, newValidityStates,
+                        newSubscription.getFrequency(),
+                        newSubscription.isNotifyOnRoaChanges())).toList();
+    }
 
 }

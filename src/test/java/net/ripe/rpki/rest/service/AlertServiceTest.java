@@ -395,6 +395,41 @@ public class AlertServiceTest {
     }
 
     @Test
+    public void shouldSubscribeWhenNoConfigurationPresent() throws Exception {
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(null);
+        ArgumentCaptor<CertificateAuthorityCommand> commandArgument = ArgumentCaptor.forClass(CertificateAuthorityCommand.class);
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/alerts",
+                        "{\"routeValidityStates\" : [\"INVALID_ASN\"], " +
+                                "\"emails\" : [\"festeban@ripe.net\"]," +
+                                "\"frequency\":\"DAILY\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON));
+
+        verify(commandService, times(1)).execute(commandArgument.capture());
+        List<CertificateAuthorityCommand> commands = commandArgument.getAllValues();
+
+        SubscribeToRoaAlertCommand subscribe = (SubscribeToRoaAlertCommand) commands.get(0);
+        assertFalse(subscribe.isNotifyOnRoaChanges());
+        assertEquals("festeban@ripe.net", subscribe.getEmail());
+    }
+
+    @Test
+    public void shouldSubscribeWhenNoConfigurationPresentNotifyOnRoaChanges() throws Exception {
+        when(roaAlertConfigurationViewService.findRoaAlertSubscription(CA_ID)).thenReturn(null);
+        ArgumentCaptor<CertificateAuthorityCommand> commandArgument = ArgumentCaptor.forClass(CertificateAuthorityCommand.class);
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/alerts",
+                        "{\"emails\" : [\"festeban@ripe.net\"]," +
+                                "\"notifyOnRoaChanges\" : \"true\"," +
+                                "\"frequency\":\"DAILY\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON));
+
+        verify(commandService, times(1)).execute(commandArgument.capture());
+        List<CertificateAuthorityCommand> commands = commandArgument.getAllValues();
+        assertTrue(((UpdateRoaChangeAlertCommand) commands.get(0)).isNotifyOnRoaChanges());
+    }
+
+    @Test
     public void shouldMuteAnnouncements() throws Exception {
 
         final ArgumentCaptor<UpdateRoaAlertIgnoredAnnouncedRoutesCommand> commandArgument =

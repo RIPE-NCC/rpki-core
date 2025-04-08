@@ -1,5 +1,5 @@
 default:
-  image: gradle:8.12-jdk17
+  image: gradle:8.13-jdk17
 
 # Explicit version of the Mergerequests-Pipelines workflow, with the main branch
 # added.

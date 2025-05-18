@@ -64,7 +64,7 @@ public class UpStreamCARequestEntity {
      */
     private String migrateUpstreamCARequest(String request) {
         return request.replaceAll(
-            "<(/?)net\\.ripe\\.rpki\\.offline\\.requests\\.([A-z0-9]+)>",
+            "<(/?)net\\.ripe\\.rpki\\.offline\\.requests\\.([A-Za-z0-9]+)>",
             "<$1net.ripe.rpki.commons.ta.domain.request.$2>"
         );
     }

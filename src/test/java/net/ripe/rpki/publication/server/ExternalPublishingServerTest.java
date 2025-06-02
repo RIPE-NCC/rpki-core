@@ -41,7 +41,7 @@ public class ExternalPublishingServerTest {
 
     @Test
     public void shouldCreateEmptyRequest() {
-        final String query = "<msg xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\" type=\"query\" version=\"3\"/>";
+        final String query = "<msg type=\"query\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"/>";
         ArgumentCaptor<String> xmlCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> clientIdCaptor = ArgumentCaptor.forClass(String.class);
         when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), xmlCaptor.capture(), clientIdCaptor.capture())).thenReturn(Mono.just(replyDoesntMatter));
@@ -53,7 +53,7 @@ public class ExternalPublishingServerTest {
 
     @Test
     public void shouldCreateProperRequest() throws URISyntaxException {
-        String query = "<msg xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\" type=\"query\" version=\"3\">" +
+        String query = "<msg type=\"query\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\">" +
                 "<publish uri=\"rsync://blabla.com/xxx.cer\">AQID</publish>" +
                 "<withdraw hash=\"not important\" uri=\"rsync://blabla.com/yyy.cer\"/>" +
                 "<publish hash=\"aHash\" uri=\"rsync://blabla.com/xxx.cer\">AQID</publish></msg>";
@@ -104,7 +104,7 @@ public class ExternalPublishingServerTest {
 
     @Test
     public void should_create_list_request() {
-        String query = "<msg xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\" type=\"query\" version=\"3\"><list/></msg>";
+        String query = "<msg type=\"query\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"><list/></msg>";
 
         ArgumentCaptor<String> xmlCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> clientIdCaptor = ArgumentCaptor.forClass(String.class);

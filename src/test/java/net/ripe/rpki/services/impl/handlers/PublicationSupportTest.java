@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class PublicationSupportTest extends TestCase {
 
-    private static final String LIST_REQUEST = "<msg xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\" type=\"query\" version=\"3\"><list/></msg>";
+    private static final String LIST_REQUEST = "<msg type=\"query\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"><list/></msg>";
 
     private static final URI PUBLICATION_SERVER_URL = URI.create("https://localhost/publication-server");
 
@@ -79,7 +79,7 @@ public class PublicationSupportTest extends TestCase {
         verify(publishingServerClient, times(2)).publish(eq(PUBLICATION_SERVER_URL), xmlCaptor.capture(), eq(CORE_CLIENT_ID));
         List<String> xmlRequests = xmlCaptor.getAllValues();
         assertEquals(LIST_REQUEST, xmlRequests.get(0));
-        assertEquals("<msg xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\" type=\"query\" version=\"3\">" +
+        assertEquals("<msg type=\"query\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\">" +
             "<publish uri=\"rsync://localhost:20873/repository/manifest.mft\">AQID</publish>" +
             "<publish uri=\"rsync://localhost:20873/repository/object.cer\">BAUG</publish>" +
             "</msg>", xmlRequests.get(1));
@@ -99,7 +99,7 @@ public class PublicationSupportTest extends TestCase {
         verify(publishingServerClient, times(2)).publish(eq(PUBLICATION_SERVER_URL), xmlCaptor.capture(), eq(CORE_CLIENT_ID));
         List<String> xmlRequests = xmlCaptor.getAllValues();
         assertEquals(LIST_REQUEST, xmlRequests.get(0));
-        assertEquals("<msg xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\" type=\"query\" version=\"3\">" +
+        assertEquals("<msg type=\"query\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\">" +
             "<withdraw hash=\"039058C6F2C0CB492C533B0A4D14EF77CC0F78ABCCCED5287D84A1A2011CFB81\" uri=\"rsync://localhost:20873/repository/manifest.mft\"/>" +
             "<publish uri=\"rsync://localhost:20873/repository/object.cer\">BAUG</publish>" +
             "</msg>", xmlRequests.get(1));
@@ -119,7 +119,7 @@ public class PublicationSupportTest extends TestCase {
         verify(publishingServerClient, times(2)).publish(eq(PUBLICATION_SERVER_URL), xmlCaptor.capture(), eq(CORE_CLIENT_ID));
         List<String> xmlRequests = xmlCaptor.getAllValues();
         assertEquals(LIST_REQUEST, xmlRequests.get(0));
-        assertEquals("<msg xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\" type=\"query\" version=\"3\">" +
+        assertEquals("<msg type=\"query\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\">" +
             "<publish uri=\"rsync://localhost:20873/repository/object.cer\">BAUG</publish>" +
             "<publish hash=\"01234\" uri=\"rsync://localhost:20873/repository/manifest.mft\">AQID</publish>" +
             "</msg>", xmlRequests.get(1));
@@ -139,7 +139,7 @@ public class PublicationSupportTest extends TestCase {
         verify(publishingServerClient, times(2)).publish(eq(PUBLICATION_SERVER_URL), xmlCaptor.capture(), eq(CORE_CLIENT_ID));
         List<String> xmlRequests = xmlCaptor.getAllValues();
         assertEquals(LIST_REQUEST, xmlRequests.get(0));
-        assertEquals("<msg xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\" type=\"query\" version=\"3\">" +
+        assertEquals("<msg type=\"query\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\">" +
             "<publish uri=\"rsync://localhost:20873/repository/object.cer\">BAUG</publish>" +
             "</msg>", xmlRequests.get(1));
     }

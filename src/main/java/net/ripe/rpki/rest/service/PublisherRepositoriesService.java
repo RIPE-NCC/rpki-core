@@ -129,7 +129,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
 
         NonHostedCertificateAuthorityData ca = getCa(NonHostedCertificateAuthorityData.class, caName);
         if (certificateAuthorityViewService.findNonHostedPublisherRepositories(ca.getName()).size() >= NonHostedCertificateAuthority.PUBLISHER_REPOSITORIES_LIMIT) {
-            return ResponseEntity.status(FORBIDDEN).body(bodyForError("maximum number of publisher repositories limit exceeded"));
+            return ResponseEntity.status(CONFLICT).body(bodyForError("maximum number of publisher repositories limit exceeded"));
         }
 
         /*

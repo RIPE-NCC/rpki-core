@@ -159,7 +159,7 @@ public class AlertService extends AbstractCaRestService {
                 // if emails also stay the same, the only thing that can change is notifyOnRoaChanges flag.
                 // In this case issue special command updating only this flag.
                 if (newSubscription.isNotifyOnRoaChanges() != currentConfiguration.isNotifyOnRoaChanges()) {
-                    commands.add(new UpdateRoaChangeAlertCommand(ca.getVersionedId(), newSubscription.isNotifyOnRoaChanges()));
+                    commands.add(new UpdateRoaChangeAlertCommand(ca.getVersionedId(), newEmails, newSubscription.isNotifyOnRoaChanges()));
                 }
             } else {
                 commands.addAll(newEmails.stream()
@@ -189,7 +189,7 @@ public class AlertService extends AbstractCaRestService {
                                                                                Set<RouteValidityState> newValidityStates,
                                                                                Set<String> newEmails) {
         if (newValidityStates.isEmpty() && newSubscription.isNotifyOnRoaChanges()) {
-            return List.of(new UpdateRoaChangeAlertCommand(ca.getVersionedId(), true));
+            return List.of(new UpdateRoaChangeAlertCommand(ca.getVersionedId(), newEmails, true));
         }
         return newEmails.stream().map(email ->
                 new SubscribeToRoaAlertCommand(ca.getVersionedId(),

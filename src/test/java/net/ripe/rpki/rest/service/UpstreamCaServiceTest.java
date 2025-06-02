@@ -44,7 +44,7 @@ public class UpstreamCaServiceTest extends CertificationDomainTestCase {
         mockMvc.perform(Rest.post("/api/upstream/request"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(APPLICATION_XML))
-            .andExpect(content().string(new StringContains("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<requests.TrustAnchorRequest>")));
+            .andExpect(content().string(new StringContains("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n<requests.TrustAnchorRequest>")));
     }
 
     @Test

@@ -1,13 +1,13 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import com.google.common.base.Preconditions;
+import jakarta.inject.Inject;
 import lombok.NonNull;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.alerts.RoaAlertConfigurationRepository;
 import net.ripe.rpki.domain.roa.RoaConfiguration;
 import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
@@ -21,7 +21,6 @@ import net.ripe.rpki.services.impl.background.RoaMetricsService;
 import net.ripe.rpki.services.impl.background.RoaNotificationService;
 import org.springframework.beans.factory.annotation.Value;
 
-import jakarta.inject.Inject;
 import java.util.Collection;
 import java.util.List;
 
@@ -71,7 +70,7 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
 
         ca.markConfigurationUpdated();
 
-        roaNotificationService.notifyAboutRoaChanges(ca, command.getUserId(), prefixDiff.added(), prefixDiff.removed());
+        roaNotificationService.asyncNotifyAboutRoaChanges(ca, command.getUserId(), prefixDiff.added(), prefixDiff.removed());
 
         roaMetricsService.countAdded(command.getAdditions().size());
         roaMetricsService.countDeleted(command.getDeletions().size());
@@ -96,8 +95,8 @@ public class UpdateRoaConfigurationCommandHandler extends AbstractCertificateAut
 
     private void validateAddedPrefixes(ManagedCertificateAuthority ca, Collection<RoaConfigurationPrefixData> addedPrefixes) {
         ImmutableResourceSet addedResources = addedPrefixes.stream()
-            .map(RoaConfigurationPrefixData::getPrefix)
-            .collect(ImmutableResourceSet.collector());
+                .map(RoaConfigurationPrefixData::getPrefix)
+                .collect(ImmutableResourceSet.collector());
         ImmutableResourceSet uncertifiedResources = addedResources.difference(ca.getCertifiedResources());
         if (!uncertifiedResources.isEmpty()) {
             throw new NotHolderOfResourcesException(uncertifiedResources);

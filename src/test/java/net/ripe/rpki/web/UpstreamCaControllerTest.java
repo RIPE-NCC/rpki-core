@@ -150,11 +150,13 @@ public class UpstreamCaControllerTest extends SpringWebControllerTestCase {
         final MvcResult result = mockMvc.perform(get("/admin/download-sign-request")).andReturn();
         assertThat(result.getResponse().getContentType()).isEqualTo("application/xml");
         assertThat(result.getResponse().getContentAsString())
-            .contains("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<requests.TrustAnchorRequest>\n" +
-                "   <creationTimestamp>0</creationTimestamp>\n" +
-                "   <taRequests/>\n" +
-                "</requests.TrustAnchorRequest>\n");
+            .contains("""
+                    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+                    <requests.TrustAnchorRequest>
+                        <creationTimestamp>0</creationTimestamp>
+                        <taRequests/>
+                    </requests.TrustAnchorRequest>
+                    """);
     }
 
     @Test

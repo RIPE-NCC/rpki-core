@@ -71,8 +71,7 @@ public class RoaNotificationServiceTest extends CertificationDomainTestCase {
     public void testNotifyNobodyBasedOnFlag() {
         RoaAlertConfiguration r = new RoaAlertConfiguration(childCa, "bad@ripe.net", List.of(RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY);
         r.setNotifyOnRoaChanges(false);
-        roaAlertConfigurationRepository.add(r);
-        var messages = roaNotificationService.notifyAboutRoaChanges(childCa, USER_ID, Collections.emptyList(), Collections.emptyList());
+        var messages = roaNotificationService.notifyAboutRoaChanges(childCa, r, USER_ID, Collections.emptyList(), Collections.emptyList());
         assertEquals(0, messages.size());
     }
 
@@ -81,8 +80,7 @@ public class RoaNotificationServiceTest extends CertificationDomainTestCase {
         var email = "bad@ripe.net";
         RoaAlertConfiguration r = new RoaAlertConfiguration(childCa, email, List.of(RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY);
         r.setNotifyOnRoaChanges(true);
-        roaAlertConfigurationRepository.add(r);
-        var messages = roaNotificationService.notifyAboutRoaChanges(childCa, USER_ID, Collections.emptyList(), Collections.emptyList());
+        var messages = roaNotificationService.notifyAboutRoaChanges(childCa, r, USER_ID, Collections.emptyList(), Collections.emptyList());
         assertEquals(0, messages.size());
     }
 
@@ -91,14 +89,13 @@ public class RoaNotificationServiceTest extends CertificationDomainTestCase {
         var email = "bad@ripe.net";
         RoaAlertConfiguration r = new RoaAlertConfiguration(childCa, email, List.of(RouteValidityState.UNKNOWN), RoaAlertFrequency.WEEKLY);
         r.setNotifyOnRoaChanges(true);
-        roaAlertConfigurationRepository.add(r);
 
         var now = Instant.now();
         var roa1 = new RoaConfigurationPrefix(Asn.parse("AS64396"), IpRange.parse("192.0.2.0/24"), null, now);
         var roa2 = new RoaConfigurationPrefix(Asn.parse("AS64397"), IpRange.parse("198.51.100.0/24"), 32, now);
         var roa3 = new RoaConfigurationPrefix(Asn.parse("AS123"), IpRange.parse("fd00:550:ffff:ffff:ffff:ffff:ffff:ffff/128"), 128, now);
 
-        var messages = roaNotificationService.notifyAboutRoaChanges(childCa, USER_ID, List.of(roa1, roa3), List.of(roa2));
+        var messages = roaNotificationService.notifyAboutRoaChanges(childCa, r, USER_ID, List.of(roa1, roa3), List.of(roa2));
         assertEquals(1, messages.size());
 
         var message = messages.iterator().next();

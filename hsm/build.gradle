@@ -36,7 +36,7 @@ dependencies {
     // 2024-4-26: Final DBProvider 1.6 provided by Entrust
     thalesImplementation 'com.thales.esecurity.asg.ripe.db-jceprovider:DBProvider:1.6'
     // **When using JDK 11** make sure the matching version of nCipherKM is on classpath because DBProvider depends on it.
-    thalesImplementation 'com.ncipher.nfast:nCipherKM:13.4.5'
+    thalesImplementation 'com.ncipher.nfast:nCipherKM:13.6.11'
 
     thalesImplementation 'org.springframework:spring-context:6.1.15'
     // used in spring-context, but not exported.

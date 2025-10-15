@@ -106,7 +106,7 @@ public class EmailSenderBeanTest {
                     "ignoredAlerts", Set.of(route),
                     "invalidAsns", List.of(route),
                     "invalidLengths", List.of(route),
-                    "unknowns", List.of(route),
+                    "notFounds", List.of(route),
                     "subscription", configuration
             );
         }

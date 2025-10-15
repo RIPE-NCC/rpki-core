@@ -1,16 +1,17 @@
 package net.ripe.rpki.server.api.dto;
 
 import com.google.gson.Gson;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.Value;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.util.Streams;
+import org.apache.commons.lang3.Validate;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static net.ripe.rpki.util.Streams.streamToSortedMap;
@@ -41,5 +42,15 @@ public class AspaConfigurationData {
             AspaConfigurationData::getCustomerAsn,
             ac -> new TreeSet<>(ac.getProviders())
         );
+    }
+
+    public static String inIETFNotation(AspaConfigurationData aspa) {
+        if (aspa.getProviders().isEmpty()) {
+            return "";
+        }
+        return aspa.getProviders().stream()
+                .sorted(Comparator.comparing(Asn::longValue))
+                .map(Object::toString)
+                .collect(Collectors.joining(", ", aspa.getCustomerAsn() + " => ", ""));
     }
 }

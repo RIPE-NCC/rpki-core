@@ -128,6 +128,7 @@ const calculateDeploymentDurations = (timeline, mergeRequest) => {
     const matchesMR = ({ref, sha}) => {
         return sha === mergeRequest.sha
             || ref === mergeRequest.source_branch
+            || ref === `refs/merge-requests/${mergeRequest.iid}/head`
             || ref === `refs/merge-requests/${mergeRequest.iid}/merge`;
     };
     const matchesLastCommit = ({sha, parent_ids}) =>

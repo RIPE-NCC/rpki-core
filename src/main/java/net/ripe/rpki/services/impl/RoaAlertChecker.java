@@ -82,7 +82,7 @@ public class RoaAlertChecker {
         final Set<RouteValidityState> routeValidityStates = configuration.getRouteValidityStates();
         final List<AnnouncedRoute> invalidAsnsToMail = routeValidityStates.contains(RouteValidityState.INVALID_ASN) ? announcedRoutes.invalidAsns : Collections.emptyList();
         final List<AnnouncedRoute> invalidLengthsToMail = routeValidityStates.contains(RouteValidityState.INVALID_LENGTH) ? announcedRoutes.invalidLengths : Collections.emptyList();
-        final List<AnnouncedRoute> unknownsToMail = routeValidityStates.contains(RouteValidityState.UNKNOWN) ? announcedRoutes.unknowns : Collections.emptyList();
+        final List<AnnouncedRoute> unknownsToMail = routeValidityStates.contains(RouteValidityState.UNKNOWN) ? announcedRoutes.notFounds : Collections.emptyList();
         final Set<AnnouncedRoute> ignoredAnnouncements = configuration.getIgnoredAnnouncements();
 
         updateMetrics(invalidAsnsToMail, invalidLengthsToMail, unknownsToMail);
@@ -114,7 +114,7 @@ public class RoaAlertChecker {
                         announcedRoutes.valids.add(announcedRoute);
                         break;
                     case UNKNOWN:
-                        announcedRoutes.unknowns.add(announcedRoute);
+                        announcedRoutes.notFounds.add(announcedRoute);
                         break;
                     case INVALID_ASN:
                         announcedRoutes.invalidAsns.add(announcedRoute);
@@ -131,12 +131,12 @@ public class RoaAlertChecker {
     private void sendRoaAlertEmailToSubscription(RoaAlertConfigurationData configuration,
                                                  List<AnnouncedRoute> invalidAsnsToMail,
                                                  List<AnnouncedRoute> invalidLengthsToMail,
-                                                 List<AnnouncedRoute> unknowns,
+                                                 List<AnnouncedRoute> notFounds,
                                                  Set<AnnouncedRoute> unsortedIgnoredAlerts) {
         String humanizedCaName = internalNamePresenter.humanizeCaName(configuration.getCertificateAuthority().getName());
         Collections.sort(invalidAsnsToMail);
         Collections.sort(invalidLengthsToMail);
-        Collections.sort(unknowns);
+        Collections.sort(notFounds);
 
         final SortedSet<AnnouncedRoute> ignoredAlerts = new TreeSet<>();
         ignoredAlerts.addAll(unsortedIgnoredAlerts);
@@ -146,7 +146,7 @@ public class RoaAlertChecker {
             "ignoredAlerts", ignoredAlerts,
             "invalidAsns", invalidAsnsToMail,
             "invalidLengths", invalidLengthsToMail,
-            "unknowns", unknowns,
+            "notFounds", notFounds,
             "subscription", configuration
         );
 
@@ -163,7 +163,7 @@ public class RoaAlertChecker {
     static final class AnnouncedRoutes {
         final List<AnnouncedRoute> invalidAsns = new ArrayList<>();
         final List<AnnouncedRoute> invalidLengths = new ArrayList<>();
-        final List<AnnouncedRoute> unknowns = new ArrayList<>();
+        final List<AnnouncedRoute> notFounds = new ArrayList<>();
         final List<AnnouncedRoute> valids = new ArrayList<>();
     }
 }

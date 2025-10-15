@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.SortedMap;
-import java.util.stream.Collectors;
 
 /**
  * Updates the ASPA configuration based on the current certified resources, removing any ASPA configuration with a that
@@ -87,7 +86,7 @@ public class AspaConfigurationMaintenanceServiceBean implements CertificateAutho
             // This string representation is stored in the command audit table and shown to the user
             return String.format(
                 "Updated ASPA configuration due to changed resources, removed customer ASNs: %s.",
-                UpdateAspaConfigurationCommand.getHumanReadableAspaConfiguration(removed)
+                UpdateAspaConfigurationCommand.inIETFNotation(removed)
             );
         }
     }

@@ -44,21 +44,19 @@ dependencies {
     implementation "org.thymeleaf:thymeleaf:3.1.2.RELEASE"
     implementation "org.thymeleaf:thymeleaf-spring6:3.1.3.RELEASE"
 
-    implementation platform('io.sentry:sentry-bom:8.18.0')
+    implementation platform('io.sentry:sentry-bom:8.23.0')
     implementation 'io.sentry:sentry-spring-boot-starter'
     implementation 'io.sentry:sentry-logback'
 
-    implementation("net.ripe.rpki:rpki-commons:$rpki_commons_version") {
-        exclude group: "net.sf.saxon", module: "Saxon-HE"
-    }
+    implementation("net.ripe.rpki:rpki-commons:$rpki_commons_version")
 
     implementation 'org.springdoc:springdoc-openapi-ui:1.8.0'
 
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-    implementation 'org.postgresql:postgresql:42.7.7'
+    implementation 'org.postgresql:postgresql:42.7.8'
     runtimeOnly 'org.springframework.boot:spring-boot-starter-tomcat'
 
-    implementation 'com.google.code.gson:gson:2.13.1'
+    implementation 'com.google.code.gson:gson:2.13.2'
     implementation 'com.jamesmurty.utils:java-xmlbuilder:1.3'
     implementation 'commons-codec:commons-codec:1.19.0'
     implementation 'commons-io:commons-io:2.20.0'

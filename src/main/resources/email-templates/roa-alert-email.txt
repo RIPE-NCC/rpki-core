@@ -2,14 +2,14 @@ Dear colleague,
 
 This is an automated alert email about BGP announcements with your certified
 address space for [[${humanizedCaName}]] in the Resource Certification (RPKI) service.
-[# th:if="!${#lists.isEmpty(unknowns)}" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+[# th:if="!${#lists.isEmpty(notFounds)}" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 There are BGP announcements that overlap with your certified address space that
-have the status "Unknown". If the announcements are legitimate you should create
+have the status "Not Found". If the announcements are legitimate you should create
 corresponding ROAs to make them Valid:
 
 AS Number   Prefix
-[# th:each="announcedroute : ${unknowns}" ][(${announcedroute.originAsn})]   [(${announcedroute.prefix})]
+[# th:each="announcedroute : ${notFounds}" ][(${announcedroute.originAsn})]   [(${announcedroute.prefix})]
 [/][/]
 [# th:if="!${#lists.isEmpty(invalidAsns)}" ]- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

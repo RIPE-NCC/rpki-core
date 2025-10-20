@@ -44,7 +44,8 @@ public class CommandAuditServiceBeanTest extends CertificationDomainTestCase {
 
     @Test
     public void should_store_user_commands() {
-        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(ca.getVersionedId(), "", Collections.emptyList());
+        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(
+                ca.getVersionedId(), "", Collections.emptyList(), Collections.emptyMap());
         CommandContext commandContext = subject.startRecording(command);
         subject.finishRecording(commandContext);
 

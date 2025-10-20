@@ -82,7 +82,7 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
     }
 
     private void validateUpdateAspaConfigurationCommand(UpdateAspaConfigurationCommand command) {
-        var configuration = command.getConfigurations();
+        var configuration = command.getNewConfigurations();
         if (configuration.stream().map(AspaConfigurationData::getCustomerAsn).distinct().count() != configuration.size()) {
             throw new IllegalResourceException("duplicate customer ASN in ASPA configuration");
         }
@@ -99,7 +99,7 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
     private SortedMap<Asn, SortedSet<Asn>> parseUpdatedConfiguration(ManagedCertificateAuthority ca, UpdateAspaConfigurationCommand command) {
         SortedMap<Asn, SortedSet<Asn>> updatedConfiguration;
         try {
-            updatedConfiguration = AspaConfigurationData.dataToMaps(command.getConfigurations());
+            updatedConfiguration = AspaConfigurationData.dataToMaps(command.getNewConfigurations());
         } catch (IllegalStateException e) {
             throw new IllegalResourceException("duplicate ASN in ASPA configuration");
         }

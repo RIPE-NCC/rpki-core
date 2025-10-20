@@ -85,7 +85,11 @@ public class CaAspaConfigurationService extends AbstractCaRestService {
         }
 
         final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
-        commandService.execute(new UpdateAspaConfigurationCommand(ca.getVersionedId(), ifMatch, body.getAspaConfigurations()));
+        List<AspaConfigurationData> currentAspaConfiguration = aspaViewService.findAspaConfiguration(ca.getId());
+        var diff = Aspas.diffPerCustomer(currentAspaConfiguration, body.getAspaConfigurations());
+        if (!diff.isEmpty()) {
+            commandService.execute(new UpdateAspaConfigurationCommand(ca.getVersionedId(), ifMatch, body.getAspaConfigurations(), diff));
+        }
         return noContent();
     }
 

@@ -1,13 +1,10 @@
 package net.ripe.rpki.server.api.dto;
 
 import com.google.gson.Gson;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.Value;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.util.Streams;
-import org.apache.commons.lang3.Validate;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -44,13 +41,14 @@ public class AspaConfigurationData {
         );
     }
 
-    public static String inIETFNotation(AspaConfigurationData aspa) {
-        if (aspa.getProviders().isEmpty()) {
-            return "";
-        }
-        return aspa.getProviders().stream()
+    public static String inIETFNotation(Asn customer, Collection<Asn> providers) {
+        return providers.stream()
                 .sorted(Comparator.comparing(Asn::longValue))
                 .map(Object::toString)
-                .collect(Collectors.joining(", ", aspa.getCustomerAsn() + " => ", ""));
+                .collect(Collectors.joining(", ", customer + " => [", "]"));
+    }
+
+    public static String inIETFNotation(AspaConfigurationData aspa) {
+        return inIETFNotation(aspa.getCustomerAsn(), aspa.getProviders());
     }
 }

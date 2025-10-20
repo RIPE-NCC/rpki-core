@@ -10,11 +10,7 @@ import net.ripe.rpki.domain.aspa.AspaConfiguration;
 import net.ripe.rpki.domain.aspa.AspaConfigurationRepository;
 import net.ripe.rpki.server.api.commands.UpdateAspaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.AspaConfigurationData;
-import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
-import net.ripe.rpki.server.api.services.command.IllegalResourceException;
-import net.ripe.rpki.server.api.services.command.EntityTagDoesNotMatchException;
-import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
-import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
+import net.ripe.rpki.server.api.services.command.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -26,10 +22,7 @@ import static net.ripe.rpki.domain.TestObjects.CA_ID;
 import static net.ripe.rpki.domain.aspa.AspaConfiguration.entitiesToMaps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class UpdateAspaConfigurationCommandHandlerTest {
     private static final String PRIVATE_ASNS = "64512-65535, 4200000000-4294967294";
@@ -53,10 +46,12 @@ class UpdateAspaConfigurationCommandHandlerTest {
 
     @Test
     void should_add_new_customer_asn() {
-        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, singletonList(new AspaConfigurationData(
-            Asn.parse("AS1234"),
-            List.of(Asn.parse("AS3"))
-        )));
+        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG,
+                singletonList(new AspaConfigurationData(
+                        Asn.parse("AS1234"),
+                        List.of(Asn.parse("AS3"))
+                )),
+                Collections.emptyMap());
 
         subject.handle(command);
 
@@ -73,10 +68,13 @@ class UpdateAspaConfigurationCommandHandlerTest {
         aspaCo.put(aspa_as1234.getCustomerAsn(), aspa_as1234);
         when(aspaConfigurationRepository.findByCertificateAuthority(managedCertificateAuthority)).thenReturn(aspaCo);
 
-        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), AspaConfigurationData.entityTag(entitiesToMaps(aspaCo)), singletonList(new AspaConfigurationData(
-            Asn.parse("AS1234"),
-            List.of(Asn.parse("AS3"))
-        )));
+        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), AspaConfigurationData.entityTag(entitiesToMaps(aspaCo)),
+                singletonList(new AspaConfigurationData(
+                        Asn.parse("AS1234"),
+                        List.of(Asn.parse("AS3"))
+                )),
+                Collections.emptyMap()
+        );
 
         subject.handle(command);
 
@@ -91,7 +89,8 @@ class UpdateAspaConfigurationCommandHandlerTest {
         aspaCo.put(aspa_as1234.getCustomerAsn(), aspa_as1234);
         when(aspaConfigurationRepository.findByCertificateAuthority(managedCertificateAuthority)).thenReturn(aspaCo);
 
-        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), AspaConfigurationData.entityTag(entitiesToMaps(aspaCo)), Collections.emptyList());
+        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID),
+                AspaConfigurationData.entityTag(entitiesToMaps(aspaCo)), Collections.emptyList(), Collections.emptyMap());
 
         subject.handle(command);
 
@@ -106,10 +105,12 @@ class UpdateAspaConfigurationCommandHandlerTest {
         aspaCo.put(aspa_as1234.getCustomerAsn(), aspa_as1234);
         when(aspaConfigurationRepository.findByCertificateAuthority(managedCertificateAuthority)).thenReturn(aspaCo);
 
-        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), AspaConfigurationData.entityTag(entitiesToMaps(aspaCo)), singletonList(new AspaConfigurationData(
-            Asn.parse("AS1234"),
-            List.of(Asn.parse("AS1"))
-        )));
+        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID),
+                AspaConfigurationData.entityTag(entitiesToMaps(aspaCo)),
+                singletonList(new AspaConfigurationData(
+                        Asn.parse("AS1234"),
+                        List.of(Asn.parse("AS1"))
+                )), Collections.emptyMap());
 
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOf(CommandWithoutEffectException.class);
         verify(managedCertificateAuthority, never()).markConfigurationUpdated();
@@ -117,19 +118,21 @@ class UpdateAspaConfigurationCommandHandlerTest {
 
     @Test
     void should_notify_aspa_entity_service_on_configuration_change() {
-        subject.handle(new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, singletonList(new AspaConfigurationData(
-            Asn.parse("AS1234"),
-            List.of(Asn.parse("AS1"))
-        ))));
+        subject.handle(new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG,
+                singletonList(new AspaConfigurationData(
+                        Asn.parse("AS1234"),
+                        List.of(Asn.parse("AS1"))
+                )), Collections.emptyMap()));
 
         verify(managedCertificateAuthority).markConfigurationUpdated();
     }
+
     @Test
     void should_reject_customer_asn_if_not_certified() {
         UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, singletonList(new AspaConfigurationData(
-            Asn.parse("AS9000"),
-            List.of(Asn.parse("AS3"))
-        )));
+                Asn.parse("AS9000"),
+                List.of(Asn.parse("AS3"))
+        )), Collections.emptyMap());
 
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOf(NotHolderOfResourcesException.class);
     }
@@ -137,9 +140,9 @@ class UpdateAspaConfigurationCommandHandlerTest {
     @Test
     void should_reject_use_of_private_asns_in_providers() {
         UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, singletonList(new AspaConfigurationData(
-            Asn.parse("AS1234"),
-            List.of(Asn.parse("AS64512"))
-        )));
+                Asn.parse("AS1234"),
+                List.of(Asn.parse("AS64512"))
+        )), Collections.emptyMap());
 
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOf(PrivateAsnsUsedException.class);
     }
@@ -147,12 +150,12 @@ class UpdateAspaConfigurationCommandHandlerTest {
     @Test
     void should_reject_duplicate_customer_asns() {
         UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, Arrays.asList(new AspaConfigurationData(
-            Asn.parse("AS1234"),
-            List.of(Asn.parse("AS9"))
+                Asn.parse("AS1234"),
+                List.of(Asn.parse("AS9"))
         ), new AspaConfigurationData(
-            Asn.parse("AS1234"),
-            List.of(Asn.parse("AS10"))
-        )));
+                Asn.parse("AS1234"),
+                List.of(Asn.parse("AS10"))
+        )), Collections.emptyMap());
 
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOfSatisfying(IllegalResourceException.class, exception -> {
             assertThat(exception.getMessage()).isEqualTo("duplicate customer ASN in ASPA configuration");
@@ -162,9 +165,9 @@ class UpdateAspaConfigurationCommandHandlerTest {
     @Test
     void should_reject_duplicate_provider_asns() {
         UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, singletonList(new AspaConfigurationData(
-            Asn.parse("AS1234"),
-            List.of(Asn.parse("AS9"), Asn.parse("AS9"))
-        )));
+                Asn.parse("AS1234"),
+                List.of(Asn.parse("AS9"), Asn.parse("AS9"))
+        )), Collections.emptyMap());
 
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOfSatisfying(IllegalResourceException.class, exception -> {
             assertThat(exception.getMessage()).isEqualTo("duplicate provider ASN in ASPA configuration");
@@ -176,7 +179,7 @@ class UpdateAspaConfigurationCommandHandlerTest {
         UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, singletonList(new AspaConfigurationData(
                 Asn.parse("AS1234"),
                 List.of()
-        )));
+        )), Collections.emptyMap());
 
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOfSatisfying(IllegalResourceException.class, exception -> {
             assertThat(exception.getMessage()).isEqualTo("One of the configured ASPAs does not have providers");
@@ -186,9 +189,9 @@ class UpdateAspaConfigurationCommandHandlerTest {
     @Test
     void should_reject_aspa_when_customer_asn_appears_in_provider_asn() {
         UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, singletonList(new AspaConfigurationData(
-            Asn.parse("AS1234"),
-            List.of(Asn.parse("AS1234"))
-        )));
+                Asn.parse("AS1234"),
+                List.of(Asn.parse("AS1234"))
+        )), Collections.emptyMap());
 
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOfSatisfying(IllegalResourceException.class, exception -> {
             assertThat(exception.getMessage()).isEqualTo("customer AS1234 appears in provider set [AS1234]");
@@ -198,9 +201,9 @@ class UpdateAspaConfigurationCommandHandlerTest {
     @Test
     void should_reject_command_if_entity_tag_does_not_match_current_configuration() {
         UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), "no-match", singletonList(new AspaConfigurationData(
-            Asn.parse("AS1234"),
-            List.of(Asn.parse("AS1"))
-        )));
+                Asn.parse("AS1234"),
+                List.of(Asn.parse("AS1"))
+        )), Collections.emptyMap());
 
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOf(EntityTagDoesNotMatchException.class);
     }

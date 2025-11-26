@@ -2,6 +2,7 @@ package net.ripe.rpki.services.impl;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
 import net.ripe.rpki.server.api.configuration.Environment;
 import net.ripe.rpki.domain.property.PropertyEntity;
 import net.ripe.rpki.domain.property.PropertyEntityRepository;
@@ -18,13 +19,17 @@ public class ActiveNodeServiceBean implements ActiveNodeService {
     public static final String ACTIVE_NODE_KEY = "activeNode";
 
     private final PropertyEntityRepository propertyEntityRepository;
+    private final MeterRegistry meterRegistry;
 
     @Inject
     public ActiveNodeServiceBean(PropertyEntityRepository propertyEntityRepository, MeterRegistry meterRegistry) {
         this.propertyEntityRepository = propertyEntityRepository;
+        this.meterRegistry = meterRegistry;
+    }
 
-        // Reference is kept through the meter registry
-        Gauge.builder("rpkicore_is_active_node", () -> this.isActiveNode() ? 1 : 0)
+    @PostConstruct
+    public void initGauges() {
+        Gauge.builder("rpkicore_is_active_node", () -> isActiveNode() ? 1 : 0)
                 .description("Is the current node the active node")
                 .tag("node", getCurrentNodeName())
                 .register(meterRegistry);

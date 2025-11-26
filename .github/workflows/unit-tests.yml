@@ -22,7 +22,7 @@ jobs:
       - name: setup java
         uses: actions/setup-java@5
         with:
-          java-version: 17
+          java-version: 21
           distribution: temurin
           cache: gradle
       - name: Run tests

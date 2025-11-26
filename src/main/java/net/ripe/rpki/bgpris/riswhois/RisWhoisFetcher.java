@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +26,7 @@ public class RisWhoisFetcher {
     }
 
     protected Pair<InputStream, Long> getContent(String url) throws IOException {
-        URLConnection connection = new URL(url).openConnection();
+        URLConnection connection = URI.create(url).toURL().openConnection();
         connection.setConnectTimeout(HTTP_TIMEOUT);
         connection.setReadTimeout(HTTP_TIMEOUT);
         return Pair.of(connection.getInputStream(), connection.getLastModified());

@@ -1,13 +1,13 @@
 package net.ripe.rpki.domain;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NonNull;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import org.apache.commons.lang3.Validate;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -17,7 +17,7 @@ import java.util.Objects;
  */
 @Entity
 @DiscriminatorValue(value = "INCOMING")
-public class IncomingResourceCertificate extends ResourceCertificate {
+public final class IncomingResourceCertificate extends ResourceCertificate {
 
     @NotNull
     @ManyToOne(cascade = CascadeType.PERSIST)
@@ -36,7 +36,7 @@ public class IncomingResourceCertificate extends ResourceCertificate {
     public IncomingResourceCertificate(@NonNull CertificateIssuanceResponse issuanceResponse, @NonNull KeyPairEntity subjectKeyPair) {
         super(issuanceResponse.getCertificate());
         Validate.notNull(issuanceResponse, "issuance response is required");
-        setPublicationUri(issuanceResponse.getPublicationUri());
+        this.setPublicationUri(issuanceResponse.getPublicationUri());
         this.inheritedResources = issuanceResponse.getInheritedResources();
         this.subjectKeyPair = subjectKeyPair;
         revalidate();
@@ -49,8 +49,8 @@ public class IncomingResourceCertificate extends ResourceCertificate {
             return false;
         }
 
-        updateCertificate(issuanceResponse.getCertificate());
-        setPublicationUri(issuanceResponse.getPublicationUri());
+        this.updateCertificate(issuanceResponse.getCertificate());
+        this.setPublicationUri(issuanceResponse.getPublicationUri());
         this.inheritedResources = issuanceResponse.getInheritedResources();
         revalidate();
         return true;

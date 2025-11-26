@@ -1,3 +1,4 @@
 You have been unsubscribed from Resource Certification (RPKI) alerts. [(${roaChangeSubscription})]
 
 Please visit [[${rpkiDashboardUri}]] to change your alert settings.
+Contact us by email at [[${rpkiEmail}]] if you have any questions.

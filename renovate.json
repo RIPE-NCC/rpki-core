@@ -1,17 +1,25 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabled": true,
+  "autoApprove": true,
+  "extends": [
+    "config:base",
+    "group:recommended"
+  ],
+  "schedule": "after 8am and before 1pm every weekday",
   "dependencyDashboard": true,
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "automerge": true
+  },
   "packageRules": [
     {
-      "matchManagers": [
-        "maven"
-      ],
-      "registryUrls": [
-        "https://repo1.maven.org/maven2/",
-        "https://oss.sonatype.org/content/repositories/releases",
-        "https://oss.sonatype.org/content/repositories/snapshots",
-        "https://maven.nexus.ripe.net/repository/maven-third-party"
-      ]
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
     }
   ]
 }

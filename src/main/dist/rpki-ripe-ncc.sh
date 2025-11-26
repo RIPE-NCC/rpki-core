@@ -5,7 +5,7 @@
 #   APPLICATION_ENVIRONMENT=prepdev rpki-ripe-ncc.sh
 #
 
-JAVA_HOME=${JAVA_HOME:-"/usr/lib/jvm/jre-17-openjdk"}
+JAVA_HOME=${JAVA_HOME:-"/usr/lib/jvm/jre-21-openjdk"}
 LANG=${LANG:-"en_US.UTF-8"}
 
 cd "$(dirname "$0")" || exit 1
@@ -29,8 +29,6 @@ case "$APPLICATION_ENVIRONMENT" in
     prepdev)
         ENV_OPTS=("-Xms8g" "-Xmx8g"
             "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
-            "-javaagent:opentelemetry-javaagent-1.26.0.jar"
-            "-Dotel.javaagent.configuration-file=/cert/shared/opentelemetry-java-agent.conf"
             "-Dotel.resource.attributes=service.name=rpki-core,deployment.environment=${APPLICATION_ENVIRONMENT}"
             )
         HSM_OPTS=("-Dprotect=module" "-DignorePassphrase=true")
@@ -56,6 +54,7 @@ JAVA_OPTS=(
     "-XX:+UseParallelGC"
     "-Xlog:gc:$LOG_DIR/gc.log:utctime"
     "-XX:+HeapDumpOnOutOfMemoryError" "-XX:HeapDumpPath=$LOG_DIR" "-XX:+ExitOnOutOfMemoryError"
+    "-Dcom.ncipher.provider.useUntestedJava=true"
     "${ENV_OPTS[@]}"
     "${HSM_OPTS[@]}"
 )

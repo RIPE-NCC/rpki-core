@@ -18,6 +18,7 @@ import javax.xml.xpath.XPathFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -75,7 +76,7 @@ public class IanaRegistryXmlParserImpl implements IanaRegistryXmlParser {
     private InputStream read(String ianaDelegationsLocation) {
         try {
             if (ianaDelegationsLocation.startsWith("http")) {
-                return new URL(ianaDelegationsLocation).openStream();
+                return URI.create(ianaDelegationsLocation).toURL().openStream();
             } else { // Allow using local files in development mode
                 return FileUtils.openInputStream(new File(ianaDelegationsLocation));
             }

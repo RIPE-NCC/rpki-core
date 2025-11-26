@@ -8,3 +8,5 @@ ASN        Prefix                                           Max Length  (A)dd/(D
 
 You can review and change your ROAs at: [[${rpkiDashboardUri}]]
 You can unsubscribe from these alerts at: [(${unsubscribeUri})]
+
+Contact us by email at [[${rpkiEmail}]] if you have any questions.

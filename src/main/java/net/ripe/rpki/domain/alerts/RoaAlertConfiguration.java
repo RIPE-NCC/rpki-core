@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 @Entity
 @Table(name="roa_alert_configuration")
 @SequenceGenerator(name = "roa_alert_conf_seq", sequenceName = "seq_all", allocationSize=1)
-public class RoaAlertConfiguration extends EntitySupport {
+public final class RoaAlertConfiguration extends EntitySupport {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "roa_alert_conf_seq")

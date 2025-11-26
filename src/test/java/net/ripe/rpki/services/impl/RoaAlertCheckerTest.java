@@ -123,7 +123,9 @@ public class RoaAlertCheckerTest {
             "\n" +
             "You are able to fix and ignore reported issues, change your alert\n" +
             "settings, or unsubscribe by visiting " + rpkiDashboardUri + " or\n" +
-            "directly using " + unsubscribeUrl() + ".";
+            "directly using " + unsubscribeUrl() + ".\n" +
+            "\n" +
+            "Contact us by email at rpki@ripe.net if you have any questions.";
 
         assertEquals("Resource Certification (RPKI) alerts for zz.example", capturedMessage.getValue().getSubject());
         assertEquals(expected, capturedMessage.getValue().getContent());
@@ -177,7 +179,9 @@ public class RoaAlertCheckerTest {
             "\n" +
             "You are able to fix and ignore reported issues, change your alert\n" +
             "settings, or unsubscribe by visiting " + rpkiDashboardUri + " or\n" +
-            "directly using " + unsubscribeUrl() + ".";
+            "directly using " + unsubscribeUrl() + ".\n" +
+            "\n" +
+            "Contact us by email at rpki@ripe.net if you have any questions.";
 
         assertEquals("Resource Certification (RPKI) alerts for zz.example", capturedMessage.getValue().getSubject());
         assertEquals(expected, capturedMessage.getValue().getContent());
@@ -243,7 +247,9 @@ public class RoaAlertCheckerTest {
             "\n" +
             "You are able to fix and ignore reported issues, change your alert\n" +
             "settings, or unsubscribe by visiting " + rpkiDashboardUri + " or\n" +
-            "directly using " + unsubscribeUrl() + ".";
+            "directly using " + unsubscribeUrl() + ".\n" +
+            "\n" +
+            "Contact us by email at rpki@ripe.net if you have any questions.";
 
         assertEquals("Resource Certification (RPKI) alerts for zz.example", capturedMessage.getValue().getSubject());
         assertEquals(expected, capturedMessage.getValue().getContent());

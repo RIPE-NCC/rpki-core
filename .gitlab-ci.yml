@@ -1,5 +1,5 @@
 default:
-  image: gradle:8.14-jdk17
+  image: gradle:8.14-jdk21
 
 # Explicit version of the Mergerequests-Pipelines workflow, with the main branch
 # added.
@@ -70,43 +70,6 @@ build:
       junit:
         - build/test-results/**/*.xml
 
-build-image:
-  stage: package
-  needs: ["build"]
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - .gradle/caches
-      - .gradle/wrapper
-  before_script:
-    - apt-get update
-    - apt-get install --yes --no-install-recommends docker.io
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - mkdir -p ~/.config/google-cloud-tools-java/jib/
-    - cp jib.config.json ~/.config/google-cloud-tools-java/jib/config.json
-  script:
-    - ./gradlew jib --image $CI_REGISTRY_IMAGE/ci:ci-step-$BUILD_NUMBER
-  rules:
-    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
-      when: never
-    - when: on_success
-
-image-tag-latest:
-  stage: deploy
-  dependencies:
-    - build-image
-  image: docker-registry.ripe.net/swe/gitlab-ci/debian-deployenv
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  script:
-    - docker pull $CI_REGISTRY_IMAGE/ci:ci-step-$BUILD_NUMBER
-    - docker tag $CI_REGISTRY_IMAGE/ci:ci-step-$BUILD_NUMBER ${CI_REGISTRY_IMAGE}:latest
-    - docker push ${CI_REGISTRY_IMAGE}:latest
-  rules:
-    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
-      when: never
-    - if: $CI_COMMIT_BRANCH == "main"
-
 ######### Test stage #########
 sonarqube:
   stage: qa
@@ -169,8 +132,7 @@ prepdev:
     name: prepdev
   allow_failure: true
   rules:
-    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
-      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - when: manual
 
 pilot:

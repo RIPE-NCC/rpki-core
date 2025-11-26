@@ -1,5 +1,6 @@
 package net.ripe.rpki.domain;
 
+import jakarta.persistence.*;
 import lombok.Getter;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
@@ -22,15 +23,6 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.joda.time.DateTimeZone;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Table;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
@@ -101,7 +93,7 @@ public class ProvisioningAuditLogEntity extends EntitySupport {
         return new ProvisioningAuditData(new DateTime(executionTime.getTime(), DateTimeZone.UTC), principal, summary);
     }
 
-    public String buildCommandSummary(ProvisioningCmsObject provisioningCmsObject) {
+    public static String buildCommandSummary(ProvisioningCmsObject provisioningCmsObject) {
         final AbstractProvisioningPayload payload = provisioningCmsObject.getPayload();
 
         StringBuilder stringBuilder = new StringBuilder();
@@ -110,7 +102,7 @@ public class ProvisioningAuditLogEntity extends EntitySupport {
         return stringBuilder.toString();
     }
 
-    private void buldPayloadSummary(AbstractProvisioningPayload payload, StringBuilder stringBuilder) {
+    private static void buldPayloadSummary(AbstractProvisioningPayload payload, StringBuilder stringBuilder) {
 
         switch (payload.getType()) {
             case list:
@@ -140,12 +132,12 @@ public class ProvisioningAuditLogEntity extends EntitySupport {
         }
     }
 
-    private void buildResourceClassListQueryPayloadSummary(ResourceClassListQueryPayload payload, StringBuilder stringBuilder) {
+    private static void buildResourceClassListQueryPayloadSummary(ResourceClassListQueryPayload payload, StringBuilder stringBuilder) {
         if (payload == null) throw new NullPointerException();
         stringBuilder.append("querying for certifiable resources");
     }
 
-    private void buildResourceClassListResponsePayloadSummary(ResourceClassListResponsePayload payload, StringBuilder stringBuilder) {
+    private static void buildResourceClassListResponsePayloadSummary(ResourceClassListResponsePayload payload, StringBuilder stringBuilder) {
         List<ResourceClassListResponseClassElement> classElements = payload.getClassElements();
         stringBuilder.append("responding with certifiable resource classes: ");
 
@@ -164,7 +156,7 @@ public class ProvisioningAuditLogEntity extends EntitySupport {
 
     }
 
-    private void buildCertificateIssuanceRequestPayloadSummary(CertificateIssuanceRequestPayload payload, StringBuilder stringBuilder) {
+    private static void buildCertificateIssuanceRequestPayloadSummary(CertificateIssuanceRequestPayload payload, StringBuilder stringBuilder) {
         stringBuilder.append("requesting certificate with");
 
         ImmutableResourceSet.Builder builder = new ImmutableResourceSet.Builder();
@@ -192,7 +184,7 @@ public class ProvisioningAuditLogEntity extends EntitySupport {
         }
     }
 
-    private void buildCertificateIssuanceResponsePayloadSummary(CertificateIssuanceResponsePayload payload, StringBuilder stringBuilder) {
+    private static void buildCertificateIssuanceResponsePayloadSummary(CertificateIssuanceResponsePayload payload, StringBuilder stringBuilder) {
         stringBuilder.append("signed certificate with resources: ");
 
         stringBuilder.append(" ").append(payload.getClassElement().getCertificateElement().getCertificate().getResources());
@@ -202,15 +194,15 @@ public class ProvisioningAuditLogEntity extends EntitySupport {
         stringBuilder.append(", and validity time: ").append(payload.getClassElement().getCertificateElement().getCertificate().getValidityPeriod());
     }
 
-    private void buildCertificateRevocationRequestPayloadSummary(CertificateRevocationRequestPayload payload, StringBuilder stringBuilder) {
+    private static void buildCertificateRevocationRequestPayloadSummary(CertificateRevocationRequestPayload payload, StringBuilder stringBuilder) {
         stringBuilder.append("requesting revocation of all certificates for key hash: ").append(payload.getKeyElement().getPublicKeyHash());
     }
 
-    private void buildCertificateRevocationResponsePayloadSummary(CertificateRevocationResponsePayload payload, StringBuilder stringBuilder) {
+    private static void buildCertificateRevocationResponsePayloadSummary(CertificateRevocationResponsePayload payload, StringBuilder stringBuilder) {
         stringBuilder.append("revoked certificates for key hash: ").append(payload.getKeyElement().getPublicKeyHash());
     }
 
-    private void buildRequestNotPerformedResponsePayloadSummary(RequestNotPerformedResponsePayload payload, StringBuilder stringBuilder) {
+    private static void buildRequestNotPerformedResponsePayloadSummary(RequestNotPerformedResponsePayload payload, StringBuilder stringBuilder) {
         stringBuilder
                 .append("fail to process request from ").append(payload.getRecipient())
                 .append(" to ").append(payload.getSender())

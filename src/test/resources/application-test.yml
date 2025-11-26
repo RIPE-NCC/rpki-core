@@ -32,7 +32,7 @@ admin.authorization.enabled: false
 # Integrations
 #
 auth.service:
-  url: http://ba-apps.prepdev.ripe.net/authorisation-service
+  url: https://ba-apps.prepdev.ripe.net/authorisation-service
   # wlog: the api.key values in this file are not secrets and are intentionally included
   # in this (public) repository.
   #
@@ -40,7 +40,7 @@ auth.service:
   api.key: BAD-TEST-D2Shtf2n5Bwh02P7
 
 customer.service:
-  url: http://ba-apps.prepdev.ripe.net/customer-service
+  url: https://ba-apps.prepdev.ripe.net/customer-service
   # intentionally included/not a secret
   api.key: BAD-TEST-D2Shtf2n5Bwh02P7
 
@@ -107,5 +107,3 @@ non-hosted:
       token: "krill-dev-token"
 
 certificate.authority.invariant.checking.enabled: true
-
-

@@ -10,7 +10,7 @@ import java.util.function.Supplier;
  * be used for single-use signing of CMS objects. See the {@link HardwareKeyPairFactory} for generating keys that
  * should be safely stored by the HSM in production.
  */
-public class SingleUseKeyPairFactory implements Supplier<KeyPair> {
+public final class SingleUseKeyPairFactory implements Supplier<KeyPair> {
     private static final String SINGLE_USE_KEY_PAIR_PROVIDER = "SunRsaSign";
 
     private final KeyPairFactory keyPairFactory;

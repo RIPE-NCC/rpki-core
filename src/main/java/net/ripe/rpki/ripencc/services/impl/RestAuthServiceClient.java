@@ -71,7 +71,7 @@ public class RestAuthServiceClient implements AuthServiceClient {
     @Override
     public boolean isAvailable() {
         try {
-            final boolean available = SUCCESSFUL == executeGET("groups").getStatusInfo().getFamily();
+            final boolean available = SUCCESSFUL == executeGET("/v2/authresource/groups").getStatusInfo().getFamily();
             authServiceAvailable.set(available);
             return available;
         } catch (Exception e) {
@@ -82,7 +82,7 @@ public class RestAuthServiceClient implements AuthServiceClient {
 
     @Override
     public Optional<String> getUserEmail(UUID userUuid) {
-        final Response httpResponse = executeGET("accounts/" + userUuid.toString());
+        final Response httpResponse = executeGET("/v2/authresource/accounts/" + userUuid.toString());
         final Response.StatusType status = httpResponse.getStatusInfo();
 
         switch (status.getFamily()) {

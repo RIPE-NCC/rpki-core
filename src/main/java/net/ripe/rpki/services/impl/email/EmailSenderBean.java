@@ -27,6 +27,9 @@ import java.util.TreeMap;
 @Slf4j
 public class EmailSenderBean implements EmailSender {
 
+    public static final String NO_REPLY_RIPE_NET = "noreply@ripe.net";
+    public static final String RPKI_RIPE_NET = "rpki@ripe.net";
+
     private final MailSender mailSender;
     private final SimpleMailMessage templateMessage;
 
@@ -42,7 +45,7 @@ public class EmailSenderBean implements EmailSender {
         this.emailTokens = emailTokens;
 
         this.templateMessage = new SimpleMailMessage();
-        templateMessage.setFrom("noreply@ripe.net");
+        templateMessage.setFrom(NO_REPLY_RIPE_NET);
 
         templateEngine = new TemplateEngine();
         templateEngine.addTemplateResolver(textTemplateResolver());
@@ -68,18 +71,20 @@ public class EmailSenderBean implements EmailSender {
         }
 
         try {
-            JavaMailSenderImpl javaMailSender = (JavaMailSenderImpl) mailSender;
+            var javaMailSender = (JavaMailSenderImpl) mailSender;
+            var noReply = new InternetAddress(NO_REPLY_RIPE_NET);
             MimeMessage message = javaMailSender.createMimeMessage();
-
-            message.setFrom(new InternetAddress("rpki@ripe.net"));
+            message.setFrom(noReply);
+            message.setReplyTo(new InternetAddress[]{noReply});
             message.setRecipient(Message.RecipientType.TO, new InternetAddress(emailTo));
             message.setSubject(subject);
-            var parametersUpdated = parameters;
+            var parametersUpdated = new HashMap<>(parameters);
+            parametersUpdated.put("rpkiEmail", RPKI_RIPE_NET);
             if (template.generateUnsubscribeUrl) {
                 var unsubscribeUri = emailTokens.makeUnsubscribeUrl(uniqueId, emailTo);
                 message.addHeader("List-Unsubscribe", "<" + unsubscribeUri + ">");
                 message.addHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
-                parametersUpdated = extendParameters(parameters, unsubscribeUri);
+                parametersUpdated.put("unsubscribeUri", unsubscribeUri);
             }
 
             log.info("Rendering Email template {}", template.templateName);
@@ -101,15 +106,6 @@ public class EmailSenderBean implements EmailSender {
             log.error("Failed to send email", e);
             return null;
         }
-    }
-
-    private Map<String, Object> extendParameters(Map<String, Object> parameters, String unsubscribeUri) {
-        if (unsubscribeUri == null) {
-            return parameters;
-        }
-        var m = new HashMap<>(parameters);
-        m.put("unsubscribeUri", unsubscribeUri);
-        return m;
     }
 
     private String renderTemplate(String nameOfTemplate, Map<String, Object> parameters) {

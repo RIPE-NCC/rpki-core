@@ -112,18 +112,13 @@ the manifest. The best time to determine that is when we know exactly what will 
 
 ## How to set up RPKI development environment
 
-### Docker
+### Local build
 
-You can run RPKI core and all required components with docker.
+You can build the RPKI Core software locally with gradle.
 
 ```
 > gradle build
-> docker-compose up
 ```
-
-This builds the necessary docker images and starts the container configuration as specified in
-the `docker-compose.yml`. When you make modifications to the system, don't forget to rebuild the
-docker image with `docker-compose build` (or `docker-compose up --build`).
 
 ### Hardware Security Module
 

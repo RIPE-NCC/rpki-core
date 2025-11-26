@@ -6,3 +6,5 @@ Resource Certification (RPKI) service. [(${roaChangeSubscription})]
 You are able to fix and ignore reported issues, change your alert
 settings, or unsubscribe by visiting [[${rpkiDashboardUri}]] or
 directly using [(${unsubscribeUri})].
+
+Contact us by email at [[${rpkiEmail}]] if you have any questions.

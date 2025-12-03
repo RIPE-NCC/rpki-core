@@ -1,31 +1,37 @@
 default:
   image: gradle:8.14-jdk21
+  cache:
+    key: "gradle-${CI_COMMIT_REF_SLUG}"
+    fallback_keys:
+      - "gradle-$CI_DEFAULT_BRANCH"
+      - "gradle-main"
+    paths:
+      - .gradle/caches
+      - .gradle/wrapper
 
 # Explicit version of the Mergerequests-Pipelines workflow, with the main branch
 # added.
 workflow:
   rules:
-    - if: $CI_MERGE_REQUEST_IID
-    - if: $CI_COMMIT_TAG
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
 
 stages:
   - build
-  - test
-  - qa
-  - package
+  - compliance
   - deploy
+  - security
   - publish
 
 include:
-  # Use gitlab security scanning iff it is available
-  - template: Dependency-Scanning.gitlab-ci.yml
   # Mend (dependency scanning)
   - project: 'swe/gitlab-ci'
     file: '/templates/mend-scanning.yml'
-  - project: 'swe/gitlab-ci'
-    file: '/templates/mend-generate-badge.yml'
+  # Enable gitlab security scanners
+  - project: swe/gitlab-support
+    file: /templates/security.yml
+    inputs:
+      stage: security
 
 variables:
   BUILD_NUMBER: ${CI_COMMIT_REF_SLUG}-${CI_PIPELINE_ID}
@@ -50,11 +56,6 @@ build:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres/certdb_test
       SPRING_DATASOURCE_USERNAME: certdb
       SPRING_DATASOURCE_PASSWORD: ""
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - .gradle/caches
-      - .gradle/wrapper
   before_script:
     - mkdir -m 755 -p /export/bad/certification/repository/{ta,online}/published
     - mkdir -m 755 -p /export/bad/certification/ta/{data,requests,responses}
@@ -70,18 +71,12 @@ build:
       junit:
         - build/test-results/**/*.xml
 
-######### Test stage #########
 sonarqube:
-  stage: qa
+  stage: security
   needs: ["build"]
   dependencies: ["build"]
   variables:
     GIT_DEPTH: 0
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - .gradle/caches
-      - .gradle/wrapper
   script:
     - ./gradlew -i -Dsonar.projectKey=rpki-ripe-ncc sonarqube
   allow_failure: true
@@ -97,20 +92,25 @@ sonarqube:
 
 control/run-on-staging:
   image: node:25-alpine
-  stage: qa
+  stage: compliance
   script:
     - ./scripts/gitlab-deploy-check
   allow_failure: true
+  cache: {}
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: always
     - when: never
+
+mend_scanning:
+  stage: security
 
 ######## Deploy stage ########
 .delivr-deploy: &delivr-deploy
   stage: deploy
   needs: ["build"]
   image: $CI_REGISTRY/swe/delivr:latest
+  cache: {}
   script:
     - echo "Checking environment name $CI_ENVIRONMENT_NAME"
     - echo "Check build number $BUILD_NUMBER"
@@ -141,9 +141,9 @@ pilot:
     name: pilot
   allow_failure: true
   rules:
-    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
-      when: never
-    - when: manual
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+    - when: never
 
 publish-to-github:
   stage: publish
@@ -160,6 +160,7 @@ publish-to-github:
     eval $(ssh-agent -s)
     ssh-add <(echo "$GITHUB_DEPLOY_KEY")
     ./scripts/publish-source-code --push --verify --allow-older 10 --committer-name 'RPKI Team at RIPE NCC' --committer-email 'rpki@ripe.net' -- $CI_COMMIT_BEFORE_SHA $CI_COMMIT_SHA
+  cache: {}
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: on_success

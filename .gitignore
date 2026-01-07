@@ -4,6 +4,7 @@ target/
 # Gradle
 .gradle/
 build/
+gradle.lockfile
 
 # direnv
 .direnv

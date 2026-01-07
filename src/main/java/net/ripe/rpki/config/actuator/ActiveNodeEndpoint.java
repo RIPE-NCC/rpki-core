@@ -5,18 +5,18 @@ import lombok.Builder;
 import lombok.Value;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.endpoint.web.annotation.RestControllerEndpoint;
+import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
+import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.GetMapping;
 
 @AllArgsConstructor
 @Component
-@RestControllerEndpoint(id="active-node")
+@Endpoint(id="active-node")
 public class ActiveNodeEndpoint {
     @Autowired
     private ActiveNodeService activeNodeService;
 
-    @GetMapping()
+    @ReadOperation()
     public ActiveNodeStatus activeNodeStatus() {
         return ActiveNodeStatus.builder()
                 .activeNodeName(activeNodeService.getActiveNodeName())

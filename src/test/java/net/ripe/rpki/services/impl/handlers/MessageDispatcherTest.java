@@ -7,6 +7,7 @@ import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.server.api.commands.CertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.KeyManagementInitiateRollCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -97,8 +98,8 @@ public class MessageDispatcherTest {
         assertEquals("Persistence", executedHandlers.get(2));
 
         // 3 handlers, with {noop, not-serializable, success, failure} each
-        assertThat(registry.find("rpkicore.commandhandler.call").counters()).asList().hasSize(12);
+        assertThat(registry.find("rpkicore.commandhandler.call").counters()).asInstanceOf(InstanceOfAssertFactories.LIST).hasSize(12);
         // with a timer per handler
-        assertThat(registry.find("rpkicore.commandhandler.duration").timers()).asList().hasSize(3);
+        assertThat(registry.find("rpkicore.commandhandler.duration").timers()).asInstanceOf(InstanceOfAssertFactories.LIST).hasSize(3);
     }
 }

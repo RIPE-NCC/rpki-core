@@ -17,7 +17,7 @@ import net.ripe.rpki.services.impl.email.EmailSender;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import javax.security.auth.x500.X500Principal;
 import java.time.Instant;
@@ -47,7 +47,7 @@ public class RoaNotificationServiceTest extends CertificationDomainTestCase {
     @Autowired
     private CertificateAuthorityRepository certificateAuthorityRepository;
 
-    @MockBean
+    @MockitoBean
     private InternalNamePresenter internalNamePresenter;
 
     private RoaNotificationService roaNotificationService;

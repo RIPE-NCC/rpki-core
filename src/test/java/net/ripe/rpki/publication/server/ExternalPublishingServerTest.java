@@ -140,7 +140,7 @@ public class ExternalPublishingServerTest {
 
     @Test
     public void should_update_publication_metrics() throws Exception {
-        String clientId = RandomStringUtils.randomAlphanumeric(8);
+        String clientId = RandomStringUtils.insecure().nextAlphanumeric(8);
         String reply = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
         when(publishingServerClient.publish(eq(PUBLICATION_SERVER_URL), anyString(), eq(clientId))).thenReturn(Mono.just(reply));
         List<? extends PublicationMessage> messages = Stream.of(

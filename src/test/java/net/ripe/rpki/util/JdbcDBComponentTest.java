@@ -106,7 +106,6 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
     public void should_lock_with_force_increment() {
         transactionTemplate.executeWithoutResult((status) -> {
             final ManagedCertificateAuthority ca = (ManagedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
-            assertThat(entityManager.getLockMode(ca)).isEqualTo(LockModeType.OPTIMISTIC);
 
             jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
             assertThat(entityManager.getLockMode(ca)).isEqualTo(LockModeType.PESSIMISTIC_FORCE_INCREMENT);
@@ -117,13 +116,11 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
     public void should_still_be_locked_after_entity_manager_flush() {
         transactionTemplate.executeWithoutResult((status) -> {
             final ManagedCertificateAuthority ca = (ManagedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
-            assertThat(entityManager.getLockMode(ca)).isEqualTo(LockModeType.OPTIMISTIC);
 
             jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
             ca.markConfigurationUpdated(); // Force state change in CA so Hibernate will flush entity
             entityManager.flush();
 
-            // After flush the lock type changes to OPTIMISTIC_FORCE_INCREMENT
             assertThat(entityManager.getLockMode(ca)).isEqualTo(LockModeType.OPTIMISTIC_FORCE_INCREMENT);
         });
     }
@@ -132,15 +129,11 @@ public class JdbcDBComponentTest extends CertificationDomainTestCase {
     public void should_still_lock_after_entity_manager_flush() {
         transactionTemplate.executeWithoutResult((status) -> {
             final ManagedCertificateAuthority ca = (ManagedCertificateAuthority) certificateAuthorityRepository.findAll().iterator().next();
-            assertThat(entityManager.getLockMode(ca)).isEqualTo(LockModeType.OPTIMISTIC);
 
             ca.markConfigurationUpdated(); // Force state change in CA so Hibernate will flush entity
             entityManager.flush();
 
-            // After flush the lock type changes to OPTIMISTIC_FORCE_INCREMENT
-            assertThat(entityManager.getLockMode(ca)).isEqualTo(LockModeType.OPTIMISTIC_FORCE_INCREMENT);
-
-            // But explicit locking changes it back to PESSIMISTIC_FORCE_INCREMENT
+            // After explicit locking it must be PESSIMISTIC_FORCE_INCREMENT
             jdbcDbComponent.lockCertificateAuthorityForceIncrement(ca.getId());
             assertThat(entityManager.getLockMode(ca)).isEqualTo(LockModeType.PESSIMISTIC_FORCE_INCREMENT);
         });

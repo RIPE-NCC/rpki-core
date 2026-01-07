@@ -21,7 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -57,16 +57,16 @@ public class CaAspaConfigurationServiceTest {
     );
     public static final String ASPA_CONFIGURATION_ETAG = AspaConfigurationData.entityTag(AspaConfigurationData.dataToMaps(ASPA_CONFIGURATION_DATA));
     public static final Gson GSON = new Gson();
-    @MockBean
+    @MockitoBean
     private CertificateAuthorityViewService certificateAuthorityViewService;
 
-    @MockBean
+    @MockitoBean
     private AspaViewService aspaViewService;
 
-    @MockBean
+    @MockitoBean
     private CommandService commandService;
 
-    @MockBean
+    @MockitoBean
     private HostedCertificateAuthorityData certificateAuthorityData;
 
     @Autowired

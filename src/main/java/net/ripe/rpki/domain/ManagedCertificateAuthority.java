@@ -61,7 +61,7 @@ public abstract class ManagedCertificateAuthority extends CertificateAuthority i
         return EVENTS.subscribe(event -> event.accept(listener, recording));
     }
 
-    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL )
+    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL)
     @JoinColumn(name = "ca_id", nullable = false)
     private final Set<KeyPairEntity> keyPairs = new HashSet<>();
 

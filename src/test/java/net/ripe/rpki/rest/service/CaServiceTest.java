@@ -29,7 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -62,19 +62,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureWebMvc
 @SpringBootTest(classes = TestRpkiBootApplication.class)
 public class CaServiceTest {
-    @MockBean
+    @MockitoBean
     private CertificateAuthorityCreateService certificateAuthorityCreateService;
 
-    @MockBean
+    @MockitoBean
     private CertificateAuthorityViewService certificateAuthorityViewService;
 
-    @MockBean
+    @MockitoBean
     private ProvisioningIdentityViewService delegationCaProvisioningService;
 
-    @MockBean
+    @MockitoBean
     private ResourceLookupService resourceCache;
 
-    @MockBean
+    @MockitoBean
     private CommandService commandService;
 
     @Autowired

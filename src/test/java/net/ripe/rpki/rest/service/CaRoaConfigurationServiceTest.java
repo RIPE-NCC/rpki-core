@@ -24,7 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -57,16 +57,16 @@ public class CaRoaConfigurationServiceTest {
     public static final String TESTNET_1 = "192.0.2.0/24";
     public static final String TESTNET_2 = "198.51.100.0/24";
 
-    @MockBean
+    @MockitoBean
     private RoaViewService roaViewService;
 
-    @MockBean
+    @MockitoBean
     private CertificateAuthorityViewService certificateAuthorityViewService;
 
-    @MockBean
+    @MockitoBean
     private BgpRisEntryViewService bgpRisEntryViewService;
 
-    @MockBean
+    @MockitoBean
     private CommandService commandService;
 
     private HostedCertificateAuthorityData certificateAuthorityData = mock(HostedCertificateAuthorityData.class);

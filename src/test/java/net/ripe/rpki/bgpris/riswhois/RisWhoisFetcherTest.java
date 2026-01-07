@@ -26,7 +26,7 @@ class RisWhoisFetcherTest {
     }
     @Test
     void testFetch(WireMockRuntimeInfo wmRuntimeInfo) throws IOException {
-        var path = "/" + RandomStringUtils.randomAlphanumeric(16) + ".gz";
+        var path = "/" + RandomStringUtils.insecure().nextAlphanumeric(16) + ".gz";
 
         stubFor(
                 get(urlEqualTo(path))

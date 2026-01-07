@@ -4,15 +4,13 @@ plugins {
 
 repositories {
     maven {
-      url "https://plugins.gradle.org/m2/"
+      url = "https://plugins.gradle.org/m2/"
     }
 }
 
 dependencies {
     implementation 'io.freefair.lombok:io.freefair.lombok.gradle.plugin:9.0.0'
-    implementation('com.gorylenko.gradle-git-properties:com.gorylenko.gradle-git-properties.gradle.plugin:2.5.3') {
-        exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit'
-    }
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:7.4.0.202509020913-r'
-    implementation 'org.sonarqube:org.sonarqube.gradle.plugin:7.0.1.6134'
+    implementation 'com.gorylenko.gradle-git-properties:com.gorylenko.gradle-git-properties.gradle.plugin:2.5.3'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:7.5.0.202512021534-r'
+    implementation 'org.sonarqube:org.sonarqube.gradle.plugin:7.2.2.6593'
 }

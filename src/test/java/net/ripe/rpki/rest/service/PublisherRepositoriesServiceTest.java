@@ -24,7 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
@@ -68,10 +68,10 @@ public class PublisherRepositoriesServiceTest {
         Collections.emptySet()
     );
 
-    @MockBean
+    @MockitoBean
     private CertificateAuthorityViewService certificateAuthorityViewService;
 
-    @MockBean
+    @MockitoBean
     private CommandService commandService;
 
     @Autowired

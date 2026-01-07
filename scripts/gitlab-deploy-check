@@ -190,6 +190,7 @@ const main = async (ctx) => {
         status: "success",
     })();
     const timeline = [...deployments].sort(Calendar.compare((x) => x.finished_at))
+          .filter((x) => x.deployable != null)
           .filter((x) => !Calendar.isAfter(x.deployable.created_at, mergeRequest.merged_at))
           .reduce((acc, x) => acc.find(({id}) => id === x.id) != null ? acc : [...acc, x], []);
 

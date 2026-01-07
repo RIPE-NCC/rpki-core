@@ -34,12 +34,12 @@ public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject>
     @Override
     public List<PublishedObjectEntry> findEntriesByPublicationStatus(EnumSet<PublicationStatus> statuses) {
         return manager.createNativeQuery("SELECT " +
-                "updated_at, status, directory || filename as uri, sha256(content) as sha256_content " +
+                "updated_at, status, directory || filename as uri, hash_sha256 " +
                 "FROM published_object po " +
                 "WHERE po.status IN :statuses " +
                 "UNION ALL " +
                 "SELECT " +
-                "updated_at, status, uri, sha256(content) as sha256_content " +
+                "updated_at, status, uri, hash_sha256 " +
                 "FROM ta_published_object tap " +
                 "WHERE tap.status IN :statuses ",
             "PublishedObjectEntryResult")

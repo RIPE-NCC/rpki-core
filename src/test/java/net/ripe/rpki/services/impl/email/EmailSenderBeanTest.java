@@ -102,7 +102,7 @@ public class EmailSenderBeanTest {
                     new RoaAlertSubscriptionData("user@example.org", List.of(RouteValidityState.values()), RoaAlertFrequency.DAILY, false)
             );
             return Map.of(
-                    "humanizedCaName", RandomStringUtils.randomAlphabetic(12),
+                    "humanizedCaName", RandomStringUtils.insecure().nextAlphabetic(12),
                     "ignoredAlerts", Set.of(route),
                     "invalidAsns", List.of(route),
                     "invalidLengths", List.of(route),

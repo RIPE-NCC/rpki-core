@@ -38,7 +38,13 @@ public class ApiKeySecurity implements AuthorizationManager<RequestAuthorization
     }
 
     @Override
+    @Deprecated(forRemoval = true)
     public AuthorizationDecision check(Supplier<Authentication> authentication, RequestAuthorizationContext ctx) {
+        return authorize(authentication, ctx);
+    }
+
+    @Override
+    public AuthorizationDecision authorize(Supplier<Authentication> authentication, RequestAuthorizationContext ctx) {
         final String apikey = ctx.getRequest().getHeader(API_KEY_HEADER);
         var granted = apikey != null && apiKeys.containsKey(apikey);
         return new AuthorizationDecision(granted);

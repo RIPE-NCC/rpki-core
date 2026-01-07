@@ -18,7 +18,7 @@ import java.util.Objects;
                 @ColumnResult(name="updated_at"),
                 @ColumnResult(name="status"),
                 @ColumnResult(name="uri"),
-                @ColumnResult(name="sha256_content")
+                @ColumnResult(name="hash_sha256")
         })
 })
 @Entity

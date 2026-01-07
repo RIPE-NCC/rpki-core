@@ -1,9 +1,9 @@
 plugins {
     id 'rpki-ripe-ncc.build-conventions'
-    id 'org.springframework.boot' version "3.2.12"
+    id 'org.springframework.boot' version "3.5.9"
     id 'distribution'
     id 'jacoco'
-    id "com.google.cloud.tools.jib" version "3.4.5"
+    id "com.google.cloud.tools.jib" version "3.5.2"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -12,19 +12,17 @@ apply plugin: 'io.spring.dependency-management'
 
 apply from: "dependencies.gradle"
 
-// Use this style to override dependencies when needed:
-// ext['log4j2.version'] = '2.17.1'
-
 def ENV = System.getenv()
-def hsmImpl = ENV['HSM_IMPL'] ?: 'api-only'
+def useThalesHsm = ENV['HSM_IMPL'] == "thales"
 
 description = 'RPKI RIPE NCC'
 version = ENV['BUILD_NUMBER'] ?: 'DEV'
 
+ext['hibernate.version'] = '6.2.49.Final'
+
 def managedVersions = dependencyManagement.managedVersions
 
 dependencies {
-    //developmentOnly 'org.springframework.boot:spring-boot-devtools'
     implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -34,17 +32,16 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
     implementation 'org.springframework.boot:spring-boot-starter-security'
-    // for http client - we do not use reactive patterns in general
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     if (osdetector.os == "osx") {
         runtimeOnly "io.netty:netty-resolver-dns-native-macos:${managedVersions['io.netty:netty-resolver-dns-native-macos']}:osx-${osdetector.arch}"
     }
-    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
 
     implementation "org.thymeleaf:thymeleaf:3.1.2.RELEASE"
     implementation "org.thymeleaf:thymeleaf-spring6:3.1.3.RELEASE"
 
-    implementation platform('io.sentry:sentry-bom:8.26.0')
+    implementation platform('io.sentry:sentry-bom:8.29.0')
     implementation 'io.sentry:sentry-spring-boot-starter'
     implementation 'io.sentry:sentry-logback'
 
@@ -58,8 +55,8 @@ dependencies {
 
     implementation 'com.google.code.gson:gson:2.13.2'
     implementation 'com.jamesmurty.utils:java-xmlbuilder:1.3'
-    implementation 'commons-codec:commons-codec:1.19.0'
-    implementation 'commons-io:commons-io:2.20.0'
+    implementation 'commons-codec:commons-codec:1.20.0'
+    implementation 'commons-io:commons-io:2.21.0'
     implementation 'ch.qos.logback.contrib:logback-json-classic:0.1.5'
     implementation 'ch.qos.logback.contrib:logback-jackson:0.1.5'
     implementation 'net.logstash.logback:logstash-logback-encoder:8.1'
@@ -72,20 +69,20 @@ dependencies {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
 
-    testImplementation "org.wiremock:wiremock-jetty12:3.9.2"
+    testImplementation "org.wiremock:wiremock-jetty12:3.13.2"
     testImplementation 'net.jqwik:jqwik:1.9.3'
     testImplementation("net.ripe.rpki:rpki-commons:$rpki_commons_version:tests") {
         exclude group: "net.sf.saxon", module: "Saxon-HE"
     }
     testImplementation 'org.assertj:assertj-core'
 
-
     implementation (project(':hsm')) {
-        capabilities {
-            requireCapability('net.ripe.rpki.hsm:' + hsmImpl)
+        if (useThalesHsm) {
+            capabilities {
+                requireCapability('net.ripe.rpki.hsm:thales')
+            }
         }
     }
-
 }
 
 sourceSets {
@@ -101,6 +98,10 @@ configurations {
     integrationImplementation.extendsFrom testImplementation
     integrationRuntime.extendsFrom testRuntime
     integrationRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+dependencyLocking {
+    lockAllConfigurations()
 }
 
 tasks.withType(Tar) {
@@ -121,7 +122,6 @@ task integrationTest(type: Test) {
      mustRunAfter test
 }
 
-// run integration tests as part of `check`
 tasks.named('check') {
     dependsOn tasks.named('integrationTest')
 }

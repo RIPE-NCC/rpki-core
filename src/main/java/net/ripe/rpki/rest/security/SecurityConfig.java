@@ -15,7 +15,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -28,10 +28,10 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @Slf4j
 public class SecurityConfig {
     private static final RequestMatcher API_REQUEST_MATCHER = new OrRequestMatcher(
-        new AntPathRequestMatcher("/api/**"),
-        new AntPathRequestMatcher("/prod/ca/**")
+        PathPatternRequestMatcher.withDefaults().matcher("/api/**"),
+        PathPatternRequestMatcher.withDefaults().matcher("/prod/ca/**")
     );
-    private static final RequestMatcher PROVISIONING_REQUEST_MATCHER = new AntPathRequestMatcher("/updown");
+    private static final RequestMatcher PROVISIONING_REQUEST_MATCHER = PathPatternRequestMatcher.withDefaults().matcher("/updown");
     private static final RequestMatcher WEB_REQUEST_MATCHER =
         new NegatedRequestMatcher(new OrRequestMatcher(API_REQUEST_MATCHER, PROVISIONING_REQUEST_MATCHER));
 
@@ -45,8 +45,8 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e.authenticationEntryPoint(jsonAuthenticationEntryPoint))
                 .authorizeHttpRequests(r -> r
                         // allow all to /api/monitoring/ endpoints
-                        .requestMatchers(new AntPathRequestMatcher("/api/monitoring/**")).permitAll()
-                        .requestMatchers(new AntPathRequestMatcher("/api/public/**")).permitAll()
+                        .requestMatchers(PathPatternRequestMatcher.withDefaults().matcher("/api/monitoring/**")).permitAll()
+                        .requestMatchers(PathPatternRequestMatcher.withDefaults().matcher("/api/public/**")).permitAll()
                         // All other paths matching initial .requestMatcher require API key
                         .anyRequest().access(apiKeySecurity)
                 )
@@ -76,10 +76,10 @@ public class SecurityConfig {
                 .securityMatcher(WEB_REQUEST_MATCHER)
                 .authorizeHttpRequests(r -> r
                         .requestMatchers(
-                                new AntPathRequestMatcher("/login"),
-                                new AntPathRequestMatcher("/actuator/active-node"),
-                                new AntPathRequestMatcher("/actuator/prometheus"),
-                                new AntPathRequestMatcher("/monitoring/healthcheck")
+                            PathPatternRequestMatcher.withDefaults().matcher("/login"),
+                            PathPatternRequestMatcher.withDefaults().matcher("/actuator/active-node"),
+                            PathPatternRequestMatcher.withDefaults().matcher("/actuator/prometheus"),
+                            PathPatternRequestMatcher.withDefaults().matcher("/monitoring/healthcheck")
                         ).permitAll()
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                 );

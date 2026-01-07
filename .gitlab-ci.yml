@@ -32,6 +32,13 @@ include:
     file: /templates/security.yml
     inputs:
       stage: security
+      needs: ["lockfile"]
+  - project: swe/gitlab-support
+    file: /templates/approval.yml
+    inputs:
+      stage: .post
+      label: renovatebot
+      access-token: "$APPROVAL_BOT_ACCESS_TOKEN"
 
 variables:
   BUILD_NUMBER: ${CI_COMMIT_REF_SLUG}-${CI_PIPELINE_ID}
@@ -70,6 +77,14 @@ build:
     reports:
       junit:
         - build/test-results/**/*.xml
+
+lockfile:
+  stage: build
+  script:
+    - gradle dependencies --write-locks
+  artifacts:
+    paths:
+      - "gradle.lockfile"
 
 sonarqube:
   stage: security

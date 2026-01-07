@@ -19,7 +19,7 @@ public class BackgroundServiceMetricsTest {
 
     @Test
     public void shouldTrackServiceExecutionStart() {
-        String service = RandomStringUtils.randomAlphanumeric(16);
+        String service = RandomStringUtils.insecure().nextAlphanumeric(16);
         subject.trackStartTime(service);
 
         assertThat(valueOfGauge("rpkicore.service.execution.start.time", service)).isGreaterThan(0d);
@@ -27,7 +27,7 @@ public class BackgroundServiceMetricsTest {
 
     @Test
     public void shouldTrackSuccessfulServiceExecution() {
-        String service = RandomStringUtils.randomAlphanumeric(16);
+        String service = RandomStringUtils.insecure().nextAlphanumeric(16);
         var random = new SecureRandom();
 
         BackgroundServiceExecutionResult job = new BackgroundServiceExecutionResult(random.nextLong(), random.nextLong(), BackgroundServiceExecutionResult.Status.SUCCESS);
@@ -45,7 +45,7 @@ public class BackgroundServiceMetricsTest {
 
     @Test
     public void shouldTrackFailedServiceExecution() {
-        String service = RandomStringUtils.randomAlphanumeric(16);
+        String service = RandomStringUtils.insecure().nextAlphanumeric(16);
         subject.trackStartTime(service);
         subject.trackResult(service, new BackgroundServiceExecutionResult(0, 0, BackgroundServiceExecutionResult.Status.FAILURE));
 
@@ -60,7 +60,7 @@ public class BackgroundServiceMetricsTest {
 
     @Test
     public void shouldTrackSkippedExecution() {
-        String service = RandomStringUtils.randomAlphanumeric(16);
+        String service = RandomStringUtils.insecure().nextAlphanumeric(16);
         subject.trackStartTime(service);
         subject.trackResult(service, new BackgroundServiceExecutionResult(0, 0, BackgroundServiceExecutionResult.Status.SKIPPED));
 

@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import jakarta.inject.Inject;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Handler
@@ -32,6 +33,7 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
     private final AspaConfigurationRepository aspaConfigurationRepository;
 
     private final ImmutableResourceSet privateAsns;
+    private static final Asn AS0 = new Asn(0);
 
     @Inject
     public UpdateAspaConfigurationCommandHandler(
@@ -131,7 +133,10 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
             Set<Asn> providerAsns = aspa.getValue();
 
             if (providerAsns.contains(customerAsn)) {
-                throw new IllegalResourceException(String.format("customer %s appears in provider set %s", customerAsn, providerAsns));
+                throw new IllegalResourceException(String.format("customer %s appears in provider set %s", customerAsn, formatProviders(providerAsns)));
+            }
+            if (providerAsns.contains(AS0) && providerAsns.size() > 1) {
+                throw new IllegalResourceException(String.format("AS0 can only be used on its own, but provider ASN set is %s", formatProviders(providerAsns)));
             }
         }
 
@@ -139,6 +144,12 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
         if (!configuredPrivateProviderAsns.isEmpty()) {
             throw new PrivateAsnsUsedException("ASPA configuration", configuredPrivateProviderAsns);
         }
+    }
+
+    private static String formatProviders(Collection<Asn> providerAsns) {
+        return providerAsns.stream()
+                .map(Asn::toString)
+                .collect(Collectors.joining(", ", "[", "]"));
     }
 
     private List<Asn> findAddedPrivateAsns(SortedMap<Asn, SortedSet<Asn>> configuration) {

@@ -207,4 +207,31 @@ class UpdateAspaConfigurationCommandHandlerTest {
 
         assertThatThrownBy(() -> subject.handle(command)).isInstanceOf(EntityTagDoesNotMatchException.class);
     }
+
+    @Test
+    void should_reject_aspa_when_provider_as0_is_mixed_with_non_zeros() {
+        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, singletonList(new AspaConfigurationData(
+                Asn.parse("AS1234"),
+                List.of(Asn.parse("AS0"), Asn.parse("AS234"))
+        )), Collections.emptyMap());
+
+        assertThatThrownBy(() -> subject.handle(command)).isInstanceOfSatisfying(IllegalResourceException.class, exception -> {
+            assertThat(exception.getMessage()).isEqualTo("AS0 can only be used on its own, but provider ASN set is [AS0, AS234]");
+        });
+    }
+
+    @Test
+    void should_accept_aspa_with_as0_as_the_only_provider() {
+        UpdateAspaConfigurationCommand command = new UpdateAspaConfigurationCommand(new VersionedId(CA_ID), EMPTY_CONFIGURATION_ETAG, singletonList(new AspaConfigurationData(
+                Asn.parse("AS1234"),
+                List.of(Asn.parse("AS0"))
+        )), Collections.emptyMap());
+
+        subject.handle(command);
+
+        ArgumentCaptor<AspaConfiguration> aspaConfigurationArgumentCaptor = ArgumentCaptor.forClass(AspaConfiguration.class);
+        verify(aspaConfigurationRepository).add(aspaConfigurationArgumentCaptor.capture());
+        assertThat(aspaConfigurationArgumentCaptor.getValue().getProviders()).isEqualTo(ImmutableSortedSet.of(Asn.parse("AS0")));
+        verify(managedCertificateAuthority).markConfigurationUpdated();
+    }
 }

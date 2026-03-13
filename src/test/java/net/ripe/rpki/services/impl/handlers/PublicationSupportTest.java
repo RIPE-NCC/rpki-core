@@ -63,7 +63,7 @@ public class PublicationSupportTest extends TestCase {
         when(publishedObjectRepository.findCurrentlyPublishedObjects()).thenReturn(Arrays.asList(published1, published2));
 
         meterRegistry = new SimpleMeterRegistry();
-        subject = new PublicationSupport(publishingServerClient, meterRegistry, Collections.singletonList(PUBLICATION_SERVER_URL));
+        subject = new PublicationSupport(publishingServerClient, new PublicationMetrics(meterRegistry), Collections.singletonList(PUBLICATION_SERVER_URL));
     }
 
     @Test

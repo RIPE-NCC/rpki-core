@@ -3,8 +3,7 @@ package net.ripe.rpki.services.impl.handlers;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 import com.google.common.io.BaseEncoding;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.domain.PublishedObjectData;
 import net.ripe.rpki.publication.api.PublicationMessage;
@@ -17,7 +16,6 @@ import net.ripe.rpki.util.Streams;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import jakarta.inject.Inject;
 import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -29,10 +27,10 @@ import java.util.stream.Stream;
 
 /**
  * Publishes signed material for a CA, using the publication service.
- *
+ * <p>
  * Extracted because publication may happen as the result of a publication command, or in the context
  * of another command such as a key roll over, key revocation and subsequent archival in particular.
- *
+ * <p>
  * The plan is to use asynchronous messages for this in future. However, we need to refactor the domain quite
  * a bit before this is feasible.
  */
@@ -44,31 +42,21 @@ public class PublicationSupport {
 
     private final List<ExternalPublishingServer> externalPublishingServers;
     private final ForkJoinPool forkJoinPool;
-    private final Counter rrdpPublicationSuccesses;
-    private final Counter rrdpPublicationFailures;
+    private final PublicationMetrics publicationMetrics;
 
     @Inject
     public PublicationSupport(
-        PublishingServerClient publishingServerClient,
-        MeterRegistry meterRegistry,
-        @Value("${publication.server.url}") List<URI> publicationServerUris
+            PublishingServerClient publishingServerClient,
+            PublicationMetrics publicationMetrics,
+            @Value("${publication.server.url}") List<URI> publicationServerUris
     ) {
+        this.publicationMetrics = publicationMetrics;
         log.info("Interfacing with {} external publication servers: {}", publicationServerUris.size(), publicationServerUris);
 
         externalPublishingServers = publicationServerUris.stream()
-                .map(uri -> new ExternalPublishingServer(publishingServerClient, meterRegistry, uri)).toList();
+                .map(uri -> new ExternalPublishingServer(publishingServerClient,
+                        publicationMetrics.getMeterRegistry(), uri)).toList();
         forkJoinPool = new ForkJoinPool(Math.max(1, externalPublishingServers.size()));
-
-        rrdpPublicationSuccesses = Counter.builder("rpkicore.publication.total")
-            .description("The total number of successful RRDP publications")
-            .tag("status", "success")
-            .tag("publication", "rrdp")
-            .register(meterRegistry);
-        rrdpPublicationFailures = Counter.builder("rpkicore.publication.total")
-            .description("The total number of failed RRDP publications")
-            .tag("status", "failed")
-            .tag("publication", "rrdp")
-            .register(meterRegistry);
     }
 
     public void publishAllObjects(List<PublishedObjectData> publishedObjects) {
@@ -88,15 +76,15 @@ public class PublicationSupport {
         }
 
         if (success) {
-            rrdpPublicationSuccesses.increment();
+            publicationMetrics.getRrdpPublicationSuccesses().increment();
         } else {
-            rrdpPublicationFailures.increment();
+            publicationMetrics.getRrdpPublicationFailures().increment();
         }
     }
 
     private void publishObjects(ExternalPublishingServer externalPublishingServer, List<PublishedObjectData> publishedObjects, String clientId) {
         final Map<URI, PublishedObjectData> localObjects = publishedObjects.stream().collect(
-            Collectors.toMap(PublishedObjectData::getUri, po -> po)
+                Collectors.toMap(PublishedObjectData::getUri, po -> po)
         );
         log.info("Publishing {} active objects to {} for client {}", localObjects.size(), externalPublishingServer.getPublishingServerUrl(), clientId);
 

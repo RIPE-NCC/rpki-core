@@ -35,7 +35,7 @@ case "$APPLICATION_ENVIRONMENT" in
         LOG_DIR="../logs"
         ;;
     pilot)
-        ENV_OPTS=("-Xms512m" "-Xmx2048m")
+        ENV_OPTS=("-Xms4g" "-Xmx4g")
         LOG_DIR="../logs"
         ;;
     local)

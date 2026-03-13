@@ -1,9 +1,9 @@
 plugins {
     id 'rpki-ripe-ncc.build-conventions'
-    id 'org.springframework.boot' version "3.5.9"
+    id 'org.springframework.boot' version "3.5.11"
     id 'distribution'
     id 'jacoco'
-    id "com.google.cloud.tools.jib" version "3.5.2"
+    id "com.google.cloud.tools.jib" version "3.5.3"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -41,7 +41,7 @@ dependencies {
     implementation "org.thymeleaf:thymeleaf:3.1.2.RELEASE"
     implementation "org.thymeleaf:thymeleaf-spring6:3.1.3.RELEASE"
 
-    implementation platform('io.sentry:sentry-bom:8.29.0')
+    implementation platform('io.sentry:sentry-bom:8.34.1')
     implementation 'io.sentry:sentry-spring-boot-starter'
     implementation 'io.sentry:sentry-logback'
 
@@ -50,12 +50,12 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-ui:1.8.0'
 
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-    implementation 'org.postgresql:postgresql:42.7.8'
+    implementation 'org.postgresql:postgresql:42.7.10'
     runtimeOnly 'org.springframework.boot:spring-boot-starter-tomcat'
 
     implementation 'com.google.code.gson:gson:2.13.2'
     implementation 'com.jamesmurty.utils:java-xmlbuilder:1.3'
-    implementation 'commons-codec:commons-codec:1.20.0'
+    implementation 'commons-codec:commons-codec:1.21.0'
     implementation 'commons-io:commons-io:2.21.0'
     implementation 'ch.qos.logback.contrib:logback-json-classic:0.1.5'
     implementation 'ch.qos.logback.contrib:logback-jackson:0.1.5'
@@ -104,8 +104,21 @@ dependencyLocking {
     lockAllConfigurations()
 }
 
-tasks.withType(Tar) {
+tasks.named('distTar', Tar) {
     compression = Compression.GZIP
+    filesMatching('**/*.sh') {
+        permissions {
+            unix('0755')
+        }
+    }
+}
+
+tasks.named('distZip', Zip) {
+    filesMatching('**/*.sh') {
+        permissions {
+            unix('0755')
+        }
+    }
 }
 
 tasks.withType(Test) {

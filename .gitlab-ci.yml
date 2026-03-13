@@ -1,5 +1,5 @@
 default:
-  image: gradle:8.14-jdk21
+  image: gradle:9.4-jdk21
   cache:
     key: "gradle-${CI_COMMIT_REF_SLUG}"
     fallback_keys:

@@ -1,77 +1,44 @@
 package net.ripe.rpki.publication.server;
 
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
+import jakarta.inject.Inject;
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.domain.PublishedObjectData;
 import net.ripe.rpki.publication.api.PublicationWriteService;
 import net.ripe.rpki.publication.persistence.disk.FileSystemPublicationObjectPersistence;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.ripe.rpki.services.impl.handlers.PublicationMetrics;
 import org.springframework.stereotype.Service;
 
-import jakarta.inject.Inject;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 
 @Service
+@Slf4j
 public class FSPublicationServer implements PublicationWriteService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FSPublicationServer.class);
-
     private final FileSystemPublicationObjectPersistence fileSystemPublicationObjectPersistence;
-
-    private final Timer rsyncPublicationTimer;
-    private final Counter rsyncPublicationSuccesses;
-    private final Counter rsyncPublicationFailures;
-
-    private volatile double publishedObjectCount = Double.NaN;
+    private final PublicationMetrics publicationMetrics;
 
     @Inject
-    public FSPublicationServer(
-        FileSystemPublicationObjectPersistence fileSystemPublicationObjectPersistence,
-        MeterRegistry meterRegistry) {
-
+    public FSPublicationServer(FileSystemPublicationObjectPersistence fileSystemPublicationObjectPersistence,
+                               PublicationMetrics publicationMetrics) {
         this.fileSystemPublicationObjectPersistence = fileSystemPublicationObjectPersistence;
-
-        this.rsyncPublicationTimer = Timer.builder("rpkicore.publication.timer")
-            .description("time to publish to rsync")
-            .tag("publication", "rsync")
-            .register(meterRegistry);
-        Gauge.builder("rpkicore.publication.count", () -> publishedObjectCount)
-            .description("The number of objects currently published to the rsync repository")
-            .tag("publication", "rsync")
-            .register(meterRegistry);
-
-        rsyncPublicationSuccesses = Counter.builder("rpkicore.publication")
-            .description("The number of times the rsync repository was successfully published")
-            .tag("status", "success")
-            .tag("publication", "rsync")
-            .register(meterRegistry);
-
-        rsyncPublicationFailures = Counter.builder("rpkicore.publication")
-            .description("The number of times the rsync repository failed to be published")
-            .tag("status", "failure")
-            .tag("publication", "rsync")
-            .register(meterRegistry);
+        this.publicationMetrics = publicationMetrics;
     }
 
     @Override
-    public void writeAll(List<PublishedObjectData> publishedObjects) throws IOException  {
+    public void writeAll(List<PublishedObjectData> publishedObjects) throws IOException {
         try {
-            rsyncPublicationTimer.record(() -> {
-                fileSystemPublicationObjectPersistence.writeAll(publishedObjects);
-            });
-            publishedObjectCount = publishedObjects.size();
-            rsyncPublicationSuccesses.increment();
-            LOG.info("successfully published {} objects", publishedObjects.size());
+            publicationMetrics.getRsyncPublicationTimer().record(() ->
+                    fileSystemPublicationObjectPersistence.writeAll(publishedObjects));
+            publicationMetrics.setPublishedObjectCount(publishedObjects.size());
+            publicationMetrics.getRsyncPublicationSuccesses().increment();
+            log.info("successfully published {} objects", publishedObjects.size());
         } catch (UncheckedIOException e) {
-            rsyncPublicationFailures.increment();
+            publicationMetrics.getRsyncPublicationFailures().increment();
             throw e.getCause();
         } catch (Exception e) {
-            rsyncPublicationFailures.increment();
+            publicationMetrics.getRsyncPublicationFailures().increment();
             throw e;
         }
     }

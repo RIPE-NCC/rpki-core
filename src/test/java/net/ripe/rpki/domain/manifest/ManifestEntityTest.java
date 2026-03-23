@@ -14,12 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.security.KeyPair;
-import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 
 @Transactional
@@ -32,8 +31,6 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
     private DateTime now;
     private KeyPairEntity currentKeyPair;
     private Collection<PublishedObject> initialEntries;
-    private KeyPair eeKeyPair;
-    private OutgoingResourceCertificate eeCertificate;
     private PublishedObject publishedObject1;
     private PublishedObject publishedObject2;
 
@@ -55,12 +52,19 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
         publishedObject2 = new PublishedObject(currentKeyPair, "foo.roa", new byte[]{5, 6, 7, 8}, true, PUBLICATION_DIRECTORY, new ValidityPeriod(start, end));
         initialEntries = Collections.singleton(publishedObject1);
 
-        eeKeyPair = PregeneratedKeyPairFactory.getInstance().generate();
+        KeyPair eeKeyPair = PregeneratedKeyPairFactory.getInstance().generate();
         CertificateIssuanceRequest request = subject.requestForManifestEeCertificate(eeKeyPair);
         ValidityPeriod validityPeriod = new ValidityPeriod(now, now.plus(ManifestPublicationService.TIME_TO_NEXT_UPDATE));
-        eeCertificate = singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, validityPeriod, currentKeyPair);
+        OutgoingResourceCertificate eeCertificate = singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, validityPeriod, currentKeyPair);
 
-        subject.update(eeCertificate, eeKeyPair, "SunRsaSign", initialEntries);
+        subject.update(eeCertificate, eeKeyPair, "SunRsaSign", toMapOfHashes(initialEntries));
+    }
+
+    private Map<String, Sha256> toMapOfHashes(Collection<PublishedObject> publishedObjects) {
+        return publishedObjects.stream().collect(Collectors.toMap(
+                PublishedObject::getFilename,
+                po -> Sha256.hash(po.getContent())
+        ));
     }
 
     private DateTime getUtcNowWithoutMillis() {
@@ -86,21 +90,21 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
         subject = new ManifestEntity(currentKeyPair);
 
         assertNull(subject.getManifestCms());
-        assertTrue(subject.isUpdateNeeded(now, initialEntries));
+        assertTrue(subject.isUpdateNeeded(now, toMapOfHashes(initialEntries)));
     }
 
     @Test
     public void shouldRequireUpdateWhenCloseToNextUpdateTime() {
         DateTime now = this.now.plusHours(8).plusMinutes(1);
 
-        assertTrue(subject.isUpdateNeeded(now, initialEntries));
+        assertTrue(subject.isUpdateNeeded(now, toMapOfHashes(initialEntries)));
     }
 
     @Test
     public void shouldNotUpdateTooSoon() {
         DateTime now = this.now.plusHours(8);
 
-        assertFalse(subject.isUpdateNeeded(now, initialEntries));
+        assertFalse(subject.isUpdateNeeded(now, toMapOfHashes(initialEntries)));
     }
 
     @Test
@@ -127,28 +131,13 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
             resourceCertificateRepository
         );
 
-        assertTrue(subject.isUpdateNeeded(now, initialEntries));
+        assertTrue(subject.isUpdateNeeded(now, toMapOfHashes(initialEntries)));
     }
 
     @Test
     public void shouldRequireUpdateWhenManifestEntriesChange() {
-        assertFalse("no update when entries are the same", subject.isUpdateNeeded(now, initialEntries));
+        assertFalse("no update when entries are the same", subject.isUpdateNeeded(now, toMapOfHashes(initialEntries)));
         assertTrue("update required when entries change",
-                subject.isUpdateNeeded(now, Collections.singleton(publishedObject2)));
-    }
-
-    @Test
-    public void shouldRemoveReferenceFromPublishedObjectWhenRemoved() {
-        assertThat(publishedObject1.getContainingManifest()).isEqualTo(subject);
-        subject.update(eeCertificate, eeKeyPair, "SunRsaSign", Collections.emptyList());
-        assertThat(publishedObject1.getContainingManifest()).isNull();
-    }
-
-    @Test
-    public void shouldAddReferenceFromPublishedObjectWhenAdded() {
-        assertThat(publishedObject2.getContainingManifest()).isNull();
-        subject.update(eeCertificate, eeKeyPair, "SunRsaSign", Arrays.asList(publishedObject1, publishedObject2));
-        assertThat(publishedObject1.getContainingManifest()).isEqualTo(subject);
-        assertThat(publishedObject2.getContainingManifest()).isEqualTo(subject);
+                subject.isUpdateNeeded(now, toMapOfHashes(Collections.singleton(publishedObject2))));
     }
 }

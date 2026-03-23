@@ -26,7 +26,7 @@ dependencies {
     thalesImplementation 'com.thales.esecurity.asg.ripe.db-jceprovider:DBProvider:1.6'
     thalesImplementation 'com.ncipher.nfast:nCipherKM:13.6.12'
 
-    thalesImplementation 'org.springframework:spring-context:6.2.16'
+    thalesImplementation 'org.springframework:spring-context:6.2.17'
     thalesImplementation 'javax.annotation:javax.annotation-api:1.3.2'
-    thalesImplementation "org.springframework.boot:spring-boot-autoconfigure:3.5.11"
+    thalesImplementation "org.springframework.boot:spring-boot-autoconfigure:3.5.12"
 }

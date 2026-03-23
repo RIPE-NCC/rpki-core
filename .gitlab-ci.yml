@@ -53,7 +53,7 @@ build:
   # slow builds in augusts 2023
   timeout: 60m
   services:
-    - postgres:15
+    - postgres:15.17
   variables:
       POSTGRES_DB: certdb_test
       POSTGRES_USER: certdb
@@ -110,11 +110,10 @@ control/run-on-staging:
   stage: compliance
   script:
     - ./scripts/gitlab-deploy-check
-  allow_failure: true
+  allow_failure: false
   cache: {}
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      when: always
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - when: never
 
 mend_scanning:
@@ -137,8 +136,7 @@ production:
   environment:
     name: production
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      when: manual
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - when: never
 
 prepdev:
@@ -148,6 +146,7 @@ prepdev:
   allow_failure: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == 'next'
     - when: manual
 
 pilot:
@@ -156,8 +155,7 @@ pilot:
     name: pilot
   allow_failure: true
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      when: manual
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - when: never
 
 publish-to-github:

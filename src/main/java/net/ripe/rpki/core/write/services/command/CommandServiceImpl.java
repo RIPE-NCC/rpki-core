@@ -106,13 +106,15 @@ public class CommandServiceImpl implements CommandService {
 
     private CommandStatus executeCommandWithRetries(CertificateAuthorityCommand command) {
         int retryCount = 0;
+        long begin = System.currentTimeMillis();
         while (true) {
             try {
                 return executeTimedCommand(command);
             } catch (OptimisticLockException | PessimisticLockException | TransientDataAccessException e) {
                 // Locking exceptions are most often transient, so retry a few times
                 if (retryCount >= MAX_RETRIES) {
-                    log.error("Error processing command after {} tries: {}", retryCount, command, e);
+                    long end = System.currentTimeMillis();
+                    log.error("Error processing command after {} tries: {}, total wait time of {}ms", retryCount, command, (end - begin), e);
                     // Metrics are registered on the `LockCertificateAuthorityHandler` since this is the one
                     // mostly triggering this problem, but they could also occur later in a TX. Unfortunately
                     // we don't know when/where exactly.

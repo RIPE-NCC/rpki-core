@@ -1,41 +1,24 @@
 package net.ripe.rpki.domain.manifest;
 
+import jakarta.persistence.*;
+import lombok.Getter;
 import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCms;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsBuilder;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
 import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
-import net.ripe.rpki.domain.IncomingResourceCertificate;
-import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
-import net.ripe.rpki.domain.PublishedObject;
-import net.ripe.rpki.domain.ResourceCertificateInformationAccessStrategy;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Table;
 import javax.security.auth.x500.X500Principal;
 import java.math.BigInteger;
 import java.security.KeyPair;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.Map;
 
 
 /**
@@ -52,14 +35,6 @@ import java.util.stream.Collectors;
 @Table(name = "manifestentity")
 @SequenceGenerator(name = "seq_manifestentity", sequenceName = "seq_all", allocationSize=1)
 public class ManifestEntity extends EntitySupport {
-
-    /**
-     * The minimum time the current manifest or CRL still needs to be valid before we update it anyway. This is to avoid
-     * not being on time to replace these objects. When the time to next update is less than this hard limit, the system
-     * must issue a new manifest/CRL pair as soon as possible.
-     */
-    public static final Period TIME_TO_NEXT_UPDATE_HARD_LIMIT = Period.hours(15);
-
     /**
      * Manifests and CRLs are replaced as soon as the time to next update is less than this soft limit, but replacement
      * is spread out over time to reduce the load on the system and avoid spikes where we would suddenly republish the
@@ -67,6 +42,7 @@ public class ManifestEntity extends EntitySupport {
      */
     public static final Period TIME_TO_NEXT_UPDATE_SOFT_LIMIT = Period.hours(16);
 
+    @Getter
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_manifestentity")
     private Long id;
@@ -80,10 +56,12 @@ public class ManifestEntity extends EntitySupport {
     @Column(name = "needs_reissuance", nullable = false)
     private boolean needsReissuance = false;
 
+    @Getter
     @ManyToOne(optional = false)
     @JoinColumn(name = "keypair_id", nullable = false)
     private KeyPairEntity keyPair;
 
+    @Getter
     @ManyToOne(optional = false, cascade = {CascadeType.PERSIST})
     @JoinColumn(name = "certificate_id", nullable = false)
     private OutgoingResourceCertificate certificate;
@@ -92,27 +70,11 @@ public class ManifestEntity extends EntitySupport {
     @JoinColumn(name = "published_object_id", nullable = false)
     private PublishedObject publishedObject;
 
-    @OneToMany(mappedBy = "containingManifest")
-    private Set<PublishedObject> entries = new HashSet<>();
-
     protected ManifestEntity() {}
 
     public ManifestEntity(KeyPairEntity keyPair) {
         this.keyPair = keyPair;
         this.nextNumber = 1L;
-    }
-
-    @Override
-    public Long getId() {
-        return id;
-    }
-
-    public OutgoingResourceCertificate getCertificate() {
-        return certificate;
-    }
-
-    public KeyPairEntity getKeyPair() {
-        return keyPair;
     }
 
     public byte[] getEncoded() {
@@ -129,49 +91,50 @@ public class ManifestEntity extends EntitySupport {
         return parser.getManifestCms();
     }
 
-    public boolean isUpdateNeeded(DateTime now, Collection<PublishedObject> manifestEntries) {
+    public boolean isUpdateNeeded(DateTime now, Map<String, Sha256> newManifestHashes) {
         ManifestCms cms = getManifestCms();
         return cms == null
                 || isCloseToNextUpdateTime(now, cms)
                 || parentCertificatePublicationLocationChanged(cms, keyPair.getCurrentIncomingCertificate())
-                || !cms.matchesFiles(manifestEntries.stream().collect(Collectors.toMap(PublishedObject::getFilename, PublishedObject::getContent, (a, b) -> b)))
+                || !sameEntries(cms, newManifestHashes)
                 || needsReissuance;
+    }
+
+    public boolean sameEntries(ManifestCms cms, Map<String, Sha256> newManifestHashes) {
+        Map<String, byte[]> existingHashes = cms.getHashes();
+        if (existingHashes.size() != newManifestHashes.size()) {
+            return false;
+        }
+        for (Map.Entry<String, Sha256> entry : newManifestHashes.entrySet()) {
+            byte[] existing = existingHashes.get(entry.getKey());
+            if (existing == null || !entry.getValue().sameAs(existing)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void update(OutgoingResourceCertificate eeCertificate,
                        KeyPair eeCertificateKeyPair,
                        String signatureProvider,
-                       Collection<PublishedObject> updatedEntries) {
+                       Map<String, Sha256>  manifestEntries) {
         withdraw();
 
         this.certificate = eeCertificate;
 
-        Set<PublishedObject> addedEntries = new HashSet<>(updatedEntries);
-        addedEntries.removeAll(entries);
-        for (PublishedObject addedEntry : addedEntries) {
-            addedEntry.setContainingManifest(this);
-            entries.add(addedEntry);
-        }
-        Set<PublishedObject> removedEntries = new HashSet<>(entries);
-        removedEntries.removeAll(updatedEntries);
-        for (PublishedObject removedEntry : removedEntries) {
-            removedEntry.setContainingManifest(null);
-            entries.remove(removedEntry);
-        }
+        ManifestCms manifestCms = buildManifestCms(manifestEntries, eeCertificateKeyPair, signatureProvider);
 
-        ManifestCms manifestCms = buildManifestCms(entries, eeCertificateKeyPair, signatureProvider);
-
-        publishedObject = new PublishedObject(keyPair, keyPair.getManifestFilename(), manifestCms.getEncoded(), false, keyPair.getCertificateRepositoryLocation(), manifestCms.getValidityPeriod(), manifestCms.getSigningTime());
+        publishedObject = new PublishedObject(keyPair, keyPair.getManifestFilename(), manifestCms.getEncoded(),
+                false, keyPair.getCertificateRepositoryLocation(), manifestCms.getValidityPeriod(),
+                manifestCms.getSigningTime());
 
         this.nextNumber++;
         this.needsReissuance = false;
     }
 
-    private ManifestCms buildManifestCms(Collection<PublishedObject> manifestEntries, KeyPair eeKeyPair, String signatureProvider) {
+    private ManifestCms buildManifestCms(Map<String, Sha256> manifestEntries, KeyPair eeKeyPair, String signatureProvider) {
         ManifestCmsBuilder builder = new ManifestCmsBuilder();
-        for (PublishedObject manifestEntry : manifestEntries) {
-            builder.addFile(manifestEntry.getFilename(), manifestEntry.getContent());
-        }
+        manifestEntries.forEach((fileName, sha256) -> builder.addFileHash(fileName, sha256.bytes()));
         builder.withCertificate(certificate.getCertificate());
         builder.withManifestNumber(BigInteger.valueOf(nextNumber));
         builder.withValidityPeriod(certificate.getValidityPeriod());

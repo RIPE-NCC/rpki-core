@@ -11,6 +11,6 @@ repositories {
 dependencies {
     implementation 'io.freefair.lombok:io.freefair.lombok.gradle.plugin:9.2.0'
     implementation 'com.gorylenko.gradle-git-properties:com.gorylenko.gradle-git-properties.gradle.plugin:2.5.7'
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:7.5.0.202512021534-r'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:7.6.0.202603022253-r'
     implementation 'org.sonarqube:org.sonarqube.gradle.plugin:7.2.3.7755'
 }

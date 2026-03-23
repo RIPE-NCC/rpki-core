@@ -1,6 +1,8 @@
 package net.ripe.rpki.services.impl.jpa;
 
 import net.ripe.rpki.domain.*;
+import net.ripe.rpki.domain.manifest.ManifestEntity;
+import net.ripe.rpki.domain.manifest.Sha256;
 import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
 import org.apache.commons.lang.Validate;
 import org.joda.time.DateTime;
@@ -8,9 +10,10 @@ import org.joda.time.Instant;
 import org.springframework.stereotype.Repository;
 
 import java.net.URI;
-import java.sql.Timestamp;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -18,17 +21,31 @@ import java.util.stream.Stream;
 public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject> implements PublishedObjectRepository {
 
     @Override
-    public List<PublishedObject> findActiveManifestEntries(KeyPairEntity keyPair) {
-        return manager.createQuery("select po from PublishedObject po " +
-                "where po.issuingKeyPair.id = :keyPair " +
-                "and po.status in :active " +
-                "and po.includedInManifest = true " +
-                "order by po.id asc",
-            PublishedObject.class)
-            .setParameter("keyPair", keyPair.getId())
-            .setParameter("active", PublicationStatus.ACTIVE_STATUSES)
-            .getResultList();
+    public Map<String, Sha256> findActiveManifestEntries(KeyPairEntity keyPair) {
+        // Exclude duplicates by using ROW_NUMBER() OVER...
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = manager.createNativeQuery("""
+                        SELECT filename, hash_sha256 FROM (
+                            SELECT filename, hash_sha256,
+                                   ROW_NUMBER() OVER (PARTITION BY filename ORDER BY id DESC) AS rn
+                            FROM published_object
+                            WHERE issuing_key_pair_id = :keyPair
+                              AND status IN :active
+                              AND included_in_manifest
+                        ) ranked
+                        WHERE rn = 1
+                        """)
+                .setParameter("keyPair", keyPair.getId())
+                .setParameter("active", ACTIVE_STATUS_NAMES)
+                .getResultList();
+        return rows.stream().collect(Collectors.toMap(
+                row -> (String) row[0],
+                row -> new Sha256((byte[]) row[1])
+        ));
     }
+
+    private static final Set<String> ACTIVE_STATUS_NAMES = PublicationStatus.ACTIVE_STATUSES
+            .stream().map(PublicationStatus::name).collect(Collectors.toSet());
 
     @SuppressWarnings("unchecked")
     @Override
@@ -168,6 +185,47 @@ public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject>
             .setParameter("withdrawn", PublicationStatus.WITHDRAWN)
             .setParameter("toBeWithdrawn", PublicationStatus.TO_BE_WITHDRAWN)
             .executeUpdate();
+    }
+
+    @Override
+    public void updateContainingManifestForActiveEntries(ManifestEntity manifest) {
+        var issuingKeyPairId = manifest.getKeyPair().getId();
+        // 'active_entries' is the same as 'findActiveManifestEntries' returns.
+        createNativeQuery("""
+                WITH current_entries AS (
+                    SELECT id FROM published_object
+                    WHERE containing_manifest_id = :mft
+                ),
+                active_entries AS (
+                    SELECT id FROM published_object
+                    WHERE status IN :activeStatuses
+                    AND included_in_manifest
+                    AND issuing_key_pair_id = :issuingKeyPairId
+                ),
+                diff AS (
+                    SELECT c.id AS current_id, a.id AS active_id
+                    FROM current_entries c
+                    FULL OUTER JOIN active_entries a ON c.id = a.id
+                    WHERE c.id IS NULL OR a.id IS NULL
+                ),
+                removed AS (
+                    UPDATE published_object SET
+                        containing_manifest_id = NULL,
+                        updated_at = now(),
+                        version = version + 1
+                    WHERE id IN (SELECT current_id FROM diff WHERE current_id IS NOT NULL)
+                    RETURNING id
+                )
+                UPDATE published_object SET
+                    containing_manifest_id = :mft,
+                    updated_at = now(),
+                    version = version + 1
+                WHERE id IN (SELECT active_id FROM diff WHERE active_id IS NOT NULL)
+                """)
+                .setParameter("mft", manifest.getId())
+                .setParameter("activeStatuses", ACTIVE_STATUS_NAMES)
+                .setParameter("issuingKeyPairId", issuingKeyPairId)
+                .executeUpdate();
     }
 
     @Override

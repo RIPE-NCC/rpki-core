@@ -1,24 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "enabled": true,
   "extends": [
-    "config:recommended",
-    "group:recommended"
+    "local>swe/gitlab-support//renovatebot/recommended.json"
   ],
-  "baseBranchPatterns": ["next"],
-  "schedule": "after 8am and before 1pm every weekday",
-  "dependencyDashboard": true,
-  "osvVulnerabilityAlerts": true,
-  "minimumReleaseAge": "3 days",
-  "labels": ["renovatebot:dependencies"],
-  "vulnerabilityAlerts": {
-    "labels": ["renovatebot:security"],
-    "automerge": true
-  },
   "packageRules": [
     {
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "automerge": true
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["postgres"],
+      "allowedVersions": "<= {{major}}"
     }
   ]
 }

@@ -116,13 +116,4 @@ public class PublishedObject extends GenericPublishedObject {
     public void setValidityPeriod(@NonNull ValidityPeriod validityPeriod) {
         this.validityPeriod = new EmbeddedValidityPeriod(validityPeriod);
     }
-
-    public void setContainingManifest(ManifestEntity containingManifest) {
-        Validate.isTrue(isIncludedInManifest(), "only published objects that must be included in the manifest can have a containing manifest");
-        Validate.isTrue(
-            containingManifest == null || Objects.equals(this.getIssuingKeyPair(), containingManifest.getKeyPair()),
-            "published object and manifest must be issued by same key pair"
-        );
-        this.containingManifest = containingManifest;
-    }
 }

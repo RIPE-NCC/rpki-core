@@ -126,7 +126,7 @@ public class CrlEntity extends EntitySupport {
     }
 
     public void update(ValidityPeriod validityPeriod, ResourceCertificateRepository resourceCertificateRepository) {
-        var revokedCertificates = resourceCertificateRepository.findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(keyPair, validityPeriod.getNotValidBefore());
+        Collection<OutgoingResourceCertificate> revokedCertificates = resourceCertificateRepository.findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(keyPair, validityPeriod.getNotValidBefore());
         X509CrlBuilder builder = newCrlBuilderWithEntries(revokedCertificates);
         builder.withAuthorityKeyIdentifier(keyPair.getPublicKey());
         builder.withIssuerDN(keyPair.getCurrentIncomingCertificate().getSubject());
@@ -146,6 +146,7 @@ public class CrlEntity extends EntitySupport {
         for (OutgoingResourceCertificate certificate : revokedCertificates) {
             builder.addEntry(certificate.getSerial(), certificate.getRevocationTime());
         }
+
         return builder;
     }
 

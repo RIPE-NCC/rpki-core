@@ -1,15 +1,19 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.rpki.domain.manifest.ManifestEntity;
-import net.ripe.rpki.domain.manifest.Sha256;
 import net.ripe.rpki.ripencc.support.persistence.Repository;
 import org.joda.time.DateTime;
 
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 
 public interface PublishedObjectRepository extends Repository<PublishedObject> {
+
+    /**
+     * Finds all objects that should be on the manifest for the given key pair.
+     * @param keyPair the key pair that will sign the manifest
+     * @return the objects that should be on the manifest.
+     */
+    List<PublishedObject> findActiveManifestEntries(KeyPairEntity keyPair);
 
     /**
      * Finds all objects that should be published in the public repository. All these objects are
@@ -21,11 +25,6 @@ public interface PublishedObjectRepository extends Repository<PublishedObject> {
     List<PublishedObjectData> findCurrentlyPublishedObjects();
 
     List<Long> findObjectIdsWithoutValidityPeriod();
-
-    /**
-     * Get filename -> sha256 map for all objects that should be on the manifest corresponding to the keyPair.
-     */
-    Map<String, Sha256> findActiveManifestEntries(KeyPairEntity keyPair);
 
     List<PublishedObjectEntry> findEntriesByPublicationStatus(EnumSet<PublicationStatus> statuses);
 
@@ -51,9 +50,4 @@ public interface PublishedObjectRepository extends Repository<PublishedObject> {
      * Withdraw all <code>TO_BE_WITHDRAWN</code> objects issued by deleted key pairs (changing the status to <code>WITHDRAWN</code>>).
      */
     int withdrawObjectsForDeletedKeys();
-
-    /**
-     * Update the containing manifest reference for all active manifest objects.
-     */
-    void updateContainingManifestForActiveEntries(ManifestEntity manifest);
 }

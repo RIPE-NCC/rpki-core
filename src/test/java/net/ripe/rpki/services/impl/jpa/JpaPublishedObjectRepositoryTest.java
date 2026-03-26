@@ -11,7 +11,6 @@ import net.ripe.rpki.domain.PublishedObjectData;
 import net.ripe.rpki.domain.PublishedObjectEntry;
 import net.ripe.rpki.domain.TrustAnchorPublishedObject;
 import net.ripe.rpki.domain.TrustAnchorPublishedObjectRepository;
-import net.ripe.rpki.domain.manifest.Sha256;
 import org.assertj.core.api.Condition;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -38,6 +37,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test that queries are syntactically correct and run against the database schema. Both the {@link JpaPublishedObjectRepository}
@@ -101,11 +101,11 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
 
     @Test
     public void findActiveManifestEntries() {
-        var entries = publishedObjectRepository.findActiveManifestEntries(issuingKeyPair);
+        List<PublishedObject> entries = publishedObjectRepository.findActiveManifestEntries(issuingKeyPair);
         assertEquals(3, entries.size());
-        assertEquals(entries.get(toBePublishedObject.getFilename()), Sha256.hash(toBePublishedObject.getContent()));
-        assertEquals(entries.get(publishedObject.getFilename()), Sha256.hash(publishedObject.getContent()));
-        assertFalse(entries.containsKey(toBePublishedTaObject.getUri().getPath().substring(1)));
+        assertTrue(entries.contains(toBePublishedObject));
+        assertTrue(entries.contains(publishedObject));
+        assertFalse(entries.contains(toBePublishedTaObject));
     }
 
     @Test

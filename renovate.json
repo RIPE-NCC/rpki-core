@@ -3,6 +3,7 @@
   "extends": [
     "local>swe/gitlab-support//renovatebot/recommended.json"
   ],
+  "baseBranchPatterns": ["next"],
   "packageRules": [
     {
       "matchDatasources": ["docker"],

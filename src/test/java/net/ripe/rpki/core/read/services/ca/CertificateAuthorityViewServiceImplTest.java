@@ -4,7 +4,9 @@ import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.*;
+import net.ripe.rpki.server.api.dto.DelegatedCa;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import net.ripe.rpki.util.Crypto;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.junit.Test;
@@ -13,6 +15,8 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
 import jakarta.transaction.Transactional;
+import java.security.PublicKey;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -120,5 +124,69 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
         assertThat(ActivateNonHostedCertificateAuthorityCommand.class.getSimpleName()).isEqualTo("ActivateNonHostedCertificateAuthorityCommand");
         assertThat(DeleteCertificateAuthorityCommand.class.getSimpleName()).isEqualTo("DeleteCertificateAuthorityCommand");
         assertThat(DeleteNonHostedCertificateAuthorityCommand.class.getSimpleName()).isEqualTo("DeleteNonHostedCertificateAuthorityCommand");
+    }
+
+    @Test
+    public void findDelegatedCas_withoutLastProvisionedAt() {
+        clearDatabase();
+        ProductionCertificateAuthority parent = createInitialisedProdCaWithRipeResources();
+        PublicKey publicKey = TestObjects.createTestKeyPair().getPublicKey();
+        var delegatedCa = new X500Principal("CN=delegated");
+        var nonHostedCa = new NonHostedCertificateAuthority(
+            123L, delegatedCa,
+            ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, parent
+        );
+        PublicKeyEntity publicKeyEntity = nonHostedCa.findOrCreatePublicKeyEntityByPublicKey(publicKey);
+        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(), List.of());
+        certificateAuthorityRepository.add(nonHostedCa);
+        entityManager.flush();
+
+        List<DelegatedCa> result = subject.findDelegatedCas();
+        assertThat(result).hasSize(1);
+
+        var ca = result.getFirst();
+        assertThat(ca.caName()).isEqualTo(delegatedCa.getName());
+        assertThat(ca.keyIdentifier()).isEqualTo(Crypto.getKeyIdentifier(publicKey.getEncoded()));
+        assertThat(ca.lastProvisionedAt()).isEmpty();
+    }
+
+    @Test
+    public void findDelegatedCas_withLastProvisionedAt() {
+        clearDatabase();
+        ProductionCertificateAuthority parent = createInitialisedProdCaWithRipeResources();
+        PublicKey publicKey = TestObjects.createTestKeyPair().getPublicKey();
+        var delegatedCa = new X500Principal("CN=delegated");
+        var nonHostedCa = new NonHostedCertificateAuthority(
+            123L, delegatedCa,
+            ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, parent
+        );
+        PublicKeyEntity publicKeyEntity = nonHostedCa.findOrCreatePublicKeyEntityByPublicKey(publicKey);
+        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(), List.of());
+        certificateAuthorityRepository.add(nonHostedCa);
+        entityManager.flush();
+
+        // Insert an audit log entry with request_message_type = 'issue_response' to simulate a provisioned-at timestamp
+        entityManager.createNativeQuery("""
+            INSERT INTO provisioning_audit_log (
+                id, version, created_at, updated_at, non_hosted_ca_uuid, request_message_type,
+                provisioning_cms_object, principal, summary, executiontime, entry_uuid
+            ) VALUES (
+                nextval('seq_all'), 0, NOW(), NOW(), :uuid, 'issue_response',
+                :cms, 'test', 'test summary', NOW(), :entryUuid
+            )
+            """)
+            .setParameter("uuid", nonHostedCa.getUuid())
+            .setParameter("cms", new byte[]{1, 2, 3})
+            .setParameter("entryUuid", UUID.randomUUID())
+            .executeUpdate();
+        entityManager.flush();
+
+        List<DelegatedCa> result = subject.findDelegatedCas();
+        assertThat(result).hasSize(1);
+
+        var ca = result.getFirst();
+        assertThat(ca.caName()).isEqualTo(delegatedCa.getName());
+        assertThat(ca.keyIdentifier()).isEqualTo(Crypto.getKeyIdentifier(publicKey.getEncoded()));
+        assertThat(ca.lastProvisionedAt()).isPresent();
     }
 }

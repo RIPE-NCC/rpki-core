@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import static net.ripe.rpki.services.impl.handlers.PublicationSupport.objectHash;
+import static net.ripe.rpki.util.Crypto.sha256;
 
 public interface PublicationMessage {
 
@@ -44,7 +44,7 @@ public interface PublicationMessage {
 
         public String toLogMessage() {
             return String.format("PublishRequest [uri=%s, hash=%s, content-hash=%s]",
-                uri, hashToReplace.orElse("<Absent>"), objectHash(content));
+                uri, hashToReplace.orElse("<Absent>"), sha256(content));
         }
     }
 

@@ -1,5 +1,5 @@
 default:
-  image: gradle:9.4-jdk21
+  image: gradle:9.4-jdk21@sha256:5d5fa6d13c61373b8ae5ac11a3a5c9877d0fff04d6f54d24dabb808823527ce0
   cache:
     key: "gradle-${CI_COMMIT_REF_SLUG}"
     fallback_keys:
@@ -53,7 +53,7 @@ build:
   # slow builds in augusts 2023
   timeout: 60m
   services:
-    - postgres:15.17
+    - postgres:15.17@sha256:3e43515057e113ee741fca2f621f15300be34a6d4a8dfcf2e20651288c8272f3
   variables:
       POSTGRES_DB: certdb_test
       POSTGRES_USER: certdb
@@ -102,18 +102,18 @@ sonarqube:
       when: never
     - if: $CI_MERGE_REQUEST_IID
     - if: $CI_COMMIT_TAG
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "next"
+    - if: $CI_COMMIT_REF_NAME == "main"
+    - if: $CI_COMMIT_REF_NAME == "next"
 
 control/run-on-staging:
-  image: node:25-alpine
+  image: node:25-alpine@sha256:ad82ecad30371c43f4057aaa4800a8ed88f9446553a2d21323710c7b937177fc
   stage: compliance
   script:
     - ./scripts/gitlab-deploy-check
   allow_failure: false
   cache: {}
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
     - when: never
 
 mend_scanning:
@@ -136,7 +136,7 @@ production:
   environment:
     name: production
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
     - when: never
 
 prepdev:
@@ -145,8 +145,22 @@ prepdev:
     name: prepdev
   allow_failure: true
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_COMMIT_BRANCH == 'next'
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+      when: on_success
+    - if: $CI_COMMIT_REF_NAME == 'next'
+      when: on_success
+    - when: manual
+
+qa:
+  <<: *delivr-deploy
+  environment:
+    name: qa
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+      when: on_success
+    - if: $CI_COMMIT_REF_NAME == 'next'
+      when: on_success
     - when: manual
 
 pilot:
@@ -155,12 +169,12 @@ pilot:
     name: pilot
   allow_failure: true
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
     - when: never
 
 publish-to-github:
   stage: publish
-  image: alpine:latest
+  image: alpine:latest@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
   needs:
     - production
   before_script:
@@ -175,6 +189,6 @@ publish-to-github:
     ./scripts/publish-source-code --push --verify --allow-older 10 --committer-name 'RPKI Team at RIPE NCC' --committer-email 'rpki@ripe.net' -- $CI_COMMIT_BEFORE_SHA $CI_COMMIT_SHA
   cache: {}
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_REF_NAME == "main"
       when: on_success
     - when: never

@@ -453,5 +453,10 @@ public class ResourceCacheServiceTest {
                     .filter(x -> !x.getKey().equals(productionCaName))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
+
+        @Override
+        public List<X500Principal> getHostedCasWithDifferentResourcesOnCertificates() {
+            return List.of();
+        }
     }
 }

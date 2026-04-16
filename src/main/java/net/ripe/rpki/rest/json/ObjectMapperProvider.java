@@ -3,20 +3,15 @@ package net.ripe.rpki.rest.json;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import jakarta.ws.rs.ext.ContextResolver;
+import jakarta.ws.rs.ext.Provider;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.springframework.stereotype.Component;
 
-import jakarta.ws.rs.ext.ContextResolver;
-import jakarta.ws.rs.ext.Provider;
 import java.io.IOException;
 
 import static com.fasterxml.jackson.core.JsonToken.VALUE_STRING;
@@ -32,7 +27,7 @@ public class ObjectMapperProvider implements ContextResolver<ObjectMapper> {
     public ObjectMapperProvider() {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        this.objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        this.objectMapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         this.objectMapper.registerModule(createDateTimeModule());
     }
 

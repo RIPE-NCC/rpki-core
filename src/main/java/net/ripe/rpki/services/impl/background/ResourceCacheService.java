@@ -21,7 +21,6 @@ import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.ports.ResourceServicesClient;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import net.ripe.rpki.util.JdbcDBComponent;
-import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -152,13 +151,15 @@ public class ResourceCacheService {
             interpretUpdate(productionUpdate, forceUpdate);
             interpretUpdate(membersUpdate, forceUpdate);
 
+            var casWithDifferentResourcesOnCertificates = resourceCache.getHostedCasWithDifferentResourcesOnCertificates();
+
             JdbcDBComponent.afterCommit(() -> {
                 resourceStats.getAndUpdate(rs -> rs
                     .withLastUpdatedAt(Optional.of(Instant.now()))
                     .withResourceUpdateRejection(Optional.empty())
                     .withDelegationUpdateRejection(Optional.empty())
                 );
-                scheduleResourceCertificateUpdateForChangedCas(updates);
+                scheduleResourceCertificateUpdateForChangedCas(updates, casWithDifferentResourcesOnCertificates);
             });
 
             if (!forceUpdate && !rejected.isEmpty()) {
@@ -172,26 +173,33 @@ public class ResourceCacheService {
         });
     }
 
-    private void scheduleResourceCertificateUpdateForChangedCas(List<Update> updates) {
+    private void scheduleResourceCertificateUpdateForChangedCas(List<Update> updates,
+                                                                List<X500Principal> casWithDifferentResourcesOnCertificates) {
         Set<X500Principal> changedCas = updates.stream()
             .flatMap(update -> update.changes.entrySet().stream())
             .filter(entry -> entry.getValue().added > 0 || entry.getValue().deleted > 0)
             .map(entry -> entry.getKey().getPrincipal())
             .collect(Collectors.toSet());
-        if (changedCas.isEmpty()) {
+        if (changedCas.isEmpty() && casWithDifferentResourcesOnCertificates.isEmpty()) {
             return;
         }
 
+        var casWithUpdates = new HashSet<>(casWithDifferentResourcesOnCertificates);
+
+        // In most normal cases changedCas and casWithUpdates will be overlapping,
+        // in corner cases such as interrupted run of `allCaCertificateUpdateServiceBean.runService`
+        // or empty cache they might differ.
+        var loggedChanges = changedCas.stream().limit(100).map(X500Principal::getName).toList();
+        var loggedCas = casWithUpdates.stream().limit(100).map(X500Principal::getName).toList();
+        log.info("Will update certificate for {} changes ({}) and {} CAs ({}) that have different resources",
+                changedCas.size(), loggedChanges, casWithUpdates.size(), loggedCas);
+
+        casWithUpdates.addAll(changedCas);
         Runnable action = () -> allCaCertificateUpdateServiceBean.runService(
             Collections.emptyMap(),
-            ca -> {
-                switch (ca.getType()) {
-                    case HOSTED: case NONHOSTED:
-                        return changedCas.contains(ca.getName());
-                    case ALL_RESOURCES: case ROOT: case INTERMEDIATE:
-                        return true;
-                }
-                throw new IllegalStateException(String.format("unknown type '%s' for CA '%s'", ca.getType(), ca.getName()));
+            ca -> switch (ca.getType()) {
+                case HOSTED, NONHOSTED -> casWithUpdates.contains(ca.getName());
+                case ALL_RESOURCES, ROOT, INTERMEDIATE -> true;
             }
         );
         sequentialBackgroundQueuedTaskRunner.submit(

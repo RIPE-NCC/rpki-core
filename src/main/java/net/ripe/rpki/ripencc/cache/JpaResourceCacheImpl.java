@@ -15,8 +15,12 @@ import org.springframework.stereotype.Component;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
+
+import javax.security.auth.x500.X500Principal;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -139,6 +143,21 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
             .executeUpdate();
         ResourceCacheLine cacheRecord = entityManager.find(ResourceCacheLine.class, caName.toString());
         entityManager.refresh(cacheRecord);
+    }
+
+    @Override
+    public List<X500Principal> getHostedCasWithDifferentResourcesOnCertificates() {
+        return entityManager.createQuery("""
+                SELECT DISTINCT ca.name
+                FROM CertificateAuthority ca
+                JOIN ResourceCacheLine cached ON cast(ca.name as String) = cached.name
+                LEFT JOIN OutgoingResourceCertificate rc
+                    ON rc.requestingCertificateAuthority = ca AND rc.status = :currentStatus
+                WHERE TYPE(ca) IN (HostedCertificateAuthority, ProductionCertificateAuthority)
+                AND (cached.resources <> rc.resourceExtension.resources OR rc.id IS NULL)
+                """, X500Principal.class)
+            .setParameter("currentStatus", OutgoingResourceCertificateStatus.CURRENT)
+            .getResultList();
     }
 
     @Override

@@ -83,4 +83,9 @@ public interface CertificateAuthorityViewService {
      * followed by its immediate children, followed by their immediate children, etc).
      */
     List<CertificateAuthorityData> findAllManagedCertificateAuthoritiesWithPendingKeyPairsOrderedByDepth();
+
+    /**
+     * Find some metadata about all delegated CAs.
+     */
+    List<DelegatedCa> findDelegatedCas();
 }

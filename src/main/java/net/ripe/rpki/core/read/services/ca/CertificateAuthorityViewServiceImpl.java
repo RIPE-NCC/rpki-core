@@ -7,6 +7,8 @@ import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningAuditLogService;
 import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import net.ripe.rpki.util.Crypto;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.Instant;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.TypedQuery;
 import javax.security.auth.x500.X500Principal;
+
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -182,5 +185,31 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
 
     private CertificateAuthorityData convertToCaData(CertificateAuthority ca) {
         return ca == null ? null : ca.toData();
+    }
+
+    @Override
+    public List<DelegatedCa> findDelegatedCas() {
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = entityManager.createNativeQuery(
+            """
+                SELECT
+                    ca.name,
+                    pk.encoded,
+                    MAX(pl.created_at) AS last_provisioned_at
+                FROM certificateauthority ca
+                INNER JOIN non_hosted_ca_public_key pk ON pk.ca_id = ca.id
+                LEFT JOIN provisioning_audit_log pl ON (pl.non_hosted_ca_uuid = ca.uuid AND pl.request_message_type = 'issue_response')
+                GROUP BY ca.name, pk.encoded
+                ORDER BY 1
+             """
+            ).getResultList();        
+
+        return results.stream().map(row -> {
+            String caName = (String) row[0];
+            byte[] keyEncoded = (byte[]) row[1];
+            java.time.Instant lastProvisionedAt = (java.time.Instant) row[2];
+            String keyIdentifier = Crypto.getKeyIdentifier(keyEncoded);
+            return new DelegatedCa(caName, keyIdentifier, Optional.ofNullable(lastProvisionedAt));
+        }).toList();
     }
 }

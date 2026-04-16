@@ -2,7 +2,6 @@ package net.ripe.rpki.services.impl.handlers;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
-import com.google.common.io.BaseEncoding;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.domain.PublishedObjectData;
@@ -12,13 +11,12 @@ import net.ripe.rpki.publication.api.PublicationMessage.ListRequest;
 import net.ripe.rpki.publication.api.PublicationMessage.WithdrawRequest;
 import net.ripe.rpki.publication.server.ExternalPublishingServer;
 import net.ripe.rpki.publication.server.PublishingServerClient;
+import net.ripe.rpki.util.Crypto;
 import net.ripe.rpki.util.Streams;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
@@ -143,7 +141,7 @@ public class PublicationSupport {
         for (URI onBoth : existBoth) {
             PublishedObjectData local = localObjects.get(onBoth);
             ListReply remote = remoteObjects.get(onBoth);
-            String localObjectHash = objectHash(local.getContent());
+            String localObjectHash = Crypto.sha256(local.getContent());
             if (!remote.hash.equalsIgnoreCase(localObjectHash)) {
                 result.add(new PublicationMessage.PublishRequest(local.getUri(), local.getContent(), Optional.of(remote.hash)));
             } else {
@@ -163,14 +161,5 @@ public class PublicationSupport {
         return externalPublishingServer.execute(messages, clientId).stream()
                 .filter(PublicationMessage.isListReply)
                 .map(x -> (ListReply) x).toList();
-    }
-
-    public static String objectHash(byte[] bytes) {
-        try {
-            final byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes);
-            return BaseEncoding.base16().encode(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

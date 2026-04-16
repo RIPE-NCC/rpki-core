@@ -1,8 +1,5 @@
 package net.ripe.rpki.util;
 
-import lombok.SneakyThrows;
-
-import java.security.MessageDigest;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,11 +31,8 @@ public final class Streams {
         return t -> seen.putIfAbsent(keyExtractor.apply(t), Boolean.TRUE) == null;
     }
 
-    @SneakyThrows
-    public static String entityTag(Stream<byte[]> data) {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        data.forEachOrdered(digest::update);
-        return "\"" + Base64.getEncoder().encodeToString(digest.digest()) + "\"";
+    public static String entityTag(Stream<byte[]> data) {        
+        return "\"" + Crypto.sha256(data) + "\"";
     }
 
     public static <T, K, V> SortedMap<K, V> streamToSortedMap(Stream<T> stream, Function<T, K> keyMapper, Function<T, V> valueMapper) {

@@ -3,7 +3,9 @@ package net.ripe.rpki.server.api.ports;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.server.api.support.objects.CaName;
 
+import javax.security.auth.x500.X500Principal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -26,6 +28,8 @@ public interface ResourceCache {
     void populateCache(Map<CaName, ImmutableResourceSet> certifiableResources);
 
     Map<CaName, ImmutableResourceSet> allMemberResources();
+
+    List<X500Principal> getHostedCasWithDifferentResourcesOnCertificates();
 
     default void verifyResourcesArePresent() {
         if (hasNoProductionResources()) {

@@ -17,7 +17,6 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,7 +24,7 @@ import java.util.List;
 
 import static net.ripe.rpki.domain.TestObjects.BASE_URI;
 import static net.ripe.rpki.services.impl.handlers.PublicationSupport.CORE_CLIENT_ID;
-import static net.ripe.rpki.services.impl.handlers.PublicationSupport.objectHash;
+import static net.ripe.rpki.util.Crypto.sha256;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -88,7 +87,7 @@ public class PublicationSupportTest extends TestCase {
     @Test
     public void should_withdraw_objects_not_in_local_objects() {
         final String listResponse = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\">" +
-            "<list uri=\"" + published2.getUri() +"\" hash=\"" + objectHash(published2.getContent()) + "\"/>" +
+            "<list uri=\"" + published2.getUri() +"\" hash=\"" + sha256(published2.getContent()) + "\"/>" +
             "</msg>";
         final String publishResponse = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
 
@@ -128,7 +127,7 @@ public class PublicationSupportTest extends TestCase {
     @Test
     public void should_keep_objects_with_matching_hash() {
         final String listResponse = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\">" +
-            "<list uri=\"" + published2.getUri() +"\" hash=\"" + objectHash(published2.getContent()) + "\"/>" +
+            "<list uri=\"" + published2.getUri() +"\" hash=\"" + sha256(published2.getContent()) + "\"/>" +
             "</msg>";
         final String publishResponse = "<msg type=\"reply\" version=\"3\" xmlns=\"http://www.hactrn.net/uris/rpki/publication-spec/\"></msg>";
 
@@ -148,7 +147,7 @@ public class PublicationSupportTest extends TestCase {
     public void should_compute_correct_hash() {
         final byte[] bytes = "sample text".getBytes(StandardCharsets.US_ASCII);
         // echo -n "sample text" | openssl dgst -sha256 -hex | tr a-f A-F
-        assertEquals("BC658C641EF71739FB9995BDED59B21150BBFF4367F6E4E4C7934B489B9D2C00", objectHash(bytes));
+        assertEquals("BC658C641EF71739FB9995BDED59B21150BBFF4367F6E4E4C7934B489B9D2C00", sha256(bytes));
     }
 
     @Test

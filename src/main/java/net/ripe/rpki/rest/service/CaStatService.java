@@ -12,6 +12,7 @@ import net.ripe.rpki.server.api.dto.BgpRisEntry;
 import net.ripe.rpki.server.api.dto.CaStat;
 import net.ripe.rpki.server.api.dto.CaStatEvent;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
+import net.ripe.rpki.server.api.dto.DelegatedCa;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
@@ -171,6 +172,15 @@ public class CaStatService extends RestService {
         return ResponseEntity.ok()
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .body(certificateAuthorityViewService.getCaStatEvents());
+    }
+
+    @GetMapping(path = "delegated")
+    @Operation(summary = "Return all delegated CAs")
+    public ResponseEntity<Collection<DelegatedCa>> allDelegatedCAs() {
+        log.info("Getting stats for all delegated CAs");
+        return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body(certificateAuthorityViewService.findDelegatedCas());
     }
 
     private CertificateAuthorityData getCaByName(String unparsedCaName) {

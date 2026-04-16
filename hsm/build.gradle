@@ -28,5 +28,5 @@ dependencies {
 
     thalesImplementation 'org.springframework:spring-context:6.2.17'
     thalesImplementation 'javax.annotation:javax.annotation-api:1.3.2'
-    thalesImplementation "org.springframework.boot:spring-boot-autoconfigure:3.5.12"
+    thalesImplementation "org.springframework.boot:spring-boot-autoconfigure:3.5.13"
 }

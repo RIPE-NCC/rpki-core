@@ -1,0 +1,26 @@
+language: java
+jdk:
+  - openjdk21
+services:
+  - docker
+before_install:
+  - docker pull postgres:15
+  - docker run --name certdb_test -e POSTGRES_USER=certdb -e POSTGRES_PASSWORD=certdb -e POSTGRES_DB=certdb_test -p 5432:5432 postgres:15
+  - psql -c 'SELECT 1' -U certdb -d certdb_test
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+cache:
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+script:
+  - ./gradlew test
+after_success:
+  - ./gradlew jacocoTestReport
+  - bash <(curl -s https://codecov.io/bash)
+after_failure:
+  - cat $TRAVIS_ERROR_LOG
+  - curl -f https://codecov.io/token/$TRAVIS_BUILD_NUMBER
+notifications:
+  email: false

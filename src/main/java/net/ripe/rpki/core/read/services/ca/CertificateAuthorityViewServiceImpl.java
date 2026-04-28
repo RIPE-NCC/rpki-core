@@ -1,5 +1,11 @@
 package net.ripe.rpki.core.read.services.ca;
 
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.TypedQuery;
+import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.domain.*;
@@ -7,20 +13,12 @@ import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningAuditLogService;
 import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.util.Crypto;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.LockModeType;
-import jakarta.persistence.TypedQuery;
 import javax.security.auth.x500.X500Principal;
-
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -189,27 +187,30 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
 
     @Override
     public List<DelegatedCa> findDelegatedCas() {
-        @SuppressWarnings("unchecked")
-        List<Object[]> results = entityManager.createNativeQuery(
+        List<Object[]> results = entityManager.createQuery(
             """
-                SELECT
-                    ca.name,
-                    pk.encoded,
-                    MAX(pl.created_at) AS last_provisioned_at
-                FROM certificateauthority ca
-                INNER JOIN non_hosted_ca_public_key pk ON pk.ca_id = ca.id
-                LEFT JOIN provisioning_audit_log pl ON (pl.non_hosted_ca_uuid = ca.uuid AND pl.request_message_type = 'issue_response')
-                GROUP BY ca.name, pk.encoded
-                ORDER BY 1
-             """
-            ).getResultList();        
+                SELECT ca, MAX(pal.executionTime)
+                FROM NonHostedCertificateAuthority ca
+                LEFT JOIN ProvisioningAuditLogEntity pal
+                       ON pal.nonHostedCaUUID = ca.uuid
+                      AND pal.requestMessageType = net.ripe.rpki.commons.provisioning.payload.PayloadMessageType.issue_response
+                GROUP BY ca
+                ORDER BY ca.name
+            """, Object[].class)
+            .getResultList();
 
-        return results.stream().map(row -> {
-            String caName = (String) row[0];
-            byte[] keyEncoded = (byte[]) row[1];
-            java.time.Instant lastProvisionedAt = (java.time.Instant) row[2];
-            String keyIdentifier = Crypto.getKeyIdentifier(keyEncoded);
-            return new DelegatedCa(caName, keyIdentifier, Optional.ofNullable(lastProvisionedAt));
+        return results.stream().flatMap(row -> {
+            NonHostedCertificateAuthority ca = (NonHostedCertificateAuthority) row[0];
+            java.sql.Timestamp lastProvisionedAt = (java.sql.Timestamp) row[1];
+            // Pick up the last public key used for this CA
+            return ca.getPublicKeyEntities().stream()
+                    .max(Comparator.comparing(PublicKeyEntity::getId))
+                    .map(pk ->
+                            new DelegatedCa(
+                                    ca.getName().getName(),
+                                    HexFormat.of().formatHex(KeyPairUtil.getKeyIdentifier(pk.getPublicKey())),
+                                    Optional.ofNullable(lastProvisionedAt).map(java.sql.Timestamp::toInstant)))
+                    .stream();
         }).toList();
     }
 }

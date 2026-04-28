@@ -1,21 +1,21 @@
 package net.ripe.rpki.core.read.services.ca;
 
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificateBuilderTest;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.*;
 import net.ripe.rpki.server.api.dto.DelegatedCa;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
-import net.ripe.rpki.util.Crypto;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.junit.Test;
 
-import jakarta.inject.Inject;
-import jakarta.persistence.EntityNotFoundException;
 import javax.security.auth.x500.X500Principal;
-import jakarta.transaction.Transactional;
-import java.security.PublicKey;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -130,15 +130,16 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
     public void findDelegatedCas_withoutLastProvisionedAt() {
         clearDatabase();
         ProductionCertificateAuthority parent = createInitialisedProdCaWithRipeResources();
-        PublicKey publicKey = TestObjects.createTestKeyPair().getPublicKey();
         var delegatedCa = new X500Principal("CN=delegated");
         var nonHostedCa = new NonHostedCertificateAuthority(
             123L, delegatedCa,
             ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, parent
         );
-        PublicKeyEntity publicKeyEntity = nonHostedCa.findOrCreatePublicKeyEntityByPublicKey(publicKey);
-        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(), List.of());
         certificateAuthorityRepository.add(nonHostedCa);
+        var publicKeyEntity = nonHostedCa.findOrCreatePublicKeyEntityByPublicKey(
+            ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT.getPublicKey()
+        );
+        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(), List.of());
         entityManager.flush();
 
         List<DelegatedCa> result = subject.findDelegatedCas();
@@ -146,7 +147,9 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
 
         var ca = result.getFirst();
         assertThat(ca.caName()).isEqualTo(delegatedCa.getName());
-        assertThat(ca.keyIdentifier()).isEqualTo(Crypto.getKeyIdentifier(publicKey.getEncoded()));
+        assertThat(ca.keyIdentifier()).isEqualToIgnoringCase(
+                HexFormat.of().formatHex(KeyPairUtil.getKeyIdentifier(publicKeyEntity.getPublicKey()))
+        );
         assertThat(ca.lastProvisionedAt()).isEmpty();
     }
 
@@ -154,15 +157,16 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
     public void findDelegatedCas_withLastProvisionedAt() {
         clearDatabase();
         ProductionCertificateAuthority parent = createInitialisedProdCaWithRipeResources();
-        PublicKey publicKey = TestObjects.createTestKeyPair().getPublicKey();
         var delegatedCa = new X500Principal("CN=delegated");
         var nonHostedCa = new NonHostedCertificateAuthority(
             123L, delegatedCa,
             ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, parent
         );
-        PublicKeyEntity publicKeyEntity = nonHostedCa.findOrCreatePublicKeyEntityByPublicKey(publicKey);
-        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(), List.of());
         certificateAuthorityRepository.add(nonHostedCa);
+        var publicKeyEntity = nonHostedCa.findOrCreatePublicKeyEntityByPublicKey(
+            ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT.getPublicKey()
+        );
+        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(), List.of());
         entityManager.flush();
 
         // Insert an audit log entry with request_message_type = 'issue_response' to simulate a provisioned-at timestamp
@@ -186,7 +190,9 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
 
         var ca = result.getFirst();
         assertThat(ca.caName()).isEqualTo(delegatedCa.getName());
-        assertThat(ca.keyIdentifier()).isEqualTo(Crypto.getKeyIdentifier(publicKey.getEncoded()));
+        assertThat(ca.keyIdentifier()).isEqualToIgnoringCase(
+                HexFormat.of().formatHex(KeyPairUtil.getKeyIdentifier(publicKeyEntity.getPublicKey()))
+        );
         assertThat(ca.lastProvisionedAt()).isPresent();
     }
 }

@@ -1,5 +1,5 @@
 default:
-  image: gradle:9.4-jdk21@sha256:5d5fa6d13c61373b8ae5ac11a3a5c9877d0fff04d6f54d24dabb808823527ce0
+  image: gradle:9.4-jdk21@sha256:2d34fc215310891039e1b2b7797632de8d59eab54496c134bc2da711ba651c50
   cache:
     key: "gradle-${CI_COMMIT_REF_SLUG}"
     fallback_keys:
@@ -53,7 +53,7 @@ build:
   # slow builds in augusts 2023
   timeout: 60m
   services:
-    - postgres:15.17@sha256:3e43515057e113ee741fca2f621f15300be34a6d4a8dfcf2e20651288c8272f3
+    - postgres:15.17@sha256:29342cb52157b098821961d2c14eec3c019071f56a5d559e990cf07cf541ea9b
   variables:
       POSTGRES_DB: certdb_test
       POSTGRES_USER: certdb
@@ -106,7 +106,7 @@ sonarqube:
     - if: $CI_COMMIT_REF_NAME == "next"
 
 control/run-on-staging:
-  image: node:25-alpine@sha256:ad82ecad30371c43f4057aaa4800a8ed88f9446553a2d21323710c7b937177fc
+  image: node:25-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4
   stage: compliance
   script:
     - ./scripts/gitlab-deploy-check

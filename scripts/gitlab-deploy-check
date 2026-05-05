@@ -197,6 +197,17 @@ const main = async (ctx) => {
     const durations = calculateDeploymentDurations(timeline, mergeRequest);
     const passesThreshold = durations.merge_request > ctx.stagingDuration;
 
+    if ((mergeRequest.labels ?? []).some((label) => /\bemergency\b/.test(label))) {
+        process.stdout.write(`
+[#${mergeRequest.iid}] ${mergeRequest.title}
+
+Branch ${mergeRequest.source_branch} at ${lastCommit.id} was merged into ${mergeRequest.target_branch} at ${Calendar.showTimestamp(mergeRequest.merged_at)}.
+
+🔔 The changes in #${mergeRequest.iid} are related to emergency changes and are excempt from the compliance check.
+`);
+        return;
+    }
+
     process.stdout.write(`
 [#${mergeRequest.iid}] ${mergeRequest.title}
 

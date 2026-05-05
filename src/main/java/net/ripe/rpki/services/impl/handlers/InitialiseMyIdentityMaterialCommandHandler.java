@@ -1,12 +1,11 @@
 package net.ripe.rpki.services.impl.handlers;
 
+import jakarta.inject.Inject;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.InitialiseMyIdentityMaterialCommand;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityType;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import org.apache.commons.lang.NotImplementedException;
-
-import jakarta.inject.Inject;
 
 
 @Handler

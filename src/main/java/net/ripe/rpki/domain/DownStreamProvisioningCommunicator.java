@@ -53,8 +53,16 @@ public class DownStreamProvisioningCommunicator extends EntitySupport {
 
     public DownStreamProvisioningCommunicator(KeyPair keyPair, KeyPairEntitySignInfo signInfo, X500Principal identityCertificateSubject) {
         this.persistedKeyPair = new PersistedKeyPair(keyPair, signInfo);
+        createIdentityMaterial(identityCertificateSubject);
+    }
 
-        ProvisioningIdentityCertificate identityCertificate = createProvisioningIdentityCertificate(identityCertificateSubject);
+    public void renewProvisioningIdentityMaterial() {
+        var existingCertificate = getProvisioningIdentityCertificate();
+        createIdentityMaterial(existingCertificate.getCertificate().getSubjectX500Principal());
+    }
+
+    private void createIdentityMaterial(X500Principal existingCertificate) {
+        ProvisioningIdentityCertificate identityCertificate = createProvisioningIdentityCertificate(existingCertificate);
         this.encodedIdentityCertificate = identityCertificate.getEncoded();
 
         X509Crl crlHelper = createProvisioningIdentityCrl(identityCertificate);

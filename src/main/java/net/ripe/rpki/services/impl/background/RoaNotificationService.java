@@ -88,11 +88,12 @@ public class RoaNotificationService {
 
     @PreDestroy
     public void shutdownAsyncSender() throws InterruptedException {
+        asyncSender.shutdown();
         if (asyncSender.awaitTermination(10, TimeUnit.SECONDS)) {
             log.info("Email sending queue was emptied successfully.");
         } else {
             log.warn("Email sending queue was not emptied in time. Some emails may not be sent.");
-            asyncSender.shutdown();
+            asyncSender.shutdownNow();
         }
     }
 

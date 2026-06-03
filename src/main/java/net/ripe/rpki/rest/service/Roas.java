@@ -60,5 +60,8 @@ public class Roas {
     public static class RoaDiff {
         Set<AllowedRoute> added;
         Set<AllowedRoute> deleted;
+        boolean isEmpty() {
+            return added.isEmpty() && deleted.isEmpty();
+        }
     }
 }

@@ -107,3 +107,6 @@ non-hosted:
       token: "krill-dev-token"
 
 certificate.authority.invariant.checking.enabled: true
+
+renew.identity:
+  update.interval.hours: 24

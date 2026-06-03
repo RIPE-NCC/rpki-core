@@ -144,7 +144,7 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
 
     /**
      * Determine validity status of announcement given ROA
-     * @requires certifiedRoute to contain announcedprefix
+     * Requires {@code certifiedRoute} to contain {@code announcedPrefix}.
      * @return validity state for route
      */
     static RouteValidityState determineValidityState(IpRange announcedPrefix, String announcementAsn, RoaPrefixData certifiedRoute) {
@@ -283,32 +283,37 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
 
         try {
             var currentRoas = roaViewService.getRoaConfiguration(ca.getId()).getPrefixes().stream().map(RoaPrefixData::toAllowedRoute).collect(Collectors.toSet());
-            var futureRoas = Roas.applyDiff(currentRoas, Roas.toDiff(publishSet));
+            var diff = Roas.toDiff(publishSet);
+            var futureRoas = Roas.applyDiff(currentRoas, diff);
 
             Roas.validateRoaUpdate(futureRoas)
                     .ifPresent(rc -> {
                         throw new IllegalArgumentException(rc);
                     });
 
-            commandService.execute(new UpdateRoaConfigurationCommand(
-                    ca.getVersionedId(),
-                    Optional.ofNullable(ifMatch),
-                    getRoaConfigurationPrefixDatas(publishSet.getAdded()),
-                    getRoaConfigurationPrefixDatas(publishSet.getDeleted()),
-                    RunAsUserHolder.get().getCertificationUserId()
-            ));
+            if (!diff.isEmpty()) {
+                commandService.execute(new UpdateRoaConfigurationCommand(
+                        ca.getVersionedId(),
+                        Optional.ofNullable(ifMatch),
+                        getRoaConfigurationPrefixDatas(diff.getAdded()),
+                        getRoaConfigurationPrefixDatas(diff.getDeleted()),
+                        RunAsUserHolder.get().getCertificationUserId()
+                ));
+            }
             return noContent();
         } catch (Exception e) {
             return ResponseEntity.status(BAD_REQUEST).body(of(ERROR, e.getMessage()));
         }
     }
 
-    private Collection<RoaConfigurationPrefixData> getRoaConfigurationPrefixDatas(final Collection<ApiRoaPrefix> roas) {
+    private Collection<RoaConfigurationPrefixData> getRoaConfigurationPrefixDatas(final Collection<AllowedRoute> roas) {
         return roas.stream()
-                .map(roa -> new RoaConfigurationPrefixData(
-                        Asn.parse(roa.getAsn()),
-                        IpRange.parse(roa.getPrefix()),
-                        roa.getMaxLength())).toList();
+                .map(allowed -> new RoaConfigurationPrefixData(
+                        allowed.getAsn(),
+                        allowed.getPrefix(),
+                        allowed.getMaximumLength()))
+                .sorted(RoaPrefixData.ROA_PREFIX_DATA_COMPARATOR)
+                .toList();
     }
 
     private static Set<AnnouncedRoute> getIgnoredAnnouncement(RoaAlertConfigurationViewService service, Long caId) {

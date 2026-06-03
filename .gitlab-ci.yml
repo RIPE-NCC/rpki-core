@@ -1,5 +1,5 @@
 default:
-  image: gradle:9.4-jdk21@sha256:2d34fc215310891039e1b2b7797632de8d59eab54496c134bc2da711ba651c50
+  image: gradle:9.5-jdk21@sha256:f2796e317ff13e2d0e10b83bb4aed71721d51570b55829972a5d9d89a6e96381
   cache:
     key: "gradle-${CI_COMMIT_REF_SLUG}"
     fallback_keys:
@@ -24,9 +24,6 @@ stages:
   - publish
 
 include:
-  # Mend (dependency scanning)
-  - project: 'swe/gitlab-ci'
-    file: '/templates/mend-scanning.yml'
   # Enable gitlab security scanners
   - project: swe/gitlab-support
     file: /templates/security.yml
@@ -53,7 +50,7 @@ build:
   # slow builds in augusts 2023
   timeout: 60m
   services:
-    - postgres:15.17@sha256:29342cb52157b098821961d2c14eec3c019071f56a5d559e990cf07cf541ea9b
+    - postgres:15.18@sha256:1b92e7a80c021647bf70f5d3eb66066a998e4f5cf43c07bb9dc9f729782cf88e
   variables:
       POSTGRES_DB: certdb_test
       POSTGRES_USER: certdb
@@ -115,9 +112,6 @@ control/run-on-staging:
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
     - when: never
-
-mend_scanning:
-  stage: security
 
 ######## Deploy stage ########
 .delivr-deploy: &delivr-deploy

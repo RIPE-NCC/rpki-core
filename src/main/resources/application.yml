@@ -178,3 +178,6 @@ certificate.authority:
 
 rfc6492:
     sender.ignores: []
+
+renew.identity:
+    update.interval.hours: 24    

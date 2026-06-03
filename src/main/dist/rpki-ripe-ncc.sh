@@ -26,7 +26,7 @@ case "$APPLICATION_ENVIRONMENT" in
         HSM_OPTS=("-Dprotect=module" "-DignorePassphrase=true")
         LOG_DIR="../logs"
         ;;
-    prepdev)
+    prepdev|qa)
         ENV_OPTS=("-Xms8g" "-Xmx8g"
             "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
             "-Dotel.resource.attributes=service.name=rpki-core,deployment.environment=${APPLICATION_ENVIRONMENT}"

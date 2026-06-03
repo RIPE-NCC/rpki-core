@@ -42,6 +42,7 @@ import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -491,6 +492,32 @@ public class CaRoaConfigurationServiceTest {
         assertEquals("AS11", deleted.getAsn().toString());
         assertEquals("2001:67c:64::/48", deleted.getPrefix().toString());
         assertEquals(48, deleted.getMaximumLength());
+    }
+
+    @Test
+    public void shouldTreatCancelledOutPublishChangesAsNoOp() throws Exception {
+        ImmutableResourceSet ipResourceSet = ImmutableResourceSet.parse("143.161.246.0/24");
+        when(certificateAuthorityData.getResources()).thenReturn(ipResourceSet);
+        when(certificateAuthorityData.getVersionedId()).thenReturn(VersionedId.parse("1"));
+        when(roaViewService.getRoaConfiguration(CA_ID)).thenReturn(new RoaConfigurationData(List.of(
+                new RoaConfigurationPrefixData(Asn.parse("AS702"), IpRange.parse("143.161.246.0/24"), 24),
+                new RoaConfigurationPrefixData(Asn.parse("AS1759"), IpRange.parse("143.161.246.0/24"), 24)
+        )));
+
+        mockMvc.perform(Rest.post(API_URL_PREFIX + "/123/roas/publish").content("""
+                        {
+                        "added" : [
+                            {"asn" : "AS702", "prefix" : "143.161.246.0/24", "maximalLength" : 24},
+                            {"asn" : "AS1759", "prefix" : "143.161.246.0/24", "maximalLength" : 24}
+                        ],
+                        "deleted" : [
+                            {"asn" : "AS702", "prefix" : "143.161.246.0/24", "maximalLength" : 24},
+                            {"asn" : "AS1759", "prefix" : "143.161.246.0/24", "maximalLength" : 24}
+                        ]
+                        }"""))
+                .andExpect(status().isNoContent());
+
+        verifyNoInteractions(commandService);
     }
 
     @Test

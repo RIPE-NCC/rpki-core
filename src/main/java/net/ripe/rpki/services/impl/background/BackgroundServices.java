@@ -52,8 +52,8 @@ public class BackgroundServices {
     public static final String CA_CLEAN_UP_SERVICE = "caCleanUpService";
     public static final String ROA_ALERT_BACKGROUND_SERVICE = "roaAlertBackgroundServiceDaily";
     public static final String ROA_ALERT_BACKGROUND_SERVICE_WEEKLY = "roaAlertBackgroundServiceWeekly";
-
     public static final String PUBLISHER_SYNC_SERVICE = "publisherSyncService";
+    public static final String RENEW_MY_IDENTITY_MATERIAL_SERVICE = "renewMyIdentityMaterialService";
 
     @Inject
     private ApplicationContext applicationContext;
@@ -93,6 +93,9 @@ public class BackgroundServices {
     @Value("${riswhoisdump.update.interval.hours}")
     private int riswhoisdumpUpdateIntervalHours;
 
+    @Value("${renew.identity.update.interval.hours}")
+    private int renewIdentityUpdateIntervalHours;
+
     @Inject
     private Scheduler scheduler;
 
@@ -123,6 +126,10 @@ public class BackgroundServices {
         schedule(ALL_CA_CERTIFICATE_UPDATE_SERVICE,
                 futureDate(resourceUpdateIntervalHours, HOUR),
                 repeat().withIntervalInHours(resourceUpdateIntervalHours));
+
+        schedule(RENEW_MY_IDENTITY_MATERIAL_SERVICE,
+                futureDate(1, HOUR),
+                repeat().withIntervalInHours(renewIdentityUpdateIntervalHours));
 
         if (autoKeyRolloverEnable) {
             schedule(PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE,

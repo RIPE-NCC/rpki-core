@@ -17,7 +17,9 @@ import org.springframework.stereotype.Service;
 import javax.security.auth.x500.X500Principal;
 import java.util.Map;
 
-@Service("renewMyIdentityMaterialServiceBean")
+import static net.ripe.rpki.services.impl.background.BackgroundServices.RENEW_MY_IDENTITY_MATERIAL_SERVICE;
+
+@Service(RENEW_MY_IDENTITY_MATERIAL_SERVICE)
 @Slf4j
 public class RenewMyIdentityMaterialServiceBean extends SequentialBackgroundServiceWithAdminPrivilegesOnActiveNode {
 

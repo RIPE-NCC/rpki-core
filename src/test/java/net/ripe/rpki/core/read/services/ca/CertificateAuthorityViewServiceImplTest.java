@@ -147,7 +147,7 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
 
         var ca = result.getFirst();
         assertThat(ca.caName()).isEqualTo(delegatedCa.getName());
-        assertThat(ca.keyIdentifier()).isEqualToIgnoringCase(
+        assertThat(ca.keyIdentifier().get()).isEqualToIgnoringCase(
                 HexFormat.of().formatHex(KeyPairUtil.getKeyIdentifier(publicKeyEntity.getPublicKey()))
         );
         assertThat(ca.lastProvisionedAt()).isEmpty();
@@ -190,7 +190,7 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
 
         var ca = result.getFirst();
         assertThat(ca.caName()).isEqualTo(delegatedCa.getName());
-        assertThat(ca.keyIdentifier()).isEqualToIgnoringCase(
+        assertThat(ca.keyIdentifier().get()).isEqualToIgnoringCase(
                 HexFormat.of().formatHex(KeyPairUtil.getKeyIdentifier(publicKeyEntity.getPublicKey()))
         );
         assertThat(ca.lastProvisionedAt()).isPresent();

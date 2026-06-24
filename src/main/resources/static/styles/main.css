@@ -96,8 +96,9 @@ body button {
 }
 
 .grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 4fr;
+    margin-bottom: 8px;
 }
 
 .main-flex {
@@ -197,8 +198,31 @@ ul {
     width: 60%;
 }
 
+.ca-name-cell {
+    padding-top: 16px;
+}
+
 .ca-management-table {
     margin-bottom: 8px;
+}
+
+.inline-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inline-form-input {
+    width: 30em;
+    max-width: 100%;
+}
+
+.inline-form-button {
+    white-space: nowrap;
+}
+
+.section-title {
+    margin-top: 16px;
 }
 
 .tag {

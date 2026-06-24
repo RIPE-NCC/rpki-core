@@ -62,9 +62,9 @@ public class CaStatServiceTest {
         var now = Instant.now();
         Instant later = now.plus(1, ChronoUnit.MINUTES);
         List<DelegatedCa> delegatedCas = Arrays.asList(
-                new DelegatedCa("CN=11", "key1", Optional.of(now)),
-                new DelegatedCa("CN=5555", "key2", Optional.empty()),
-                new DelegatedCa("O=XXX", "key3", Optional.of(later)));
+                new DelegatedCa("CN=11", Optional.of("key1"), Optional.of(now)),
+                new DelegatedCa("CN=5555", Optional.of("key2"), Optional.empty()),
+                new DelegatedCa("O=XXX", Optional.of("key3"), Optional.of(later)));
 
         when(certificateAuthorityViewService.findDelegatedCas()).thenReturn(delegatedCas);
 

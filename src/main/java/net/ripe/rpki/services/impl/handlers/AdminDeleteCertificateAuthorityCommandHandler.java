@@ -3,28 +3,28 @@ package net.ripe.rpki.services.impl.handlers;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.application.impl.CaDeletionServiceBean;
-import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
+import net.ripe.rpki.server.api.commands.AdminDeleteCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 
 @Slf4j
 @Handler
-public class DeleteCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<DeleteCertificateAuthorityCommand> {
+public class AdminDeleteCertificateAuthorityCommandHandler extends AbstractCertificateAuthorityCommandHandler<AdminDeleteCertificateAuthorityCommand> {
 
     private final CaDeletionServiceBean caDeletionServiceBean;
 
     @Inject
-    public DeleteCertificateAuthorityCommandHandler(CaDeletionServiceBean caDeletionServiceBean) {
+    public AdminDeleteCertificateAuthorityCommandHandler(CaDeletionServiceBean caDeletionServiceBean) {
         super(caDeletionServiceBean.getCertificateAuthorityRepository());
         this.caDeletionServiceBean = caDeletionServiceBean;
     }
 
     @Override
-    public Class<DeleteCertificateAuthorityCommand> commandType() {
-        return DeleteCertificateAuthorityCommand.class;
+    public Class<AdminDeleteCertificateAuthorityCommand> commandType() {
+        return AdminDeleteCertificateAuthorityCommand.class;
     }
 
     @Override
-    public void handle(DeleteCertificateAuthorityCommand command, CommandStatus commandStatus) {
+    public void handle(AdminDeleteCertificateAuthorityCommand command, CommandStatus commandStatus) {
         caDeletionServiceBean.deleteCa(command.getCertificateAuthorityId());
     }
 }

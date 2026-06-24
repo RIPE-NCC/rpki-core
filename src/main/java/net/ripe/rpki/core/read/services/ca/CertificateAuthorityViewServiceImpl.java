@@ -199,18 +199,20 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
             """, Object[].class)
             .getResultList();
 
-        return results.stream().flatMap(row -> {
+        var hexFormat = HexFormat.of();
+        return results.stream().map(row -> {
             NonHostedCertificateAuthority ca = (NonHostedCertificateAuthority) row[0];
             java.sql.Timestamp lastProvisionedAt = (java.sql.Timestamp) row[1];
             // Pick up the last public key used for this CA
-            return ca.getPublicKeyEntities().stream()
+            Optional<String> lastPublicKey = ca.getPublicKeyEntities().stream()
                     .max(Comparator.comparing(PublicKeyEntity::getId))
-                    .map(pk ->
-                            new DelegatedCa(
-                                    ca.getName().getName(),
-                                    HexFormat.of().formatHex(KeyPairUtil.getKeyIdentifier(pk.getPublicKey())),
-                                    Optional.ofNullable(lastProvisionedAt).map(java.sql.Timestamp::toInstant)))
-                    .stream();
-        }).toList();
+                    .map(pk -> hexFormat.formatHex(KeyPairUtil.getKeyIdentifier(pk.getPublicKey())));
+
+            return new DelegatedCa(
+                    ca.getName().getName(),
+                    lastPublicKey,
+                    Optional.ofNullable(lastProvisionedAt).map(java.sql.Timestamp::toInstant)
+            );
+        }).toList();        
     }
 }

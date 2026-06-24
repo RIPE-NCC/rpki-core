@@ -19,6 +19,6 @@ public class DeleteCertificateAuthorityCommand extends ChildParentCertificateAut
 
     @Override
     public String getCommandSummary() {
-        return "Deleted Certificate Authority '" + name + "'";
+        return "Delete Certificate Authority '" + name + "'";
     }
 }

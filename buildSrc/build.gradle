@@ -10,7 +10,7 @@ repositories {
 
 dependencies {
     implementation 'io.freefair.lombok:io.freefair.lombok.gradle.plugin:9.5.0'
-    implementation 'com.gorylenko.gradle-git-properties:com.gorylenko.gradle-git-properties.gradle.plugin:3.0.2'
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:7.6.0.202603022253-r'
-    implementation 'org.sonarqube:org.sonarqube.gradle.plugin:7.3.0.8198'
+    implementation 'com.gorylenko.gradle-git-properties:com.gorylenko.gradle-git-properties.gradle.plugin:4.0.1'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:7.7.0.202606012155-r'
+    implementation 'org.sonarqube:org.sonarqube.gradle.plugin:7.3.1.8318'
 }

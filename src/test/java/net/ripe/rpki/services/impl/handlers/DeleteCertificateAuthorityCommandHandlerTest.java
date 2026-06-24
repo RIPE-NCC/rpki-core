@@ -1,5 +1,6 @@
 package net.ripe.rpki.services.impl.handlers;
 
+import net.ripe.rpki.application.impl.CaDeletionServiceBean;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateBuilderHelper;
@@ -17,9 +18,9 @@ import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.server.api.commands.DeleteCertificateAuthorityCommand;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -50,7 +51,7 @@ public class DeleteCertificateAuthorityCommandHandlerTest {
     private RoaAlertConfigurationRepository roaAlertConfigurationRepository;
     @Mock
     private RoaConfigurationRepository roaConfigurationRepository;
-    @InjectMocks
+
     private DeleteCertificateAuthorityCommandHandler subject;
 
     @Mock
@@ -64,6 +65,12 @@ public class DeleteCertificateAuthorityCommandHandlerTest {
 
     private static final long NON_HOSTED_CA_ID = 10L;
 
+    @Before
+    public void setUp() {
+        subject = new DeleteCertificateAuthorityCommandHandler(new CaDeletionServiceBean(
+                certificateAuthorityRepository, resourceCertificateRepository, roaConfigurationRepository,
+                roaAlertConfigurationRepository, keyPairDeletionService, commandAuditService));
+    }
 
     @Test
     public void should_delete_managed_ca() {
@@ -75,7 +82,7 @@ public class DeleteCertificateAuthorityCommandHandlerTest {
         when(keyPair.getPublicKey()).thenReturn(publicKey);
         when(keyPair.isCurrent()).thenReturn(true);
         when(parentCA.processCertificateRevocationRequest(new CertificateRevocationRequest(publicKey), resourceCertificateRepository))
-            .thenReturn(new CertificateRevocationResponse(publicKey));
+                .thenReturn(new CertificateRevocationResponse(publicKey));
         when(roaConfigurationRepository.findByCertificateAuthority(hostedCA)).thenReturn(Optional.empty());
 
         subject.handle(new DeleteCertificateAuthorityCommand(new VersionedId(HOSTED_CA_ID), new X500Principal("CN=managed")));
@@ -108,7 +115,7 @@ public class DeleteCertificateAuthorityCommandHandlerTest {
         ProvisioningIdentityCertificate identityCertificate = builder.build();
 
         NonHostedCertificateAuthority nonHostedCertificateAuthority = new NonHostedCertificateAuthority(
-            NON_HOSTED_CA_ID, new X500Principal("CN=101"), identityCertificate, parentCA);
+                NON_HOSTED_CA_ID, new X500Principal("CN=101"), identityCertificate, parentCA);
 
         PKCS10CertificationRequest certificate = TestObjects.getPkcs10CertificationRequest(URI.create("rsync://tmp/repo"));
         RpkiCaCertificateRequestParser parsedCertificate = new RpkiCaCertificateRequestParser(certificate);

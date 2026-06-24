@@ -55,6 +55,8 @@ resource.services:
     # intentionally included/not a secret
     apiKey: BAD-TEST-D2Shtf2n5Bwh02P7
 
+prometheus.base.url: https://prometheus.rpki.prepdev.ripe.net/
+
 #
 # Application specific settings
 #

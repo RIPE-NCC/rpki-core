@@ -52,6 +52,8 @@ resource.services:
 # Prevent requests during test
 riswhoisdump.base.url: http://localhost:8080/certification/static/riswhois/
 
+prometheus.base.url: https://prometheus.rpki.prepdev.ripe.net/
+
 #
 # Application specific settings
 #

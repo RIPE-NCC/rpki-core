@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <div data-th-replace="~{fragments/includes :: includes(title='RPKI Admin UI | Revoke Delegated CA')}"></div>
+</head>
+<body>
+<div data-th-replace="~{fragments/header :: header(title='Revoke Delegated CA')}"></div>
+<div class="main-flex">
+    <div data-th-replace="~{fragments/sidebar :: sidebar(active='revoke-delegated-ca')}"></div>
+    <div class="main">
+
+        <div class="message-banner" data-th-if="${success}">
+            <i class="bi bi-check-circle"></i>
+            <span data-th-text="${success}">success message</span>
+        </div>
+        <div class="message-banner message-banner-error" data-th-if="${error}">
+            <i class="bi bi-x-circle"></i>
+            <span data-th-text="${error}">error message</span>
+        </div>
+
+        <table class="ca-management-table">
+            <tr>
+                <td class="ca-name-cell">
+                    <label for="caName"><strong>CA Name</strong></label>
+                    <p class="hint">Enter full X.500 distinguished name of the delegated CA (e.g. <code>CN=example</code>).</p>
+                </td>
+                <td>
+                    <form method="GET" data-th-action="@{/admin/revoke-delegated-ca}" class="inline-form">
+                        <input type="text" id="caName" name="caName" required placeholder="CN=example"
+                               class="form-control inline-form-input" data-th-value="${caName}">
+                        <button type="submit" class="btn inline-form-button">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        </table>
+
+        <div data-th-if="${searchSubmitted and foundDelegatedCa.isEmpty}">
+            <h3 class="section-title">Delegated CA not found</h3>
+            <p data-th-text="'No delegated (non-hosted) CA found for search ' + ${caName}"></p>
+        </div>
+
+        <form method="POST" data-th-if="${searchSubmitted and foundDelegatedCa.isPresent}"
+              data-th-action="@{/admin/revoke-delegated-ca}"
+              data-th-data-ca-name="${foundDelegatedCa.get.caName}"
+              onsubmit="return confirm(`Are you sure you want to revoke the ${this.getAttribute('data-ca-name')}? This action cannot be undone.`);">
+            <h3 class="section-title">Found Delegated CA</h3>
+            <input type="hidden" name="caName" th:value="${foundDelegatedCa.get.caName}" />
+            <div class="grid">
+                <div><strong>CA Name: </strong></div> <div data-th-text="${foundDelegatedCa.get.caName}"></div>
+                <div><strong>Key Identifier: </strong></div> <div data-th-text="${foundDelegatedCa.get.keyIdentifier.isPresent()} ? ${foundDelegatedCa.get.keyIdentifier.get()} : None"></div>
+                <div><strong>Last Provisioned At: </strong></div> <div data-th-text="${foundDelegatedCa.get.lastProvisionedAt.isPresent()} ? ${#temporals.format(foundDelegatedCa.get.lastProvisionedAt.get(), 'yyyy-MM-dd HH:mm:ss')} + ' UTC' : 'Never'"></div>
+                <div><strong>Prometheus data: </strong></div>
+                <div>
+                    <a data-th-href="${prometheusLink.get}" target="_blank">
+                        Link to Prometheus
+                    </a>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash3-fill"></i> Revoke
+            </button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
+

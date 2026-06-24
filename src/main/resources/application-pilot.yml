@@ -13,6 +13,7 @@ signature:
 auth.service.url: https://ba-apps.ripe.net/authorisation-service
 customer.service.url: https://ba-apps.ripe.net/customer-service
 resource.services.url: https://rsng.ripe.net/resource-services
+prometheus.base.url: https://prometheus.rpki.ripe.net/
 
 #
 # Application specific settings

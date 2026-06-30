@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResourceSet;
+import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCms;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.core.events.KeyPairActivatedEvent;
@@ -19,6 +20,7 @@ import net.ripe.rpki.domain.audit.CommandAudit;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.commands.KeyManagementActivatePendingKeysCommand;
+import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -186,6 +188,35 @@ public class AspaEntityServiceBeanTest {
         AspaEntity updatedAspaEntity = aspaEntityArgumentCaptor.getValue();
         assertThat(updatedAspaEntity.getCustomerAsn()).isEqualTo(aspaEntity.getCustomerAsn());
         assertThat(updatedAspaEntity.getProviders()).isEqualTo(aspaEntity.getProviders());
+    }
+
+    @Test
+    public void should_reissue_aspas_when_parent_certificate_validity_not_after_changed() {
+        IncomingResourceCertificate currentIncomingCertificate = certificateAuthority.getCurrentIncomingCertificate();
+        DateTime renewedNotValidAfter = currentIncomingCertificate.getNotValidAfter().plusDays(100);
+        X509ResourceCertificate certificate = createSelfSignedCaResourceCertificateBuilder()
+            .withSerial(BigInteger.valueOf(10000L))
+            .withValidityPeriod(new ValidityPeriod(currentIncomingCertificate.getNotValidBefore(), renewedNotValidAfter))
+            .withPublicKey(certificateAuthority.getCurrentKeyPair().getPublicKey())
+            .withResources(new IpResourceSet(certificateAuthority.getCertifiedResources()))
+            .build();
+        certificateAuthority.processCertificateIssuanceResponse(
+            new CertificateIssuanceResponse(certificate, currentIncomingCertificate.getPublicationUri()),
+            null
+        );
+
+        subject.updateAspaIfNeeded(certificateAuthority);
+
+        assertThat(aspaEntity.isRevoked()).isTrue();
+        verify(aspaEntityRepository).remove(aspaEntity);
+
+        ArgumentCaptor<AspaEntity> aspaEntityArgumentCaptor = ArgumentCaptor.forClass(AspaEntity.class);
+        verify(aspaEntityRepository).add(aspaEntityArgumentCaptor.capture());
+        AspaEntity updatedAspaEntity = aspaEntityArgumentCaptor.getValue();
+        assertThat(updatedAspaEntity.getCustomerAsn()).isEqualTo(aspaEntity.getCustomerAsn());
+        assertThat(updatedAspaEntity.getProviders()).isEqualTo(aspaEntity.getProviders());
+        assertThat(updatedAspaEntity.getAspaCms().getValidityPeriod().getNotValidAfter()).isEqualTo(renewedNotValidAfter);
+        assertThat(updatedAspaEntity.getCertificate().getNotValidAfter()).isEqualTo(renewedNotValidAfter);
     }
 
     @Test

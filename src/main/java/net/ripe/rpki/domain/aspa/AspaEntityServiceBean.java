@@ -164,12 +164,27 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
 
     private static boolean isValidAspaEntity(IncomingResourceCertificate incomingResourceCertificate, AspaEntity aspa) {
         boolean isValidAndCurrent = false;
+        boolean certificateValid = false;
+        boolean keypairCurrent = false;
+        boolean profileCurrent = false;
+        boolean parentUriMatches = false;
+        boolean resourcesMatch = false;
+        boolean validityMatches = false;
         try {
-            isValidAndCurrent = aspa.getCertificate().isValid()
-                    && aspa.getCertificate().getSigningKeyPair().isCurrent()
-                    && aspa.getProfileVersion() == CURRENT_ASPA_PROFILE_VERSION
-                    && Objects.equals(incomingResourceCertificate.getPublicationUri(), aspa.getAspaCms().getParentCertificateUri())
-                    && incomingResourceCertificate.getCertifiedResources().contains(aspa.getCustomerAsn());
+            certificateValid = aspa.getCertificate().isValid();
+            keypairCurrent = aspa.getCertificate().getSigningKeyPair().isCurrent();
+            profileCurrent = aspa.getProfileVersion() == CURRENT_ASPA_PROFILE_VERSION;
+            AspaCms aspaCms = aspa.getAspaCms();
+            parentUriMatches = Objects.equals(incomingResourceCertificate.getPublicationUri(), aspaCms.getParentCertificateUri());
+            resourcesMatch = incomingResourceCertificate.getCertifiedResources().contains(aspaCms.getCustomerAsn());
+            validityMatches = Objects.equals(incomingResourceCertificate.getNotValidAfter(), aspaCms.getValidityPeriod().getNotValidAfter());
+
+            isValidAndCurrent = certificateValid
+                    && keypairCurrent
+                    && profileCurrent
+                    && parentUriMatches
+                    && resourcesMatch
+                    && validityMatches;
 
             return isValidAndCurrent;
         } catch (UnparseableRpkiObjectException e) {
@@ -177,9 +192,9 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
         } finally {
             try {
                 if (!isValidAndCurrent && log.isInfoEnabled()) {
-                    log.info("Will re-issue ASPA at {} certificate-valid={} keypair-current={} profile-version={} (current={}) parent-uri={} resources-match={}",
-                            aspa.getCertificate().isValid(), aspa.getCertificate().getSigningKeyPair().isCurrent(), aspa.getProfileVersion(), CURRENT_ASPA_PROFILE_VERSION,
-                            Objects.equals(incomingResourceCertificate.getPublicationUri(), aspa.getAspaCms().getParentCertificateUri()), incomingResourceCertificate.getCertifiedResources().contains(aspa.getCustomerAsn())
+                    log.info("Will re-issue ASPA certificate-valid={} keypair-current={} profile-version={} (current={}) parent-uri={} resources-match={} validity-match={}",
+                            certificateValid, keypairCurrent, aspa.getProfileVersion(), CURRENT_ASPA_PROFILE_VERSION,
+                            parentUriMatches, resourcesMatch, validityMatches
                     );
                 }
             } catch (Exception e) {

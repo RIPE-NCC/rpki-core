@@ -4,6 +4,7 @@ package net.ripe.rpki.services.impl.handlers;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.aspa.AspaEntityService;
+import net.ripe.rpki.domain.bgpsec.BgpSecEntityService;
 import net.ripe.rpki.domain.manifest.ManifestPublicationService;
 import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.IssueUpdatedManifestAndCrlCommand;
@@ -19,17 +20,19 @@ public class IssueUpdatedManifestAndCrlCommandHandler extends AbstractCertificat
     private final ManifestPublicationService manifestPublicationService;
     private final AspaEntityService aspaEntityService;
     private final RoaEntityService roaEntityService;
-
+    private final BgpSecEntityService bgpSecEntityService;
 
     @Inject
     public IssueUpdatedManifestAndCrlCommandHandler(CertificateAuthorityRepository certificateAuthorityRepository,
                                                     ManifestPublicationService manifestPublicationService,
                                                     AspaEntityService aspaEntityService,
-                                                    RoaEntityService roaEntityService) {
+                                                    RoaEntityService roaEntityService,
+                                                    BgpSecEntityService bgpSecEntityService) {
         super(certificateAuthorityRepository);
         this.manifestPublicationService = manifestPublicationService;
         this.aspaEntityService = aspaEntityService;
         this.roaEntityService = roaEntityService;
+        this.bgpSecEntityService = bgpSecEntityService;
     }
 
     @Override
@@ -43,8 +46,9 @@ public class IssueUpdatedManifestAndCrlCommandHandler extends AbstractCertificat
 
         boolean configurationCheckNeeded = certificateAuthority.isConfigurationCheckNeeded();
         if (configurationCheckNeeded) {
-            aspaEntityService.updateAspaIfNeeded(certificateAuthority);
             roaEntityService.updateRoasIfNeeded(certificateAuthority);
+            aspaEntityService.updateAspaIfNeeded(certificateAuthority);
+            bgpSecEntityService.updateBgpSecIfNeeded(certificateAuthority);
             certificateAuthority.markConfigurationApplied();
         }
 

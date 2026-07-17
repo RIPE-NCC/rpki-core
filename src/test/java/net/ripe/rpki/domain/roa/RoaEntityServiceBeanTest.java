@@ -5,7 +5,6 @@ import net.ripe.ipresource.Asn;
 import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
-import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.domain.*;
@@ -64,9 +63,9 @@ public class RoaEntityServiceBeanTest  {
         configuration = new RoaConfiguration(ca, Arrays.asList(ROA_PREFIX_1, ROA_PREFIX_2));
         when(roaConfigurationRepository.getOrCreateByCertificateAuthority(ca)).thenReturn(configuration);
 
-        SingleUseEeCertificateFactory singleUseEeCertificateFactory = TestServices.createSingleUseEeCertificateFactory();
+        CertificateFactory certificateFactory = TestServices.createSingleUseEeCertificateFactory();
         subject = new RoaEntityServiceBean(certificateAuthorityRepository, roaConfigurationRepository, roaEntityRepository,
-                new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()), singleUseEeCertificateFactory);
+                new SingleUseKeyPairFactory(), certificateFactory);
    }
 
     @After

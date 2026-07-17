@@ -1,12 +1,9 @@
 package net.ripe.rpki.application.impl;
 
+import net.ripe.ipresource.Asn;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
-import net.ripe.rpki.domain.CertificateAuthority;
-import net.ripe.rpki.domain.ManagedCertificateAuthority;
-import net.ripe.rpki.domain.IncomingResourceCertificate;
-import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
-import net.ripe.rpki.domain.ResourceCertificateInformationAccessStrategy;
+import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.naming.RepositoryObjectNamingStrategy;
 import net.ripe.rpki.domain.naming.UuidRepositoryObjectNamingStrategy;
 import org.apache.commons.lang.StringUtils;
@@ -59,13 +56,23 @@ public class ResourceCertificateInformationAccessStrategyBean implements Resourc
     }
 
     @Override
-    public String roaFilename(OutgoingResourceCertificate endEntityCertificate) {
-        return strategy.roaFileName(endEntityCertificate);
+    public String roaFilename(OutgoingResourceCertificate eeCertificate) {
+        return strategy.roaFileName(eeCertificate);
     }
 
     @Override
-    public String aspaFilename(OutgoingResourceCertificate endEntityCertificate) {
-        return strategy.aspaFileName(endEntityCertificate);
+    public String aspaFilename(OutgoingResourceCertificate eeCertificate) {
+        return strategy.aspaFileName(eeCertificate);
+    }
+
+    @Override
+    public String bgpSecFilename(X509ResourceCertificate eeCertificate, Asn asn, Long routerId) {
+        return strategy.bgpSecFilename(eeCertificate, asn, routerId);
+    }
+
+    @Override
+    public X500Principal bgpSecCertificateSubject(Asn asn, Long routerId) {
+        return strategy.bgpSecCertificateSubject(asn, routerId);
     }
 
     @Override

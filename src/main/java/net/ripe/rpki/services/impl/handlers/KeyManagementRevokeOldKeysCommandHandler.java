@@ -16,6 +16,7 @@ import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 
 import jakarta.inject.Inject;
+import java.util.ArrayList;
 import java.util.List;
 
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
@@ -69,8 +70,11 @@ public class KeyManagementRevokeOldKeysCommandHandler implements CertificateAuth
     }
 
     private List<TaRequest> toTaRequests(List<CertificateRevocationRequest> requests) {
-        return requests.stream()
-            .map(request -> (TaRequest) new RevocationRequest(DEFAULT_RESOURCE_CLASS, KeyPairUtil.getEncodedKeyIdentifier(request.getSubjectPublicKey())))
-            .toList();
+        var result = new ArrayList<TaRequest>(requests.size());
+        for (CertificateRevocationRequest request : requests) {
+            var ski = KeyPairUtil.getEncodedKeyIdentifier(request.getSubjectPublicKey());
+            result.add(new RevocationRequest(DEFAULT_RESOURCE_CLASS, ski));
+        }
+        return result;
     }
 }

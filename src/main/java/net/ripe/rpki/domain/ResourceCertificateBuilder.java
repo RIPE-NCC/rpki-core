@@ -124,6 +124,11 @@ public class ResourceCertificateBuilder {
         return this;
     }
 
+    public ResourceCertificateBuilder withFilename(String filename) {
+        this.filename = filename;
+        return this;
+    }
+
     public OutgoingResourceCertificate build() {
         X509ResourceCertificateBuilder builder = new X509ResourceCertificateBuilder();
         builder.withIssuerDN(issuerDN);
@@ -155,10 +160,5 @@ public class ResourceCertificateBuilder {
         builder.withResources(new IpResourceSet(resources)).withInheritedResourceTypes(inheritedResourceTypes);
         X509ResourceCertificate cert = builder.build();
         return new OutgoingResourceCertificate(cert, signingKeyPair, embedded, filename, directory);
-    }
-
-    public ResourceCertificateBuilder withFilename(String filename) {
-        this.filename = filename;
-        return this;
     }
 }

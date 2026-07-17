@@ -53,29 +53,25 @@ public class RoaConfigurationMaintenanceServiceBean implements CertificateAuthor
 
 
     private void updateRoaConfigurationsForResources(ManagedCertificateAuthority ca, ImmutableResourceSet nowCurrentResources, CommandContext context) {
-        final Optional<RoaConfiguration> maybeConfig = roaConfigurationRepository.findByCertificateAuthority(ca);
-        if (maybeConfig.isEmpty()) {
-            return;
-        }
+        roaConfigurationRepository.findByCertificateAuthority(ca).ifPresent(config -> {
+            // Filter out the prefixes not contained by the certificate.
+            final Set<RoaConfigurationPrefix> toBeRemoved = config.getPrefixes().stream()
+                    .filter(prefix -> !nowCurrentResources.contains(prefix.getPrefix()))
+                    .collect(Collectors.toSet());
 
-        final RoaConfiguration config = maybeConfig.get();
-        // Filter out the prefixes not contained by the certificate.
-        final Set<RoaConfigurationPrefix> toBeRemoved = config.getPrefixes().stream()
-                .filter(prefix -> !nowCurrentResources.contains(prefix.getPrefix()))
-                .collect(Collectors.toSet());
+            if (!toBeRemoved.isEmpty()) {
+                roaConfigurationRepository.removePrefixes(config, toBeRemoved);
+                ca.markConfigurationUpdated();
 
-        if (!toBeRemoved.isEmpty()) {
-            roaConfigurationRepository.removePrefixes(config, toBeRemoved);
-            ca.markConfigurationUpdated();
-
-            context.recordEvent(
-                    new RoaConfigurationUpdatedDueToChangedResourcesEvent(
-                            ca.getVersionedId(),
-                            toBeRemoved.stream()
-                                    .map(RoaConfigurationPrefix::toData)
-                                    .collect(Collectors.toSet()))
-            );
-        }
+                context.recordEvent(
+                        new RoaConfigurationUpdatedDueToChangedResourcesEvent(
+                                ca.getVersionedId(),
+                                toBeRemoved.stream()
+                                        .map(RoaConfigurationPrefix::toData)
+                                        .collect(Collectors.toSet()))
+                );
+            }
+        });
     }
 
     @Value

@@ -1,19 +1,21 @@
 package net.ripe.rpki.rest.exception;
 
 import com.google.common.collect.ImmutableMap;
-import net.ripe.rpki.server.api.services.command.IllegalResourceException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
+import net.ripe.rpki.domain.bgpsec.IllegalCsrException;
 import net.ripe.rpki.server.api.services.command.EntityTagDoesNotMatchException;
+import net.ripe.rpki.server.api.services.command.IllegalResourceException;
 import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
 import net.ripe.rpki.server.api.services.command.PrivateAsnsUsedException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
 import java.util.Map;
 
@@ -45,13 +47,20 @@ public class RestExceptionControllerAdvice {
         return exceptionBody(e, HttpStatus.FORBIDDEN,req.getServletPath());
     }
 
+    @ExceptionHandler({HttpMessageNotReadableException.class})
+    public ResponseEntity<Map<String, ?>> requestDataBindingErrors(HttpServletRequest req, HttpMessageNotReadableException e) {
+        return exceptionBody(ExceptionUtils.getRootCause(e), HttpStatus.BAD_REQUEST, req.getServletPath());
+    }
+
     @ExceptionHandler({
             BadRequestException.class,
             CaNameInvalidException.class,
             NotHolderOfResourcesException.class,
             PrivateAsnsUsedException.class,
             IllegalResourceException.class,
-            ConstraintViolationException.class
+            ConstraintViolationException.class,
+            IllegalCsrException.class,
+            BadRouterIdException.class,
     })
     public ResponseEntity<Map<String, ?>> exceptionsResultingInBadRequestHandler(HttpServletRequest req, Exception e) {
         // For some reason Spring passes in the main exception instead of the cause exception that matches the @ExceptionHandler annotation :(

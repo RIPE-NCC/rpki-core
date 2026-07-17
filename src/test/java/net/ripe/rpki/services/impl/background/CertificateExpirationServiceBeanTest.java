@@ -10,10 +10,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 
-import static org.mockito.Mockito.isA;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 
 public class CertificateExpirationServiceBeanTest {
@@ -25,14 +22,14 @@ public class CertificateExpirationServiceBeanTest {
     @Before
     public void setUp() {
         resourceCertificateRepository = mock(ResourceCertificateRepository.class);
-
-        subject = new CertificateExpirationServiceBean(new BackgroundTaskRunner(mock(ActiveNodeService.class), new SimpleMeterRegistry()), resourceCertificateRepository, new SimpleMeterRegistry());
+        subject = new CertificateExpirationServiceBean(new BackgroundTaskRunner(mock(ActiveNodeService.class),
+                new SimpleMeterRegistry()), resourceCertificateRepository, new ExpirationCounters(new SimpleMeterRegistry()));
     }
 
     @Test
     public void should_expire_outgoing_resource_certificates() {
         when(resourceCertificateRepository.expireOutgoingResourceCertificates(isA(DateTime.class)))
-            .thenReturn(new ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult(0, 0, 0, 0));
+                .thenReturn(new ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult(0, 0, 0, 0));
 
         subject.runService(Collections.emptyMap());
 

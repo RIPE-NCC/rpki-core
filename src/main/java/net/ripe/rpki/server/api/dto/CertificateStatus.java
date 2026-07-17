@@ -1,6 +1,6 @@
 package net.ripe.rpki.server.api.dto;
 
-public enum OutgoingResourceCertificateStatus {
+public enum CertificateStatus {
     CURRENT,
     REVOKED,
     EXPIRED

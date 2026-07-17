@@ -1,5 +1,6 @@
 package net.ripe.rpki.domain;
 
+import lombok.Getter;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
@@ -48,8 +49,10 @@ public class KeyPairEntity extends EntitySupport {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_keypair")
+    @Getter
     private Long id;
 
+    @Getter
     @NotNull
     @Enumerated(value = EnumType.STRING)
     @Column(nullable = false)
@@ -62,20 +65,24 @@ public class KeyPairEntity extends EntitySupport {
     @CollectionTable(name = "keypair_statushistory", joinColumns = @JoinColumn(name = "keypair_id"))
     private List<KeyPairStatusHistory> statusHistory = new ArrayList<>();
 
+    @Getter
     @Column(nullable = false)
     private int size;
 
+    @Getter
     @NotNull
     @Column(nullable = false)
-    private String algorithm = KeyPairFactory.ALGORITHM;
+    private String algorithm = KeyPairFactory.RSA_ALGORITHM;
 
     @Embedded
     private PersistedKeyPair persistedKeyPair;
 
+    @Getter
     @NotNull
     @Column(name = "crl_filename")
     private String crlFilename;
 
+    @Getter
     @NotNull
     @Column(name = "manifest_filename")
     private String manifestFilename;
@@ -95,15 +102,6 @@ public class KeyPairEntity extends EntitySupport {
         this.persistedKeyPair = new PersistedKeyPair(keyPair, signInfo);
         this.crlFilename = crlFilename;
         this.manifestFilename = manifestFilename;
-    }
-
-    @Override
-    public Long getId() {
-        return id;
-    }
-
-    public KeyPairStatus getStatus() {
-        return status;
     }
 
     public DateTime getCreationDate() {
@@ -193,14 +191,6 @@ public class KeyPairEntity extends EntitySupport {
         this.statusHistory.add(new KeyPairStatusHistory(status, new DateTime(DateTimeZone.UTC)));
     }
 
-    public String getAlgorithm() {
-        return algorithm;
-    }
-
-    public int getSize() {
-        return size;
-    }
-
     @Override
     public String toString() {
         ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
@@ -238,14 +228,6 @@ public class KeyPairEntity extends EntitySupport {
     public URI getCertificateRepositoryLocation() {
         IncomingResourceCertificate currentIncomingCertificate = getCurrentIncomingCertificate();
         return extractPublicationDirectory(currentIncomingCertificate.getSia());
-    }
-
-    public String getManifestFilename() {
-        return manifestFilename;
-    }
-
-    public String getCrlFilename() {
-        return crlFilename;
     }
 
     public URI crlLocationUri() {

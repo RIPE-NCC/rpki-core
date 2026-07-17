@@ -6,6 +6,7 @@ import net.ripe.rpki.domain.ResourceCertificateRepository;
 import net.ripe.rpki.domain.TestObjects;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
 import net.ripe.rpki.domain.aspa.AspaEntityRepository;
+import net.ripe.rpki.domain.bgpsec.BgpSecEntityRepository;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.manifest.ManifestEntityRepository;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
@@ -30,6 +31,8 @@ public class KeyPairDeletionServiceTest {
     @Mock
     private AspaEntityRepository aspaEntityRepository;
     @Mock
+    private BgpSecEntityRepository bgpSecEntityRepository;
+    @Mock
     private ResourceCertificateRepository resourceCertificateRepository;
     @Mock
     private PublishedObjectRepository publishedObjectRepository;
@@ -46,6 +49,7 @@ public class KeyPairDeletionServiceTest {
         verify(manifestEntityRepository).deleteByKeyPairEntity(KEY_PAIR);
         verify(roaEntityRepository).deleteByCertificateSigningKeyPair(KEY_PAIR);
         verify(aspaEntityRepository).deleteByCertificateSigningKeyPair(KEY_PAIR);
+        verify(bgpSecEntityRepository).deleteByCertificateSigningKeyPair(KEY_PAIR);
         verify(resourceCertificateRepository).deleteOutgoingCertificatesForRevokedKeyPair(KEY_PAIR);
     }
 

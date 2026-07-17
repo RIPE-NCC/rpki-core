@@ -1,6 +1,8 @@
 package net.ripe.rpki.services.impl.handlers;
 
 import net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest;
+import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
+import net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.archive.KeyPairDeletionService;
@@ -17,10 +19,12 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.net.URI;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
@@ -115,6 +119,29 @@ public class KeyManagementRevokeOldKeysCommandHandlerTest {
         subject.handle(new KeyManagementRevokeOldKeysCommand(new VersionedId(membershipId)), any(CommandStatus.class));
 
         verify(memberCa).processCertificateRevocationResponse(response, keyPairDeletionService);
+    }
+
+    @Test
+    public void should_serialize_upstream_request_without_xstream_conversion_exception_for_all_resource_ca() {
+        when(allResourcesCa.getVersionedId()).thenReturn(new VersionedId(acaId));
+        when(certificateAuthorityRepository.findManagedCa(acaId)).thenReturn(allResourcesCa);
+
+        PublicKey publicKey = KeyPairFactoryTest.TEST_KEY_PAIR.getPublic();
+        ArrayList<CertificateRevocationRequest> revocationRequests = new ArrayList<>();
+        revocationRequests.add(new CertificateRevocationRequest(publicKey));
+        when(allResourcesCa.requestOldKeysRevocation(any())).thenReturn(revocationRequests);
+
+        // Pass the taRequests list straight through into TrustAnchorRequest so that XStream
+        // actually has to serialize whatever list type toTaRequests() returns.
+        when(certificateRequestCreationService.createTrustAnchorRequest(any()))
+            .thenAnswer(inv -> new TrustAnchorRequest(
+                URI.create("rsync://localhost:10873/ta/"),
+                new X509CertificateInformationAccessDescriptor[0],
+                inv.getArgument(0)));
+
+        assertThatNoException().isThrownBy(() ->
+            subject.handle(new KeyManagementRevokeOldKeysCommand(allResourcesCa.getVersionedId()), CommandStatus.create())
+        );
     }
 
     private CertificateRevocationRequest createRevocationRequest() {

@@ -1,9 +1,6 @@
 package net.ripe.rpki.domain;
 
-import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
-import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
-import net.ripe.rpki.domain.interca.CertificateRevocationRequest;
-import net.ripe.rpki.domain.interca.CertificateRevocationResponse;
+import net.ripe.rpki.domain.interca.*;
 import net.ripe.rpki.ncc.core.domain.support.Entity;
 
 

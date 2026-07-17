@@ -57,7 +57,6 @@ public class UpdateAspaConfigurationCommandHandler extends AbstractCertificateAu
     public void handle(@NonNull UpdateAspaConfigurationCommand command, CommandStatus commandStatus) {
         validateUpdateAspaConfigurationCommand(command);
 
-
         ManagedCertificateAuthority ca = lookupManagedCa(command.getCertificateAuthorityId());
         SortedMap<Asn, AspaConfiguration> entities = aspaConfigurationRepository.findByCertificateAuthority(ca);
 

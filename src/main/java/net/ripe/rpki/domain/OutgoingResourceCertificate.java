@@ -3,7 +3,7 @@ package net.ripe.rpki.domain;
 import lombok.Getter;
 import lombok.NonNull;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
-import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
+import net.ripe.rpki.server.api.dto.CertificateStatus;
 import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -35,7 +35,7 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
     @Getter
     @NotNull
     @Enumerated(EnumType.STRING)
-    private OutgoingResourceCertificateStatus status;
+    private CertificateStatus status;
 
     /**
      * True if this resource certificate is published embedded inside another object (such as a ROA). False if this
@@ -62,17 +62,18 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
     protected OutgoingResourceCertificate() {
     }
 
-    OutgoingResourceCertificate(X509ResourceCertificate certificate, KeyPairEntity signingKeyPair, boolean embedded,
-                                String filename, URI parentPublicationDirectory) {
+    @SuppressWarnings("this-escape")
+    protected OutgoingResourceCertificate(X509ResourceCertificate certificate, KeyPairEntity signingKeyPair, boolean embedded,
+                                          String filename, URI parentPublicationDirectory) {
         super(certificate);
         Validate.isTrue(embedded || filename != null, "embedded or filename must be set");
         Validate.isTrue(embedded || parentPublicationDirectory != null, "embedded or parentPublicationDirectory must be set");
         Validate.notNull(signingKeyPair, "signingKeyPair must be set");
         this.signingKeyPair = signingKeyPair;
         this.embedded = embedded;
-        this.status = OutgoingResourceCertificateStatus.CURRENT;
+        this.status = CertificateStatus.CURRENT;
         if (!embedded) {
-            publishedObject = new PublishedObject(signingKeyPair, filename, getDerEncoded(), true, parentPublicationDirectory, getValidityPeriod());
+            publishedObject = new PublishedObject(signingKeyPair, filename, certificate.getEncoded(), true, parentPublicationDirectory, certificate.getValidityPeriod());
             setPublicationUri(publishedObject.getUri());
         }
         revalidateCertificate();
@@ -88,11 +89,11 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
     }
 
     public boolean isCurrent() {
-        return status == OutgoingResourceCertificateStatus.CURRENT;
+        return status == CertificateStatus.CURRENT;
     }
 
     public boolean isExpired() {
-        return status == OutgoingResourceCertificateStatus.EXPIRED;
+        return status == CertificateStatus.EXPIRED;
     }
 
     /**
@@ -104,7 +105,7 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
     }
 
     public boolean isRevoked() {
-        return status == OutgoingResourceCertificateStatus.REVOKED;
+        return status == CertificateStatus.REVOKED;
     }
 
     public boolean isValid() {
@@ -115,7 +116,7 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
         if (isValid()) {
             withdraw();
             requestingCertificateAuthority = null;
-            status = OutgoingResourceCertificateStatus.REVOKED;
+            status = CertificateStatus.REVOKED;
             revocationTime = new DateTime(DateTimeZone.UTC);
         }
     }
@@ -125,7 +126,7 @@ public class OutgoingResourceCertificate extends ResourceCertificate {
         if (!isExpired()) {
             withdraw();
             requestingCertificateAuthority = null;
-            status = OutgoingResourceCertificateStatus.EXPIRED;
+            status = CertificateStatus.EXPIRED;
         }
     }
 

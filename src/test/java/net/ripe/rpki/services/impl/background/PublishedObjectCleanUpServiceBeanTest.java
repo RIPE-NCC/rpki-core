@@ -7,6 +7,7 @@ import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
+import net.ripe.rpki.domain.bgpsec.BgpSecCertificateRepository;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -43,13 +44,17 @@ public class PublishedObjectCleanUpServiceBeanTest {
     private ResourceCertificateRepository resourceCertificateRepository;
 
     @Mock
+    private BgpSecCertificateRepository bgpSecCertificateRepository;
+
+    @Mock
     private PlatformTransactionManager transactionManager;
 
     @Before
     public void setUp() {
         MeterRegistry registry = new SimpleMeterRegistry();
         service = new PublishedObjectCleanUpServiceBean(new BackgroundTaskRunner(activeNodeService, registry), certificateAuthorityRepository,
-            publishedObjectRepository, resourceCertificateRepository, transactionManager, registry);
+            publishedObjectRepository, resourceCertificateRepository, bgpSecCertificateRepository,
+            new ExpirationCounters(registry), transactionManager, registry);
         service.setDaysBeforeCleanUp(7);
     }
 
@@ -61,6 +66,7 @@ public class PublishedObjectCleanUpServiceBeanTest {
 
         verify(publishedObjectRepository).deleteExpiredObjects(expirationTime);
         verify(resourceCertificateRepository).deleteExpiredOutgoingResourceCertificates(expirationTime);
+        verify(bgpSecCertificateRepository).deleteExpiredBgpSecCertificates(expirationTime);
         verify(certificateAuthorityRepository).deleteNonHostedPublicKeysWithoutSigningCertificates();
     }
 

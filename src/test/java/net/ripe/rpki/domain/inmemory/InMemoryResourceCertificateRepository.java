@@ -1,11 +1,7 @@
 package net.ripe.rpki.domain.inmemory;
 
 import net.ripe.ipresource.ImmutableResourceSet;
-import net.ripe.rpki.domain.IncomingResourceCertificate;
-import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
-import net.ripe.rpki.domain.ResourceCertificate;
-import net.ripe.rpki.domain.ResourceCertificateRepository;
+import net.ripe.rpki.domain.*;
 import net.ripe.rpki.ripencc.support.persistence.InMemoryRepository;
 import org.apache.commons.lang.NotImplementedException;
 import org.joda.time.DateTime;
@@ -43,7 +39,7 @@ public class InMemoryResourceCertificateRepository extends InMemoryRepository<Re
     }
 
     @Override
-    public Collection<OutgoingResourceCertificate> findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(KeyPairEntity signingKeyPair, DateTime now) {
+    public Collection<RevokedCertificateEntry> findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(KeyPairEntity signingKeyPair, DateTime now) {
         throw new UnsupportedOperationException();
     }
 

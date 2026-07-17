@@ -61,7 +61,11 @@ public class Rest {
     }
 
     static MockHttpServletRequestBuilder delete(String url) {
-        return authenticated(withUserId(MockMvcRequestBuilders.delete(url)));
+        return authenticated(withUserId(
+            MockMvcRequestBuilders.delete(url)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+        ));
     }
 
     static MockHttpServletRequestBuilder multipart(String url, String name, byte[] content) {

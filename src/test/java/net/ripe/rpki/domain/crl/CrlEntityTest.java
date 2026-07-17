@@ -6,6 +6,7 @@ import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
+import net.ripe.rpki.domain.RevokedCertificateEntry;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.joda.time.DateTimeZone;
@@ -19,6 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Collection;
+import java.util.stream.Stream;
 
 
 @Transactional
@@ -50,7 +54,7 @@ public class CrlEntityTest extends CertificationDomainTestCase {
 
     @Test
     public void shouldGenerateEmptyCrlWhenThereAreNoRevokedCertificates() {
-        subject.update(validityPeriod, resourceCertificateRepository);
+        subject.update(validityPeriod, kp -> getRevokedCertificates(kp, validityPeriod.getNotValidBefore()));
         assertTrue(subject.getCrl().getRevokedCertificates().isEmpty());
         assertEquals(2L, subject.getNextNumber());
     }
@@ -60,7 +64,7 @@ public class CrlEntityTest extends CertificationDomainTestCase {
         OutgoingResourceCertificate revokedCertificate = resourceCertificateRepository.findLatestOutgoingCertificate(keyPair.getPublicKey(), keyPair);
         revokedCertificate.revoke();
 
-        subject.update(validityPeriod, resourceCertificateRepository);
+        subject.update(validityPeriod, kp -> getRevokedCertificates(kp, validityPeriod.getNotValidBefore()));
         assertEquals(1, subject.getCrl().getRevokedCertificates().size());
         assertNotNull(subject.getCrl().getRevokedCertificate(revokedCertificate.getSerial()));
     }
@@ -75,33 +79,33 @@ public class CrlEntityTest extends CertificationDomainTestCase {
         revokedCertificate.expire(now);
         assertTrue(revokedCertificate.isExpired());
 
-        subject.update(validityPeriod, resourceCertificateRepository);
+        subject.update(validityPeriod, kp -> getRevokedCertificates(kp, validityPeriod.getNotValidBefore()));
         assertTrue(subject.getCrl().getRevokedCertificates().isEmpty());
     }
 
     @Test
     public void shouldNotUpdateWhenRecentCrlIsStillValid() {
-        subject.update(validityPeriod, resourceCertificateRepository);
+        subject.update(validityPeriod, kp -> getRevokedCertificates(kp, validityPeriod.getNotValidBefore()));
 
         now = now.plusHours(8);
-        assertFalse(subject.isUpdateNeeded(now, resourceCertificateRepository));
+        assertFalse(subject.isUpdateNeeded(now, kp -> getRevokedCertificates(kp, now)));
     }
 
     @Test
     public void shouldUpdateWhenCurrentCrlWillExpireWithinGracePeriod() {
-        subject.update(validityPeriod, resourceCertificateRepository);
+        subject.update(validityPeriod, kp -> getRevokedCertificates(kp, validityPeriod.getNotValidBefore()));
 
         now = now.plusHours(8).plusMinutes(1);
-        assertTrue(subject.isUpdateNeeded(now, resourceCertificateRepository));
+        assertTrue(subject.isUpdateNeeded(now, kp -> getRevokedCertificates(kp, now)));
     }
 
     @Test
     public void shouldUpdateWhenNewEntryNeedsToBeAdded() {
-        subject.update(validityPeriod, resourceCertificateRepository);
+        subject.update(validityPeriod, kp -> getRevokedCertificates(kp, validityPeriod.getNotValidBefore()));
         OutgoingResourceCertificate revokedCertificate = resourceCertificateRepository.findLatestOutgoingCertificate(keyPair.getPublicKey(), keyPair);
         revokedCertificate.revoke();
 
-        assertTrue(subject.isUpdateNeeded(validityPeriod.getNotValidBefore(), resourceCertificateRepository));
+        assertTrue(subject.isUpdateNeeded(validityPeriod.getNotValidBefore(), kp -> getRevokedCertificates(kp, validityPeriod.getNotValidBefore())));
     }
 
     @Test
@@ -110,9 +114,16 @@ public class CrlEntityTest extends CertificationDomainTestCase {
         certificateToRevoke.revoke();
 
         now = certificateToRevoke.getNotValidAfter().minusHours(1);
-        subject.update(new ValidityPeriod(now, now.plusHours(24)), resourceCertificateRepository);
+        subject.update(new ValidityPeriod(now, now.plusHours(24)), kp -> getRevokedCertificates(kp, now));
 
         DateTimeUtils.setCurrentMillisFixed(certificateToRevoke.getNotValidAfter().plusHours(1).getMillis());
-        assertFalse(subject.isUpdateNeeded(now, resourceCertificateRepository));
+        assertFalse(subject.isUpdateNeeded(now, kp -> getRevokedCertificates(kp, now)));
+    }
+
+    private Collection<RevokedCertificateEntry> getRevokedCertificates(KeyPairEntity keyPair, DateTime now) {
+        return Stream.concat(
+            resourceCertificateRepository.findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(keyPair, now).stream(),
+            bgpSecCertificateRepository.findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(keyPair, now).stream()
+        ).toList();
     }
 }

@@ -34,17 +34,7 @@ public interface ResourceCertificateRepository extends Repository<ResourceCertif
 
     Collection<OutgoingResourceCertificate> findAllBySigningKeyPair(KeyPairEntity signingKeyPairEntity);
 
-    /**
-     * Finds all certificates signed with the specified
-     * <code>signingKeyPair</code> that have been revoked but are not yet
-     * expired.
-     *
-     * @param signingKeyPair
-     * @param now
-     * @return non-null collection of non-expired, revoked certificates signed
-     *         by <code>signingKeyPair</code>.
-     */
-    Collection<OutgoingResourceCertificate> findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(KeyPairEntity signingKeyPair, DateTime now);
+    Collection<RevokedCertificateEntry> findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(KeyPairEntity signingKeyPair, DateTime now);
 
     Collection<OutgoingResourceCertificate> findCurrentCertificatesBySubjectPublicKey(PublicKey subjectPublicKey);
 
@@ -60,7 +50,7 @@ public interface ResourceCertificateRepository extends Repository<ResourceCertif
      *
      * <p>This result is used to avoid removing resources from the incoming certificate that are still issued to child
      * CAs to avoid incorrectly invalidating child CA certificates due to an overclaiming resource set.</p>
-
+     *
      * @return find the union of the resources of _all_ current outgoing resource certificates of the CA with given name,
      * recursively down the CA tree.
      */
@@ -82,7 +72,7 @@ public interface ResourceCertificateRepository extends Repository<ResourceCertif
 
     /**
      * Expires all outgoing resource certificates that have a <em>not valid after</em> time before <code>now</code>.
-     *
+     * <p>
      * Deletes ROA entities that were issued by a certificate that was expired. Withdraws all published objects for
      * the expired certificates or deleted ROAs.
      */

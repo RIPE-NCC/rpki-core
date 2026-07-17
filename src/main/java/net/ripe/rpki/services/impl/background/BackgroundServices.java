@@ -45,6 +45,7 @@ public class BackgroundServices {
     public static final String PUBLIC_REPOSITORY_RSYNC_SERVICE = "publicRepositoryRsyncService";
     public static final String PUBLIC_REPOSITORY_RRDP_SERVICE = "publicRepositoryRrdpService";
     public static final String CERTIFICATE_EXPIRATION_SERVICE = "certificateExpirationService";
+    public static final String BGPSEC_CERTIFICATE_EXPIRATION_SERVICE = "bgpSecCertificateExpirationService";
     public static final String ALL_CA_CERTIFICATE_UPDATE_SERVICE = "allCertificateUpdateService";
     public static final String KEY_PAIR_REVOCATION_MANAGEMENT_SERVICE = "keyPairRevocationManagementService";
     public static final String PRODUCTION_CA_KEY_ROLLOVER_MANAGEMENT_SERVICE = "productionCaKeyRolloverManagementService";
@@ -83,6 +84,9 @@ public class BackgroundServices {
 
     @Value("${keypair.revocation.interval.hours}")
     private int keyPairRevocationIntervalHours;
+
+    @Value("${bgpsec.enabled}")
+    private boolean bgpSecEnabled;
 
     @Value("${certificate.expiration.service.interval.minutes:7}")
     private int certificateExpirationIntervalMinutes;
@@ -150,6 +154,12 @@ public class BackgroundServices {
         schedule(CERTIFICATE_EXPIRATION_SERVICE,
                 futureDate(20, MINUTE),
                 repeat().withIntervalInMinutes(certificateExpirationIntervalMinutes));
+
+        if (bgpSecEnabled) {
+            schedule(BGPSEC_CERTIFICATE_EXPIRATION_SERVICE,
+                    futureDate(23, MINUTE),
+                    repeat().withIntervalInMinutes(certificateExpirationIntervalMinutes));
+        }
 
         schedule(PUBLISHED_OBJECT_CLEAN_UP_SERVICE,
                 futureDate(22, MINUTE),

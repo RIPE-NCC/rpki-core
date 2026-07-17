@@ -78,7 +78,7 @@ public class RoaEntityTest {
             subjectPublicKey,
             TestObjects.EE_CERT_SIA
         );
-        OutgoingResourceCertificate roaCert = TestServices.createSingleUseEeCertificateFactory().issueSingleUseEeResourceCertificate(
+        OutgoingResourceCertificate roaCert = TestServices.createSingleUseEeCertificateFactory().issueAndPersistSingleUseEeResourceCertificate(
             request, validityPeriod, ca.getCurrentKeyPair());
         return createRoaEntity(roaCert, Collections.singletonList(new RoaPrefix(roaPrefix, null)));
     }

@@ -2,7 +2,7 @@ package net.ripe.rpki.domain;
 
 import com.google.common.io.Resources;
 import lombok.SneakyThrows;
-import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
+import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequestSerializer;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
@@ -14,7 +14,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 
 import javax.security.auth.x500.X500Principal;
-
 import java.nio.charset.Charset;
 import java.security.PublicKey;
 import java.util.UUID;
@@ -24,21 +23,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class NonHostedCertificateAuthorityTest {
 
-    private PregeneratedKeyPairFactory keyPairFactory = PregeneratedKeyPairFactory.getInstance();
+    private KeyPairFactory.Generator keyPairGenerator = KeyPairFactory.rsa();
 
     @Test
     void findOrCreatePublicKeyEntityByPublicKey_should_limit_number_of_public_keys() {
         NonHostedCertificateAuthority subject = new NonHostedCertificateAuthority(12, new X500Principal("CN=test"), ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, null);
         for (int i = 0; i < NonHostedCertificateAuthority.PUBLIC_KEY_LIMIT - 1; ++i) {
-            PublicKey publicKey = keyPairFactory.generate().getPublic();
+            PublicKey publicKey = keyPairGenerator.generate().getPublic();
             subject.findOrCreatePublicKeyEntityByPublicKey(publicKey);
         }
 
-        PublicKeyEntity lastAdded = subject.findOrCreatePublicKeyEntityByPublicKey(keyPairFactory.generate().getPublic());
+        PublicKeyEntity lastAdded = subject.findOrCreatePublicKeyEntityByPublicKey(keyPairGenerator.generate().getPublic());
 
-        assertThat(subject.findOrCreatePublicKeyEntityByPublicKey(lastAdded.getPublicKey()))
-            .isSameAs(lastAdded);
-        assertThatThrownBy(() -> subject.findOrCreatePublicKeyEntityByPublicKey(keyPairFactory.generate().getPublic()))
+        assertThat(subject.findOrCreatePublicKeyEntityByPublicKey(lastAdded.getPublicKey())).isSameAs(lastAdded);
+
+        PublicKey pk = keyPairGenerator.generate().getPublic();
+        assertThatThrownBy(() -> subject.findOrCreatePublicKeyEntityByPublicKey(pk))
             .isInstanceOf(CertificationResourceLimitExceededException.class);
     }
 

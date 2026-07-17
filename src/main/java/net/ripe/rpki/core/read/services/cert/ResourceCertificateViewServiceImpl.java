@@ -8,7 +8,7 @@ import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.IncomingResourceCertificate;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.server.api.dto.KeyPairStatus;
-import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
+import net.ripe.rpki.server.api.dto.CertificateStatus;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
 import net.ripe.rpki.server.api.services.read.ResourceCertificateViewService;
 import org.springframework.stereotype.Component;
@@ -77,7 +77,7 @@ public class ResourceCertificateViewServiceImpl implements ResourceCertificateVi
                     )
                     .setParameter("requestingCaId", requestingCaId)
                     .setParameter("encodedSubjectPublicKey", subjectPublicKey.getEncoded())
-                    .setParameter("current", OutgoingResourceCertificateStatus.CURRENT)
+                    .setParameter("current", CertificateStatus.CURRENT)
                     .getSingleResult()
                     .toData()
             );

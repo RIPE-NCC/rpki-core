@@ -4,9 +4,9 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.crl.X509Crl;
 import net.ripe.rpki.commons.crypto.crl.X509CrlBuilder;
 import net.ripe.rpki.domain.KeyPairEntity;
-import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.PublishedObject;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
+import net.ripe.rpki.domain.RevokedCertificateEntry;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
@@ -26,6 +26,7 @@ import jakarta.persistence.Table;
 import java.math.BigInteger;
 import java.net.URI;
 import java.util.Collection;
+import java.util.function.Function;
 
 import static net.ripe.rpki.domain.manifest.ManifestEntity.TIME_TO_NEXT_UPDATE_SOFT_LIMIT;
 
@@ -97,7 +98,7 @@ public class CrlEntity extends EntitySupport {
         }
     }
 
-    public boolean isUpdateNeeded(DateTime now, ResourceCertificateRepository resourceCertificateRepository) {
+    public boolean isUpdateNeeded(DateTime now, Function<KeyPairEntity, Collection<RevokedCertificateEntry>> revokedCertificates) {
         X509Crl current = getCrl();
         if (current == null) {
             return true;
@@ -111,10 +112,9 @@ public class CrlEntity extends EntitySupport {
             return true;
         }
 
-        Collection<OutgoingResourceCertificate> revokedCertificates = resourceCertificateRepository.findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(keyPair, now);
-        X509CrlBuilder builder = newCrlBuilderWithEntries(revokedCertificates);
+        X509CrlBuilder builder = newCrlBuilderWithEntries(revokedCertificates.apply(keyPair));
         return !builder.isSatisfiedByEntries(current);
-    }
+    }    
 
     private boolean isPublicationDirChanged(URI resourceCertificateRepository) {
         if (getPublishedObject() == null) {
@@ -125,9 +125,8 @@ public class CrlEntity extends EntitySupport {
         return !oldDirectory.equals(newDirectory);
     }
 
-    public void update(ValidityPeriod validityPeriod, ResourceCertificateRepository resourceCertificateRepository) {
-        Collection<OutgoingResourceCertificate> revokedCertificates = resourceCertificateRepository.findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(keyPair, validityPeriod.getNotValidBefore());
-        X509CrlBuilder builder = newCrlBuilderWithEntries(revokedCertificates);
+    public void update(ValidityPeriod validityPeriod, Function<KeyPairEntity, Collection<RevokedCertificateEntry>> revokedCertificates) {
+        var builder = newCrlBuilderWithEntries(revokedCertificates.apply(keyPair));
         builder.withAuthorityKeyIdentifier(keyPair.getPublicKey());
         builder.withIssuerDN(keyPair.getCurrentIncomingCertificate().getSubject());
         builder.withValidityPeriod(validityPeriod);
@@ -141,12 +140,11 @@ public class CrlEntity extends EntitySupport {
                 keyPair, keyPair.getCrlFilename(), encoded, true, keyPair.getCertificateRepositoryLocation(), validityPeriod, builder.getThisUpdateTime()));
     }
 
-    private X509CrlBuilder newCrlBuilderWithEntries(Collection<OutgoingResourceCertificate> revokedCertificates) {
-        X509CrlBuilder builder = new X509CrlBuilder();
-        for (OutgoingResourceCertificate certificate : revokedCertificates) {
-            builder.addEntry(certificate.getSerial(), certificate.getRevocationTime());
+    private X509CrlBuilder newCrlBuilderWithEntries(Collection<RevokedCertificateEntry> revokedCertificates) {
+        var builder = new X509CrlBuilder();
+        for (RevokedCertificateEntry entry : revokedCertificates) {
+            builder.addEntry(entry.serial(), entry.revocationTime());
         }
-
         return builder;
     }
 

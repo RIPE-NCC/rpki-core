@@ -16,16 +16,12 @@ public final class SingleUseKeyPairFactory implements Supplier<KeyPair> {
     private final KeyPairFactory keyPairFactory;
 
     public SingleUseKeyPairFactory() {
-        this.keyPairFactory = new KeyPairFactory(keyPairGeneratorProvider());
-    }
-
-    public SingleUseKeyPairFactory(KeyPairFactory keyPairFactory) {
-        this.keyPairFactory = keyPairFactory.withProvider(keyPairGeneratorProvider());
+        this.keyPairFactory = KeyPairFactory.withProvider(keyPairGeneratorProvider());
     }
 
     @Override
     public KeyPair get() {
-        return keyPairFactory.generate();
+        return keyPairFactory.generateRsa();
     }
 
     public String keyPairGeneratorProvider() {

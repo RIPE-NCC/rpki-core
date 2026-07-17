@@ -58,7 +58,7 @@ public class JdbcDBComponent implements DBComponent {
     }
 
     private Long lockCertificateAuthorityForMode(long caId, LockMode mode) {
-        log.debug("Attempting to lock CA (id = {}) for {}}", caId, mode);
+        log.debug("Attempting to lock CA (id = {}) for {}", caId, mode);
         try {
             // Row locks will keep processes that try to get an exclusive lock waiting indefinitely if other processes
             // keep acquiring a shared lock. This happens when we run some of our background services. So use an

@@ -2,7 +2,7 @@ package net.ripe.rpki.domain.manifest;
 
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCms;
-import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
+import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.security.KeyPair;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,10 +54,10 @@ public class ManifestEntityTest extends CertificationDomainTestCase {
         publishedObject2 = new PublishedObject(currentKeyPair, "foo.roa", new byte[]{5, 6, 7, 8}, true, PUBLICATION_DIRECTORY, new ValidityPeriod(start, end));
         initialEntries = Collections.singleton(publishedObject1);
 
-        eeKeyPair = PregeneratedKeyPairFactory.getInstance().generate();
+        eeKeyPair = KeyPairFactory.rsa().generate();
         CertificateIssuanceRequest request = subject.requestForManifestEeCertificate(eeKeyPair);
         ValidityPeriod validityPeriod = new ValidityPeriod(now, now.plus(ManifestPublicationService.TIME_TO_NEXT_UPDATE));
-        eeCertificate = singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, validityPeriod, currentKeyPair);
+        eeCertificate = certificateFactory.issueAndPersistSingleUseEeResourceCertificate(request, validityPeriod, currentKeyPair);
 
         subject.update(eeCertificate, eeKeyPair, "SunRsaSign", initialEntries);
     }

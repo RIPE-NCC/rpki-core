@@ -124,7 +124,9 @@ public class AbstractCaRestService extends RestService {
 
     @NonNull
     protected ResponseEntity<Object> badRequest(String error) {
-        return ResponseEntity.badRequest().body(bodyForError(error));
+        return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(bodyForError(error));
     }
 
     protected Map<String, String> bodyForError(String error) {

@@ -7,9 +7,12 @@ import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCms;
 import net.ripe.rpki.commons.crypto.crl.X509Crl;
 import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
-import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
+import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
-import net.ripe.rpki.domain.*;
+import net.ripe.rpki.domain.CertificationDomainTestCase;
+import net.ripe.rpki.domain.KeyPairEntity;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
+import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.crl.CrlEntity;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.roa.*;
@@ -29,10 +32,7 @@ import java.util.List;
 import static net.ripe.rpki.domain.manifest.ManifestPublicationService.RPKI_CA_GENERATED_CRL_SIZE_METRIC_NAME;
 import static net.ripe.rpki.domain.manifest.ManifestPublicationService.RPKI_CA_GENERATED_MANIFEST_SIZE_METRIC_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @Transactional
 @Rollback
@@ -112,8 +112,10 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
         entityManager.flush();
 
         URI uri = URI.create("rsync://localhost");
-        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ResourceExtension.allInherited(), new X500Principal("CN=test"), PregeneratedKeyPairFactory.getInstance().generate().getPublic(),  new X509CertificateInformationAccessDescriptor[]{new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_SIGNED_OBJECT, uri)});
-        OutgoingResourceCertificate outgoingResourceCertificate = singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, new ValidityPeriod(now, now.plusHours(10)), currentKeyPair);
+        CertificateIssuanceRequest request = new CertificateIssuanceRequest(ResourceExtension.allInherited(), new X500Principal("CN=test"),
+                KeyPairFactory.rsa().generate().getPublic(),
+                new X509CertificateInformationAccessDescriptor[]{new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_SIGNED_OBJECT, uri)});
+        OutgoingResourceCertificate outgoingResourceCertificate = certificateFactory.issueAndPersistSingleUseEeResourceCertificate(request, new ValidityPeriod(now, now.plusHours(10)), currentKeyPair);
         outgoingResourceCertificate.revoke();
 
         subject.updateManifestAndCrlIfNeeded(ca.getCurrentKeyPair());

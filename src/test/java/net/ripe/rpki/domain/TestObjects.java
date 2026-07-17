@@ -69,7 +69,9 @@ public class TestObjects {
     public static final ImmutableResourceSet TEST_RESOURCE_SET = ImmutableResourceSet.parse("10.0.0.0/16, AS21212");
     public static final ValidityPeriod TEST_VALIDITY_PERIOD = new ValidityPeriod(new DateTime(2008, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC), new DateTime(2009, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC));
     public static final X500Principal TEST_SELF_SIGNED_CERTIFICATE_NAME = new X500Principal("CN=For Testing Only, C=NL");
+
     public static final KeyPairEntity TEST_KEY_PAIR_2 = createTestKeyPair(KeyPairEntityTest.TEST_KEY_PAIR_NAME + "-2");
+
     public static final X509CertificateInformationAccessDescriptor[] EE_CERT_SIA = {
             new X509CertificateInformationAccessDescriptor(X509CertificateInformationAccessDescriptor.ID_AD_SIGNED_OBJECT, URI.create("rsync://example.com/rpki-rsync/signed-object.roa"))
     };
@@ -77,7 +79,7 @@ public class TestObjects {
     private static final AtomicLong serial = new AtomicLong(0L);
 
     public static KeyPairEntity createTestKeyPair(String name) {
-        KeyPairEntitySignInfo signInfo = new KeyPairEntitySignInfo(DEFAULT_KEYSTORE_PROVIDER,
+        var signInfo = new KeyPairEntitySignInfo(DEFAULT_KEYSTORE_PROVIDER,
                 DEFAULT_SIGNATURE_PROVIDER,
                 DEFAULT_KEYSTORE_TYPE);
         return new KeyPairEntity(KeyPairFactoryTest.getKeyPair(name), signInfo,

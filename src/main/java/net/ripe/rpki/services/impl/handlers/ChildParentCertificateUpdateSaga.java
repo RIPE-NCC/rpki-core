@@ -58,7 +58,7 @@ public class ChildParentCertificateUpdateSaga {
             boolean updated;
             if (request instanceof CertificateIssuanceRequest) {
                 final CertificateIssuanceResponse response = parentCa.processCertificateIssuanceRequest(
-                    childCa, (CertificateIssuanceRequest) request, resourceCertificateRepository, issuedCertificatesPerSignedKeyLimit
+                        childCa, (CertificateIssuanceRequest) request, resourceCertificateRepository, issuedCertificatesPerSignedKeyLimit
                 );
                 updated = childCa.processCertificateIssuanceResponse(response, resourceCertificateRepository);
             } else if (request instanceof CertificateRevocationRequest) {
@@ -87,7 +87,7 @@ public class ChildParentCertificateUpdateSaga {
         // lead to an invalid repository state.
         ImmutableResourceSet currentOutgoingChildCertificateResources = resourceCertificateRepository.findCurrentOutgoingChildCertificateResources(childCa.getName());
 
-        EnumSet<IpResourceType> childInheritedResourceTypes = maybeChildResources.map(ResourceExtension::getInheritedResourceTypes).orElse(EnumSet.noneOf(IpResourceType.class));
+        var childInheritedResourceTypes = maybeChildResources.map(ResourceExtension::getInheritedResourceTypes).orElse(EnumSet.noneOf(IpResourceType.class));
         for (IpResourceType inheritedResourceType : childInheritedResourceTypes) {
             // Inherited resources are never overclaiming due to parent-child invariant that the parent never removes resources
             // that are still on any outgoing child certificates.

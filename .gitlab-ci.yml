@@ -1,5 +1,5 @@
 default:
-  image: gradle:9.5-jdk21@sha256:f2796e317ff13e2d0e10b83bb4aed71721d51570b55829972a5d9d89a6e96381
+  image: gradle:9.6-jdk21@sha256:210bbd2656b56a7191a2e9e9f55e193f7a355f0c5565ac83984a5d1779dcdb74
   cache:
     key: "gradle-${CI_COMMIT_REF_SLUG}"
     fallback_keys:

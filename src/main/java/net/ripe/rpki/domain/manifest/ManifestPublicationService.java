@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.domain.*;
+import net.ripe.rpki.domain.bgpsec.BgpSecCertificateRepository;
 import net.ripe.rpki.domain.crl.CrlEntity;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
@@ -14,7 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.security.KeyPair;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 public class ManifestPublicationService {
@@ -27,31 +30,34 @@ public class ManifestPublicationService {
     public static final String RPKI_CA_GENERATED_CRL_SIZE_METRIC_NAME = "rpki.ca.generated.crl.size";
 
     private final ResourceCertificateRepository resourceCertificateRepository;
+    private final BgpSecCertificateRepository bgpSecCertificateRepository;
     private final PublishedObjectRepository publishedObjectRepository;
     private final CrlEntityRepository crlEntityRepository;
     private final ManifestEntityRepository manifestEntityRepository;
     private final SingleUseKeyPairFactory singleUseKeyPairFactory;
-    private final SingleUseEeCertificateFactory singleUseEeCertificateFactory;
+    private final CertificateFactory certificateFactory;
 
     private final DistributionSummary manifestSizeDistribution;
     private final DistributionSummary crlSizeDistribution;
 
     @Autowired
     public ManifestPublicationService(
-        ResourceCertificateRepository resourceCertificateRepository,
-        PublishedObjectRepository publishedObjectRepository,
-        CrlEntityRepository crlEntityRepository,
-        ManifestEntityRepository manifestEntityRepository,
-        SingleUseKeyPairFactory singleUseKeyPairFactory,
-        SingleUseEeCertificateFactory singleUseEeCertificateFactory,
-        MeterRegistry meterRegistry
+            ResourceCertificateRepository resourceCertificateRepository,
+            BgpSecCertificateRepository bgpSecCertificateRepository,
+            PublishedObjectRepository publishedObjectRepository,
+            CrlEntityRepository crlEntityRepository,
+            ManifestEntityRepository manifestEntityRepository,
+            SingleUseKeyPairFactory singleUseKeyPairFactory,
+            CertificateFactory certificateFactory,
+            MeterRegistry meterRegistry
     ) {
         this.resourceCertificateRepository = resourceCertificateRepository;
+        this.bgpSecCertificateRepository = bgpSecCertificateRepository;
         this.publishedObjectRepository = publishedObjectRepository;
         this.crlEntityRepository = crlEntityRepository;
         this.manifestEntityRepository = manifestEntityRepository;
         this.singleUseKeyPairFactory = singleUseKeyPairFactory;
-        this.singleUseEeCertificateFactory = singleUseEeCertificateFactory;
+        this.certificateFactory = certificateFactory;
         this.manifestSizeDistribution = DistributionSummary.builder(RPKI_CA_GENERATED_MANIFEST_SIZE_METRIC_NAME)
             .description("size in bytes of generated manifests")
             .baseUnit("byte")
@@ -95,7 +101,7 @@ public class ManifestPublicationService {
         CrlEntity crlEntity = crlEntityRepository.findOrCreateByKeyPair(keyPair);
         ManifestEntity manifestEntity = manifestEntityRepository.findOrCreateByKeyPairEntity(keyPair);
 
-        boolean updateNeeded = crlEntity.isUpdateNeeded(now, resourceCertificateRepository) || isManifestUpdateNeeded(now, manifestEntity);
+        boolean updateNeeded = crlEntity.isUpdateNeeded(now, kp -> getRevokedCertificates(kp, now)) || isManifestUpdateNeeded(now, manifestEntity);
         if (!updateNeeded) {
             return false;
         }
@@ -109,7 +115,7 @@ public class ManifestPublicationService {
         }
 
         // Issue the CRL before issuing the manifest, so that the new CRL will appear on the manifest.
-        crlEntity.update(validityPeriod, resourceCertificateRepository);
+        crlEntity.update(validityPeriod, kp -> getRevokedCertificates(kp, now));
         crlEntityRepository.add(crlEntity);
 
         // Issue the manifest with a one-time-use EE certificate. The validity times of the EE
@@ -127,6 +133,13 @@ public class ManifestPublicationService {
         return true;
     }
 
+    private Collection<RevokedCertificateEntry> getRevokedCertificates(KeyPairEntity keyPair, DateTime now) {
+        return Stream.concat(
+                resourceCertificateRepository.findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(keyPair, now).stream(),
+                bgpSecCertificateRepository.findRevokedCertificatesWithValidityTimeAfterNowBySigningKeyPair(keyPair, now).stream()
+        ).toList();
+    }
+
     private boolean isManifestUpdateNeeded(DateTime now, ManifestEntity manifestEntity) {
         KeyPairEntity keyPair = manifestEntity.getKeyPair();
         return manifestEntity.isUpdateNeeded(
@@ -140,7 +153,7 @@ public class ManifestPublicationService {
 
         KeyPair eeKeyPair = singleUseKeyPairFactory.get();
         CertificateIssuanceRequest request = manifestEntity.requestForManifestEeCertificate(eeKeyPair);
-        OutgoingResourceCertificate manifestCertificate = singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, validityPeriod, keyPair);
+        OutgoingResourceCertificate manifestCertificate = certificateFactory.issueAndPersistSingleUseEeResourceCertificate(request, validityPeriod, keyPair);
 
         List<PublishedObject> manifestEntries = determineManifestEntries(publishedObjectRepository, keyPair);
         manifestEntity.update(manifestCertificate, eeKeyPair, singleUseKeyPairFactory.signatureProvider(), manifestEntries);

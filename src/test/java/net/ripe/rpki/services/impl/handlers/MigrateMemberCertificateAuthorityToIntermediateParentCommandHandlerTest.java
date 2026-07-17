@@ -9,7 +9,7 @@ import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.ActivateHostedCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.CreateIntermediateCertificateAuthorityCommand;
 import net.ripe.rpki.server.api.commands.MigrateMemberCertificateAuthorityToIntermediateParentCommand;
-import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
+import net.ripe.rpki.server.api.dto.CertificateStatus;
 import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.junit.Before;
@@ -68,7 +68,7 @@ public class MigrateMemberCertificateAuthorityToIntermediateParentCommandHandler
             childCa.getCurrentIncomingCertificate().getSubjectPublicKey(),
             productionCa.getCurrentKeyPair()
         );
-        assertThat(childCaSignedByProductionCaCertificate.getStatus()).isEqualTo(OutgoingResourceCertificateStatus.CURRENT);
+        assertThat(childCaSignedByProductionCaCertificate.getStatus()).isEqualTo(CertificateStatus.CURRENT);
         assertThat(childCa.findCurrentIncomingResourceCertificate()).hasValueSatisfying(irc -> {
             URI publicationDirectory = CertificateInformationAccessUtil.extractPublicationDirectory(productionCa.getCurrentIncomingCertificate().getSia());
             assertThat(irc.getPublicationUri().toString()).startsWith(publicationDirectory.toString());
@@ -84,8 +84,8 @@ public class MigrateMemberCertificateAuthorityToIntermediateParentCommandHandler
             childCa.getCurrentIncomingCertificate().getSubjectPublicKey(),
             intermediateCa.getCurrentKeyPair()
         );
-        assertThat(childCaSignedByProductionCaCertificate.getStatus()).isEqualTo(OutgoingResourceCertificateStatus.REVOKED);
-        assertThat(childCaSignedByIntermediateCaCertificate.getStatus()).isEqualTo(OutgoingResourceCertificateStatus.CURRENT);
+        assertThat(childCaSignedByProductionCaCertificate.getStatus()).isEqualTo(CertificateStatus.REVOKED);
+        assertThat(childCaSignedByIntermediateCaCertificate.getStatus()).isEqualTo(CertificateStatus.CURRENT);
         assertThat(childCa.findCurrentIncomingResourceCertificate()).hasValueSatisfying(irc -> {
             URI publicationDirectory = CertificateInformationAccessUtil.extractPublicationDirectory(intermediateCa.getCurrentIncomingCertificate().getSia());
             assertThat(irc.getPublicationUri().toString()).startsWith(publicationDirectory.toString());

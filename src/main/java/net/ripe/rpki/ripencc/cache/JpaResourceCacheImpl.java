@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
+import net.ripe.rpki.server.api.dto.CertificateStatus;
 
 import javax.security.auth.x500.X500Principal;
 import java.time.Instant;
@@ -156,7 +156,7 @@ public class JpaResourceCacheImpl implements ResourceCache, DelegationsCache {
                 WHERE TYPE(ca) IN (HostedCertificateAuthority, ProductionCertificateAuthority)
                 AND (cached.resources <> rc.resourceExtension.resources OR rc.id IS NULL)
                 """, X500Principal.class)
-            .setParameter("currentStatus", OutgoingResourceCertificateStatus.CURRENT)
+            .setParameter("currentStatus", CertificateStatus.CURRENT)
             .getResultList();
     }
 

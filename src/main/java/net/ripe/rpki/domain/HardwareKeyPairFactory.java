@@ -15,11 +15,7 @@ public class HardwareKeyPairFactory implements Supplier<KeyPair> {
     private final CertificationProviderConfigurationData providerConfigurationData;
 
     public HardwareKeyPairFactory(CertificationProviderConfigurationData providerConfigurationData) {
-        this.keyPairFactory = new KeyPairFactory(providerConfigurationData.getKeyPairGeneratorProvider());
-        this.providerConfigurationData = providerConfigurationData;
-    }
-    public HardwareKeyPairFactory(CertificationProviderConfigurationData providerConfigurationData, KeyPairFactory keyPairFactory) {
-        this.keyPairFactory = keyPairFactory.withProvider(providerConfigurationData.getSignatureProvider());
+        this.keyPairFactory = KeyPairFactory.withProvider(providerConfigurationData.getSignatureProvider());
         this.providerConfigurationData = providerConfigurationData;
     }
 

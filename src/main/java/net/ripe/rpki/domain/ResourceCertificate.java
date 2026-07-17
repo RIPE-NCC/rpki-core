@@ -1,22 +1,21 @@
 package net.ripe.rpki.domain;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
+import lombok.Setter;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.rfc3779.ResourceExtension;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
-import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
-import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
-import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
+import net.ripe.rpki.commons.crypto.x509cert.*;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import net.ripe.rpki.server.api.dto.ResourceCertificateData;
 import org.apache.commons.lang.Validate;
 import org.joda.time.DateTime;
 
-import jakarta.persistence.*;
 import javax.security.auth.x500.X500Principal;
-import jakarta.validation.constraints.NotNull;
 import java.math.BigInteger;
 import java.net.URI;
 import java.security.PublicKey;
@@ -29,9 +28,9 @@ import static java.util.Objects.requireNonNull;
  */
 @Entity
 @Table(name = "resourcecertificate")
-@Inheritance(strategy=InheritanceType.SINGLE_TABLE)
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "TYPE")
-@SequenceGenerator(name = "seq_resourcecertificate", sequenceName = "seq_all", allocationSize=1)
+@SequenceGenerator(name = "seq_resourcecertificate", sequenceName = "seq_all", allocationSize = 1)
 public abstract class ResourceCertificate extends EntitySupport {
 
     @Id
@@ -80,6 +79,7 @@ public abstract class ResourceCertificate extends EntitySupport {
 
     @Column(name = "publicationuri", nullable = true)
     @Getter
+    @Setter
     private URI publicationUri;
 
     protected ResourceCertificate() {
@@ -144,7 +144,10 @@ public abstract class ResourceCertificate extends EntitySupport {
     }
 
     public X509ResourceCertificate getCertificate() {
-        X509ResourceCertificateParser parser = new X509ResourceCertificateParser();
+        return parseCert(new X509ResourceCertificateParser());
+    }
+
+    protected <T extends AbstractX509CertificateWrapper> T parseCert(X509CertificateParser<T> parser) {
         parser.parse(ValidationResult.withLocation("cert-id_" + id), encoded);
         return parser.getCertificate();
     }
@@ -165,9 +168,6 @@ public abstract class ResourceCertificate extends EntitySupport {
         return getCertificate().getCrlDistributionPoints();
     }
 
-    public void setPublicationUri(URI publicationUri) {
-        this.publicationUri = requireNonNull(publicationUri);
-    }
 
     public ResourceCertificateData toData() {
         return new ResourceCertificateData(getCertificate(), getPublicationUri());

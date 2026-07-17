@@ -142,18 +142,20 @@ public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject>
     @Override
     public int deleteExpiredObjects(DateTime expirationTime) {
         Validate.isTrue(expirationTime.isBeforeNow(), "expiration time must be in the past");
-        return createQuery(
-            "DELETE FROM PublishedObject po " +
-                "WHERE po.status = :withdrawn " +
-                "  AND po.validityPeriod.notValidAfter < :expirationTime" +
-                "  AND NOT EXISTS (FROM OutgoingResourceCertificate rc WHERE rc.publishedObject = po)" +
-                "  AND NOT EXISTS (FROM CrlEntity crl WHERE crl.publishedObject = po) " +
-                "  AND NOT EXISTS (FROM ManifestEntity mft WHERE mft.publishedObject = po) " +
-                "  AND NOT EXISTS (FROM RoaEntity roa WHERE roa.publishedObject = po)" +
-                "  AND NOT EXISTS (FROM AspaEntity aspa WHERE aspa.publishedObject = po)")
-            .setParameter("withdrawn", PublicationStatus.WITHDRAWN)
-            .setParameter("expirationTime", expirationTime)
-            .executeUpdate();
+        return createQuery("""
+                DELETE FROM PublishedObject po
+                WHERE po.status = :withdrawn
+                  AND po.validityPeriod.notValidAfter < :expirationTime
+                  AND NOT EXISTS (FROM OutgoingResourceCertificate rc WHERE rc.publishedObject = po)
+                  AND NOT EXISTS (FROM CrlEntity crl WHERE crl.publishedObject = po)
+                  AND NOT EXISTS (FROM ManifestEntity mft WHERE mft.publishedObject = po)
+                  AND NOT EXISTS (FROM RoaEntity roa WHERE roa.publishedObject = po)
+                  AND NOT EXISTS (FROM AspaEntity aspa WHERE aspa.publishedObject = po)
+                  AND NOT EXISTS (FROM BgpSecEntity bgpsec WHERE bgpsec.publishedObject = po)
+                """)
+                .setParameter("withdrawn", PublicationStatus.WITHDRAWN)
+                .setParameter("expirationTime", expirationTime)
+                .executeUpdate();
     }
 
     @Override

@@ -1,6 +1,5 @@
 package net.ripe.rpki;
 
-import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.domain.CertificationProviderConfigurationData;
 import net.ripe.rpki.domain.HardwareKeyPairFactory;
 import net.ripe.rpki.domain.SingleUseKeyPairFactory;
@@ -26,12 +25,12 @@ public class TestRpkiBootApplication {
 
     @Bean
     public HardwareKeyPairFactory hardwareKeyPairFactory(CertificationProviderConfigurationData certificationProviderConfigurationData) {
-        return new HardwareKeyPairFactory(certificationProviderConfigurationData, PregeneratedKeyPairFactory.getInstance());
+        return new HardwareKeyPairFactory(certificationProviderConfigurationData);
     }
 
     @Bean
     public SingleUseKeyPairFactory singleUseKeyPairFactory() {
-        return new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance());
+        return new SingleUseKeyPairFactory();
     }
 
     @Bean

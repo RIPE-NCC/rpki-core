@@ -1,6 +1,8 @@
 package net.ripe.rpki.domain;
 
+import net.ripe.ipresource.Asn;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
+import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
@@ -20,7 +22,11 @@ public interface ResourceCertificateInformationAccessStrategy {
 
     URI defaultCertificateRepositoryLocation(ManagedCertificateAuthority ca, String resourceClassName);
 
-    String roaFilename(OutgoingResourceCertificate endEntityCertificate);
+    String roaFilename(OutgoingResourceCertificate eeCertificate);
 
-    String aspaFilename(OutgoingResourceCertificate endEntityCertificate);
+    String aspaFilename(OutgoingResourceCertificate eeCertificate);
+
+    String bgpSecFilename(X509ResourceCertificate eeCertificate, Asn asn, Long routerId);
+
+    X500Principal bgpSecCertificateSubject(Asn asn, Long routerId);
 }

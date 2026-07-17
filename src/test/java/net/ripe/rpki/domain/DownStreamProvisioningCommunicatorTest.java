@@ -1,8 +1,8 @@
 package net.ripe.rpki.domain;
 
+import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest;
 import net.ripe.rpki.commons.crypto.util.KeyStoreUtilTest;
-import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
 import net.ripe.rpki.commons.provisioning.ProvisioningObjectMother;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
 import net.ripe.rpki.commons.provisioning.payload.AbstractProvisioningPayload;
@@ -28,7 +28,10 @@ public class DownStreamProvisioningCommunicatorTest {
     @Before
     public void setUp() {
         expectedKeyPair = KeyPairFactoryTest.TEST_KEY_PAIR;
-        KeyPairEntitySignInfo signInfo = new KeyPairEntitySignInfo(KeyStoreUtilTest.DEFAULT_KEYSTORE_PROVIDER, KeyPairFactoryTest.DEFAULT_KEYPAIR_GENERATOR_PROVIDER, KeyStoreUtilTest.DEFAULT_KEYSTORE_TYPE);
+        KeyPairEntitySignInfo signInfo = new KeyPairEntitySignInfo(
+                KeyStoreUtilTest.DEFAULT_KEYSTORE_PROVIDER,
+                KeyPairFactory.DEFAULT_RSA_KEYPAIR_GENERATOR_PROVIDER,
+                KeyStoreUtilTest.DEFAULT_KEYSTORE_TYPE);
 
         subject = new DownStreamProvisioningCommunicator(expectedKeyPair, signInfo, ID_CERT_SUBJECT);
     }
@@ -59,7 +62,7 @@ public class DownStreamProvisioningCommunicatorTest {
     public void shouldCreateResponseCmsObjectForPayload() {
         // Note the communicator does not care about the payload, so using the cheap to make resource class list query payload here.
         ProvisioningCmsObject responseObject = subject.createProvisioningCmsResponseObject(
-            new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance()),
+            new SingleUseKeyPairFactory(),
             ProvisioningObjectMother.RESOURCE_CLASS_LIST_QUERY_PAYLOAD
         );
 

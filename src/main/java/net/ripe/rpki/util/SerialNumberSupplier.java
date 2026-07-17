@@ -11,7 +11,7 @@ public final class SerialNumberSupplier implements Supplier<BigInteger> {
     public static final int SERIAL_RANDOM_BITS = 8 * 12;
     private static final SerialNumberSupplier INSTANCE = new SerialNumberSupplier();
 
-    private SecureRandom secureRandom = new SecureRandom();
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public static SerialNumberSupplier getInstance() {
         return INSTANCE;

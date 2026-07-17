@@ -65,7 +65,7 @@ public class ChildCertificateSignerTest {
         OutgoingResourceCertificate resourceCertificate = subject.buildOutgoingResourceCertificate(TEST_REQUEST, validityPeriod, SIGNING_KEY_PAIR);
 
         AuthorityKeyIdentifier expectedAki = BouncyCastleUtil.createAuthorityKeyIdentifier(SIGNING_KEY_PAIR.getPublicKey());
-        assertArrayEquals(expectedAki.getKeyIdentifier(), resourceCertificate.getCertificate().getAuthorityKeyIdentifier());
+        assertArrayEquals(expectedAki.getKeyIdentifierOctets(), resourceCertificate.getCertificate().getAuthorityKeyIdentifier());
     }
 
     @Test

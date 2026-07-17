@@ -1,9 +1,11 @@
 package net.ripe.rpki.domain;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import jakarta.inject.Named;
+import jakarta.persistence.EntityManager;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.TestRpkiBootApplication;
-import net.ripe.rpki.commons.crypto.util.PregeneratedKeyPairFactory;
+import net.ripe.rpki.domain.bgpsec.BgpSecCertificateRepository;
 import net.ripe.rpki.domain.crl.CrlEntityRepository;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
@@ -25,8 +27,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import jakarta.inject.Named;
-import jakarta.persistence.EntityManager;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -51,11 +51,14 @@ public abstract class CertificationDomainTestCase {
     protected ResourceCertificateRepository resourceCertificateRepository;
 
     @Autowired
+    protected BgpSecCertificateRepository bgpSecCertificateRepository;
+
+    @Autowired
     @Named("jpaCertificateAuthorityRepository")
     protected CertificateAuthorityRepository certificateAuthorityRepository;
 
     @Autowired
-    protected SingleUseEeCertificateFactory singleUseEeCertificateFactory;
+    protected CertificateFactory certificateFactory;
 
     protected ManifestPublicationService manifestPublicationService;
 
@@ -77,7 +80,7 @@ public abstract class CertificationDomainTestCase {
     @Autowired
     protected KeyPairService keyPairService;
 
-    protected SingleUseKeyPairFactory singleUseKeyPairFactory = new SingleUseKeyPairFactory(PregeneratedKeyPairFactory.getInstance());
+    protected SingleUseKeyPairFactory singleUseKeyPairFactory = new SingleUseKeyPairFactory();
 
     @Autowired
     protected TransactionTemplate transactionTemplate;
@@ -95,11 +98,12 @@ public abstract class CertificationDomainTestCase {
         meterRegistry = new SimpleMeterRegistry();
         manifestPublicationService = new ManifestPublicationService(
             resourceCertificateRepository,
+            bgpSecCertificateRepository,
             publishedObjectRepository,
             crlEntityRepository,
             manifestEntityRepository,
             singleUseKeyPairFactory,
-            singleUseEeCertificateFactory,
+            certificateFactory,
             meterRegistry
         );
         Environment.load();
@@ -161,6 +165,10 @@ public abstract class CertificationDomainTestCase {
 
     protected <T> T withTx(Supplier<T> c) {
         return transactionTemplate.execute(transactionStatus -> c.get());
+    }
+
+    protected void withTx_(Runnable r) {
+        transactionTemplate.executeWithoutResult(transactionStatus -> r.run());
     }
 
     protected CommandStatus execute(CertificateAuthorityCommand command) {

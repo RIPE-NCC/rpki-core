@@ -8,9 +8,8 @@ import net.ripe.ipresource.IpRange;
 import net.ripe.rpki.commons.util.VersionedId;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.roa.RoaEntityRepository;
-import net.ripe.rpki.domain.roa.RoaEntityService;
 import net.ripe.rpki.server.api.commands.*;
-import net.ripe.rpki.server.api.dto.OutgoingResourceCertificateStatus;
+import net.ripe.rpki.server.api.dto.CertificateStatus;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.ports.ResourceCache;
 import net.ripe.rpki.server.api.support.objects.CaName;
@@ -39,14 +38,11 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
     private RoaEntityRepository roaEntityRepository;
 
     @Inject
-    private RoaEntityService roaEntityService;
-
-    @Inject
     private ResourceCache resourceCache;
 
     @Before
     public void setUp() {
-        transactionTemplate.executeWithoutResult((status) -> clearDatabase());
+        transactionTemplate.executeWithoutResult(status -> clearDatabase());
     }
 
     @Test
@@ -59,7 +55,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
 
     @Test
     public void outgoing_resource_certificate_should_change_to_expired_after_not_valid_after_timestamp() {
-        ManagedCertificateAuthority ca = withTx(() -> createInitialisedProdCaWithRipeResources());
+        ManagedCertificateAuthority ca = withTx(this::createInitialisedProdCaWithRipeResources);
         commandService.execute(new UpdateRoaConfigurationCommand(
             ca.getVersionedId(),
             Optional.empty(),
@@ -70,7 +66,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
         // CA certificate, EE certificate for ROA, EE certificate for manifest
         assertThat(subject.findAllBySigningKeyPair(ca.getCurrentKeyPair()))
             .hasSize(3)
-            .allSatisfy(cert -> assertThat(cert.getStatus()).isEqualTo(OutgoingResourceCertificateStatus.CURRENT));
+            .allSatisfy(cert -> assertThat(cert.getStatus()).isEqualTo(CertificateStatus.CURRENT));
 
         // ROA
         assertThat(roaEntityRepository.findAll()).hasSize(1);
@@ -80,7 +76,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
             .hasSize(4)
             .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.PUBLISHED));
 
-        transactionTemplate.executeWithoutResult((status) -> {
+        transactionTemplate.executeWithoutResult(status -> {
             // Nothing to expire, so nothing changes.
             DateTime now = new DateTime(DateTimeZone.UTC);
             ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult expired = subject.expireOutgoingResourceCertificates(now);
@@ -93,7 +89,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
                 .hasSize(3)
                 .allSatisfy(cert -> {
                     assertThat(cert.getNotValidAfter()).isGreaterThanOrEqualTo(now);
-                    assertThat(cert.getStatus()).isEqualTo(OutgoingResourceCertificateStatus.CURRENT);
+                    assertThat(cert.getStatus()).isEqualTo(CertificateStatus.CURRENT);
                 });
             assertThat(roaEntityRepository.findAll()).hasSize(1);
             assertThat(publishedObjectRepository.findAll())
@@ -101,7 +97,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
                 .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.PUBLISHED));
         });
 
-        transactionTemplate.executeWithoutResult((status) -> {
+        transactionTemplate.executeWithoutResult(status -> {
             // Outgoing resource certificates expire, ROA gets deleted, published objects withdrawn
             DateTime afterValidity = new DateTime(DateTimeZone.UTC).plusYears(2);
             ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult expired = subject.expireOutgoingResourceCertificates(afterValidity);
@@ -114,7 +110,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
                 .hasSize(3)
                 .allSatisfy(cert -> {
                     assertThat(cert.getNotValidAfter()).isLessThan(afterValidity);
-                    assertThat(cert.getStatus()).isEqualTo(OutgoingResourceCertificateStatus.EXPIRED);
+                    assertThat(cert.getStatus()).isEqualTo(CertificateStatus.EXPIRED);
                 });
             assertThat(roaEntityRepository.findAll()).isEmpty();
             assertThat(publishedObjectRepository.findAll())
@@ -122,7 +118,7 @@ public class JpaResourceCertificateRepositoryTest extends CertificationDomainTes
                 .allSatisfy(po -> assertThat(po.getStatus()).isEqualTo(PublicationStatus.TO_BE_WITHDRAWN));
         });
 
-        transactionTemplate.executeWithoutResult((status) -> {
+        transactionTemplate.executeWithoutResult(status -> {
             // Running the expiration again should not have any affect
             DateTime afterValidity = new DateTime(DateTimeZone.UTC).plusYears(2);
             ResourceCertificateRepository.ExpireOutgoingResourceCertificatesResult expired = subject.expireOutgoingResourceCertificates(afterValidity);

@@ -1,6 +1,8 @@
 package net.ripe.rpki.domain.naming;
 
 import com.google.common.collect.ImmutableSet;
+import net.ripe.ipresource.Asn;
+import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 
 import javax.security.auth.x500.X500Principal;
@@ -40,4 +42,8 @@ public interface RepositoryObjectNamingStrategy extends Serializable {
     X500Principal caCertificateSubject(PublicKey subjectKey);
 
     X500Principal eeCertificateSubject(PublicKey subjectPublicKey);
+
+    String bgpSecFilename(X509ResourceCertificate certificate, Asn asn, Long routerId);
+
+    X500Principal bgpSecCertificateSubject(Asn asn, Long routerId);
 }

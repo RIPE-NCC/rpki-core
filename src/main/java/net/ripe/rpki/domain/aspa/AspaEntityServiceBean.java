@@ -24,7 +24,7 @@ import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import net.ripe.rpki.domain.ResourceCertificateInformationAccessStrategy;
-import net.ripe.rpki.domain.SingleUseEeCertificateFactory;
+import net.ripe.rpki.domain.CertificateFactory;
 import net.ripe.rpki.domain.SingleUseKeyPairFactory;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.naming.RepositoryObjectNamingStrategy;
@@ -54,7 +54,7 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
     private final AspaConfigurationRepository aspaConfigurationRepository;
     private final AspaEntityRepository aspaEntityRepository;
     private final SingleUseKeyPairFactory singleUseKeyPairFactory;
-    private final SingleUseEeCertificateFactory singleUseEeCertificateFactory;
+    private final CertificateFactory certificateFactory;
     private final ResourceCertificateInformationAccessStrategy informationAccessStrategy = new ResourceCertificateInformationAccessStrategyBean();
 
     @Inject
@@ -63,13 +63,13 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
         AspaConfigurationRepository aspaConfigurationRepository,
         AspaEntityRepository aspaEntityRepository,
         SingleUseKeyPairFactory singleUseKeyPairFactory,
-        SingleUseEeCertificateFactory singleUseEeCertificateFactory
+        CertificateFactory certificateFactory
     ) {
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.aspaConfigurationRepository = aspaConfigurationRepository;
         this.aspaEntityRepository = aspaEntityRepository;
         this.singleUseKeyPairFactory = singleUseKeyPairFactory;
-        this.singleUseEeCertificateFactory = singleUseEeCertificateFactory;
+        this.certificateFactory = certificateFactory;
     }
 
     @Override
@@ -224,7 +224,8 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
         ValidityPeriod validityPeriod = new ValidityPeriod(now, incomingResourceCertificate.getNotValidAfter());
 
         KeyPair eeKeyPair = singleUseKeyPairFactory.get();
-        OutgoingResourceCertificate endEntityCertificate = createEndEntityCertificate(aspaConfiguration.getCustomerAsn(), validityPeriod, eeKeyPair, currentKeyPair);
+        OutgoingResourceCertificate endEntityCertificate = createEndEntityCertificate(
+                aspaConfiguration.getCustomerAsn(), validityPeriod, eeKeyPair, currentKeyPair);
 
         AspaCms aspaCms = generateAspaCms(aspaConfiguration, eeKeyPair, endEntityCertificate.getCertificate());
         URI publicationDirectory = CertificateInformationAccessUtil.extractPublicationDirectory(
@@ -237,7 +238,7 @@ public class AspaEntityServiceBean implements AspaEntityService, CertificateAuth
         Asn customerAsn, ValidityPeriod validityPeriod, KeyPair eeKeyPair, KeyPairEntity signingKeyPair
     ) {
         CertificateIssuanceRequest request = requestEeCertificate(customerAsn, signingKeyPair, eeKeyPair);
-        return singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(
+        return certificateFactory.issueAndPersistSingleUseEeResourceCertificate(
             request, validityPeriod, signingKeyPair);
     }
 

@@ -107,10 +107,10 @@ public class DeleteCertificateAuthorityCommandHandlerTest {
     }
 
     private NonHostedCertificateAuthority getNonHostedCertificateAuthority() throws RpkiCaCertificateRequestParserException {
-        KeyPair identityKeyPair = new KeyPairFactory(X509CertificateBuilderHelper.DEFAULT_SIGNATURE_PROVIDER).generate();
+        KeyPair identityKeyPair = KeyPairFactory.withProvider(X509CertificateBuilderHelper.DEFAULT_SIGNATURE_PROVIDER).generate();
 
         ProvisioningIdentityCertificateBuilder builder = new ProvisioningIdentityCertificateBuilder();
-        builder.withSelfSigningKeyPair(new KeyPairFactory(X509CertificateBuilderHelper.DEFAULT_SIGNATURE_PROVIDER).generate());
+        builder.withSelfSigningKeyPair(KeyPairFactory.withProvider(X509CertificateBuilderHelper.DEFAULT_SIGNATURE_PROVIDER).generate());
         builder.withSelfSigningSubject(new X500Principal("CN=" + KeyPairUtil.getAsciiHexEncodedPublicKeyHash(identityKeyPair.getPublic())));
         ProvisioningIdentityCertificate identityCertificate = builder.build();
 

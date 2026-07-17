@@ -2,12 +2,14 @@ package net.ripe.rpki.services.impl.background;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.core.services.background.BackgroundTaskRunner;
 import net.ripe.rpki.core.services.background.ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode;
 import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.PublishedObjectRepository;
 import net.ripe.rpki.domain.ResourceCertificateRepository;
+import net.ripe.rpki.domain.bgpsec.BgpSecCertificateRepository;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.springframework.stereotype.Service;
@@ -28,8 +30,11 @@ public class PublishedObjectCleanUpServiceBean extends ConcurrentBackgroundServi
     private final CertificateAuthorityRepository certificateAuthorityRepository;
     private final PublishedObjectRepository publishedObjectRepository;
     private final ResourceCertificateRepository resourceCertificateRepository;
+    private final BgpSecCertificateRepository bgpSecCertificateRepository;
+    private final ExpirationCounters expirationCounters;
     private final Counter deletedNonHostedPublicKeysCounter;
 
+    @Setter
     private int daysBeforeCleanUp = 2;
 
     @Inject
@@ -37,12 +42,16 @@ public class PublishedObjectCleanUpServiceBean extends ConcurrentBackgroundServi
                                              CertificateAuthorityRepository certificateAuthorityRepository,
                                              PublishedObjectRepository publishedObjectRepository,
                                              ResourceCertificateRepository resourceCertificateRepository,
+                                             BgpSecCertificateRepository bgpSecCertificateRepository,
+                                             ExpirationCounters expirationCounters,
                                              PlatformTransactionManager transactionManager,
                                              MeterRegistry meterRegistry) {
         super(backgroundTaskRunner);
         this.publishedObjectRepository = publishedObjectRepository;
         this.certificateAuthorityRepository = certificateAuthorityRepository;
         this.resourceCertificateRepository = resourceCertificateRepository;
+        this.bgpSecCertificateRepository = bgpSecCertificateRepository;
+        this.expirationCounters = expirationCounters;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
 
         this.deletedNonHostedPublicKeysCounter = Counter.builder("rpkicore.deleted.non.hosted.public.keys.without.signing.cert")
@@ -55,7 +64,11 @@ public class PublishedObjectCleanUpServiceBean extends ConcurrentBackgroundServi
         DateTime expirationTime = new DateTime(DateTimeZone.UTC).minusDays(daysBeforeCleanUp);
         transactionTemplate.executeWithoutResult((status) -> {
             int certificateCount = resourceCertificateRepository.deleteExpiredOutgoingResourceCertificates(expirationTime);
-            log.info("Deleted {} expired certificates with not valid after before {}", certificateCount, expirationTime);
+            log.info("Deleted {} expired resource certificates with not valid after before {}", certificateCount, expirationTime);
+
+            int bgpSecCertificateCount = bgpSecCertificateRepository.deleteExpiredBgpSecCertificates(expirationTime);
+            expirationCounters.getDeletedBgpSecCertificatesCounter().increment(bgpSecCertificateCount);
+            log.info("Deleted {} expired BGPSec certificates with not valid after before {}", bgpSecCertificateCount, expirationTime);
 
             int publishedObjectCount = publishedObjectRepository.deleteExpiredObjects(expirationTime);
             log.info("Deleted {} withdrawn published objects with not valid after before {}", publishedObjectCount, expirationTime);
@@ -71,7 +84,4 @@ public class PublishedObjectCleanUpServiceBean extends ConcurrentBackgroundServi
         return "Published Object clean up service";
     }
 
-    public void setDaysBeforeCleanUp(int daysBeforeCleanUp) {
-        this.daysBeforeCleanUp = daysBeforeCleanUp;
-    }
 }

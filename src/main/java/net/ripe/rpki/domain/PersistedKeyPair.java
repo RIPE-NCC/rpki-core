@@ -32,9 +32,9 @@ public class PersistedKeyPair {
     protected PersistedKeyPair() {}
 
     public PersistedKeyPair(KeyPair keyPair, KeyPairEntitySignInfo signInfo) {
-        this.keyStoreProvider = signInfo.getKeyStoreProvider();
-        this.signatureProvider = signInfo.getSignatureProvider();
-        this.keyStoreType = signInfo.getKeyStoreType();
+        this.keyStoreProvider = signInfo.keyStoreProvider();
+        this.signatureProvider = signInfo.signatureProvider();
+        this.keyStoreType = signInfo.keyStoreType();
 
         // Must be done after provider has been set!
         setKeyPair(keyPair);

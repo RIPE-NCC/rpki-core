@@ -111,13 +111,13 @@ public class CryptoChecker {
         // invent an artificial certificate here and try to sign it
         final DateTime now = new DateTime(DateTimeZone.UTC);
         final URI uri = URI.create("rsync://localhost");
-        final KeyPairFactory keyPairFactory = new KeyPairFactory(providerConfigurationData.getKeyPairGeneratorProvider());
+        final KeyPairFactory keyPairFactory = KeyPairFactory.withProvider(providerConfigurationData.getKeyPairGeneratorProvider());
 
         return new ResourceCertificateBuilder()
             .withSubjectDN(new X500Principal("CN=zz.subject"))
             .withIssuerDN(new X500Principal("CN=zz.issuer"))
             .withSerial(BigInteger.ONE)
-            .withSubjectPublicKey(keyPairFactory.generate().getPublic())
+            .withSubjectPublicKey(keyPairFactory.generateRsa().getPublic())
             .withSigningKeyPair(keyPair)
             .withValidityPeriod(new ValidityPeriod(now, new DateTime(now.getYear() + 1, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC)))
             .withResources(ImmutableResourceSet.parse("10/8"))

@@ -53,7 +53,7 @@ public class ProductionCertificateAuthorityTest extends CertificationDomainTestC
         kp.updateIncomingResourceCertificate(new CertificateIssuanceResponse(currentCertificate.getCertificate(), currentCertificate.getPublicationUri()));
 
         CertificateIssuanceRequest request = new CertificateIssuanceRequest(ResourceExtension.ofResources(ImmutableResourceSet.parse("11.0.0.0/8")), new X500Principal("CN=test"), kp.getPublicKey(), createSia());
-        singleUseEeCertificateFactory.issueSingleUseEeResourceCertificate(request, TEST_VALIDITY_PERIOD, prodCa.getCurrentKeyPair());
+        certificateFactory.issueAndPersistSingleUseEeResourceCertificate(request, TEST_VALIDITY_PERIOD, prodCa.getCurrentKeyPair());
     }
 
     @Test(expected = IllegalArgumentException.class)

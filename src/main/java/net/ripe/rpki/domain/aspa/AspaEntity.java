@@ -56,7 +56,8 @@ public class AspaEntity extends EntitySupport {
         Validate.notNull(aspaCms);
         this.certificate = eeCertificate;
         this.publishedObject = new PublishedObject(
-                eeCertificate.getSigningKeyPair(), filename, aspaCms.getEncoded(), true, directory, aspaCms.getValidityPeriod(), aspaCms.getSigningTime());
+                eeCertificate.getSigningKeyPair(), filename, aspaCms.getEncoded(), true,
+                directory, aspaCms.getValidityPeriod(), aspaCms.getSigningTime());
         this.profileVersion = profileVersion;
     }
 

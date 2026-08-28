@@ -1,5 +1,7 @@
 package net.ripe.rpki.ripencc.provisioning;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
 import net.ripe.rpki.commons.provisioning.payload.list.request.ResourceClassListQueryPayloadBuilder;
 import net.ripe.rpki.commons.provisioning.payload.revocation.request.CertificateRevocationRequestPayloadBuilder;
@@ -8,11 +10,10 @@ import net.ripe.rpki.server.api.dto.ProvisioningAuditData;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -20,23 +21,20 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProvisioningAuditLogServiceBeanTest {
 
     private ProvisioningAuditLogServiceBean provisioningAuditLogServiceBean;
 
+    @Mock
     private EntityManager entityManager;
 
     private static final UUID TEST_USER_UUID = UUID.fromString("6e80bc78-7f56-407a-be41-3d3f76af2919");
 
     @Before
     public void setUp() {
-        entityManager = mock(EntityManager.class);
         provisioningAuditLogServiceBean = new ProvisioningAuditLogServiceBean(entityManager);
     }
 
@@ -67,7 +65,6 @@ public class ProvisioningAuditLogServiceBeanTest {
         ProvisioningAuditLogEntity logEntity = Mockito.spy(new ProvisioningAuditLogEntity(cms, "principal", TEST_USER_UUID));
         final byte[] request = "<?xml version='1.0' encoding='UTF-8'?><bla></bla>".getBytes(StandardCharsets.UTF_8);
         provisioningAuditLogServiceBean.log(logEntity, request);
-        verify(logEntity, times(2)).getRequestMessageType();
         verify(logEntity, times(1)).getEntryUuid();
         verify(logEntity, times(1)).getPrincipal();
         verify(logEntity, times(1)).getSummary();
@@ -75,7 +72,7 @@ public class ProvisioningAuditLogServiceBeanTest {
         verify(logEntity, times(1)).getProvisioningCmsObject();
         verify(logEntity, times(1)).getNonHostedCaUUID();
         verify(logEntity, times(0)).getId();
-        verify(entityManager, times(0)).persist(any(ProvisioningAuditLogEntity.class));
+        verify(entityManager, never()).persist(any(ProvisioningAuditLogEntity.class));
     }
 
     @Test
@@ -86,7 +83,6 @@ public class ProvisioningAuditLogServiceBeanTest {
         ProvisioningAuditLogEntity logEntity = Mockito.spy(new ProvisioningAuditLogEntity(cms, "principal", TEST_USER_UUID));
         final byte[] request = "<?xml version='1.0' encoding='UTF-8'?><bla></bla>".getBytes(StandardCharsets.UTF_8);
         provisioningAuditLogServiceBean.log(logEntity, request);
-        verify(logEntity, times(2)).getRequestMessageType();
         verify(logEntity, times(1)).getEntryUuid();
         verify(logEntity, times(1)).getPrincipal();
         verify(logEntity, times(1)).getSummary();

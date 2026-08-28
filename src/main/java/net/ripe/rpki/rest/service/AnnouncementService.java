@@ -19,6 +19,7 @@ import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationData;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
+import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
@@ -50,7 +51,7 @@ import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 @Slf4j
 @Scope("prototype")
 @RestController
-@RequestMapping(path = API_URL_PREFIX + "/{caName}/announcements", produces = { APPLICATION_JSON })
+@RequestMapping(path = API_URL_PREFIX + "/{caName}/announcements", produces = {APPLICATION_JSON})
 @Tag(name = "/ca/{caName}/announcements", description = "View of CA announcements")
 public class AnnouncementService extends AbstractCaRestService {
     private final BgpRisEntryViewService bgpRisEntryViewService;
@@ -60,7 +61,9 @@ public class AnnouncementService extends AbstractCaRestService {
     @Autowired
     public AnnouncementService(BgpRisEntryViewService bgpRisEntryViewService,
                                RoaViewService roaViewService,
-                               RoaAlertConfigurationViewService roaAlertConfigurationViewService) {
+                               RoaAlertConfigurationViewService roaAlertConfigurationViewService,
+                               CertificateAuthorityViewService certificateAuthorityViewService) {
+        super(certificateAuthorityViewService);
         this.bgpRisEntryViewService = bgpRisEntryViewService;
         this.roaViewService = roaViewService;
         this.roaAlertConfigurationViewService = roaAlertConfigurationViewService;
@@ -152,7 +155,7 @@ public class AnnouncementService extends AbstractCaRestService {
         final IpRange roaPrefix = IpRange.parse(roa.getPrefix());
 
         final Map<Boolean, Collection<BgpRisEntry>> announcements = bgpRisEntryViewService.
-            findMostSpecificContainedAndNotContained(certifiedResources);
+                findMostSpecificContainedAndNotContained(certifiedResources);
         final RoaConfigurationData roaConfiguration = roaViewService.getRoaConfiguration(ca.getId());
         final Set<AnnouncedRoute> ignoredAnnouncements = Utils.getIgnoredAnnouncements(roaAlertConfigurationViewService, ca.getId());
 
@@ -167,11 +170,16 @@ public class AnnouncementService extends AbstractCaRestService {
     public static final String NO_OVERLAP_WITH_RIS = "no-overlap-with-ris";
 
     public interface AnnouncementResponse {
-        record Problem(String emptyAnnouncementsReason) implements AnnouncementResponse {}
-        record ProblemWithTimestamp(String emptyAnnouncementsReason, Instant lastUpdated) implements AnnouncementResponse {}
+        record Problem(String emptyAnnouncementsReason) implements AnnouncementResponse {
+        }
+
+        record ProblemWithTimestamp(String emptyAnnouncementsReason,
+                                    Instant lastUpdated) implements AnnouncementResponse {
+        }
 
         record Announcements(List<BgpAnnouncement> announcements,
-                             Instant lastUpdated) implements AnnouncementResponse { }
+                             Instant lastUpdated) implements AnnouncementResponse {
+        }
     }
 
 }

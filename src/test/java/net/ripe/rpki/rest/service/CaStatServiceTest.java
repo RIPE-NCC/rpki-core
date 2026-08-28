@@ -61,10 +61,12 @@ public class CaStatServiceTest {
     public void shouldReturnDelegatedCas() throws Exception {
         var now = Instant.now();
         Instant later = now.plus(1, ChronoUnit.MINUTES);
+        Instant errorAt = now.plus(2, ChronoUnit.MINUTES);
         List<DelegatedCa> delegatedCas = Arrays.asList(
-                new DelegatedCa("CN=11", Optional.of("key1"), Optional.of(now)),
-                new DelegatedCa("CN=5555", Optional.of("key2"), Optional.empty()),
-                new DelegatedCa("O=XXX", Optional.of("key3"), Optional.of(later)));
+                new DelegatedCa("CN=11",    Optional.of("key1"), Optional.of(now),    Optional.empty(),       Optional.empty()),
+                new DelegatedCa("CN=5555",  Optional.of("key2"), Optional.empty(),     Optional.empty(),       Optional.empty()),
+                new DelegatedCa("O=XXX",    Optional.of("key3"), Optional.of(later),   Optional.empty(),       Optional.empty()),
+                new DelegatedCa("O=ERROR",  Optional.of("key4"), Optional.of(now),     Optional.of(errorAt),   Optional.of("Connection refused")));
 
         when(certificateAuthorityViewService.findDelegatedCas()).thenReturn(delegatedCas);
 
@@ -74,11 +76,22 @@ public class CaStatServiceTest {
                 .andExpect(jsonPath("$.[0].caName").value("CN=11"))
                 .andExpect(jsonPath("$.[0].keyIdentifier").value("key1"))
                 .andExpect(jsonPath("$.[0].lastProvisionedAt").value(now.toString()))
+                .andExpect(jsonPath("$.[0].lastFailedAt").doesNotExist())
+                .andExpect(jsonPath("$.[0].errorReason").doesNotExist())
                 .andExpect(jsonPath("$.[1].caName").value("CN=5555"))
                 .andExpect(jsonPath("$.[1].keyIdentifier").value("key2"))
                 .andExpect(jsonPath("$.[1].lastProvisionedAt").doesNotExist())
+                .andExpect(jsonPath("$.[1].lastFailedAt").doesNotExist())
+                .andExpect(jsonPath("$.[1].errorReason").doesNotExist())
                 .andExpect(jsonPath("$.[2].caName").value("O=XXX"))
                 .andExpect(jsonPath("$.[2].keyIdentifier").value("key3"))
-                .andExpect(jsonPath("$.[2].lastProvisionedAt").value(later.toString()));
+                .andExpect(jsonPath("$.[2].lastProvisionedAt").value(later.toString()))
+                .andExpect(jsonPath("$.[2].lastFailedAt").doesNotExist())
+                .andExpect(jsonPath("$.[2].errorReason").doesNotExist())
+                .andExpect(jsonPath("$.[3].caName").value("O=ERROR"))
+                .andExpect(jsonPath("$.[3].keyIdentifier").value("key4"))
+                .andExpect(jsonPath("$.[3].lastProvisionedAt").value(now.toString()))
+                .andExpect(jsonPath("$.[3].lastFailedAt").value(errorAt.toString()))
+                .andExpect(jsonPath("$.[3].errorReason").value("Connection refused"));
     }
 }

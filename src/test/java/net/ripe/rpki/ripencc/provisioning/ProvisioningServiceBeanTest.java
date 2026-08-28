@@ -8,16 +8,22 @@ import net.ripe.rpki.commons.provisioning.payload.list.request.ResourceClassList
 import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassListResponsePayload;
 import net.ripe.rpki.commons.provisioning.payload.list.response.ResourceClassListResponsePayloadBuilder;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningCmsCertificateBuilderTest;
+import net.ripe.rpki.domain.ProvisioningAuditLogEntity;
+import net.ripe.rpki.domain.ProvisioningStatRepository;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.time.Instant;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -29,10 +35,10 @@ public class ProvisioningServiceBeanTest {
 
     @Mock
     private ProvisioningRequestProcessor provisioningRequestProcessor;
-
     @Mock
     private ProvisioningAuditLogService provisioningAuditLogService;
-
+    @Mock
+    private ProvisioningStatRepository provisioningStatRepository;
     @Mock
     private ProvisioningMetricsService provisioningMetricsService;
 
@@ -40,7 +46,7 @@ public class ProvisioningServiceBeanTest {
 
     @Before
     public void setUp() {
-        subject = new ProvisioningServiceBean(provisioningRequestProcessor, provisioningAuditLogService, provisioningMetricsService);
+        subject = new ProvisioningServiceBean(provisioningRequestProcessor, provisioningAuditLogService, provisioningStatRepository, provisioningMetricsService);
         listCms = givenListResourceClassRequestCms();
     }
 
@@ -78,6 +84,37 @@ public class ProvisioningServiceBeanTest {
         // And both the request and response are counted once
         verify(provisioningMetricsService).trackPayload(any(ResourceClassListQueryPayload.class));
         verify(provisioningMetricsService).trackPayload(any(ResourceClassListResponsePayload.class));
+    }
+
+    @Test
+    public void shouldUpdateProvisioningStatForResponse() {
+        ProvisioningCmsObject response = mock(ProvisioningCmsObject.class);
+        when(response.getPayload()).thenReturn(new ResourceClassListResponsePayloadBuilder().build());
+
+        when(provisioningRequestProcessor.process(any())).thenReturn(response);
+        subject.processRequest(listCms.getEncoded());
+
+        var logEntry = ArgumentCaptor.forClass(ProvisioningAuditLogEntity.class);
+        verify(provisioningStatRepository, times(1)).track(logEntry.capture());
+
+        assertThat(logEntry.getValue().getNonHostedCaUUID()).hasToString(listCms.getPayload().getSender());
+        assertThat(logEntry.getValue().getRequestMessageType()).isEqualTo(listCms.getPayload().getType());
+    }
+
+    @Test
+    public void shouldUpdateProvisioningStatForProvisioningErrors() {
+        var startAt = Instant.now();
+        var error = new ProvisioningException.BadData();
+        when(provisioningRequestProcessor.process(any())).thenThrow(error);
+        assertThrows(ProvisioningException.class, () -> subject.processRequest(listCms.getEncoded()));
+
+        var sender = ArgumentCaptor.forClass(UUID.class);
+        var timestamp = ArgumentCaptor.forClass(Instant.class);
+        verify(provisioningStatRepository, times(1)).trackProvisioningError(sender.capture(), timestamp.capture(), eq(error));
+
+        assertThat(sender.getValue()).hasToString(listCms.getPayload().getSender());
+        assertThat(timestamp.getValue()).isAfterOrEqualTo(startAt);
+        assertThat(timestamp.getValue()).isBeforeOrEqualTo(Instant.now());
     }
 
     private ProvisioningCmsObject givenListResourceClassRequestCms() {

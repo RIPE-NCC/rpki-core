@@ -1,5 +1,5 @@
 default:
-  image: gradle:9.6-jdk21@sha256:210bbd2656b56a7191a2e9e9f55e193f7a355f0c5565ac83984a5d1779dcdb74
+  image: gradle:9.7-jdk21@sha256:c0ce93e022ea2e705332dabe090019c749356576fc8fe39c38129b2aae9ed68f
   cache:
     key: "gradle-${CI_COMMIT_REF_SLUG}"
     fallback_keys:
@@ -50,7 +50,7 @@ build:
   # slow builds in augusts 2023
   timeout: 60m
   services:
-    - postgres:15.18@sha256:c2ca90969ca293925ab474466e837689cc712321afdd9e4640bd0cf942fdca3a
+    - postgres:15.19@sha256:926f8799aef36e00001cfe15fba7abbd37d3c5224ea57e4c858e4bb670f10561
   variables:
       POSTGRES_DB: certdb_test
       POSTGRES_USER: certdb
@@ -169,7 +169,7 @@ pilot:
 
 publish-to-github:
   stage: publish
-  image: alpine:latest@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+  image: alpine:latest@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
   needs:
     - production
   before_script:

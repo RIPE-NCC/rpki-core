@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.rest.pojo.ResourcesCollection;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
+import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,9 @@ import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 @Tag(name = "/ca/{caName}/resources", description = "Operations on CA resources")
 public class ResourceService extends AbstractCaRestService {
 
+    public ResourceService(CertificateAuthorityViewService certificateAuthorityViewService){
+        super(certificateAuthorityViewService);
+    }
     @GetMapping
     @Operation(summary = "Get all **certified** resources belonging to a CA")
     public ResponseEntity<ResourcesCollection> getResourcesForCa(@PathVariable("caName") final CaName caName) {

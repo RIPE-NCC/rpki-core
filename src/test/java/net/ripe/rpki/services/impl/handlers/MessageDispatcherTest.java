@@ -70,8 +70,9 @@ public class MessageDispatcherTest {
     @Test
     public void shouldSortHandlers() {
         ApplicationContext applicationContext = mock(ApplicationContext.class);
+        CommandHandlerMetrics metrics = mock(CommandHandlerMetrics.class);
         MeterRegistry registry = new SimpleMeterRegistry();
-        MessageDispatcher subject = new MessageDispatcher();
+        MessageDispatcher subject = new MessageDispatcher(applicationContext, metrics);
         subject.setApplicationContext(applicationContext);
         subject.setMetrics(new CommandHandlerMetrics(registry));
 

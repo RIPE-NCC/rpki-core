@@ -27,7 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static net.ripe.rpki.domain.Resources.DEFAULT_RESOURCE_CLASS;
 
@@ -100,8 +99,8 @@ public class CertificateRequestCreationServiceBean implements CertificateRequest
     @Override
     public CertificateRevocationRequest createCertificateRevocationRequestForOldKey(ManagedCertificateAuthority ca) {
         Optional<KeyPairEntity> key = ca.findOldKeyPair();
-        Validate.isTrue(key.isPresent(), "Cannot find an OLD key pair");
-        return new CertificateRevocationRequest(key.get().getPublicKey());
+        return key.map(x -> new CertificateRevocationRequest(x.getPublicKey()))
+                .orElseThrow(() -> new IllegalArgumentException("Cannot find an OLD key pair"));
     }
 
     @Override

@@ -29,6 +29,7 @@ import java.util.TreeMap;
 
 import static net.ripe.rpki.server.api.services.background.BackgroundService.BATCH_SIZE_PARAMETER;
 import static net.ripe.rpki.server.api.services.background.BackgroundService.FORCE_UPDATE_PARAMETER;
+import static net.ripe.rpki.web.ResourceCacheController.RESOURCE_CACHE_PATH;
 
 @Controller
 @RequestMapping(BaseController.ADMIN_HOME)
@@ -93,9 +94,9 @@ public class AdminController extends BaseController {
     @PostMapping({"/services/{serviceId}"})
     public RedirectView runBackgroundService(
         @PathVariable("serviceId") String serviceId,
-        @RequestHeader(value = HttpHeaders.REFERER, required = false) String referrer,
         @Nullable @RequestParam(value = BATCH_SIZE_PARAMETER, required = false) Integer batchSize,
         @Nullable @RequestParam(value = FORCE_UPDATE_PARAMETER, required = false) String forceUpdate,
+        @Nullable @RequestParam(value = "referrer", required = false) String referrer,
         RedirectAttributes redirectAttributes
     ) {
         BackgroundService service = backgroundServiceMap.get(serviceId);
@@ -114,7 +115,11 @@ public class AdminController extends BaseController {
 
             redirectAttributes.addFlashAttribute("success", String.format("Scheduled service '%s' for execution", service.getName()));
         }
-        return referrer == null ? redirectToIndex() : new RedirectView(referrer);
+        if ("resource-cache".equals(referrer)) {
+            return new RedirectView(RESOURCE_CACHE_PATH, true);
+        } else {
+            return redirectToIndex();
+        }
     }
 
     @GetMapping(

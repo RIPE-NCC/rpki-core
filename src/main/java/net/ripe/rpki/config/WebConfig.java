@@ -4,8 +4,6 @@ import net.ripe.rpki.rest.security.SpringAuthInterceptor;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningMetricsService;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningService;
 import net.ripe.rpki.ripencc.provisioning.ProvisioningServlet;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
@@ -20,9 +18,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @Profile("!test")
 public class WebConfig implements WebMvcConfigurer {
-    @Autowired
-    private AutowireCapableBeanFactory beanFactory;
-
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SpringAuthInterceptor()).addPathPatterns("/api/**");

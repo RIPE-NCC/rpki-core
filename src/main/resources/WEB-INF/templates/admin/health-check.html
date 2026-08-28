@@ -8,7 +8,11 @@
     <div class="main-flex">
         <div data-th-replace="~{fragments/sidebar :: sidebar(active='health-check')}"></div>
         <div class="main">
-            <table>
+            <div class="message-banner" data-th-if="${error}">
+                <i class="bi bi-x-circle"></i>
+                <span data-th-text="${error}">error messages</span>
+            </div>
+            <table data-th-if="${error == null}">
                 <thead>
                     <tr>
                         <th>Service</th>

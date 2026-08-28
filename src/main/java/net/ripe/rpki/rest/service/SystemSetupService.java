@@ -10,7 +10,6 @@ import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.ActiveNodeService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -29,16 +28,9 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 @RequestMapping(path = "/prod/ca", produces = {APPLICATION_JSON})
 @Validated
 public class SystemSetupService {
-    @Autowired
     private ActiveNodeService activeNodeService;
-
-    @Autowired
     private CertificateAuthorityViewService certificateAuthorityViewService;
-
-    @Autowired
     private CommandService commandService;
-
-    @Autowired
     private RepositoryConfiguration certificationConfiguration;
 
     @PostMapping(path = "create")

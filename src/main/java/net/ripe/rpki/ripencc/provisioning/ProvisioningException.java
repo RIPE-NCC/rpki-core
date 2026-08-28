@@ -14,7 +14,7 @@ import static java.lang.String.format;
  * Interpretation: Used for situations where the request was never considered to be a current, valid, cms-signed request.
  * <emph>Recall:</emph> <i>@Transactional</i> rolls back on uncaught RuntimeExceptions, but not on checked exceptions.
  */
-class ProvisioningException extends RuntimeException {
+public class ProvisioningException extends RuntimeException {
 	private static final long serialVersionUID = 2L;
 
     private final ResponseExceptionType protocolError;
@@ -45,26 +45,26 @@ class ProvisioningException extends RuntimeException {
         return protocolError.getDescription();
     }
 
-    static class PotentialReplayAttack extends ProvisioningException {
-        PotentialReplayAttack() {
+    public static class PotentialReplayAttack extends ProvisioningException {
+        public PotentialReplayAttack() {
             super(ResponseExceptionType.POTENTIAL_REPLAY_ATTACK);
         }
     }
 
-    static class BadData extends ProvisioningException {
-        BadData() {
+    public static class BadData extends ProvisioningException {
+        public BadData() {
             super(ResponseExceptionType.BAD_DATA);
         }
 
-        BadData(Throwable cause) {
+        public BadData(Throwable cause) {
             super(ResponseExceptionType.BAD_DATA, cause);
         }
     }
 
-    static class BadSenderAndRecipient extends ProvisioningException {
+    public static class BadSenderAndRecipient extends ProvisioningException {
         private final String sender;
 
-        BadSenderAndRecipient(String sender) {
+        public BadSenderAndRecipient(String sender) {
             super(ResponseExceptionType.BAD_SENDER_AND_RECIPIENT);
             this.sender = sender;
         }
@@ -75,16 +75,16 @@ class ProvisioningException extends RuntimeException {
         }
     }
 
-    static class UnknownRecipient extends ProvisioningException {
-        UnknownRecipient() {
+    public static class UnknownRecipient extends ProvisioningException {
+        public UnknownRecipient() {
             super(ResponseExceptionType.UNKNOWN_RECIPIENT);
         }
     }
 
-    static class UnknownSender extends ProvisioningException {
+    public static class UnknownSender extends ProvisioningException {
         private final UUID sender;
 
-        UnknownSender(UUID sender) {
+        public UnknownSender(UUID sender) {
             super(ResponseExceptionType.UNKNOWN_SENDER);
             this.sender = sender;
         }
@@ -95,8 +95,8 @@ class ProvisioningException extends RuntimeException {
         }
     }
 
-    static class UnknownProvisioningUrl extends ProvisioningException {
-        UnknownProvisioningUrl() {
+    public static class UnknownProvisioningUrl extends ProvisioningException {
+        public UnknownProvisioningUrl() {
             super(ResponseExceptionType.UNKNOWN_PROVISIONING_URL);
         }
     }

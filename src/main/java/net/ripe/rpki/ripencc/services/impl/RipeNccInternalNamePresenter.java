@@ -9,9 +9,9 @@ import net.ripe.rpki.server.api.ports.InternalNamePresenter;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import jakarta.inject.Inject;
 import javax.security.auth.x500.X500Principal;
 import java.util.List;
 import java.util.Optional;
@@ -55,12 +55,6 @@ public class RipeNccInternalNamePresenter implements InternalNamePresenter {
 
     private final ConcurrentHashMap<Long, MemberSummary> members = new ConcurrentHashMap<>();
 
-    public RipeNccInternalNamePresenter() {
-        // For Wicket spring proxy generation.
-        authServiceClient = null;
-        customerServiceClient = null;
-    }
-
     public RipeNccInternalNamePresenter(AuthServiceClient authServiceClient,
                                         CustomerServiceClient customerServiceClient,
                                         ScheduledExecutorService scheduledExecutorService) {
@@ -69,7 +63,7 @@ public class RipeNccInternalNamePresenter implements InternalNamePresenter {
         scheduledExecutorService.scheduleAtFixedRate(new ReloadMembersCache(), 10, 60, TimeUnit.SECONDS);
     }
 
-    @Inject
+    @Autowired
     public RipeNccInternalNamePresenter(AuthServiceClient authServiceClient,
                                         CustomerServiceClient customerServiceClient) {
         this(authServiceClient, customerServiceClient, Executors.newSingleThreadScheduledExecutor());

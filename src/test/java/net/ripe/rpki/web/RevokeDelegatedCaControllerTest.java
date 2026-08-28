@@ -94,8 +94,8 @@ class RevokeDelegatedCaControllerTest extends SpringWebControllerTestCase {
     @Test
     void should_search_delegated_cas_by_name() throws Exception {
         when(certificateAuthorityViewService.findDelegatedCas()).thenReturn(List.of(
-                new DelegatedCa("CN=example", Optional.of("key-1"), Optional.empty()),
-                new DelegatedCa("CN=other", Optional.of("key-2"), Optional.empty())
+                new DelegatedCa("CN=example", Optional.of("key-1"), Optional.empty(), Optional.empty(),Optional.empty()),
+                new DelegatedCa("CN=other", Optional.of("key-2"), Optional.empty(), Optional.empty(),Optional.empty())
         ));
 
         MvcResult result = mockMvc.perform(get(RevokeDelegatedCaController.REVOKE_DELEGATED_CA)

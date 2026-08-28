@@ -72,12 +72,12 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
         // >       tag attribute, the response MUST NOT include a tag attribute
         // >       either.
         return new RepositoryResponse(
-            publisherRequest.getTag(),
-            repositoryResponse.getServiceUri(),
-            repositoryResponse.getPublisherHandle(),
-            repositoryResponse.getSiaBase(),
-            repositoryResponse.getRrdpNotificationUri(),
-            repositoryResponse.getRepositoryBpkiTa()
+                publisherRequest.getTag(),
+                repositoryResponse.getServiceUri(),
+                repositoryResponse.getPublisherHandle(),
+                repositoryResponse.getSiaBase(),
+                repositoryResponse.getRrdpNotificationUri(),
+                repositoryResponse.getRepositoryBpkiTa()
         );
     }
 
@@ -86,6 +86,7 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
     public PublisherRepositoriesService(CertificateAuthorityViewService certificateAuthorityViewService,
                                         CommandService commandService,
                                         Optional<NonHostedPublisherRepositoryService> maybeNonHostedPublisherRepositoryService) {
+        super(certificateAuthorityViewService);
         this.certificateAuthorityViewService = certificateAuthorityViewService;
         this.commandService = commandService;
         this.maybeNonHostedPublisherRepositoryService = maybeNonHostedPublisherRepositoryService;
@@ -102,10 +103,10 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
 
         try {
             Map<UUID, RepositoryResponseDto> repositories = certificateAuthorityViewService
-                .findNonHostedPublisherRepositories(caName.getPrincipal())
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> RepositoryResponseDto.of(patchPublisherResponseTag(entry.getValue().getKey(), entry.getValue().getValue()))));
+                    .findNonHostedPublisherRepositories(caName.getPrincipal())
+                    .entrySet()
+                    .stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, entry -> RepositoryResponseDto.of(patchPublisherResponseTag(entry.getValue().getKey(), entry.getValue().getValue()))));
 
             return ResponseEntity.ok().body(Map.of("available", true, "repositories", repositories));
         } catch (EntityNotFoundException e) {
@@ -116,9 +117,9 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
     @PostMapping(path = "non-hosted/publisher-repositories", consumes = MediaType.MULTIPART_FORM_DATA)
     @Operation(summary = "request a publication point in the non-hosted repository, see RFC8183 section 5.2.3 and 5.2.4")
     public ResponseEntity<?> provisionNonHostedPublicationRepository(
-        HttpServletRequest request,
-        @PathVariable("caName") final CaName caName,
-        @RequestParam("file") MultipartFile file
+            HttpServletRequest request,
+            @PathVariable("caName") final CaName caName,
+            @RequestParam("file") MultipartFile file
     ) {
         log.info("Publisher request for non-hosted CA: {}", caName);
 
@@ -149,9 +150,9 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
             RepositoryResponse repositoryResponse = nonHostedPublisherRepositoryService.provisionPublisher(publisherHandle, publisherRequest, getRequestId());
 
             Utils.cleanupOnError(
-                () -> commandService.execute(new ProvisionNonHostedPublisherCommand(
-                        ca.getVersionedId(), publisherHandle, publisherRequest, repositoryResponse)),
-                () -> nonHostedPublisherRepositoryService.deletePublisher(publisherHandle)
+                    () -> commandService.execute(new ProvisionNonHostedPublisherCommand(
+                            ca.getVersionedId(), publisherHandle, publisherRequest, repositoryResponse)),
+                    () -> nonHostedPublisherRepositoryService.deletePublisher(publisherHandle)
             );
 
             return ResponseEntity.created(URI.create(request.getRequestURI() + "/").resolve(publisherHandle.toString()).normalize()).build();
@@ -172,8 +173,8 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
     @GetMapping(path = "non-hosted/publisher-repositories/{publisherHandle}/repository-response")
     @Operation(summary = "download the repository response for the provided publisher_handle request, see RFC8183 section 5.2.3 and 5.2.4")
     public ResponseEntity<?> downloadNonHostedPublicationRepositoryResponse(
-        @PathVariable("caName") final CaName caName,
-        @PathVariable("publisherHandle") UUID publisherHandle
+            @PathVariable("caName") final CaName caName,
+            @PathVariable("publisherHandle") UUID publisherHandle
     ) {
         if (maybeNonHostedPublisherRepositoryService.isEmpty()) {
             return ResponseEntity.status(NOT_ACCEPTABLE).body(NON_HOSTED_PUBLISHERS_ARE_NOT_AVAILABLE);
@@ -182,8 +183,8 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
 
         try {
             var publisherExchange = certificateAuthorityViewService
-                .findNonHostedPublisherRepositories(caName.getPrincipal())
-                .get(publisherHandle);
+                    .findNonHostedPublisherRepositories(caName.getPrincipal())
+                    .get(publisherHandle);
             if (publisherExchange == null) {
                 throw new ObjectNotFoundException("publisher repository not found for handle '" + publisherHandle + "'");
             }
@@ -260,12 +261,12 @@ public class PublisherRepositoriesService extends AbstractCaRestService {
 
         static RepositoryResponseDto of(RepositoryResponse repositoryResponse) {
             return new RepositoryResponseDto(
-                repositoryResponse.getTag().orElse(null),
-                repositoryResponse.getServiceUri().toASCIIString(),
-                repositoryResponse.getPublisherHandle(),
-                repositoryResponse.getSiaBase().toASCIIString(),
-                repositoryResponse.getRrdpNotificationUri().map(URI::toASCIIString).orElse(null),
-                repositoryResponse.getRepositoryBpkiTa().getBase64String()
+                    repositoryResponse.getTag().orElse(null),
+                    repositoryResponse.getServiceUri().toASCIIString(),
+                    repositoryResponse.getPublisherHandle(),
+                    repositoryResponse.getSiaBase().toASCIIString(),
+                    repositoryResponse.getRrdpNotificationUri().map(URI::toASCIIString).orElse(null),
+                    repositoryResponse.getRepositoryBpkiTa().getBase64String()
             );
         }
     }

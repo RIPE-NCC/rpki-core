@@ -8,5 +8,9 @@ import java.util.Optional;
 public record DelegatedCa(String caName,
                           Optional<String> keyIdentifier,
                           @JsonInclude(JsonInclude.Include.NON_ABSENT)
-                          Optional<Instant> lastProvisionedAt) {
+                          Optional<Instant> lastProvisionedAt,
+                          @JsonInclude(JsonInclude.Include.NON_ABSENT)
+                          Optional<Instant> lastFailedAt,
+                          @JsonInclude(JsonInclude.Include.NON_ABSENT)
+                          Optional<String> errorReason) {
 }

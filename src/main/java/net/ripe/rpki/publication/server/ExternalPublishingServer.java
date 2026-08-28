@@ -254,7 +254,9 @@ public class ExternalPublishingServer {
 
     private List<? extends PublicationMessage> parseResponse(String response) throws XMLStreamException, URISyntaxException {
         final List<PublicationMessage> replies = new ArrayList<>();
-        final XMLEventReader reader = XMLInputFactory.newInstance().createXMLEventReader(new StringReader(response));
+        final XMLInputFactory factory = XMLInputFactory.newInstance();
+        factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+        XMLEventReader reader = factory.createXMLEventReader(new StringReader(response));
         String errorCode = null;
         final QName uriAttrName = new QName("uri");
         final QName hashAttrName = new QName("hash");

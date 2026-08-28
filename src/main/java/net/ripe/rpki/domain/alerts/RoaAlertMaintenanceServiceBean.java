@@ -14,24 +14,17 @@ import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.audit.CommandAuditService;
 import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.commands.UpdateRoaAlertIgnoredAnnouncedRoutesCommand;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @AllArgsConstructor
 @Service("roaAlertMaintenanceServiceBean")
 public class RoaAlertMaintenanceServiceBean implements CertificateAuthorityEventVisitor {
-    @Autowired
     private final RoaAlertConfigurationRepository roaAlertConfigurationRepository;
-
-    @Autowired
     private final CertificateAuthorityRepository certificateAuthorityRepository;
-
-    @Autowired
     private final CommandAuditService commandAuditService;
 
     /**

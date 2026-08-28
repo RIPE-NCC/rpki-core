@@ -7,6 +7,7 @@ import net.ripe.rpki.rest.pojo.HistoryItem;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.CertificateAuthorityHistoryItem;
 import net.ripe.rpki.server.api.ports.InternalNamePresenter;
+import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.system.CaHistoryService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +34,9 @@ public class HistoryService extends AbstractCaRestService {
 
     @Autowired
     public HistoryService(InternalNamePresenter statsCollectorNames,
-                          CaHistoryService caHistoryService) {
+                          CaHistoryService caHistoryService,
+                          CertificateAuthorityViewService certificateAuthorityViewService) {
+        super(certificateAuthorityViewService);
         this.statsCollectorNames = statsCollectorNames;
         this.caHistoryService = caHistoryService;
     }

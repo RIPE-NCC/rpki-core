@@ -15,6 +15,7 @@ import net.ripe.rpki.services.impl.handlers.MessageDispatcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.MDC;
+import org.springframework.context.ApplicationContext;
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionStatus;
@@ -40,6 +41,8 @@ public class CommandServiceImplTest {
     private MessageDispatcher messageDispatcher;
     private List<TransactionStatus> transactionStatuses;
 
+    private ApplicationContext applicationContext;
+    private CommandHandlerMetrics metrics;
 
     private CertificateAuthorityCommand command;
 
@@ -51,6 +54,8 @@ public class CommandServiceImplTest {
     public void setUp() {
         commandAudit = mock(CommandAudit.class);
         command = mock(CertificateAuthorityCommand.class);
+        applicationContext = mock(ApplicationContext.class);
+        metrics = mock(CommandHandlerMetrics.class);
         messageDispatcher = mock(MessageDispatcher.class);
         transactionStatuses = new ArrayList<>();
         CommandAuditService commandAuditService = mock(CommandAuditService.class);
@@ -147,7 +152,7 @@ public class CommandServiceImplTest {
     @Test
     public void should_rollback_nested_transaction_when_it_has_no_effect() {
         final CommandStatus[] nestedCommandStatus = {null};
-        final MessageDispatcher messageDispatcher = new MessageDispatcher() {
+        final MessageDispatcher messageDispatcher = new MessageDispatcher(applicationContext, metrics) {
             @Override
             protected List<CertificateAuthorityCommandHandler<CertificateAuthorityCommand>> makeOrderedHandlerList() {
                 final CertificateAuthorityCommandHandler<?> handler1 = new CertificateAuthorityCommandHandler<TopTestCommand>() {
@@ -196,7 +201,7 @@ public class CommandServiceImplTest {
     @SuppressWarnings("unchecked")
     @Test
     public void should_rollback_transaction_when_nested_command_throws_an_exception() {
-        final MessageDispatcher messageDispatcher = new MessageDispatcher() {
+        final MessageDispatcher messageDispatcher = new MessageDispatcher(applicationContext, metrics) {
             @Override
             protected List<CertificateAuthorityCommandHandler<CertificateAuthorityCommand>> makeOrderedHandlerList() {
                 final CertificateAuthorityCommandHandler<?> handler1 = new CertificateAuthorityCommandHandler<TopTestCommand>() {

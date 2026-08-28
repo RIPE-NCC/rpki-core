@@ -18,10 +18,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-public class UpStreamCARequestEntityTest {
+class UpStreamCARequestEntityTest {
 
     @Test
-    public void shouldUnderstandRevokeKey() {
+    void shouldUnderstandRevokeKey() {
         RevocationRequest revokeRequest = new RevocationRequest("test resource class", "CN=whoevah");
         List<TaRequest> requests = new ArrayList<>();
         requests.add(revokeRequest);
@@ -35,7 +35,7 @@ public class UpStreamCARequestEntityTest {
     }
 
     @Test
-    public void shouldParseOldStoredUpstreamCARequest() {
+    void shouldParseOldStoredUpstreamCARequest() {
         String requestId = UUID.randomUUID().toString();
         String request =
                 "<net.ripe.rpki.offline.requests.TrustAnchorRequest>\n" +
@@ -50,18 +50,20 @@ public class UpStreamCARequestEntityTest {
                 "</net.ripe.rpki.offline.requests.TrustAnchorRequest>";
 
         UpStreamCARequestEntity subject = mkUpstreamCARequestWithXML(request);
-        assertThat(subject.getUpStreamCARequest()).isNotNull().withFailMessage("Invalid UpStreamCARequest");
+        assertThat(subject.getUpStreamCARequest()).withFailMessage("Invalid UpStreamCARequest").isNotNull();
         TaRequest taRequest = subject.getUpStreamCARequest().getTaRequests().get(0);
         assertThat(requestId).isEqualTo(taRequest.getRequestId().toString());
-        assertThat(taRequest).isInstanceOf(SigningRequest.class).withFailMessage("Parsed TA request should be a 'SigningRequest'");
+        assertThat(taRequest)
+                .withFailMessage("Parsed TA request should be a 'SigningRequest'")
+                .isInstanceOf(SigningRequest.class);
         SigningRequest signingRequest = (SigningRequest) taRequest;
-        assertThat(signingRequest.getResourceCertificateRequest().getIpResourceSet()).contains(IpResource.parse("193.0.0.0/8")).withFailMessage(
-                "Signing request should container IP resource set 193.0.0.0/8"
-        );
+        assertThat(signingRequest.getResourceCertificateRequest().getIpResourceSet())
+                .withFailMessage("Signing request should container IP resource set 193.0.0.0/8")
+                .contains(IpResource.parse("193.0.0.0/8"));
     }
 
     @Test
-    public void shouldSerializeParsedUpstreamCARequest() {
+    void shouldSerializeParsedUpstreamCARequest() {
         String request =
                 "<net.ripe.rpki.commons.ta.domain.request.TrustAnchorRequest>\n" +
                 "  <taRequests>\n" +
@@ -94,7 +96,10 @@ public class UpStreamCARequestEntityTest {
 
     private static Field upstreamCARequestField() {
         Field upStreamCARequest = ReflectionUtils.findField(UpStreamCARequestEntity.class, "upStreamCARequest", String.class);
-        assertThat(upStreamCARequest).isNotNull().withFailMessage("Field 'upStreamCARequest' of type String not found in class UpStreamCARequestEntity");
+
+        assertThat(upStreamCARequest)
+                .withFailMessage("Field 'upStreamCARequest' of type String not found in class UpStreamCARequestEntity")
+                .isNotNull();
         ReflectionUtils.makeAccessible(upStreamCARequest);
         return upStreamCARequest;
     }

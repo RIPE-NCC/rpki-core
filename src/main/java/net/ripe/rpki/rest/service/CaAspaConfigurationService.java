@@ -12,6 +12,7 @@ import net.ripe.rpki.server.api.dto.AspaConfigurationData;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.AspaViewService;
+import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+
 import java.util.List;
 
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -39,16 +41,18 @@ import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
 @RestController
 @RequestMapping(path = API_URL_PREFIX + "/{caName}/aspa", produces = APPLICATION_JSON)
 @Tag(name = "/ca/{caName}/aspa")
-@ConditionalOnProperty(prefix="aspa", value="enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "aspa", value = "enabled", havingValue = "true")
 public class CaAspaConfigurationService extends AbstractCaRestService {
     private final AspaViewService aspaViewService;
     private final CommandService commandService;
 
     @Autowired
     public CaAspaConfigurationService(
-        AspaViewService aspaViewService,
-        CommandService commandService
+            CertificateAuthorityViewService certificateAuthorityViewService,
+            AspaViewService aspaViewService,
+            CommandService commandService
     ) {
+        super(certificateAuthorityViewService);
         this.aspaViewService = aspaViewService;
         this.commandService = commandService;
     }
@@ -62,17 +66,17 @@ public class CaAspaConfigurationService extends AbstractCaRestService {
         List<AspaConfigurationData> aspaConfiguration = aspaViewService.findAspaConfiguration(ca.getId());
         String entityTag = AspaConfigurationData.entityTag(AspaConfigurationData.dataToMaps(aspaConfiguration));
         return ResponseEntity.ok()
-            .contentType(MediaType.APPLICATION_JSON)
-            .eTag(entityTag)
-            .body(AspaConfigurationResponse.of(entityTag, aspaConfiguration));
+                .contentType(MediaType.APPLICATION_JSON)
+                .eTag(entityTag)
+                .body(AspaConfigurationResponse.of(entityTag, aspaConfiguration));
     }
 
     @PutMapping
     @Operation(summary = "Update the ASPA configuration for CA")
     public ResponseEntity<?> put(
-        @PathVariable("caName") CaName caName,
-        @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatchHeader,
-        @RequestBody @Valid AspaConfigurationRequest body
+            @PathVariable("caName") CaName caName,
+            @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatchHeader,
+            @RequestBody @Valid AspaConfigurationRequest body
     ) {
         log.info("REST call: Update ASPA configuration belonging to CA: {}", caName);
 

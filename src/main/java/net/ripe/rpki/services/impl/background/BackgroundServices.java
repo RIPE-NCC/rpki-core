@@ -19,7 +19,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
 
-import jakarta.inject.Inject;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
@@ -56,8 +55,17 @@ public class BackgroundServices {
     public static final String PUBLISHER_SYNC_SERVICE = "publisherSyncService";
     public static final String RENEW_MY_IDENTITY_MATERIAL_SERVICE = "renewMyIdentityMaterialService";
 
-    @Inject
-    private ApplicationContext applicationContext;
+    private final ApplicationContext applicationContext;
+    private final Scheduler scheduler;
+    private final Map<String, BackgroundService> allServices;
+    private final Environment springEnvironment;
+
+    public BackgroundServices(ApplicationContext applicationContext, Scheduler scheduler,  Map<String, BackgroundService> allServices, Environment springEnvironment) {
+        this.applicationContext = applicationContext;
+        this.scheduler = scheduler;
+        this.allServices = allServices;
+        this.springEnvironment = springEnvironment;
+    }
 
     @Value("${background-services.schedule.enable}")
     private boolean scheduleEnable;
@@ -99,15 +107,6 @@ public class BackgroundServices {
 
     @Value("${renew.identity.update.interval.hours}")
     private int renewIdentityUpdateIntervalHours;
-
-    @Inject
-    private Scheduler scheduler;
-
-    @Inject
-    private Map<String, BackgroundService> allServices;
-
-    @Inject
-    private Environment springEnvironment;
 
     @PostConstruct
     private void scheduleAll() throws SchedulerException {

@@ -23,13 +23,15 @@ public class MessageDispatcher {
     private List<CertificateAuthorityCommandHandler<CertificateAuthorityCommand>> handlers = new ArrayList<>();
 
     @Setter
-    @Autowired
     private ApplicationContext applicationContext;
 
     @Setter
-    @Autowired
     private CommandHandlerMetrics metrics;
 
+    public MessageDispatcher(ApplicationContext applicationContext, CommandHandlerMetrics metrics) {
+        this.applicationContext = applicationContext;
+        this.metrics = metrics;
+    }
     @PostConstruct
     public void init() {
         handlers = makeOrderedHandlerList();

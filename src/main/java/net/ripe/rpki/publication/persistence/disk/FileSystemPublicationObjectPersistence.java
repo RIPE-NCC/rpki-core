@@ -200,22 +200,23 @@ public class FileSystemPublicationObjectPersistence {
     private void cleanupOldTargetDirectories(long now, Path baseDirectory) throws IOException {
         long cutoff = now - targetDirectoryRetentionPeriodMs;
 
-        try (
-            Stream<Path> oldDirectories = Files.list(baseDirectory)
-                .filter(path -> PUBLICATION_DIRECTORY_PATTERN.matcher(path.getFileName().toString()).matches())
-                .filter(Files::isDirectory)
-                .sorted(Comparator.comparing(this::getLastModifiedTime).reversed())
-                .skip(targetDirectoryRetentionCopiesCount)
-                .filter((directory) -> getLastModifiedTime(directory).toMillis() < cutoff)
-        ) {
-            fileWriterPool.submit(() -> oldDirectories.parallel().forEach((directory) -> {
-                LOG.info("removing old publication directory {}", directory);
-                try {
-                    FileUtils.deleteDirectory(directory.toFile());
-                } catch (IOException e) {
-                    LOG.warn("removing old publication directory {} failed", directory, e);
-                }
-            })).join();
+        try (var oldDirectories = Files.list(baseDirectory)) {
+            fileWriterPool.submit(() ->
+                oldDirectories.parallel()
+                    .filter(path -> PUBLICATION_DIRECTORY_PATTERN.matcher(path.getFileName().toString()).matches())
+                    .filter(Files::isDirectory)
+                    .sorted(Comparator.comparing(this::getLastModifiedTime).reversed())
+                    .skip(targetDirectoryRetentionCopiesCount)
+                    .filter(directory -> getLastModifiedTime(directory).toMillis() < cutoff)
+                    .forEach(directory -> {
+                        LOG.info("removing old publication directory {}", directory);
+                        try {
+                            FileUtils.deleteDirectory(directory.toFile());
+                        } catch (IOException e) {
+                            LOG.warn("removing old publication directory {} failed", directory, e);
+                        }
+                    })
+            ).join();
         }
     }
 

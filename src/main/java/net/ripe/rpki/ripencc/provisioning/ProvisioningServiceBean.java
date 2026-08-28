@@ -5,10 +5,12 @@ import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObject;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObjectParser;
 import net.ripe.rpki.commons.provisioning.cms.ProvisioningCmsObjectParserException;
 import net.ripe.rpki.domain.ProvisioningAuditLogEntity;
+import net.ripe.rpki.domain.ProvisioningStatRepository;
 import net.ripe.rpki.server.api.security.RunAsUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import static net.ripe.rpki.server.api.security.RunAsUserHolder.*;
@@ -18,15 +20,18 @@ import static net.ripe.rpki.server.api.security.RunAsUserHolder.*;
 class ProvisioningServiceBean implements ProvisioningService {
     private final ProvisioningRequestProcessor provisioningRequestProcessor;
     private final ProvisioningAuditLogService provisioningAuditLogService;
+    private final ProvisioningStatRepository provisioningStatRepository;
 
     private final ProvisioningMetricsService provisioningMetricsService;
 
     @Autowired
     public ProvisioningServiceBean(ProvisioningRequestProcessor provisioningRequestProcessor,
                                    ProvisioningAuditLogService provisioningAuditLogService,
+                                   ProvisioningStatRepository provisioningStatRepository,
                                    ProvisioningMetricsService provisioningMetricsService) {
         this.provisioningRequestProcessor = provisioningRequestProcessor;
         this.provisioningAuditLogService = provisioningAuditLogService;
+        this.provisioningStatRepository = provisioningStatRepository;
         this.provisioningMetricsService = provisioningMetricsService;
     }
 
@@ -36,8 +41,9 @@ class ProvisioningServiceBean implements ProvisioningService {
             final ProvisioningCmsObject requestObject = extractRequestObject(request);
             provisioningMetricsService.trackPayload(requestObject.getPayload());
 
+            UUID memberUUID = null;
             try {
-                final UUID memberUUID = ProvisioningRequestProcessorBean.parseSenderAndRecipientUUID(requestObject.getPayload().getSender());
+                memberUUID = ProvisioningRequestProcessorBean.parseSenderAndRecipientUUID(requestObject.getPayload().getSender());
 
                 final ProvisioningAuditLogEntity requestLogEntry = new ProvisioningAuditLogEntity(requestObject, "non-hosted CA", memberUUID);
                 provisioningAuditLogService.log(requestLogEntry, request);
@@ -46,12 +52,16 @@ class ProvisioningServiceBean implements ProvisioningService {
 
                 ProvisioningAuditLogEntity responseLogEntry = new ProvisioningAuditLogEntity(responseObject, RunAsUser.ADMIN.getFriendlyName(), memberUUID);
                 provisioningAuditLogService.log(responseLogEntry, request);
+                provisioningStatRepository.track(requestLogEntry);
 
                 provisioningMetricsService.trackPayload(responseObject.getPayload());
 
                 return responseObject.getEncoded();
             } catch (ProvisioningException ex) {
                 log.warn("Not able to process provisioning request, member UUID = {} with the following error: {}", requestObject.getPayload().getSender(), ex.getName());
+                if (memberUUID != null) {
+                    provisioningStatRepository.trackProvisioningError(memberUUID, Instant.now(), ex);
+                }
                 throw ex;
             }
         });

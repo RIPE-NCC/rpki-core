@@ -13,7 +13,6 @@ import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.server.api.commands.CommandContext;
 import net.ripe.rpki.server.api.commands.UpdateRoaConfigurationCommand;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -25,10 +24,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Service("roaConfigurationMaintenanceServiceBean")
 public class RoaConfigurationMaintenanceServiceBean implements CertificateAuthorityEventVisitor {
-    @Autowired
     private final RoaConfigurationRepository roaConfigurationRepository;
-
-    @Autowired
     private final CertificateAuthorityRepository certificateAuthorityRepository;
 
     @Override

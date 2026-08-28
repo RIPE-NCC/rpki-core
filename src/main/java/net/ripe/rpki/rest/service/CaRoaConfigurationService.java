@@ -18,6 +18,7 @@ import net.ripe.rpki.server.api.dto.*;
 import net.ripe.rpki.server.api.security.RunAsUserHolder;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.BgpRisEntryViewService;
+import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
 import net.ripe.rpki.server.api.services.read.RoaViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
@@ -54,7 +55,9 @@ public class CaRoaConfigurationService extends AbstractCaRestService {
     public CaRoaConfigurationService(RoaViewService roaViewService,
                                      BgpRisEntryViewService bgpRisEntryViewService,
                                      RoaAlertConfigurationViewService roaAlertConfigurationViewService,
-                                     CommandService commandService) {
+                                     CommandService commandService,
+                                     CertificateAuthorityViewService certificateAuthorityViewService) {
+        super(certificateAuthorityViewService);
         this.roaViewService = roaViewService;
         this.bgpRisEntryViewService = bgpRisEntryViewService;
         this.roaAlertConfigurationViewService = roaAlertConfigurationViewService;

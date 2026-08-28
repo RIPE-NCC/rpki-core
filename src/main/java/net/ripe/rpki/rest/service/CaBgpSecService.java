@@ -14,6 +14,7 @@ import net.ripe.rpki.server.api.dto.BgpSecConfigurationData;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.BgpSecViewService;
+import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +50,10 @@ public class CaBgpSecService extends AbstractCaRestService {
     private final CommandService commandService;
 
     @Autowired
-    public CaBgpSecService(BgpSecViewService bgpSecViewService, CommandService commandService) {
+    public CaBgpSecService(BgpSecViewService bgpSecViewService,
+                           CommandService commandService,
+                           CertificateAuthorityViewService certificateAuthorityViewService) {
+        super(certificateAuthorityViewService);
         this.bgpSecViewService = bgpSecViewService;
         this.commandService = commandService;
     }

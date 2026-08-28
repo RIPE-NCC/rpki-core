@@ -20,6 +20,7 @@
       </div>
 
       <form method="POST" data-th-action="@{admin/services/{id}(id=${service.id})}">
+        <input type="hidden" name="referrer" value="resource-cache" />
         <p>
           The resource cache update service has been <span data-th-text="${service.status}">idle</span>.
           <data-th-block data-th-if="${service.active && !service.waitingOrRunning}">You can <button

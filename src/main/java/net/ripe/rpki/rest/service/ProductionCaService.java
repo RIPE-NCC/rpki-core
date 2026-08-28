@@ -25,9 +25,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.security.auth.x500.X500Principal;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Positive;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -39,26 +41,29 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 @Slf4j
 @Scope("prototype")
 @RestController
-@ConditionalOnProperty(prefix="intermediate.ca", value="enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "intermediate.ca", value = "enabled", havingValue = "true")
 @RequestMapping(path = "/prod/ca", produces = {APPLICATION_JSON})
 @Tag(name = "/prod/ca", description = "Operations on Production CA")
 @Validated
 public class ProductionCaService {
 
-    @Autowired
     private CertificateAuthorityViewService certificateAuthorityViewService;
-
-    @Autowired
     private CommandService commandService;
-
-    @Autowired
     private RepositoryConfiguration certificationConfiguration;
-
-    @Autowired
     private BackgroundTaskRunner backgroundTaskRunner;
-
-    @Autowired
     private SequentialBackgroundQueuedTaskRunner sequentialBackgroundQueuedTaskRunner;
+
+    public ProductionCaService(CertificateAuthorityViewService certificateAuthorityViewService,
+                               CommandService commandService,
+                               RepositoryConfiguration certificationConfiguration,
+                               BackgroundTaskRunner backgroundTaskRunner,
+                               SequentialBackgroundQueuedTaskRunner sequentialBackgroundQueuedTaskRunner) {
+        this.certificateAuthorityViewService = certificateAuthorityViewService;
+        this.commandService = commandService;
+        this.certificationConfiguration = certificationConfiguration;
+        this.backgroundTaskRunner = backgroundTaskRunner;
+        this.sequentialBackgroundQueuedTaskRunner = sequentialBackgroundQueuedTaskRunner;
+    }
 
     @Value("${intermediate.ca.enabled:false}")
     boolean intermediateCaEnabled;
@@ -78,9 +83,9 @@ public class ProductionCaService {
             for (int i = 0; i < count; ++i) {
                 VersionedId intermediateCaId = commandService.getNextId();
                 commandService.execute(new CreateIntermediateCertificateAuthorityCommand(
-                    intermediateCaId,
-                    certificationConfiguration.getIntermediateCaPrincipal(intermediateCaId),
-                    productionCaData.getId()
+                        intermediateCaId,
+                        certificationConfiguration.getIntermediateCaPrincipal(intermediateCaId),
+                        productionCaData.getId()
                 ));
             }
             return ResponseEntity.noContent().build();
@@ -116,28 +121,28 @@ public class ProductionCaService {
             }
 
             Map<CertificateAuthorityData, List<CertificateAuthorityData>> memberCasGroupedByNewParent = memberCasToMigrate
-                .stream()
-                .collect(Collectors.groupingBy(ca -> intermediateCas.get(Math.abs((int) (ca.getUuid().getLeastSignificantBits() % intermediateCas.size())))));
+                    .stream()
+                    .collect(Collectors.groupingBy(ca -> intermediateCas.get(Math.abs((int) (ca.getUuid().getLeastSignificantBits() % intermediateCas.size())))));
 
             sequentialBackgroundQueuedTaskRunner.submit("migrate member CAs to intermediate CA parent", () -> {
-                    log.info("Migrating {} member CAs from the production CA to {} intermediate CAs", memberCasToMigrate.size(), intermediateCas.size());
+                        log.info("Migrating {} member CAs from the production CA to {} intermediate CAs", memberCasToMigrate.size(), intermediateCas.size());
 
-                    for (Map.Entry<CertificateAuthorityData, List<CertificateAuthorityData>> group : memberCasGroupedByNewParent.entrySet()) {
-                        CertificateAuthorityData newParent = group.getKey();
-                        List<CertificateAuthorityData> memberCaGroup = group.getValue();
-                        backgroundTaskRunner.runParallel(
-                            memberCaGroup.stream().map(memberCa -> backgroundTaskRunner.task(
-                                () -> commandService.execute(new MigrateMemberCertificateAuthorityToIntermediateParentCommand(memberCa.getVersionedId(), newParent.getId())),
-                                e -> log.error("error migrating member CA '{}' to new intermediate CA parent {}", memberCa.getName(), newParent.getName())
-                            ))
-                        );
+                        for (Map.Entry<CertificateAuthorityData, List<CertificateAuthorityData>> group : memberCasGroupedByNewParent.entrySet()) {
+                            CertificateAuthorityData newParent = group.getKey();
+                            List<CertificateAuthorityData> memberCaGroup = group.getValue();
+                            backgroundTaskRunner.runParallel(
+                                    memberCaGroup.stream().map(memberCa -> backgroundTaskRunner.task(
+                                            () -> commandService.execute(new MigrateMemberCertificateAuthorityToIntermediateParentCommand(memberCa.getVersionedId(), newParent.getId())),
+                                            e -> log.error("error migrating member CA '{}' to new intermediate CA parent {}", memberCa.getName(), newParent.getName())
+                                    ))
+                            );
+                        }
+
+                        log.info("Migrated {} member CAs", memberCasToMigrate.size());
+                    },
+                    e -> {
+                        throw new RuntimeException(e);
                     }
-
-                    log.info("Migrated {} member CAs", memberCasToMigrate.size());
-                },
-                e -> {
-                    throw new RuntimeException(e);
-                }
             );
 
             return ResponseEntity.noContent().build();

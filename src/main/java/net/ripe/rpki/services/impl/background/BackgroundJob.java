@@ -20,11 +20,14 @@ public class BackgroundJob implements Job {
 
     static final String BACKGROUND_SERVICE_KEY = "background-service-bean-name";
 
-    @Autowired
     ApplicationContext applicationContext;
+    BackgroundServiceMetrics backgroundServiceMetrics;
 
     @Autowired
-    BackgroundServiceMetrics backgroundServiceMetrics;
+    public BackgroundJob(ApplicationContext applicationContext, BackgroundServiceMetrics backgroundServiceMetrics){
+        this.applicationContext = applicationContext;
+        this.backgroundServiceMetrics = backgroundServiceMetrics;
+    }
 
     @Override
     @Transactional(propagation = Propagation.NEVER)

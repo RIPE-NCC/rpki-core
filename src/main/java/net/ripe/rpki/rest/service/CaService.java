@@ -20,6 +20,7 @@ import net.ripe.rpki.server.api.ports.ResourceLookupService;
 import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateService;
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
 import net.ripe.rpki.server.api.services.command.CommandService;
+import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.read.ProvisioningIdentityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.apache.commons.io.IOUtils;
@@ -73,7 +74,9 @@ public class CaService extends AbstractCaRestService {
     public CaService(CertificateAuthorityCreateService certificateAuthorityCreateService,
                      ResourceLookupService resourceCache,
                      CommandService commandService,
-                     ProvisioningIdentityViewService provisioningIdentityViewService) {
+                     ProvisioningIdentityViewService provisioningIdentityViewService,
+                     CertificateAuthorityViewService certificateAuthorityViewService) {
+        super(certificateAuthorityViewService);
         this.certificateAuthorityCreateService = certificateAuthorityCreateService;
         this.resourceCache = resourceCache;
         this.commandService = commandService;

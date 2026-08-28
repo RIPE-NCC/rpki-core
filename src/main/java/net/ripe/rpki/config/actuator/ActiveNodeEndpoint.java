@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 @Component
 @Endpoint(id="active-node")
 public class ActiveNodeEndpoint {
-    @Autowired
     private ActiveNodeService activeNodeService;
 
     @ReadOperation()

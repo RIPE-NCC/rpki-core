@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -81,7 +82,8 @@ public class Health {
     // Parallel execution here is mostly for the cases when some of the checks are
     // seriously slower than other or time out.
     private static final ExecutorService executorService = Executors.newCachedThreadPool();
-    static Map<String, Status> statuses(Collection<Check> checks) {
+
+    public static Map<String, Status> statuses(Collection<Check> checks) throws ExecutionException, InterruptedException {
         final Map<String, Future<Status>> futures = new HashMap<>();
         for (final Check c : checks) {
             futures.put(c.name, executorService.submit(c::check));
@@ -91,7 +93,7 @@ public class Health {
             Status value;
             try {
                 value = e.getValue().get();
-            } catch (Exception exc) {
+            } catch (RuntimeException exc) {
                 value = error(exc.getMessage());
             }
             statuses.put(e.getKey(), value);
@@ -102,5 +104,4 @@ public class Health {
     static String toJson(Map<String, Status> statuses) {
         return new Gson().toJson(statuses);
     }
-
 }

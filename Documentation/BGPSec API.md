@@ -3,6 +3,20 @@
 BGPSec Router Keys can be configured via the API. All endpoints use `application/json` request and response content, and
 return HTTP 2xx status codes for successful requests.
 
+BGPSec is deployed on the RPKI pilot environment at: `https://localcert.ripe.net`. API requests are done directly
+against this hostname, e.g.
+
+```
+# curl -H 'ncc-api-authorization: <API-key>' https://localcert.ripe.net/api/rpki/bgpsec
+```
+
+## Authentication
+
+All API requests are authenticated with an API key. API keys are created per LIR via the [RIPE NCC
+portal](https://lirportal.ripe.net/api/). The API key must have access to `Resource Certification (RPKI) API`.
+
+The API key is added to the request in the HTTP header `ncc-api-authorization`.
+
 ## Router Keys
 
 A BGPSec Router Key uses the following attributes:
@@ -20,7 +34,7 @@ across different ASNs. Actual usage is subject to the caller’s operational req
 ## List Router Keys
 
 ```http
-GET /api/ca/{caId}/bgpsec
+GET /api/rpki/bgpsec
 ```
 
 Returns all BGPSec Router Keys that are configured for the CA. Keys can be filtered thorugh query parameters on `asn`,
@@ -47,7 +61,7 @@ __Example response__
 Submit a BGPSec PKCS#10 (CSR) for issuance.
 
 ```http
-POST /api/ca/{caId}/bgpsec
+POST /api/rpki/bgpsec
 ```
 
 __Example request__
@@ -78,7 +92,7 @@ __Example response__
 Returns a single BGPSec Router Key by its `routerKeyId`.
 
 ```http
-GET /api/ca/{caId}/bgpsec/{routerKeyId}
+GET /api/rpki/bgpsec/{routerKeyId}
 ```
 
 __Example response__
@@ -98,7 +112,7 @@ __Example response__
 Revoke a specific BGPSec Router Key.
 
 ```http
-DELETE /api/ca/{caId}/bgpsec/{routerKeyId}
+DELETE /api/rpki/bgpsec/{routerKeyId}
 ```
 
 A successful revocation request returns HTTP 204 with no response content.
@@ -106,7 +120,7 @@ A successful revocation request returns HTTP 204 with no response content.
 ## Get BGPSec EE certificate
 
 ```http
-GET /api/ca/{caId}/bgpsec/{routerKeyId}/certificate
+GET /api/rpki/bgpsec/{routerKeyId}/certificate
 ```
 
 Returns the BGPSec router EE certificate in PKCS#7 certs-only format.
@@ -114,7 +128,7 @@ Returns the BGPSec router EE certificate in PKCS#7 certs-only format.
 ## Get BGPSec EE certificate chain
 
 ```http
-GET /api/ca/{caId}/bgpsec/{routerKeyId}/chain
+GET /api/rpki/bgpsec/{routerKeyId}/chain
 ```
 
 Returns the BGPSec router EE certificate and the full issuer chain in PKCS#7 certs-only format.

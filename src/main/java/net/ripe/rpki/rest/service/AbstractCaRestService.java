@@ -14,7 +14,6 @@ import net.ripe.rpki.server.api.security.RunAsUser;
 import net.ripe.rpki.server.api.security.RunAsUserHolder;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.Formatter;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,9 +34,11 @@ import static net.ripe.rpki.rest.security.SpringAuthInterceptor.USER_ID_REQ_ATTR
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
 public class AbstractCaRestService extends RestService {
+    private final CertificateAuthorityViewService certificateAuthorityViewService;
 
-    @Autowired
-    private CertificateAuthorityViewService certificateAuthorityViewService;
+    protected AbstractCaRestService(CertificateAuthorityViewService certificateAuthorityViewService) {
+        this.certificateAuthorityViewService = certificateAuthorityViewService;
+    }
 
     @InitBinder
     public void initBinder(WebDataBinder binder) {

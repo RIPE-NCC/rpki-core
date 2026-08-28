@@ -16,6 +16,7 @@ import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -42,18 +43,25 @@ public class HealthService {
     }
 
     @GetMapping
-    public ResponseEntity<Map<String, Health.Status>> getHealthChecks() {
-        final Map<String, Health.Status> statuses = Health.statuses(healthchecks);
+    public ResponseEntity<Object> getHealthChecks() {
+        try {
+            var statuses = Health.statuses(healthchecks);
 
-        statuses.forEach(this::trackStatus);
+            statuses.forEach(this::trackStatus);
 
-        HttpStatus httpStatus = Health.httpCode(statuses);
-        if (httpStatus != HttpStatus.OK) {
-            log.warn("Health check servlet is called, result is {}", Health.toJson(statuses));
+            HttpStatus httpStatus = Health.httpCode(statuses);
+            if (httpStatus != HttpStatus.OK) {
+                log.warn("Health check servlet is called, result is {}", Health.toJson(statuses));
+            }
+
+            return ResponseEntity.status(httpStatus)
+                    .body(statuses);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        } catch (ExecutionException e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
         }
-
-        return ResponseEntity.status(httpStatus)
-                        .body(statuses);
     }
 
     private static class HealthServiceMetrics {

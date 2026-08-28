@@ -169,20 +169,9 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
         publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(), List.of());
         entityManager.flush();
 
-        // Insert an audit log entry with request_message_type = 'issue_response' to simulate a provisioned-at timestamp
-        entityManager.createNativeQuery("""
-            INSERT INTO provisioning_audit_log (
-                id, version, created_at, updated_at, non_hosted_ca_uuid, request_message_type,
-                provisioning_cms_object, principal, summary, executiontime, entry_uuid
-            ) VALUES (
-                nextval('seq_all'), 0, NOW(), NOW(), :uuid, 'issue_response',
-                :cms, 'test', 'test summary', NOW(), :entryUuid
-            )
-            """)
-            .setParameter("uuid", nonHostedCa.getUuid())
-            .setParameter("cms", new byte[]{1, 2, 3})
-            .setParameter("entryUuid", UUID.randomUUID())
-            .executeUpdate();
+        var stat = new ProvisioningStatRecord(nonHostedCa.getUuid());
+        stat.setLastSuccess(java.time.Instant.now());
+        entityManager.persist(stat);
         entityManager.flush();
 
         List<DelegatedCa> result = subject.findDelegatedCas();

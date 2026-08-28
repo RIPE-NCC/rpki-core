@@ -1,6 +1,8 @@
 package net.ripe.rpki.ripencc.provisioning;
 
 import com.google.common.xml.XmlEscapers;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -18,9 +20,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.TypedQuery;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
@@ -37,12 +36,7 @@ class ProvisioningAuditLogServiceBean implements ProvisioningAuditLogService {
      */
     private static final Logger provisioningLog = LoggerFactory.getLogger("provisioning-logger");
 
-    @PersistenceContext
-    protected EntityManager entityManager;
-
-    public ProvisioningAuditLogServiceBean() {
-        this(null);
-    }
+    private final EntityManager entityManager;
 
     public ProvisioningAuditLogServiceBean(EntityManager entityManager) {
         this.entityManager = entityManager;
@@ -55,7 +49,7 @@ class ProvisioningAuditLogServiceBean implements ProvisioningAuditLogService {
         // We use structured/json logging: The LogEntry will be added to the json.
         // There is no need to also template it into the log line (this would bloat the log). SonarQube warning is ignored.
         provisioningLog.info("Up-down message", kv("entry", LogEntry.make(entry, request)));
-        final PayloadMessageType requestMessageType = entry.getRequestMessageType();
+        var requestMessageType = entry.getRequestMessageType();
         if (requestMessageType != PayloadMessageType.list &&
             requestMessageType != PayloadMessageType.list_response) {
             entityManager.persist(entry);

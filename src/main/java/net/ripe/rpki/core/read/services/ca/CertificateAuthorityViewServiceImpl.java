@@ -5,6 +5,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.TypedQuery;
+import net.ripe.rpki.commons.crypto.util.KeyPairFactory;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
@@ -187,32 +188,44 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
 
     @Override
     public List<DelegatedCa> findDelegatedCas() {
-        List<Object[]> results = entityManager.createQuery(
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = entityManager.createNativeQuery(
             """
-                SELECT ca, MAX(pal.executionTime)
-                FROM NonHostedCertificateAuthority ca
-                LEFT JOIN ProvisioningAuditLogEntity pal
-                       ON pal.nonHostedCaUUID = ca.uuid
-                      AND pal.requestMessageType = net.ripe.rpki.commons.provisioning.payload.PayloadMessageType.issue_response
-                GROUP BY ca
+                SELECT
+                    ca.name,
+                    (SELECT pk.encoded
+                            FROM non_hosted_ca_public_key pk
+                            WHERE pk.ca_id = ca.id
+                            ORDER BY pk.id DESC
+                            LIMIT 1) AS last_public_key_encoded,
+                    stat.last_success AS last_succeeded_at,
+                    stat.last_failure AS last_failed_at,
+                    stat.last_failure_reason AS error_reason
+                FROM certificateauthority ca
+                  LEFT JOIN provisioning_stat stat ON stat.non_hosted_ca_uuid = ca.uuid
+                WHERE ca.type = 'NONHOSTED'
                 ORDER BY ca.name
-            """, Object[].class)
+            """)
             .getResultList();
 
         var hexFormat = HexFormat.of();
         return results.stream().map(row -> {
-            NonHostedCertificateAuthority ca = (NonHostedCertificateAuthority) row[0];
-            java.sql.Timestamp lastProvisionedAt = (java.sql.Timestamp) row[1];
-            // Pick up the last public key used for this CA
-            Optional<String> lastPublicKey = ca.getPublicKeyEntities().stream()
-                    .max(Comparator.comparing(PublicKeyEntity::getId))
-                    .map(pk -> hexFormat.formatHex(KeyPairUtil.getKeyIdentifier(pk.getPublicKey())));
+            var caName            = (String)            row[0];
+            var encodedPublicKey  = (byte[])            row[1];
+            var lastProvisionedAt = (java.time.Instant) row[2];
+            var lastFailedAt      = (java.time.Instant) row[3];
+            var errorReason       = (String)            row[4];
+
+            Optional<String> lastPublicKey = Optional.ofNullable(encodedPublicKey)
+                    .map(encoded -> hexFormat.formatHex(KeyPairUtil.getKeyIdentifier(KeyPairFactory.decodePublicKey(encoded))));
 
             return new DelegatedCa(
-                    ca.getName().getName(),
+                    caName,
                     lastPublicKey,
-                    Optional.ofNullable(lastProvisionedAt).map(java.sql.Timestamp::toInstant)
+                    Optional.ofNullable(lastProvisionedAt),
+                    Optional.ofNullable(lastFailedAt),
+                    Optional.ofNullable(errorReason)
             );
-        }).toList();        
+        }).toList();
     }
 }

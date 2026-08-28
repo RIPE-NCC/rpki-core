@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 @Controller
 @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 public class AspaService {
-    @Autowired
     private final AspaConfigurationRepository aspaConfigurationRepository;
 
     @Operation(summary = "Get all the ASPA configurations")

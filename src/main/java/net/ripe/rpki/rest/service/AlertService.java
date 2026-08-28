@@ -16,6 +16,7 @@ import net.ripe.rpki.server.api.commands.*;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
 import net.ripe.rpki.server.api.dto.RoaAlertConfigurationData;
 import net.ripe.rpki.server.api.services.command.CommandService;
+import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.services.read.RoaAlertConfigurationViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,8 +40,8 @@ public class AlertService extends AbstractCaRestService {
 
     private final CommandService commandService;
 
-    @Autowired
-    public AlertService(RoaAlertConfigurationViewService roaAlertConfigurationViewService, CommandService commandService) {
+    public AlertService(RoaAlertConfigurationViewService roaAlertConfigurationViewService, CommandService commandService, CertificateAuthorityViewService certificateAuthorityViewService) {
+        super(certificateAuthorityViewService);
         this.roaAlertConfigurationViewService = roaAlertConfigurationViewService;
         this.commandService = commandService;
     }

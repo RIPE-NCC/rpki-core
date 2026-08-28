@@ -6,10 +6,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import net.ripe.rpki.commons.validation.roa.RoaPrefixData;
-import net.ripe.rpki.domain.roa.RoaConfigurationPrefix;
 import net.ripe.rpki.domain.roa.RoaConfigurationRepository;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -19,17 +17,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.context.request.WebRequest;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Tag(name = "/api/monitoring/roa-prefixes")
 @Controller
 @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 public class RoaPrefixesService {
-    @Autowired
     private RoaConfigurationRepository roaConfigurationRepository;
 
     @Operation(summary = "Get all the ROA prefixes")

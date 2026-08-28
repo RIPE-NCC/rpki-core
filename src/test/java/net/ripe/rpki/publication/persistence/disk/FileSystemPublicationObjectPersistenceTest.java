@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Random;
@@ -27,7 +26,7 @@ import static net.ripe.rpki.publication.persistence.disk.FileSystemPublicationOb
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class FileSystemPublicationObjectPersistenceTest {
+class FileSystemPublicationObjectPersistenceTest {
 
     private static final URI ONLINE_REPOSITORY_BASE_URI = URI.create("rsync://repository/repository/");
     private File onlineRepositoryBaseDirectory;
@@ -46,7 +45,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @BeforeEach
-    public void setUp(@TempDir File onlineRepositoryBaseDirectory, @TempDir File taRepositoryBaseDirectory) throws IOException {
+    void setUp(@TempDir File onlineRepositoryBaseDirectory, @TempDir File taRepositoryBaseDirectory) throws IOException {
         this.onlineRepositoryBaseDirectory = onlineRepositoryBaseDirectory;
         this.taRepositoryBaseDirectory = taRepositoryBaseDirectory;
 
@@ -61,12 +60,12 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @AfterEach
-    public void tearDown() throws IOException {
+    void tearDown() {
         DateTimeUtils.setCurrentMillisSystem();
     }
 
     @Test
-    public void should_write_contents_of_publish_request_to_online_repository() throws IOException {
+    void should_write_contents_of_publish_request_to_online_repository() throws IOException {
         URI uri = ONLINE_REPOSITORY_BASE_URI.resolve("foo/bar.cer");
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
@@ -75,7 +74,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_set_last_modification_time_of_published_object() {
+    void should_set_last_modification_time_of_published_object() {
         URI uri = ONLINE_REPOSITORY_BASE_URI.resolve("foo/bar.cer");
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
@@ -84,7 +83,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_set_last_modification_time_internal_directories() throws IOException {
+    void should_set_last_modification_time_internal_directories() throws IOException {
         URI uri = ONLINE_REPOSITORY_BASE_URI.resolve("foo/baz/bar.cer");
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
@@ -94,7 +93,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_write_contents_of_publish_request_to_ta_repository() throws IOException {
+    void should_write_contents_of_publish_request_to_ta_repository() throws IOException {
         URI uri = TA_REPOSITORY_BASE_URI.resolve("foo/bar.cer");
 
         subject.writeAll(Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS)));
@@ -103,7 +102,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_set_symlink_to_latest_publication_directory() throws IOException {
+    void should_set_symlink_to_latest_publication_directory() throws IOException {
         URI uri = ONLINE_REPOSITORY_BASE_URI.resolve("foo/bar.cer");
 
         DateTimeUtils.setCurrentMillisFixed(1619000000000L);
@@ -120,7 +119,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_backup_old_published_directory_when_not_a_symbolic_link() throws IOException {
+    void should_backup_old_published_directory_when_not_a_symbolic_link() throws IOException {
         // Temporary feature to upgrade existing systems (which have a `published` directory) to symbolic link
         // based publication.
         Path published = onlineRepositoryBaseDirectory.toPath().resolve("published");
@@ -136,7 +135,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_remove_publication_directories_older_than_retention_period() {
+    void should_remove_publication_directories_older_than_retention_period() {
         URI uri = ONLINE_REPOSITORY_BASE_URI.resolve("foo/bar.cer");
 
         DateTimeUtils.setCurrentMillisFixed(1619000000000L);
@@ -164,7 +163,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_retain_N_most_recent_copies_even_when_older_than_retention_period() throws IOException {
+    void should_retain_N_most_recent_copies_even_when_older_than_retention_period() throws IOException {
         final int N = 2;
 
         subject = new FileSystemPublicationObjectPersistence(
@@ -199,7 +198,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_fail_to_write_with_same_timestamp() {
+    void should_fail_to_write_with_same_timestamp() {
         URI uri = ONLINE_REPOSITORY_BASE_URI.resolve("foo/old.cer");
         var publishedObjects = Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS));
 
@@ -209,7 +208,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_not_keep_old_objects() {
+    void should_not_keep_old_objects() {
         URI oldUri = ONLINE_REPOSITORY_BASE_URI.resolve("foo/old.cer");
         URI newUri = ONLINE_REPOSITORY_BASE_URI.resolve("foo/new.cer");
 
@@ -224,7 +223,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_reject_uri_outside_of_public_repository() {
+    void should_reject_uri_outside_of_public_repository() {
         URI uri = URI.create("rsync://somewhere/else/bar.cer");
 
         var publishedObjects = Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS));
@@ -233,7 +232,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_reject_uri_outside_of_public_repository_using_relative_segments() {
+    void should_reject_uri_outside_of_public_repository_using_relative_segments() {
         URI uri = ONLINE_REPOSITORY_BASE_URI.resolve("../bar.cer");
 
         var publishedObjects = Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS));
@@ -242,7 +241,7 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void should_reject_relative_uri() {
+    void should_reject_relative_uri() {
         URI uri = URI.create("foo/bar.cer");
 
         var publishedObjects = Collections.singletonList(new PublishedObjectData(CREATED_AT, uri, CONTENTS));
@@ -251,17 +250,17 @@ public class FileSystemPublicationObjectPersistenceTest {
     }
 
     @Test
-    public void cleanup_pattern_should_not_match_published_symlink_name() {
+    void cleanup_pattern_should_not_match_published_symlink_name() {
         assertThat(PUBLICATION_DIRECTORY_PATTERN.matcher("published").matches()).isFalse();
     }
 
     @Test
-    public void cleanup_pattern_should_match_target_directory_pattern() {
+    void cleanup_pattern_should_match_target_directory_pattern() {
         assertThat(PUBLICATION_DIRECTORY_PATTERN.matcher("published-2021-04-26T09:57:59.034Z").matches()).isTrue();
     }
 
     @Test
-    public void cleanup_pattern_should_match_temporary_directory_pattern() {
+    void cleanup_pattern_should_match_temporary_directory_pattern() {
         assertThat(PUBLICATION_DIRECTORY_PATTERN.matcher("tmp-2021-04-26T10:09:06.023Z-4352054854289820810").matches()).isTrue();
     }
 }

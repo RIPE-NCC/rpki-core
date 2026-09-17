@@ -27,15 +27,18 @@ public class BgpSecServiceBean implements BgpSecViewService {
     private final BgpSecConfigurationRepository bgpSecConfigurationRepository;
     private final BgpSecEntityRepository bgpSecEntityRepository;
     private final TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository;
+    private final BgpSecCertificateRepository bgpSecCertificateRepository;
 
     public BgpSecServiceBean(CertificateAuthorityRepository caRepository,
                              BgpSecConfigurationRepository bgpSecConfigurationRepository,
                              BgpSecEntityRepository bgpSecEntityRepository,
-                             TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository) {
+                             TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository,
+                             BgpSecCertificateRepository bgpSecCertificateRepository) {
         this.caRepository = caRepository;
         this.bgpSecConfigurationRepository = bgpSecConfigurationRepository;
         this.bgpSecEntityRepository = bgpSecEntityRepository;
         this.trustAnchorPublishedObjectRepository = trustAnchorPublishedObjectRepository;
+        this.bgpSecCertificateRepository = bgpSecCertificateRepository;
     }
 
     @Override
@@ -45,20 +48,15 @@ public class BgpSecServiceBean implements BgpSecViewService {
             return Collections.emptyList();
         }
         return bgpSecConfigurationRepository.findByCertificateAuthority(ca)
-                .stream().map(BgpSecConfiguration::withId).toList();
+                .stream().map(BgpSecConfiguration::toData).toList();
     }
 
     @Override
-    public Optional<BgpSecConfigurationData> findBgpSecConfigurationById(long caId, long id) {
-        ManagedCertificateAuthority ca = caRepository.findManagedCa(caId);
-        if (ca == null) {
+    public Optional<BgpSecConfigurationData> findBgpSecCertificates(long caId, long configurationId) {
+        if (caRepository.findManagedCa(caId) == null) {
             return Optional.empty();
         }
-        return bgpSecConfigurationRepository.findByCertificateAuthority(ca)
-                .stream()
-                    .filter(x -> x.getId().equals(id))
-                    .map(BgpSecConfiguration::toData)
-                    .findFirst();
+        return bgpSecCertificateRepository.findCurrentCertificateDataByCaId(caId, configurationId);
     }
 
     @Override
@@ -78,7 +76,6 @@ public class BgpSecServiceBean implements BgpSecViewService {
                                 .getCertificate())
                 ));
     }
-
 
     @Override
     public Optional<byte[]> findBgpSecCertificateChainPkcs7(long caId, BgpSecConfigurationData id) {
@@ -115,7 +112,8 @@ public class BgpSecServiceBean implements BgpSecViewService {
 
         ParentCertificateAuthority parent = ca.getParent();
         while (parent instanceof ManagedCertificateAuthority managedParent) {
-            IncomingResourceCertificate parentIncomingCertificate = managedParent.findCurrentIncomingResourceCertificate()
+            IncomingResourceCertificate parentIncomingCertificate = managedParent
+                    .findCurrentIncomingResourceCertificate()
                     .orElseThrow(() -> new IllegalStateException(
                             "Missing incoming certificate for parent CA " + managedParent.getName()));
             chain.add(parentIncomingCertificate.getCertificate().getCertificate());

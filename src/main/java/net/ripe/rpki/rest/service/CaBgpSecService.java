@@ -2,13 +2,12 @@ package net.ripe.rpki.rest.service;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.domain.bgpsec.RouterId;
 import net.ripe.rpki.rest.exception.BadRequestException;
 import net.ripe.rpki.rest.exception.ObjectNotFoundException;
-import net.ripe.rpki.server.api.commands.CreateBgpSecConfigurationCommand;
+import net.ripe.rpki.server.api.commands.AddBgpSecConfigurationCommand;
 import net.ripe.rpki.server.api.commands.DeleteBgpSecConfigurationCommand;
 import net.ripe.rpki.server.api.dto.BgpSecConfigurationData;
 import net.ripe.rpki.server.api.dto.HostedCertificateAuthorityData;
@@ -17,6 +16,7 @@ import net.ripe.rpki.server.api.services.read.BgpSecViewService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
 import net.ripe.rpki.server.api.support.objects.CaName;
 import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
@@ -25,10 +25,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static net.ripe.rpki.rest.service.AbstractCaRestService.API_URL_PREFIX;
@@ -72,18 +75,17 @@ public class CaBgpSecService extends AbstractCaRestService {
 
         var resolvedAsn = parseAsnParam(asnParam);
         var ca = getCa(HostedCertificateAuthorityData.class, caName);
-        var allConfigs = bgpSecViewService.findBgpSecConfiguration(ca.getId());
-        var filteredConfigs = allConfigs.stream()
-                .filter(c -> keyIdentifier == null ||
-                       c.keyIdentifier().equals(keyIdentifier)
-                )
-                .filter(c -> resolvedAsn == null || c.asn().equals(resolvedAsn))
-                .filter(c -> routerId == null || Objects.equals(c.routerId(), routerId))
-                .toList();
+        var allCerts = bgpSecViewService.findBgpSecConfiguration(ca.getId()).stream();
+        var filteredCerts = new Filtered<>(allCerts)
+                .by(keyIdentifier, BgpSecConfigurationData::keyIdentifier)
+                .by(resolvedAsn, BgpSecConfigurationData::asn)
+                .by(routerId, BgpSecConfigurationData::routerId)
+                .stream()
+                .flatMap(conf -> bgpSecViewService.findBgpSecCertificates(ca.getId(), conf.id()).stream());
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new RouterKeys(filteredConfigs.stream().map(RouterKey::from).toList()));
+                .body(new RouterKeys(filteredCerts.map(RouterKey::from).toList()));
     }
 
     @GetMapping("/{id}")
@@ -98,7 +100,7 @@ public class CaBgpSecService extends AbstractCaRestService {
         log.info("REST call: Get BGPSec object {} belonging to CA: {}", id, caName);
 
         var ca = getCa(HostedCertificateAuthorityData.class, caName);
-        var bgpsecConfiguration = bgpSecViewService.findBgpSecConfigurationById(ca.getId(), id);
+        var bgpsecConfiguration = bgpSecViewService.findBgpSecCertificates(ca.getId(), id);
         return ResponseEntity.of(bgpsecConfiguration.map(RouterKey::from));
     }
 
@@ -137,13 +139,11 @@ public class CaBgpSecService extends AbstractCaRestService {
             String filename) {
 
         final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
-        var bgpsecConfiguration = bgpSecViewService.findBgpSecConfigurationById(ca.getId(), bgpsecConfigurationId);
+        var configuration = bgpSecViewService.findBgpSecCertificates(ca.getId(), bgpsecConfigurationId).orElseThrow(
+                () -> new ObjectNotFoundException("BGPSec configuration not found.")
+        );
 
-        if (bgpsecConfiguration.isEmpty()) {
-            throw new ObjectNotFoundException("BGPSec configuration not found.");
-        }
-
-        Optional<byte[]> pkcs7Bytes = fetchPkcs7.apply(ca.getId(), bgpsecConfiguration.get());
+        Optional<byte[]> pkcs7Bytes = fetchPkcs7.apply(ca.getId(), configuration);
 
         if (pkcs7Bytes.isEmpty()) {
             throw new ObjectNotFoundException(
@@ -177,13 +177,17 @@ public class CaBgpSecService extends AbstractCaRestService {
         }
 
         var ca = getCa(HostedCertificateAuthorityData.class, caName);
-        commandService.execute(new CreateBgpSecConfigurationCommand(ca.getVersionedId(), body.asn(), body.routerId(), body.csr()));
+        commandService.execute(new AddBgpSecConfigurationCommand(ca.getVersionedId(), body.asn(), body.routerId(), body.csr()));
 
-        var configurations = bgpSecViewService.findBgpSecConfiguration(ca.getId());
-        var created = configurations.stream()
-            .filter(x -> x.matches(body.asn(), body.routerId(), body.csr()))
-            .findAny()
-            .orElseThrow(() -> new IllegalStateException("Failed to find the created BGPSecConfiguration object."));
+        var created = bgpSecViewService.findBgpSecConfiguration(ca.getId()).stream()
+                .filter(x -> x.matches(body.asn(), body.routerId(), body.csr()))
+                .flatMap(bareConf -> {
+                    var confWithValidity = bgpSecViewService.findBgpSecCertificates(ca.getId(), bareConf.id());
+                    return Stream.of(confWithValidity.orElse(bareConf));
+                })
+                .findAny()
+                .orElseThrow(() -> new IllegalStateException("Failed to find the created BGPSecConfiguration object."));
+
         return ok(RouterKey.from(created));
     }
 
@@ -197,8 +201,9 @@ public class CaBgpSecService extends AbstractCaRestService {
         log.info("REST call: Revoke BGPSec router key {} belonging to CA: {}", id, caName);
 
         var ca = getCa(HostedCertificateAuthorityData.class, caName);
-        bgpSecViewService.findBgpSecConfigurationById(ca.getId(), id).ifPresent(
-            routerkey -> commandService.execute(new DeleteBgpSecConfigurationCommand(ca.getVersionedId(), routerkey))
+        bgpSecViewService.findBgpSecCertificates(ca.getId(), id).ifPresent(
+                c -> commandService.execute(new DeleteBgpSecConfigurationCommand(
+                        ca.getVersionedId(), c))
         );
         return noContent();
     }
@@ -216,17 +221,34 @@ public class CaBgpSecService extends AbstractCaRestService {
 
     public record CsrRequest(Asn asn, RouterId routerId, String csr) {}
 
-    public record RouterKey(Long routerKeyId, Asn asn, Long routerId, String keyIdentifier, String csr) {
+    public record RouterKey(Long routerKeyId, Asn asn, Long routerId, String keyIdentifier, String csr,
+                            Instant notValidBefore, Instant notValidAfter) {
+
         public static RouterKey from(BgpSecConfigurationData data) {
             return new RouterKey(
                     data.id(),
                     data.asn(),
-                    data.routerId().value(),
+                    data.routerId() != null ? data.routerId().value() : null,
                     data.keyIdentifier(),
-                    data.csr()
+                    data.csr(),
+                    toInstant(data.notValidBefore()),
+                    toInstant(data.notValidAfter())
             );
+        }
+
+        private static Instant toInstant(DateTime joda) {
+            return joda == null ? null : Instant.ofEpochMilli(joda.getMillis());
         }
     }
 
     public record RouterKeys(List<RouterKey> routerKeys) {}
+
+    record Filtered<T>(Stream<T> stream) {
+        <V> Filtered<T> by(V value, Function<T, V> extract) {
+            if (value == null) {
+                return this;
+            }
+            return new Filtered<>(stream.filter(item -> Objects.equals(extract.apply(item), value)));
+        }
+    }
 }

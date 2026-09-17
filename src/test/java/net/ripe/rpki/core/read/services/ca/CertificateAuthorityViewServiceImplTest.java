@@ -10,15 +10,13 @@ import net.ripe.rpki.domain.*;
 import net.ripe.rpki.server.api.commands.*;
 import net.ripe.rpki.server.api.dto.DelegatedCa;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import net.ripe.rpki.server.api.support.objects.CaName;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.junit.Test;
 
 import javax.security.auth.x500.X500Principal;
-import java.util.HexFormat;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -183,5 +181,57 @@ public class CertificateAuthorityViewServiceImplTest extends CertificationDomain
                 HexFormat.of().formatHex(KeyPairUtil.getKeyIdentifier(publicKeyEntity.getPublicKey()))
         );
         assertThat(ca.lastProvisionedAt()).isPresent();
+    }
+
+    @Test
+    public void findDelegatedCas_with_resources() {
+        clearDatabase();
+        ProductionCertificateAuthority parent = createInitialisedProdCaWithRipeResources();
+        var delegatedCa = new X500Principal("CN=delegated");
+        var nonHostedCa = new NonHostedCertificateAuthority(
+            123L, delegatedCa,
+            ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, parent
+        );
+        certificateAuthorityRepository.add(nonHostedCa);
+        var publicKeyEntity = nonHostedCa.findOrCreatePublicKeyEntityByPublicKey(
+            ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT.getPublicKey()
+        );
+        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(), List.of());
+
+        resourceCache.populateCache(Map.of(CaName.of(delegatedCa), ImmutableResourceSet.parse("1.0.0.0/8")));
+        entityManager.flush();
+
+        List<DelegatedCa> result = subject.findDelegatedCas();
+        assertThat(result).hasSize(1);
+
+        var ca = result.getFirst();
+        assertThat(ca.caName()).isEqualTo(delegatedCa.getName());
+        assertThat(ca.hasResources()).isTrue();
+    }
+
+    @Test
+    public void findDelegatedCas_without_resources() {
+        clearDatabase();
+        ProductionCertificateAuthority parent = createInitialisedProdCaWithRipeResources();
+        var delegatedCa = new X500Principal("CN=delegated");
+        var nonHostedCa = new NonHostedCertificateAuthority(
+            123L, delegatedCa,
+            ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT, parent
+        );
+        certificateAuthorityRepository.add(nonHostedCa);
+        var publicKeyEntity = nonHostedCa.findOrCreatePublicKeyEntityByPublicKey(
+            ProvisioningIdentityCertificateBuilderTest.TEST_IDENTITY_CERT.getPublicKey()
+        );
+        publicKeyEntity.setLatestIssuanceRequest(new RequestedResourceSets(), List.of());
+
+        resourceCache.populateCache(Map.of(CaName.of(delegatedCa), ImmutableResourceSet.empty()));
+        entityManager.flush();
+
+        List<DelegatedCa> result = subject.findDelegatedCas();
+        assertThat(result).hasSize(1);
+
+        var ca = result.getFirst();
+        assertThat(ca.caName()).isEqualTo(delegatedCa.getName());
+        assertThat(ca.hasResources()).isFalse();
     }
 }

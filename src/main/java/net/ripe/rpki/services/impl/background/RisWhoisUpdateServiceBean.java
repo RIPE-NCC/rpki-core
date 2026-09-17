@@ -27,7 +27,7 @@ import static net.ripe.rpki.services.impl.background.BackgroundServices.RIS_WHOI
 @Slf4j
 @Service(RIS_WHOIS_UPDATE_SERVICE)
 public class RisWhoisUpdateServiceBean extends ConcurrentBackgroundServiceWithAdminPrivilegesOnActiveNode {
-    private static final int MINIMUM_EXPECTED_UPDATES = 100000;
+
     static final String[] FILENAMES = {"riswhoisdump.IPv4.gz", "riswhoisdump.IPv6.gz"};
 
     // url -> metrics
@@ -38,17 +38,20 @@ public class RisWhoisUpdateServiceBean extends ConcurrentBackgroundServiceWithAd
     private final BgpRisEntryViewService repository;
 
     private final String risWhoisBaseUrl;
+    private final int thresholdMinimumSize;
 
     private final RisWhoisFetcher fetcher;
 
     public RisWhoisUpdateServiceBean(BackgroundTaskRunner backgroundTaskRunner,
                                      BgpRisEntryViewService repository,
                                      @Value("${riswhoisdump.base.url}") String risWhoisBaseUrl,
+                                     @Value("${riswhoisdump.threshold.minimum-size}") int thresholdMinimumSize,
                                      RisWhoisFetcher fetcher,
                                      MeterRegistry meterRegistry) {
         super(backgroundTaskRunner);
         this.repository = repository;
         this.risWhoisBaseUrl = risWhoisBaseUrl;
+        this.thresholdMinimumSize = thresholdMinimumSize;
         this.fetcher = fetcher;
         this.meterRegistry = meterRegistry;
     }
@@ -85,12 +88,13 @@ public class RisWhoisUpdateServiceBean extends ConcurrentBackgroundServiceWithAd
             }
         }
 
-        if (entries.size() >= MINIMUM_EXPECTED_UPDATES) {
+        if (entries.size() >= thresholdMinimumSize) {
             log.info("fetched {} RIS whois entries.", entries.size());
             repository.resetEntries(entries);
             repository.setLastUpdated(Instant.ofEpochMilli(lastUpdated.get()));
         } else {
-            log.error("Found an unusually small number of RIS whois entries, please check files at: {}", risWhoisBaseUrl);
+            log.error("Found an unusually small number of RIS whois entries {}, less than limit {}, please check files at: {}",
+                    entries.size(), thresholdMinimumSize, risWhoisBaseUrl);
         }
     }
 

@@ -50,7 +50,9 @@ resource.services:
   apiKey: BAD-TEST-D2Shtf2n5Bwh02P7
 
 # Prevent requests during test
-riswhoisdump.base.url: http://localhost:8080/certification/static/riswhois/
+riswhoisdump:
+  base.url: http://localhost:8080/certification/static/riswhois/
+  threshold.minimum-size: 0
 
 prometheus.base.url: https://prometheus.rpki.prepdev.ripe.net/
 

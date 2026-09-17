@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 public record DelegatedCa(String caName,
+                          boolean hasResources,
                           Optional<String> keyIdentifier,
                           @JsonInclude(JsonInclude.Include.NON_ABSENT)
                           Optional<Instant> lastProvisionedAt,

@@ -193,6 +193,7 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
             """
                 SELECT
                     ca.name,
+                    EXISTS(SELECT 1 FROM resource_cache WHERE name = ca.name AND resources <> ''),
                     (SELECT pk.encoded
                             FROM non_hosted_ca_public_key pk
                             WHERE pk.ca_id = ca.id
@@ -210,17 +211,20 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
 
         var hexFormat = HexFormat.of();
         return results.stream().map(row -> {
-            var caName            = (String)            row[0];
-            var encodedPublicKey  = (byte[])            row[1];
-            var lastProvisionedAt = (java.time.Instant) row[2];
-            var lastFailedAt      = (java.time.Instant) row[3];
-            var errorReason       = (String)            row[4];
+            var col = 0;
+            var caName            = (String)            row[col++];
+            var hasResources      = (boolean)           row[col++];
+            var encodedPublicKey  = (byte[])            row[col++];
+            var lastProvisionedAt = (java.time.Instant) row[col++];
+            var lastFailedAt      = (java.time.Instant) row[col++];
+            var errorReason       = (String)            row[col];
 
             Optional<String> lastPublicKey = Optional.ofNullable(encodedPublicKey)
                     .map(encoded -> hexFormat.formatHex(KeyPairUtil.getKeyIdentifier(KeyPairFactory.decodePublicKey(encoded))));
 
             return new DelegatedCa(
                     caName,
+                    hasResources,
                     lastPublicKey,
                     Optional.ofNullable(lastProvisionedAt),
                     Optional.ofNullable(lastFailedAt),

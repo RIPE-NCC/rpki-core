@@ -112,6 +112,7 @@ iana:
 riswhoisdump:
     base.url: https://www.ris.ripe.net/dumps/
     update.interval.hours: 1
+    threshold.minimum-size: 100000
 
 auth.service:
     connect.timeout.milliseconds: 5000

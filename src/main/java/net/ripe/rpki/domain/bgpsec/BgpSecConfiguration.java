@@ -51,10 +51,6 @@ public class BgpSecConfiguration extends EntitySupport {
     }
 
     public BgpSecConfigurationData toData() {
-        return new BgpSecConfigurationData(id, asn, new RouterId(routerId), csr, keyIdentifier);
-    }
-
-    public BgpSecConfigurationData withId() {
-        return new BgpSecConfigurationData(id,asn, new RouterId(routerId),csr,  keyIdentifier);
+        return BgpSecConfigurationData.from(id, asn, new RouterId(routerId), csr);
     }
 }

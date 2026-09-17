@@ -1,15 +1,11 @@
 package net.ripe.rpki.domain.bgpsec;
 
 import net.ripe.ipresource.Asn;
-import net.ripe.rpki.application.impl.ResourceCertificateInformationAccessStrategyBean;
 import net.ripe.rpki.commons.crypto.ValidityPeriod;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateUtil;
-import net.ripe.rpki.commons.crypto.x509cert.X509RouterCertificate;
-import net.ripe.rpki.commons.crypto.x509cert.X509RouterCertificateBuilder;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.interca.CertificateIssuanceResponse;
 import net.ripe.rpki.server.api.dto.CertificateStatus;
-import org.bouncycastle.asn1.x509.KeyUsage;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -17,7 +13,6 @@ import org.mockito.ArgumentCaptor;
 
 import javax.security.auth.x500.X500Principal;
 import java.net.URI;
-import java.security.PublicKey;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
@@ -41,7 +36,6 @@ class BgpSecEntityServiceBeanTest {
     );
     private final CertificateFactory certificateFactory = new CertificateFactory(resourceCertificateRepository, bgpSecCertificateRepository, providerConfigurationData);
     private final X500Principal caSubject = new X500Principal("CN=MY-CA");
-
     private final Asn asn = new Asn(42);
     private final ValidityPeriod validity = new ValidityPeriod(NOW, NOW.plusYears(1));
 
@@ -78,9 +72,11 @@ class BgpSecEntityServiceBeanTest {
     @Test
     void updateBgpSecIfNeeded_revokes_an_entity_with_no_configuration() {
         when(bgpSecConfigurationRepository.findByCertificateAuthority(ca)).thenReturn(List.of());
-        var cert = createBgpSecCertificate(
-            asn,
+        var cert = BgpSecCertificateFixtures.createBgpSecCertificateFromCSR(
+            ca.getCurrentKeyPair(),
             Csr.getPublicKey(CSR),
+            asn,
+            1L,
             ca.getCurrentIncomingCertificate().getNotValidBefore(),
             ca.getCurrentIncomingCertificate().getNotValidAfter(),
             CertificateStatus.CURRENT
@@ -97,9 +93,11 @@ class BgpSecEntityServiceBeanTest {
         BgpSecConfiguration config = new BgpSecConfiguration(ca, asn, 0L, CSR);
         when(bgpSecConfigurationRepository.findByCertificateAuthority(ca)).thenReturn(List.of(config));
 
-        var certificate = createBgpSecCertificate(
-            config.getAsn(),
+        var certificate = BgpSecCertificateFixtures.createBgpSecCertificateFromCSR(
+            ca.getCurrentKeyPair(),
             Csr.getPublicKey(CSR),
+            config.getAsn(),
+            1L,
             ca.getCurrentIncomingCertificate().getNotValidBefore(),
             ca.getCurrentIncomingCertificate().getNotValidAfter().minusDays(1),
             CertificateStatus.CURRENT
@@ -124,9 +122,11 @@ class BgpSecEntityServiceBeanTest {
     void revoke_entity_when_bgpsec_certificate_is_expired() {
         when(bgpSecConfigurationRepository.findByCertificateAuthority(ca)).thenReturn(List.of());
 
-        var certificate = createBgpSecCertificate(
-            asn,
+        var certificate = BgpSecCertificateFixtures.createBgpSecCertificateFromCSR(
+            ca.getCurrentKeyPair(),
             Csr.getPublicKey(CSR),
+            asn,
+            1L,
             ca.getCurrentIncomingCertificate().getNotValidBefore(),
             ca.getCurrentIncomingCertificate().getNotValidAfter(),
             CertificateStatus.EXPIRED
@@ -164,34 +164,5 @@ class BgpSecEntityServiceBeanTest {
             "bgpsec-3.cer",
             URI.create("rsync://localhost/bgpsec/")
         );
-    }
-
-    private BgpSecCertificate createBgpSecCertificate(
-        Asn asn,
-        PublicKey publicKey,
-        DateTime notBefore,
-        DateTime notAfter,
-        CertificateStatus status
-    ) {
-        var signingKeyPair = ca.getCurrentKeyPair();
-        var currentIncomingCert = signingKeyPair.getCurrentIncomingCertificate();
-
-        var builder = new X509RouterCertificateBuilder();
-        builder.withKeyUsage(KeyUsage.digitalSignature);
-        builder.withSignatureProvider(providerConfigurationData.getSignatureProvider());
-        builder.withAsns(new int[] { asn.getValue().intValueExact() });
-        builder.withSerial(java.math.BigInteger.valueOf(1L))
-                .withSubjectDN(caSubject)
-                .withPublicKey(publicKey)
-                .withIssuerDN(currentIncomingCert.getSubject())
-                .withValidityPeriod(new ValidityPeriod(notBefore, notAfter))
-                .withSigningKeyPair(signingKeyPair.getKeyPair())
-                .withAuthorityInformationAccess(new ResourceCertificateInformationAccessStrategyBean().aiaForCertificate(currentIncomingCert))
-                .withCrlDistributionPoints(signingKeyPair.crlLocationUri());
-
-        X509RouterCertificate x509Cert = builder.build();
-        BgpSecCertificate cert = new BgpSecCertificate(x509Cert, signingKeyPair, asn);
-        cert.setStatus(status);
-        return cert;
     }
 }

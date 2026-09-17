@@ -38,17 +38,19 @@ public class RisWhoisUpdateServiceBeanTest {
 
     private RisWhoisUpdateServiceBean subject;
 
+    private final int minimumExpectedUpdates = 100000;
+
     @Before
     public void setUp() {
         MeterRegistry registry = new SimpleMeterRegistry();
-        subject = new RisWhoisUpdateServiceBean(new BackgroundTaskRunner(activeNodeService, registry), repository, BASE_URL, fetcher, registry);
+        subject = new RisWhoisUpdateServiceBean(new BackgroundTaskRunner(activeNodeService, registry), repository, BASE_URL, minimumExpectedUpdates, fetcher, registry);
     }
 
 
     @SuppressWarnings({"unchecked"})
     @Test
     public void shouldUpdateRepositoryWhenMoreThan100kEntriesFound() throws IOException {
-        when(fetcher.fetch(IPV4_FILE_URL)).thenReturn(getTestLines(100001));
+        when(fetcher.fetch(IPV4_FILE_URL)).thenReturn(getTestLines(minimumExpectedUpdates + 1));
         when(fetcher.fetch(IPV6_FILE_URL)).thenReturn(getTestLines(0));
 
         subject.runService(Collections.emptyMap());
@@ -59,14 +61,15 @@ public class RisWhoisUpdateServiceBeanTest {
     @SuppressWarnings({"unchecked"})
     @Test
     public void shouldNotFailOnPartiallyBrokenFile() throws IOException {
-        when(fetcher.fetch(IPV4_FILE_URL)).thenReturn(getTestLines(100001));
-        when(fetcher.fetch(IPV6_FILE_URL)).thenReturn(Pair.of(
-                "207841\t::ffff:0.0.0.0/96\t1\n" +
-                "268624\t::ffff:45.164.124.0/120\t1\n" +
-                "268624\t::ffff:45.164.125.0/120\t1\n" +
-                "268624\t::ffff:45.164.126.0/120\t1\n" +
-                "268624\t::ffff:45.164.127.0/120\t1\n" +
-                "268624\t::ffff:80.94.90.0/120\t1\n", 11L)
+        when(fetcher.fetch(IPV4_FILE_URL)).thenReturn(getTestLines(minimumExpectedUpdates + 1));
+        when(fetcher.fetch(IPV6_FILE_URL)).thenReturn(Pair.of("""
+                        207841\t::ffff:0.0.0.0/96\t1
+                        268624\t::ffff:45.164.124.0/120\t1
+                        268624\t::ffff:45.164.125.0/120\t1
+                        268624\t::ffff:45.164.126.0/120\t1
+                        268624\t::ffff:45.164.127.0/120\t1
+                        268624\t::ffff:80.94.90.0/120\t1
+                        """, 11L)
         );
 
         subject.runService(Collections.emptyMap());
@@ -78,7 +81,7 @@ public class RisWhoisUpdateServiceBeanTest {
     @Test
     public void shouldNOTUpdateRepositoryWhenLessThan100kEntriesFound() throws IOException {
         when(fetcher.fetch(IPV4_FILE_URL)).thenReturn(getTestLines(0));
-        when(fetcher.fetch(IPV6_FILE_URL)).thenReturn(getTestLines(99999));
+        when(fetcher.fetch(IPV6_FILE_URL)).thenReturn(getTestLines(minimumExpectedUpdates - 1));
 
         subject.runService(Collections.emptyMap());
 

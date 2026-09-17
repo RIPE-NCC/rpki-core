@@ -1,5 +1,5 @@
 default:
-  image: gradle:9.7-jdk21@sha256:c0ce93e022ea2e705332dabe090019c749356576fc8fe39c38129b2aae9ed68f
+  image: gradle:9.7-jdk21@sha256:5ed5c4e3de3238c97f460f4056b18762174e2583a389901b2b2ec0aba59c8c58
   cache:
     key: "gradle-${CI_COMMIT_REF_SLUG}"
     fallback_keys:
@@ -50,7 +50,7 @@ build:
   # slow builds in augusts 2023
   timeout: 60m
   services:
-    - postgres:15.19@sha256:926f8799aef36e00001cfe15fba7abbd37d3c5224ea57e4c858e4bb670f10561
+    - postgres:15.19@sha256:9b1d34adbce1dd07ee6e94b4a2cf698884b89bd44a6c9c12f5da8f3acbfe4957
   variables:
       POSTGRES_DB: certdb_test
       POSTGRES_USER: certdb
@@ -64,7 +64,7 @@ build:
     - mkdir -m 755 -p /export/bad/certification/repository/{ta,online}/published
     - mkdir -m 755 -p /export/bad/certification/ta/{data,requests,responses}
   script:
-    - ./gradlew -i build integrationTest
+    - ./gradlew --init-script ci.gradle -i build integrationTest
     - cat build/reports/jacoco/test/html/index.html
   artifacts:
     when: always
@@ -78,7 +78,7 @@ build:
 lockfile:
   stage: build
   script:
-    - gradle dependencies --write-locks
+    - ./gradlew --init-script ci.gradle dependencies --write-locks
   artifacts:
     paths:
       - "gradle.lockfile"
@@ -90,7 +90,7 @@ sonarqube:
   variables:
     GIT_DEPTH: 0
   script:
-    - ./gradlew -i -Dsonar.projectKey=rpki-ripe-ncc sonarqube
+    - ./gradlew --init-script ci.gradle -i -Dsonar.projectKey=rpki-ripe-ncc sonarqube
   allow_failure: true
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"

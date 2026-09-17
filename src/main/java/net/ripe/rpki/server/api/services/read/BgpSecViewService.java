@@ -8,7 +8,7 @@ import java.util.Optional;
 public interface BgpSecViewService {
     List<BgpSecConfigurationData> findBgpSecConfiguration(long caId);
 
-    Optional<BgpSecConfigurationData> findBgpSecConfigurationById(long caId, long id);
+    Optional<BgpSecConfigurationData> findBgpSecCertificates(long caId, long configurationId);
 
     /**
      * Returns a DER-encoded PKCS#7 bundle containing only the BGPSec EE certificate for the given entry.

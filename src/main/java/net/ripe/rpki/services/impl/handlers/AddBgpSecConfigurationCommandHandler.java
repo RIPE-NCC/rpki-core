@@ -7,13 +7,13 @@ import net.ripe.rpki.domain.CertificateAuthorityRepository;
 import net.ripe.rpki.domain.bgpsec.BgpSecConfiguration;
 import net.ripe.rpki.domain.bgpsec.BgpSecConfigurationRepository;
 import net.ripe.rpki.domain.bgpsec.Csr;
-import net.ripe.rpki.server.api.commands.CreateBgpSecConfigurationCommand;
+import net.ripe.rpki.server.api.commands.AddBgpSecConfigurationCommand;
 import net.ripe.rpki.server.api.services.command.CommandStatus;
 import net.ripe.rpki.server.api.services.command.CommandWithoutEffectException;
 import net.ripe.rpki.server.api.services.command.NotHolderOfResourcesException;
 
 @Handler
-public class AddBgpSecConfigurationCommandHandler extends AbstractCertificateAuthorityCommandHandler<CreateBgpSecConfigurationCommand> {
+public class AddBgpSecConfigurationCommandHandler extends AbstractCertificateAuthorityCommandHandler<AddBgpSecConfigurationCommand> {
 
     private final BgpSecConfigurationRepository bgpSecConfigurationRepository;
 
@@ -26,15 +26,15 @@ public class AddBgpSecConfigurationCommandHandler extends AbstractCertificateAut
     }
 
     @Override
-    public Class<CreateBgpSecConfigurationCommand> commandType() {
-        return CreateBgpSecConfigurationCommand.class;
+    public Class<AddBgpSecConfigurationCommand> commandType() {
+        return AddBgpSecConfigurationCommand.class;
     }
 
     @Override
-    public void handle(@NonNull CreateBgpSecConfigurationCommand command, CommandStatus commandStatus) {
+    public void handle(@NonNull AddBgpSecConfigurationCommand command, CommandStatus commandStatus) {
         var ca = lookupManagedCa(command.getCertificateAuthorityId());
         var currentConfiguration = bgpSecConfigurationRepository.findByCertificateAuthority(ca)
-                .stream().map(BgpSecConfiguration::withId).toList();
+                .stream().map(BgpSecConfiguration::toData).toList();
 
         var exists = currentConfiguration.stream()
                 .anyMatch(config ->config.routerId().equals(command.getRouterId()) &&

@@ -7,15 +7,15 @@ import net.ripe.rpki.domain.bgpsec.Csr;
 import net.ripe.rpki.domain.bgpsec.RouterId;
 
 @Getter
-public class CreateBgpSecConfigurationCommand extends CertificateAuthorityModificationCommand {
+public class AddBgpSecConfigurationCommand extends CertificateAuthorityModificationCommand {
 
     private final Asn asn;
     private final RouterId routerId;
     private final String csr;
     private final String keyIdentifier;
 
-    public CreateBgpSecConfigurationCommand(VersionedId certificateAuthorityId,
-                                            Asn asn, RouterId routerId, String csr) {
+    public AddBgpSecConfigurationCommand(VersionedId certificateAuthorityId,
+                                         Asn asn, RouterId routerId, String csr) {
         super(certificateAuthorityId, CertificateAuthorityCommandGroup.USER);
         this.asn = asn;
         this.routerId = routerId;

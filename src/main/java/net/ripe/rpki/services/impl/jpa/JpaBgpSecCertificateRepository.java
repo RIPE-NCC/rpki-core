@@ -5,8 +5,11 @@ import net.ripe.rpki.domain.PublicationStatus;
 import net.ripe.rpki.domain.RevokedCertificateEntry;
 import net.ripe.rpki.domain.bgpsec.BgpSecCertificate;
 import net.ripe.rpki.domain.bgpsec.BgpSecCertificateRepository;
+import net.ripe.rpki.domain.bgpsec.BgpSecConfiguration;
+import net.ripe.rpki.domain.bgpsec.RouterId;
 import net.ripe.rpki.ripencc.support.persistence.DateTimePersistenceConverter;
 import net.ripe.rpki.ripencc.support.persistence.JpaRepository;
+import net.ripe.rpki.server.api.dto.BgpSecConfigurationData;
 import net.ripe.rpki.server.api.dto.CertificateStatus;
 import org.apache.commons.lang.Validate;
 import org.joda.time.DateTime;
@@ -14,10 +17,52 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
 @Repository
 @Transactional
 public class JpaBgpSecCertificateRepository extends JpaRepository<BgpSecCertificate> implements BgpSecCertificateRepository {
+
+    private record BgpSecCertificateRow(
+            BgpSecConfiguration conf,
+            DateTime notValidBefore,
+            DateTime notValidAfter
+    ) {}
+
+    @Override
+    public Optional<BgpSecConfigurationData> findCurrentCertificateDataByCaId(long caId, long configurationId) {
+        var jpql = """
+                SELECT new net.ripe.rpki.services.impl.jpa.JpaBgpSecCertificateRepository$BgpSecCertificateRow(
+                       conf,
+                       e.certificate.validityPeriod.notValidBefore, e.certificate.validityPeriod.notValidAfter)
+                FROM BgpSecConfiguration conf
+                JOIN BgpSecEntity e
+                    ON e.asn = conf.asn
+                    AND (e.routerId = conf.routerId OR (e.routerId IS NULL AND conf.routerId IS NULL))
+                    AND e.keyIdentifier = conf.keyIdentifier
+                WHERE conf.certificateAuthority.id = :caId
+                AND e.certificate.status = :status
+                AND conf.id = :configurationId
+                """;
+
+        var query = manager.createQuery(jpql, BgpSecCertificateRow.class)
+                .setParameter("caId", caId)
+                .setParameter("status", CertificateStatus.CURRENT)
+                .setParameter("configurationId", configurationId);
+
+        return query.getResultList().stream()
+                .map(row -> new BgpSecConfigurationData(
+                        row.conf().getId(),
+                        row.conf().getAsn(),
+                        row.conf().getRouterId() != null ? new RouterId(row.conf().getRouterId()) : null,
+                        row.conf().getCsr(),
+                        row.conf().getKeyIdentifier(),
+                        row.notValidBefore(),
+                        row.notValidAfter()
+                ))
+                .findFirst();
+    }
 
     @Override
     protected Class<BgpSecCertificate> getEntityClass() {

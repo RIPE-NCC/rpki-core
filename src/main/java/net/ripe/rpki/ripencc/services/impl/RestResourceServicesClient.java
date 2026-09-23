@@ -23,7 +23,7 @@ import jakarta.ws.rs.core.Response;
 class RestResourceServicesClient implements ResourceServicesClient {
 
     private static final String TOTAL_RESOURCES = "total-resources";
-    static final String HEALTHCHECK_PATH = "resource-services/actuator/health";
+    static final String HEALTHCHECK_PATH = "actuator/health";
 
     private final Gson gson = new Gson();
     private final Client resourceServices;

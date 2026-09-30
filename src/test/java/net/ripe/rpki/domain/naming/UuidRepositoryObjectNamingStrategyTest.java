@@ -4,6 +4,7 @@ import net.ripe.ipresource.Asn;
 import net.ripe.rpki.commons.crypto.util.KeyPairFactoryTest;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
+import net.ripe.rpki.commons.crypto.x509cert.X509RouterCertificate;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import org.junit.Test;
 
@@ -44,27 +45,35 @@ public class UuidRepositoryObjectNamingStrategyTest {
     @Test
     public void shouldCreateBgpSecFilenameWithHexEncodedAsnAndRouterId() {
         UuidRepositoryObjectNamingStrategy subject = new UuidRepositoryObjectNamingStrategy();
-        PublicKey publicKey = KeyPairFactoryTest.TEST_KEY_PAIR.getPublic();
-        X509ResourceCertificate certificate = mock(X509ResourceCertificate.class);
-        when(certificate.getPublicKey()).thenReturn(publicKey);
+        PublicKey caPublicKey = KeyPairFactoryTest.TEST_KEY_PAIR.getPublic();
+        PublicKey bgpSecPublicKey = KeyPairFactoryTest.SECOND_TEST_KEY_PAIR.getPublic();
+        X509ResourceCertificate caCertificate = mock(X509ResourceCertificate.class);
+        when(caCertificate.getPublicKey()).thenReturn(caPublicKey);
+        X509RouterCertificate bgpSecCertificate = mock(X509RouterCertificate.class);
+        when(bgpSecCertificate.getPublicKey()).thenReturn(bgpSecPublicKey);
 
-        String expected = UuidRepositoryObjectNamingStrategy.getDashSafeEncodedPublicKeyHash(publicKey)
+        String expected = UuidRepositoryObjectNamingStrategy.getDashSafeEncodedPublicKeyHash(caPublicKey)
+            + "-" + UuidRepositoryObjectNamingStrategy.getDashSafeEncodedPublicKeyHash(bgpSecPublicKey)
             + "-bgpsec-0000002a-0000002b.cer";
 
-        assertEquals(expected, subject.bgpSecFilename(certificate, Asn.parse("AS42"), 43L));
+        assertEquals(expected, subject.bgpSecFilename(caCertificate, bgpSecCertificate, Asn.parse("AS42"), 43L));
     }
 
     @Test
     public void shouldCreateBgpSecFilenameWithoutRouterIdSuffixWhenRouterIdIsNull() {
         UuidRepositoryObjectNamingStrategy subject = new UuidRepositoryObjectNamingStrategy();
-        PublicKey publicKey = KeyPairFactoryTest.TEST_KEY_PAIR.getPublic();
-        X509ResourceCertificate certificate = mock(X509ResourceCertificate.class);
-        when(certificate.getPublicKey()).thenReturn(publicKey);
+        PublicKey caPublicKey = KeyPairFactoryTest.TEST_KEY_PAIR.getPublic();
+        PublicKey bgpSecPublicKey = KeyPairFactoryTest.SECOND_TEST_KEY_PAIR.getPublic();
+        X509ResourceCertificate caCertificate = mock(X509ResourceCertificate.class);
+        when(caCertificate.getPublicKey()).thenReturn(caPublicKey);
+        X509RouterCertificate bgpSecCertificate = mock(X509RouterCertificate.class);
+        when(bgpSecCertificate.getPublicKey()).thenReturn(bgpSecPublicKey);
 
-        String expected = UuidRepositoryObjectNamingStrategy.getDashSafeEncodedPublicKeyHash(publicKey)
+        String expected = UuidRepositoryObjectNamingStrategy.getDashSafeEncodedPublicKeyHash(caPublicKey)
+            + "-" + UuidRepositoryObjectNamingStrategy.getDashSafeEncodedPublicKeyHash(bgpSecPublicKey)
             + "-bgpsec-0000002a.cer";
 
-        assertEquals(expected, subject.bgpSecFilename(certificate, Asn.parse("AS42"), null));
+        assertEquals(expected, subject.bgpSecFilename(caCertificate, bgpSecCertificate, Asn.parse("AS42"), null));
     }
 
 }

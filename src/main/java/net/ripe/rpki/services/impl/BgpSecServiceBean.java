@@ -27,18 +27,15 @@ public class BgpSecServiceBean implements BgpSecViewService {
     private final BgpSecConfigurationRepository bgpSecConfigurationRepository;
     private final BgpSecEntityRepository bgpSecEntityRepository;
     private final TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository;
-    private final BgpSecCertificateRepository bgpSecCertificateRepository;
 
     public BgpSecServiceBean(CertificateAuthorityRepository caRepository,
                              BgpSecConfigurationRepository bgpSecConfigurationRepository,
                              BgpSecEntityRepository bgpSecEntityRepository,
-                             TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository,
-                             BgpSecCertificateRepository bgpSecCertificateRepository) {
+                             TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository) {
         this.caRepository = caRepository;
         this.bgpSecConfigurationRepository = bgpSecConfigurationRepository;
         this.bgpSecEntityRepository = bgpSecEntityRepository;
         this.trustAnchorPublishedObjectRepository = trustAnchorPublishedObjectRepository;
-        this.bgpSecCertificateRepository = bgpSecCertificateRepository;
     }
 
     @Override
@@ -52,11 +49,11 @@ public class BgpSecServiceBean implements BgpSecViewService {
     }
 
     @Override
-    public Optional<BgpSecConfigurationData> findBgpSecCertificates(long caId, long configurationId) {
+    public Optional<BgpSecConfigurationData> findBgpSecConfiguration(long caId, long configurationId) {
         if (caRepository.findManagedCa(caId) == null) {
             return Optional.empty();
         }
-        return bgpSecCertificateRepository.findCurrentCertificateDataByCaId(caId, configurationId);
+        return bgpSecConfigurationRepository.findCurrentConfigurationDataByCaId(caId, configurationId);
     }
 
     @Override

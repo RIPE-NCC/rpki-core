@@ -3,6 +3,7 @@ package net.ripe.rpki.application.impl;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
+import net.ripe.rpki.commons.crypto.x509cert.X509RouterCertificate;
 import net.ripe.rpki.domain.*;
 import net.ripe.rpki.domain.naming.RepositoryObjectNamingStrategy;
 import net.ripe.rpki.domain.naming.UuidRepositoryObjectNamingStrategy;
@@ -66,8 +67,8 @@ public class ResourceCertificateInformationAccessStrategyBean implements Resourc
     }
 
     @Override
-    public String bgpSecFilename(X509ResourceCertificate eeCertificate, Asn asn, Long routerId) {
-        return strategy.bgpSecFilename(eeCertificate, asn, routerId);
+    public String bgpSecFilename(X509ResourceCertificate caCertificate, X509RouterCertificate bgpSecCertificate, Asn asn, Long routerId) {
+        return strategy.bgpSecFilename(caCertificate, bgpSecCertificate, asn, routerId);
     }
 
     @Override

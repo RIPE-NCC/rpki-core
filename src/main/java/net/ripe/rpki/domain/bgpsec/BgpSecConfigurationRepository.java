@@ -1,6 +1,7 @@
 package net.ripe.rpki.domain.bgpsec;
 
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
+import net.ripe.rpki.server.api.dto.BgpSecConfigurationData;
 
 import java.util.Collection;
 import java.util.List;
@@ -11,6 +12,8 @@ public interface BgpSecConfigurationRepository {
 
     Optional<BgpSecConfiguration> findByCertificateAuthorityAndId(ManagedCertificateAuthority certificateAuthority, Long id);
 
+    Optional<BgpSecConfigurationData> findCurrentConfigurationDataByCaId(long caId, long configurationId);    
+
     Collection<BgpSecConfiguration> findAll();
 
     void add(BgpSecConfiguration bgpSecConfiguration);
@@ -18,5 +21,4 @@ public interface BgpSecConfigurationRepository {
     void remove(BgpSecConfiguration bgpSecConfiguration);
 
     void removeById(ManagedCertificateAuthority ca, Long id);
-
 }

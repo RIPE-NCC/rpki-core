@@ -20,11 +20,11 @@ public class JpaBgpSecEntityRepository extends JpaRepository<BgpSecEntity> imple
     @Override
     public List<BgpSecEntity> findCurrentByCertificateAuthority(ManagedCertificateAuthority certificateAuthority) {
         return manager.createQuery(
-                        "SELECT bgpSec " +
-                                "  FROM ManagedCertificateAuthority ca JOIN ca.keyPairs kp," +
-                                "       BgpSecEntity bgpSec" +
-                                " WHERE ca = :ca" +
-                                "   AND bgpSec.certificate.signingKeyPair = kp",
+                "SELECT bgpSec " +
+                        "  FROM ManagedCertificateAuthority ca JOIN ca.keyPairs kp," +
+                        "       BgpSecEntity bgpSec" +
+                        " WHERE ca = :ca" +
+                        "   AND bgpSec.certificate.signingKeyPair = kp",
                         BgpSecEntity.class
                 )
                 .setParameter("ca", certificateAuthority)

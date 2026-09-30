@@ -74,9 +74,10 @@ public class ManifestPublicationService {
             .register(meterRegistry);
     }
 
-    public long publishRpkiObjectsIfNeeded(ManagedCertificateAuthority certificateAuthority) {
-        // Publish each key if needed. Use `count` here to ensure all keys are published (no early termination).
-        return certificateAuthority.getKeyPairs().stream().filter(this::publishRpkiObjectsIfNeeded).count();
+    public long publishRpkiObjectsIfNeeded(ManagedCertificateAuthority certificateAuthority) {        
+        Collection<KeyPairEntity> keyPairs = certificateAuthority.getKeyPairs();
+        keyPairs.forEach(this::updateManifestAndCrlIfNeeded);
+        return publishedObjectRepository.publishObjects(keyPairs);
     }
 
     public boolean publishRpkiObjectsIfNeeded(KeyPairEntity keyPair) {

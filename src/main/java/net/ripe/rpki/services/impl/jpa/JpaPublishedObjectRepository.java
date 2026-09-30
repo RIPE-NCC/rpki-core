@@ -8,7 +8,7 @@ import org.joda.time.Instant;
 import org.springframework.stereotype.Repository;
 
 import java.net.URI;
-import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -110,31 +110,36 @@ public class JpaPublishedObjectRepository extends JpaRepository<PublishedObject>
     }
 
     @Override
-    public int publishObjects(KeyPairEntity issuingKeyPair) {
-        // First update `TO_BE_WITHDRAWN` before updating `TO_BE_PUBLISHED` to ensure
-        // unique constraint is not violated.
-        Instant now = Instant.now();
-        int count = createQuery("UPDATE PublishedObject po\n" +
-            "   SET po.version = po.version + 1,\n" +
-            "       po.updatedAt = :now,\n" +
-            "       po.status = :withdrawn\n" +
-            " WHERE po.status = :toBeWithdrawn\n" +
-            "   AND po.issuingKeyPair = :issuingKeyPair")
+    public int publishObjects(Collection<KeyPairEntity> issuingKeyPairs) {
+        if (issuingKeyPairs.isEmpty()) {
+            return 0;
+        }
+        var now = Instant.now();
+        // Update statuses for all keypairs to not have constraints violations
+        // if objects are re-issed after a key roll under the same name
+        int count = createQuery("""
+            UPDATE PublishedObject po
+               SET po.version = po.version + 1,
+                   po.updatedAt = :now,
+                   po.status = :withdrawn
+             WHERE po.status = :toBeWithdrawn
+               AND po.issuingKeyPair IN :issuingKeyPairs""")
             .setParameter("now", now)
             .setParameter("toBeWithdrawn", PublicationStatus.TO_BE_WITHDRAWN)
             .setParameter("withdrawn", PublicationStatus.WITHDRAWN)
-            .setParameter("issuingKeyPair", issuingKeyPair)
+            .setParameter("issuingKeyPairs", issuingKeyPairs)
             .executeUpdate();
-        count += createQuery("UPDATE PublishedObject po" +
-            "   SET po.version = po.version + 1," +
-            "       po.updatedAt = :now," +
-            "       po.status = :published" +
-            " WHERE po.status = :toBePublished" +
-            "   AND po.issuingKeyPair = :issuingKeyPair")
+        count += createQuery("""
+            UPDATE PublishedObject po
+               SET po.version = po.version + 1,
+                   po.updatedAt = :now,
+                   po.status = :published
+             WHERE po.status = :toBePublished
+               AND po.issuingKeyPair IN :issuingKeyPairs""")
             .setParameter("now", now)
             .setParameter("toBePublished", PublicationStatus.TO_BE_PUBLISHED)
             .setParameter("published", PublicationStatus.PUBLISHED)
-            .setParameter("issuingKeyPair", issuingKeyPair)
+            .setParameter("issuingKeyPairs", issuingKeyPairs)
             .executeUpdate();
         return count;
     }

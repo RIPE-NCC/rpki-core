@@ -1,5 +1,6 @@
 package net.ripe.rpki.rest.service;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -81,7 +82,7 @@ public class CaBgpSecService extends AbstractCaRestService {
                 .by(resolvedAsn, BgpSecConfigurationData::asn)
                 .by(routerId, BgpSecConfigurationData::routerId)
                 .stream()
-                .flatMap(conf -> bgpSecViewService.findBgpSecCertificates(ca.getId(), conf.id()).stream());
+                .flatMap(conf -> bgpSecViewService.findBgpSecConfiguration(ca.getId(), conf.id()).stream());
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -100,7 +101,7 @@ public class CaBgpSecService extends AbstractCaRestService {
         log.info("REST call: Get BGPSec object {} belonging to CA: {}", id, caName);
 
         var ca = getCa(HostedCertificateAuthorityData.class, caName);
-        var bgpsecConfiguration = bgpSecViewService.findBgpSecCertificates(ca.getId(), id);
+        var bgpsecConfiguration = bgpSecViewService.findBgpSecConfiguration(ca.getId(), id);
         return ResponseEntity.of(bgpsecConfiguration.map(RouterKey::from));
     }
 
@@ -139,7 +140,7 @@ public class CaBgpSecService extends AbstractCaRestService {
             String filename) {
 
         final HostedCertificateAuthorityData ca = getCa(HostedCertificateAuthorityData.class, caName);
-        var configuration = bgpSecViewService.findBgpSecCertificates(ca.getId(), bgpsecConfigurationId).orElseThrow(
+        var configuration = bgpSecViewService.findBgpSecConfiguration(ca.getId(), bgpsecConfigurationId).orElseThrow(
                 () -> new ObjectNotFoundException("BGPSec configuration not found.")
         );
 
@@ -181,10 +182,7 @@ public class CaBgpSecService extends AbstractCaRestService {
 
         var created = bgpSecViewService.findBgpSecConfiguration(ca.getId()).stream()
                 .filter(x -> x.matches(body.asn(), body.routerId(), body.csr()))
-                .flatMap(bareConf -> {
-                    var confWithValidity = bgpSecViewService.findBgpSecCertificates(ca.getId(), bareConf.id());
-                    return Stream.of(confWithValidity.orElse(bareConf));
-                })
+                .flatMap(conf -> bgpSecViewService.findBgpSecConfiguration(ca.getId(), conf.id()).stream())
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Failed to find the created BGPSecConfiguration object."));
 
@@ -201,9 +199,9 @@ public class CaBgpSecService extends AbstractCaRestService {
         log.info("REST call: Revoke BGPSec router key {} belonging to CA: {}", id, caName);
 
         var ca = getCa(HostedCertificateAuthorityData.class, caName);
-        bgpSecViewService.findBgpSecCertificates(ca.getId(), id).ifPresent(
-                c -> commandService.execute(new DeleteBgpSecConfigurationCommand(
-                        ca.getVersionedId(), c))
+        bgpSecViewService.findBgpSecConfiguration(ca.getId(), id).ifPresent(
+                c -> commandService.execute(
+                        new DeleteBgpSecConfigurationCommand(ca.getVersionedId(), c))
         );
         return noContent();
     }
@@ -221,6 +219,7 @@ public class CaBgpSecService extends AbstractCaRestService {
 
     public record CsrRequest(Asn asn, RouterId routerId, String csr) {}
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public record RouterKey(Long routerKeyId, Asn asn, Long routerId, String keyIdentifier, String csr,
                             Instant notValidBefore, Instant notValidAfter) {
 

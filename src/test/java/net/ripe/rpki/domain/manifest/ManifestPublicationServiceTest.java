@@ -13,6 +13,7 @@ import net.ripe.rpki.domain.CertificationDomainTestCase;
 import net.ripe.rpki.domain.KeyPairEntity;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
+import net.ripe.rpki.domain.PublishedObject;
 import net.ripe.rpki.domain.crl.CrlEntity;
 import net.ripe.rpki.domain.interca.CertificateIssuanceRequest;
 import net.ripe.rpki.domain.roa.*;
@@ -29,6 +30,8 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 
+import static net.ripe.rpki.domain.PublicationStatus.PUBLISHED;
+import static net.ripe.rpki.domain.PublicationStatus.WITHDRAWN;
 import static net.ripe.rpki.domain.manifest.ManifestPublicationService.RPKI_CA_GENERATED_CRL_SIZE_METRIC_NAME;
 import static net.ripe.rpki.domain.manifest.ManifestPublicationService.RPKI_CA_GENERATED_MANIFEST_SIZE_METRIC_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,6 +64,31 @@ public class ManifestPublicationServiceTest extends CertificationDomainTestCase 
         currentKeyPair = ca.getCurrentKeyPair();
 
         subject = manifestPublicationService;
+    }
+
+    @Test
+    public void should_publish_object_replacing_an_object_at_the_same_location_withdrawn_under_another_key_pair() {
+        // E.g. a BGPSec certificate that is re-issued under the new key after a key roll
+        KeyPairEntity oldKeyPair = keyPairService.createKeyPairEntity();
+        ca.addKeyPair(oldKeyPair);
+        entityManager.flush();
+
+        URI directory = URI.create("rsync://rpki.example.com/repository/");
+        ValidityPeriod validityPeriod = new ValidityPeriod(now, now.plusDays(1));
+        PublishedObject withdrawnUnderOldKey = new PublishedObject(oldKeyPair, "router.cer", new byte[]{0x1}, true, directory, validityPeriod);
+        withdrawnUnderOldKey.published();
+        withdrawnUnderOldKey.withdraw();
+        PublishedObject publishedUnderCurrentKey = new PublishedObject(currentKeyPair, "router.cer", new byte[]{0x2}, true, directory, validityPeriod);
+        publishedObjectRepository.add(withdrawnUnderOldKey);
+        publishedObjectRepository.add(publishedUnderCurrentKey);
+        entityManager.flush();
+
+        assertTrue("objects published", subject.publishRpkiObjectsIfNeeded(ca) > 0);
+
+        entityManager.refresh(withdrawnUnderOldKey);
+        entityManager.refresh(publishedUnderCurrentKey);
+        assertEquals(WITHDRAWN, withdrawnUnderOldKey.getStatus());
+        assertEquals(PUBLISHED, publishedUnderCurrentKey.getStatus());
     }
 
     @Test

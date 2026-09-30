@@ -89,9 +89,9 @@ class CaBgpSecServiceTest {
             var conf1 = BgpSecConfigurationData.from(1L, new Asn(20), RouterId.ZERO, CSR);
             var conf2 = BgpSecConfigurationData.from(2L, new Asn(30), new RouterId(4_000_000_000L), CSR2);
             when(bgpSecViewService.findBgpSecConfiguration(CA_ID)).thenReturn(List.of(conf1, conf2));
-            when(bgpSecViewService.findBgpSecCertificates(CA_ID, 1L)).thenReturn(Optional.of(
+            when(bgpSecViewService.findBgpSecConfiguration(CA_ID, 1L)).thenReturn(Optional.of(
                     new BgpSecConfigurationData(1L, new Asn(20), RouterId.ZERO, CSR, Csr.getKeyIdentifier(CSR), null, null)));
-            when(bgpSecViewService.findBgpSecCertificates(CA_ID, 2L)).thenReturn(Optional.of(
+            when(bgpSecViewService.findBgpSecConfiguration(CA_ID, 2L)).thenReturn(Optional.of(
                     new BgpSecConfigurationData(2L, new Asn(30), new RouterId(4_000_000_000L), CSR2, Csr.getKeyIdentifier(CSR2), null, null)));
         }
 
@@ -153,7 +153,7 @@ class CaBgpSecServiceTest {
         void shouldCreateRouterKey() throws Exception {
             when(bgpSecViewService.findBgpSecConfiguration(CA_ID)).thenReturn(List.of(
                     BgpSecConfigurationData.from(42L, new Asn(10), new RouterId(10L), CSR)));
-            when(bgpSecViewService.findBgpSecCertificates(CA_ID, 42L)).thenReturn(Optional.of(
+            when(bgpSecViewService.findBgpSecConfiguration(CA_ID, 42L)).thenReturn(Optional.of(
                     new BgpSecConfigurationData(42L, new Asn(10), new RouterId(10L), CSR, Csr.getKeyIdentifier(CSR), null, null)));
 
             mockMvc.perform(Rest.post(API_URL_PREFIX + "/" + CA_ID + "/bgpsec")
@@ -232,7 +232,7 @@ class CaBgpSecServiceTest {
 
         @BeforeEach
         void setup() {
-            when(bgpSecViewService.findBgpSecCertificates(CA_ID, routerKey.id()))
+            when(bgpSecViewService.findBgpSecConfiguration(CA_ID, routerKey.id()))
                     .thenReturn(Optional.of(certificate));
         }
 
@@ -268,7 +268,7 @@ class CaBgpSecServiceTest {
                         notValidBefore,
                         notValidAfter
                 );
-                when(bgpSecViewService.findBgpSecCertificates(CA_ID, routerKey.id()))
+                when(bgpSecViewService.findBgpSecConfiguration(CA_ID, routerKey.id()))
                         .thenReturn(Optional.of(certificateWithValidity));
 
                 var response = mockMvc.perform(Rest.get(url))
@@ -287,7 +287,7 @@ class CaBgpSecServiceTest {
         class Certificate {
             @Test
             void shouldGetEeCertificateAsAsn1EncodedPkcs7() throws Exception {
-                when(bgpSecViewService.findBgpSecCertificates(CA_ID, 1L)).thenReturn(
+                when(bgpSecViewService.findBgpSecConfiguration(CA_ID, 1L)).thenReturn(
                         Optional.of(new BgpSecConfigurationData(
                                 1L, new Asn(20), RouterId.ZERO, CSR, Csr.getKeyIdentifier(CSR), null, null)));
                 byte[] fakeDer = new byte[]{0x30, 0x00};
@@ -320,7 +320,7 @@ class CaBgpSecServiceTest {
         class Chain {
             @Test
             void shouldReturnChainAsDerPkcs7() throws Exception {
-                when(bgpSecViewService.findBgpSecCertificates(CA_ID, routerKey.id())).thenReturn(
+                when(bgpSecViewService.findBgpSecConfiguration(CA_ID, routerKey.id())).thenReturn(
                         Optional.of(certificate));
                 byte[] fakeDer = new byte[]{0x30, 0x00};
                 when(bgpSecViewService.findBgpSecCertificateChainPkcs7(anyLong(), any(BgpSecConfigurationData.class)))

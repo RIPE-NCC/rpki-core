@@ -175,6 +175,7 @@ public class BgpSecEntityServiceBean implements BgpSecEntityService, Certificate
                 bgpSecConfiguration.getAsn(), validityPeriod, currentKeyPair);
 
         var filename = informationAccessStrategy.bgpSecFilename(
+                incomingResourceCertificate.getCertificate(),
                 bgpSecCertificate.getCertificate(),
                 bgpSecConfiguration.getAsn(),
                 bgpSecConfiguration.getRouterId());

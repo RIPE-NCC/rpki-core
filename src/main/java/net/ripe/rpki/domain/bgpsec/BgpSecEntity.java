@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.ripe.ipresource.Asn;
+import net.ripe.rpki.domain.ManagedCertificateAuthority;
 import net.ripe.rpki.domain.PublishedObject;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 

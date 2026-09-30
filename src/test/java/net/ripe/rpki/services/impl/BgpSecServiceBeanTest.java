@@ -41,7 +41,6 @@ public class BgpSecServiceBeanTest extends CertificationDomainTestCase {
     private CertificateAuthorityRepository caRepository;
     private BgpSecEntityRepository bgpSecEntityRepository;
     private TrustAnchorPublishedObjectRepository trustAnchorPublishedObjectRepository;
-    private BgpSecCertificateRepository bgpSecCertificateRepositoryMock;
     private BgpSecServiceBean subjectWithMocks;
     private BgpSecConfigurationRepository bgpSecConfigurationRepository;
     ManagedCertificateAuthority ca = mock(ManagedCertificateAuthority.class);
@@ -63,11 +62,10 @@ public class BgpSecServiceBeanTest extends CertificationDomainTestCase {
         bgpSecConfigurationRepository = mock(BgpSecConfigurationRepository.class);
         bgpSecEntityRepository = mock(BgpSecEntityRepository.class);
         trustAnchorPublishedObjectRepository = mock(TrustAnchorPublishedObjectRepository.class);
-        bgpSecCertificateRepositoryMock = mock(BgpSecCertificateRepository.class);
         subjectWithMocks = new BgpSecServiceBean(caRepository, bgpSecConfigurationRepository,
-                bgpSecEntityRepository, trustAnchorPublishedObjectRepository, bgpSecCertificateRepositoryMock);
+                bgpSecEntityRepository, trustAnchorPublishedObjectRepository);
         realSubject = new BgpSecServiceBean(certificateAuthorityRepository, realBgpSecConfigurationRepository,
-                realBgpSecEntityRepository, realTrustAnchorPublishedObjectRepository, bgpSecCertificateRepository);
+                realBgpSecEntityRepository, realTrustAnchorPublishedObjectRepository);
     }
 
     @Test
@@ -81,9 +79,9 @@ public class BgpSecServiceBeanTest extends CertificationDomainTestCase {
     @Test
     public void shouldNotFindBgpSecConfigurationIfIdDoesNotMatch() {
         when(caRepository.findManagedCa(TEST_CA_ID)).thenReturn(ca);
-        when(bgpSecCertificateRepositoryMock.findCurrentCertificateDataByCaId(TEST_CA_ID, 2L)).thenReturn(Optional.empty());
+        when(bgpSecConfigurationRepository.findCurrentConfigurationDataByCaId(TEST_CA_ID, 2L)).thenReturn(Optional.empty());
 
-        assertThat(subjectWithMocks.findBgpSecCertificates(TEST_CA_ID, 2L)).isEmpty();
+        assertThat(subjectWithMocks.findBgpSecConfiguration(TEST_CA_ID, 2L)).isEmpty();
     }
 
     @Test
@@ -105,7 +103,7 @@ public class BgpSecServiceBeanTest extends CertificationDomainTestCase {
         realBgpSecEntityRepository.add(new BgpSecEntity(asn, Csr.getKeyIdentifier(CSR), 0L, cert, "bgpsec-1.cer", BGPSEC_DIRECTORY));
         entityManager.flush();
 
-        assertThat(realSubject.findBgpSecCertificates(realCa.getId(), config.getId()))
+        assertThat(realSubject.findBgpSecConfiguration(realCa.getId(), config.getId()))
                 .isPresent()
                 .hasValueSatisfying(result -> {
                     assertThat(result.id()).isEqualTo(config.getId());
@@ -320,7 +318,7 @@ public class BgpSecServiceBeanTest extends CertificationDomainTestCase {
 
     @Test
     public void shouldReturnEmptyWhenCaDoesNotExist() {
-        assertThat(realSubject.findBgpSecCertificates(TEST_CA_ID, 999L)).isEmpty();
+        assertThat(realSubject.findBgpSecConfiguration(TEST_CA_ID, 999L)).isEmpty();
     }
 
     @Test
@@ -343,7 +341,7 @@ public class BgpSecServiceBeanTest extends CertificationDomainTestCase {
         entityManager.flush();
 
         var config = realBgpSecConfigurationRepository.findByCertificateAuthority(realCa).get(0);
-        var result = realSubject.findBgpSecCertificates(realCa.getId(), config.getId());
+        var result = realSubject.findBgpSecConfiguration(realCa.getId(), config.getId());
 
         assertThat(result).isPresent().hasValueSatisfying(r -> {
             assertThat(r.id()).isNotNull();
@@ -375,7 +373,7 @@ public class BgpSecServiceBeanTest extends CertificationDomainTestCase {
         entityManager.flush();
 
         var config = realBgpSecConfigurationRepository.findByCertificateAuthority(realCa).get(0);
-        assertThat(realSubject.findBgpSecCertificates(realCa.getId(), config.getId()))
+        assertThat(realSubject.findBgpSecConfiguration(realCa.getId(), config.getId()))
                 .isPresent()
                 .hasValueSatisfying(r -> assertThat(r.routerId()).isNull());
     }
@@ -407,7 +405,7 @@ public class BgpSecServiceBeanTest extends CertificationDomainTestCase {
 
         entityManager.flush();
 
-        assertThat(realSubject.findBgpSecCertificates(realCa.getId(), config1.getId())).isPresent();
-        assertThat(realSubject.findBgpSecCertificates(realCa.getId(), config2.getId())).isPresent();
+        assertThat(realSubject.findBgpSecConfiguration(realCa.getId(), config1.getId())).isPresent();
+        assertThat(realSubject.findBgpSecConfiguration(realCa.getId(), config2.getId())).isPresent();
     }
 }

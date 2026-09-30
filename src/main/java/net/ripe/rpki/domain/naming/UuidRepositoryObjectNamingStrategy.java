@@ -3,6 +3,7 @@ package net.ripe.rpki.domain.naming;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
+import net.ripe.rpki.commons.crypto.x509cert.X509RouterCertificate;
 import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import org.apache.commons.lang.Validate;
 
@@ -34,8 +35,9 @@ public class UuidRepositoryObjectNamingStrategy implements RepositoryObjectNamin
     }
 
     @Override
-    public String bgpSecFilename(X509ResourceCertificate certificate, Asn asn, Long routerId) {
-        return getDashSafeEncodedPublicKeyHash(certificate.getPublicKey()) + "-bgpsec"
+    public String bgpSecFilename(X509ResourceCertificate caCertificate, X509RouterCertificate bgpSecCertificate, Asn asn, Long routerId) {
+        return getDashSafeEncodedPublicKeyHash(caCertificate.getPublicKey()) + "-" +
+                getDashSafeEncodedPublicKeyHash(bgpSecCertificate.getPublicKey()) + "-bgpsec"
                 + asNamePart(asn, Asn::longValue, "-")
                 + asNamePart(routerId, v -> v, "-")
                 + "." + CERTIFICATE_FILE_EXTENSION;

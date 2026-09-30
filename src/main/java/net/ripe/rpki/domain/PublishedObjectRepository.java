@@ -3,6 +3,7 @@ package net.ripe.rpki.domain;
 import net.ripe.rpki.ripencc.support.persistence.Repository;
 import org.joda.time.DateTime;
 
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -31,6 +32,10 @@ public interface PublishedObjectRepository extends Repository<PublishedObject> {
     void withdrawAllForKeyPair(KeyPairEntity keyPair);
 
     void withdrawAllForDeletedKeyPair(KeyPairEntity keyPair);
+    
+    default int publishObjects(KeyPairEntity issuingKeyPair) {
+        return publishObjects(List.of(issuingKeyPair));
+    }
 
     /**
      * Mark objects as published/withdrawn so that they will be sent to the RRDP/rsync repositories on the next
@@ -39,10 +44,10 @@ public interface PublishedObjectRepository extends Repository<PublishedObject> {
      * <p>IMPORTANT: a parent CA must always be published before a child CA to avoid invalidating a child CA's
      * certificates due to over-claiming resources!</p>
      *
-     * @param issuingKeyPair the issuing key pair to publish objects for.
+     * @param issuingKeyPairs the issuing key pairs to publish/withdraw objects for.
      * @return the number of objects published or withdrawn.
      */
-    int publishObjects(KeyPairEntity issuingKeyPair);
+    int publishObjects(Collection<KeyPairEntity> issuingKeyPairs);
 
     int deleteExpiredObjects(DateTime expirationTime);
 

@@ -209,6 +209,34 @@ public class JpaPublishedObjectRepositoryTest extends CertificationDomainTestCas
     }
 
     @Test
+    public void should_update_TO_BE_WITHDRAWN_of_all_key_pairs_before_TO_BE_PUBLISHED_for_unique_constraint_on_location() {
+        KeyPairEntity otherKeyPair = keyPairService.createKeyPairEntity();
+        productionCertificateAuthority.addKeyPair(otherKeyPair);
+        entityManager.flush();
+
+        PublishedObject toBeWithdrawnObject = new PublishedObject(
+            otherKeyPair,
+            toBePublishedObject.getFilename(),
+            new byte[]{0x1, 0x2, 0x3},
+            true,
+            URI.create(toBePublishedObject.getDirectory()),
+            VALIDITY_PERIOD
+        );
+        toBeWithdrawnObject.published();
+        toBeWithdrawnObject.withdraw();
+        publishedObjectRepository.add(toBeWithdrawnObject);
+
+        // The key pair with the object to be published comes first
+        publishedObjectRepository.publishObjects(List.of(issuingKeyPair, otherKeyPair));
+
+        entityManager.refresh(toBeWithdrawnObject);
+        entityManager.refresh(toBePublishedObject);
+
+        assertEquals(WITHDRAWN, toBeWithdrawnObject.getStatus());
+        assertEquals(PUBLISHED, toBePublishedObject.getStatus());
+    }
+
+    @Test
     public void withdrawAllForKeyPair() {
         publishedObjectRepository.withdrawAllForKeyPair(publishedObject.getIssuingKeyPair());
 

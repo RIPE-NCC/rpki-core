@@ -63,10 +63,12 @@ public class CaStatServiceTest {
         Instant later = now.plus(1, ChronoUnit.MINUTES);
         Instant errorAt = now.plus(2, ChronoUnit.MINUTES);
         List<DelegatedCa> delegatedCas = Arrays.asList(
-                new DelegatedCa("CN=11", true, Optional.of("key1"), Optional.of(now), Optional.empty(), Optional.empty()),
-                new DelegatedCa("CN=5555", true, Optional.of("key2"), Optional.empty(), Optional.empty(), Optional.empty()),
-                new DelegatedCa("O=XXX", true, Optional.of("key3"), Optional.of(later), Optional.empty(), Optional.empty()),
-                new DelegatedCa("O=ERROR", true, Optional.of("key4"), Optional.of(now), Optional.of(errorAt), Optional.of("Connection refused")));
+                new DelegatedCa("CN=11", true, Optional.of("key1"), Optional.of(now), Optional.empty(), Optional.empty(), Optional.empty()),
+                new DelegatedCa("CN=5555", true, Optional.of("key2"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()),
+                new DelegatedCa("O=XXX", true, Optional.of("key3"), Optional.of(later), Optional.empty(), Optional.empty(), Optional.empty()),
+                new DelegatedCa("O=ERROR", true, Optional.of("key4"), Optional.of(now), Optional.of(errorAt), Optional.of("Connection refused"), Optional.empty()),
+                new DelegatedCa("O=UA-TEST", true, Optional.of("key5"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of("User-Agent"))
+            );
 
         when(certificateAuthorityViewService.findDelegatedCas()).thenReturn(delegatedCas);
 
@@ -92,6 +94,8 @@ public class CaStatServiceTest {
                 .andExpect(jsonPath("$.[3].keyIdentifier").value("key4"))
                 .andExpect(jsonPath("$.[3].lastProvisionedAt").value(now.toString()))
                 .andExpect(jsonPath("$.[3].lastFailedAt").value(errorAt.toString()))
-                .andExpect(jsonPath("$.[3].errorReason").value("Connection refused"));
+                .andExpect(jsonPath("$.[3].errorReason").value("Connection refused"))
+                .andExpect(jsonPath("$.[4].caName").value("O=UA-TEST"))
+                .andExpect(jsonPath("$.[4].userAgent").value("User-Agent"));
     }
 }

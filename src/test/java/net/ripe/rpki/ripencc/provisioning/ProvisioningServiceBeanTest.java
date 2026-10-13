@@ -30,6 +30,7 @@ import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProvisioningServiceBeanTest {
+    private final String fakeUserAgent = "UA";
 
     private ProvisioningServiceBean subject;
 
@@ -65,7 +66,7 @@ public class ProvisioningServiceBeanTest {
     @Test(expected=ProvisioningException.class)
     public void shouldCreateErrorResponseForUnparseableRequest() {
         // Note this will cause a typed runtime exception that is caught and translated to the proper http response by the servlet
-        subject.processRequest(new byte[]{0x4B, 0x61, 0x70, 0x6F, 0x74});
+        subject.processRequest(new byte[]{0x4B, 0x61, 0x70, 0x6F, 0x74}, fakeUserAgent);
 
         // And we track the underlying a verification check causing the error
         verify(provisioningMetricsService).trackValidationResult(any());
@@ -77,7 +78,7 @@ public class ProvisioningServiceBeanTest {
         when(response.getPayload()).thenReturn(new ResourceClassListResponsePayloadBuilder().build());
 
         when(provisioningRequestProcessor.process(any())).thenReturn(response);
-        subject.processRequest(listCms.getEncoded());
+        subject.processRequest(listCms.getEncoded(), fakeUserAgent);
 
         // Verify that the response and reqeuest are logged
         verify(provisioningAuditLogService, times(2)).log(ArgumentMatchers.any(), ArgumentMatchers.any());
@@ -92,10 +93,10 @@ public class ProvisioningServiceBeanTest {
         when(response.getPayload()).thenReturn(new ResourceClassListResponsePayloadBuilder().build());
 
         when(provisioningRequestProcessor.process(any())).thenReturn(response);
-        subject.processRequest(listCms.getEncoded());
+        subject.processRequest(listCms.getEncoded(), fakeUserAgent);
 
         var logEntry = ArgumentCaptor.forClass(ProvisioningAuditLogEntity.class);
-        verify(provisioningStatRepository, times(1)).track(logEntry.capture());
+        verify(provisioningStatRepository, times(1)).track(logEntry.capture(), eq(fakeUserAgent));
 
         assertThat(logEntry.getValue().getNonHostedCaUUID()).hasToString(listCms.getPayload().getSender());
         assertThat(logEntry.getValue().getRequestMessageType()).isEqualTo(listCms.getPayload().getType());
@@ -106,11 +107,11 @@ public class ProvisioningServiceBeanTest {
         var startAt = Instant.now();
         var error = new ProvisioningException.BadData();
         when(provisioningRequestProcessor.process(any())).thenThrow(error);
-        assertThrows(ProvisioningException.class, () -> subject.processRequest(listCms.getEncoded()));
+        assertThrows(ProvisioningException.class, () -> subject.processRequest(listCms.getEncoded(), fakeUserAgent));
 
         var sender = ArgumentCaptor.forClass(UUID.class);
         var timestamp = ArgumentCaptor.forClass(Instant.class);
-        verify(provisioningStatRepository, times(1)).trackProvisioningError(sender.capture(), timestamp.capture(), eq(error));
+        verify(provisioningStatRepository, times(1)).trackProvisioningError(sender.capture(), timestamp.capture(), eq(error), eq(fakeUserAgent));
 
         assertThat(sender.getValue()).hasToString(listCms.getPayload().getSender());
         assertThat(timestamp.getValue()).isAfterOrEqualTo(startAt);

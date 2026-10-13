@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Optional;
 
 @Slf4j
 public class ProvisioningServlet extends HttpServlet {
@@ -39,8 +40,9 @@ public class ProvisioningServlet extends HttpServlet {
         }
 
         try {
+            var userAgent = Optional.ofNullable(req.getHeader("user-agent"));
             byte[] request = IOUtils.toByteArray(req.getInputStream());
-            byte[] response = provisioningService.processRequest(request);
+            byte[] response = provisioningService.processRequest(request, userAgent.orElse("unknown"));
 
             // The server's response is similarly an HTTP response,
             //   with the message object carried as the body of the response and with

@@ -6,6 +6,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 public interface ProvisioningStatRepository {
-    void track(ProvisioningAuditLogEntity logEntry);
-    void trackProvisioningError(UUID nonHostedCaUUID, Instant timestamp, ProvisioningException error);
+    void track(ProvisioningAuditLogEntity logEntry, String userAgent);
+    void trackProvisioningError(UUID nonHostedCaUUID, Instant timestamp, ProvisioningException error, String userAgent);
 }

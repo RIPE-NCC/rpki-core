@@ -36,7 +36,7 @@ class ProvisioningServiceBean implements ProvisioningService {
     }
 
     @Override
-    public byte[] processRequest(final byte[] request) throws ProvisioningException {
+    public byte[] processRequest(byte[] request, String userAgent) throws ProvisioningException {
         return asAdmin((GetE<byte[], ProvisioningException>) () -> {
             final ProvisioningCmsObject requestObject = extractRequestObject(request);
             provisioningMetricsService.trackPayload(requestObject.getPayload());
@@ -52,7 +52,7 @@ class ProvisioningServiceBean implements ProvisioningService {
 
                 ProvisioningAuditLogEntity responseLogEntry = new ProvisioningAuditLogEntity(responseObject, RunAsUser.ADMIN.getFriendlyName(), memberUUID);
                 provisioningAuditLogService.log(responseLogEntry, request);
-                provisioningStatRepository.track(requestLogEntry);
+                provisioningStatRepository.track(requestLogEntry, userAgent);
 
                 provisioningMetricsService.trackPayload(responseObject.getPayload());
 
@@ -60,7 +60,7 @@ class ProvisioningServiceBean implements ProvisioningService {
             } catch (ProvisioningException ex) {
                 log.warn("Not able to process provisioning request, member UUID = {} with the following error: {}", requestObject.getPayload().getSender(), ex.getName());
                 if (memberUUID != null) {
-                    provisioningStatRepository.trackProvisioningError(memberUUID, Instant.now(), ex);
+                    provisioningStatRepository.trackProvisioningError(memberUUID, Instant.now(), ex, userAgent);
                 }
                 throw ex;
             }

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -38,6 +39,11 @@ public class ProvisioningStatRecord extends EntitySupport {
     @Nullable
     private String lastFailureReason;
 
+    @Column(name = "user_agent")
+    @Nullable
+    @Setter
+    private String userAgent;
+
     ProvisioningStatRecord() {}
 
     public ProvisioningStatRecord(UUID nonHostedCaUUID) {
@@ -59,5 +65,9 @@ public class ProvisioningStatRecord extends EntitySupport {
     public void setLastFailure(@NonNull Instant time, @NonNull String reason) {
         this.lastFailure = time;
         this.lastFailureReason = reason;
+    }
+
+    public Optional<String> getUserAgent() {
+        return Optional.ofNullable(this.userAgent);
     }
 }

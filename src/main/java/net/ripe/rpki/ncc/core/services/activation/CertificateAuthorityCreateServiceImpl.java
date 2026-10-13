@@ -15,13 +15,13 @@ import net.ripe.rpki.server.api.services.activation.CertificateAuthorityCreateSe
 import net.ripe.rpki.server.api.services.command.CertificateAuthorityNameNotUniqueException;
 import net.ripe.rpki.server.api.services.command.CommandService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import net.ripe.rpki.util.Sanitize;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
 import javax.security.auth.x500.X500Principal;
 
 import java.util.UUID;
@@ -74,7 +74,7 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
             // yet and no certificate will be revoked (or created).
             resources = ImmutableResourceSet.empty();
         }
-        LOG.info("Creating Hosted CA: {} with initial resources '{}'", name, resources);
+        LOG.info("Creating Hosted CA: {} with initial resources '{}'", Sanitize.forLogging(name.getName()), resources);
         provisionMember(name, resources, productionCaName);
     }
 
@@ -102,7 +102,7 @@ public class CertificateAuthorityCreateServiceImpl implements CertificateAuthori
             // yet and no certificate will be revoked (or created).
             resources = ImmutableResourceSet.empty();
         }
-        LOG.info("Creating Non-Hosted CA: {} with initial resources '{}'", name, resources);
+        LOG.info("Creating Non-Hosted CA: {} with initial resources '{}'", Sanitize.forLogging(name.getName()), resources);
         provisionNonHostedMember(name, resources, productionCaName, identityCertificate);
     }
 

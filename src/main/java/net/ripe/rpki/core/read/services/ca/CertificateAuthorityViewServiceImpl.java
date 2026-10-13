@@ -201,7 +201,8 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
                             LIMIT 1) AS last_public_key_encoded,
                     stat.last_success AS last_succeeded_at,
                     stat.last_failure AS last_failed_at,
-                    stat.last_failure_reason AS error_reason
+                    stat.last_failure_reason AS error_reason,
+                    stat.user_agent AS user_agent
                 FROM certificateauthority ca
                   LEFT JOIN provisioning_stat stat ON stat.non_hosted_ca_uuid = ca.uuid
                 WHERE ca.type = 'NONHOSTED'
@@ -217,7 +218,8 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
             var encodedPublicKey  = (byte[])            row[col++];
             var lastProvisionedAt = (java.time.Instant) row[col++];
             var lastFailedAt      = (java.time.Instant) row[col++];
-            var errorReason       = (String)            row[col];
+            var errorReason       = (String)            row[col++];
+            var userAgent         = (String)            row[col];
 
             Optional<String> lastPublicKey = Optional.ofNullable(encodedPublicKey)
                     .map(encoded -> hexFormat.formatHex(KeyPairUtil.getKeyIdentifier(KeyPairFactory.decodePublicKey(encoded))));
@@ -228,7 +230,8 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
                     lastPublicKey,
                     Optional.ofNullable(lastProvisionedAt),
                     Optional.ofNullable(lastFailedAt),
-                    Optional.ofNullable(errorReason)
+                    Optional.ofNullable(errorReason),
+                    Optional.ofNullable(userAgent)
             );
         }).toList();
     }

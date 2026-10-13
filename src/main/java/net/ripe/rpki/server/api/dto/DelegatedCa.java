@@ -13,5 +13,7 @@ public record DelegatedCa(String caName,
                           @JsonInclude(JsonInclude.Include.NON_ABSENT)
                           Optional<Instant> lastFailedAt,
                           @JsonInclude(JsonInclude.Include.NON_ABSENT)
-                          Optional<String> errorReason) {
+                          Optional<String> errorReason,
+                          @JsonInclude(JsonInclude.Include.NON_ABSENT)
+                          Optional<String> userAgent) {
 }

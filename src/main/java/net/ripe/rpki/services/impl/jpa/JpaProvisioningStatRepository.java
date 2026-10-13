@@ -24,21 +24,23 @@ public class JpaProvisioningStatRepository implements ProvisioningStatRepository
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
-    public void track(ProvisioningAuditLogEntity logEntry) {
+    public void track(ProvisioningAuditLogEntity logEntry, String userAgent) {
         var statRecord = getByNonHostedCA(logEntry.getNonHostedCaUUID());
         if (logEntry.getRequestMessageType() != PayloadMessageType.error_response) {
             statRecord.setLastSuccess(logEntry.getExecutionTime().toInstant());
         } else {
             statRecord.setLastFailure(logEntry.getExecutionTime().toInstant(), logEntry.getSummary());
         }
+        statRecord.setUserAgent(userAgent);
         entityManager.merge(statRecord);
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
-    public void trackProvisioningError(UUID nonHostedCaUUID, Instant timestamp, ProvisioningException error) {
+    public void trackProvisioningError(UUID nonHostedCaUUID, Instant timestamp, ProvisioningException error, String userAgent) {
         var statRecord = getByNonHostedCA(nonHostedCaUUID);
         statRecord.setLastFailure(timestamp, error.getName());
+        statRecord.setUserAgent(userAgent);
         entityManager.merge(statRecord);
     }
 

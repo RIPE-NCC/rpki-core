@@ -24,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class JpaProvisioningStatRepositoryTest extends CertificationDomainTestCase {
+    private final String fakeUserAgent = "UA";
     @Autowired
     private JpaProvisioningStatRepository subject;
     @Autowired
@@ -33,11 +34,12 @@ class JpaProvisioningStatRepositoryTest extends CertificationDomainTestCase {
     @Transactional
     void it_tracks_first_success_message() {
         var logEntry = fakeLogEntry(new ResourceClassListQueryPayloadBuilder().build());
-        subject.track(logEntry);
+        subject.track(logEntry, fakeUserAgent);
 
         var stat = getStat(logEntry.getNonHostedCaUUID());
         assertThat(stat.getLastSuccess()).isEqualTo(Optional.of(logEntry.getExecutionTime().toInstant()));
         assertThat(stat.getLastFailure()).isEmpty();
+        assertThat(stat.getUserAgent()).isEqualTo(Optional.of(fakeUserAgent));
     }
 
     @Test
@@ -47,11 +49,12 @@ class JpaProvisioningStatRepositoryTest extends CertificationDomainTestCase {
         var existing = new ProvisioningStatRecord(logEntry.getNonHostedCaUUID());
         existing.setLastSuccess(Instant.EPOCH);
         entityManager.persist(existing);
-        subject.track(logEntry);
+        subject.track(logEntry, fakeUserAgent);
 
         var stat = getStat(logEntry.getNonHostedCaUUID());
         assertThat(stat.getLastSuccess()).isEqualTo(Optional.of(logEntry.getExecutionTime().toInstant()));
         assertThat(stat.getLastFailure()).isEmpty();
+        assertThat(stat.getUserAgent()).isEqualTo(Optional.of(fakeUserAgent));
     }
 
     @Test
@@ -63,11 +66,12 @@ class JpaProvisioningStatRepositoryTest extends CertificationDomainTestCase {
         payload.withDescription(reason);
         var logEntry = fakeLogEntry(payload.build());
         entityManager.persist(new ProvisioningStatRecord(logEntry.getNonHostedCaUUID()));
-        subject.track(logEntry);
+        subject.track(logEntry, fakeUserAgent);
 
         var stat = getStat(logEntry.getNonHostedCaUUID());
         assertThat(stat.getLastFailure()).isEqualTo(Optional.of(Pair.of(logEntry.getExecutionTime().toInstant(), logEntry.getSummary())));
         assertThat(stat.getLastSuccess()).isEmpty();
+        assertThat(stat.getUserAgent()).isEqualTo(Optional.of(fakeUserAgent));
     }
 
     @Test
@@ -79,11 +83,12 @@ class JpaProvisioningStatRepositoryTest extends CertificationDomainTestCase {
         existing.setLastFailure(Instant.now().minusMillis(24 * 3_600_000L), "Some failure reason.");
         entityManager.persist(existing);
 
-        subject.track(logEntry);
+        subject.track(logEntry, fakeUserAgent);
 
         var stat = getStat(logEntry.getNonHostedCaUUID());
         assertThat(stat.getLastSuccess()).isEqualTo(Optional.of(logEntry.getExecutionTime().toInstant()));
         assertThat(stat.getLastFailure()).isEqualTo(existing.getLastFailure());
+        assertThat(stat.getUserAgent()).isEqualTo(Optional.of(fakeUserAgent));
     }
 
     @Test
@@ -92,10 +97,11 @@ class JpaProvisioningStatRepositoryTest extends CertificationDomainTestCase {
         var sender = UUID.randomUUID();
         var timestamp = Instant.now();
         var error = new ProvisioningException.BadData();
-        subject.trackProvisioningError(sender, timestamp, error);
+        subject.trackProvisioningError(sender, timestamp, error, fakeUserAgent);
 
         var stat = getStat(sender);
         assertThat(stat.getLastFailure()).isEqualTo(Optional.of(Pair.of(timestamp, error.getName())));
+        assertThat(stat.getUserAgent()).isEqualTo(Optional.of(fakeUserAgent));
     }
 
     private static ProvisioningAuditLogEntity fakeLogEntry(AbstractProvisioningPayload payload) {

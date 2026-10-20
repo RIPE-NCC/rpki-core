@@ -8,9 +8,12 @@ import net.ripe.rpki.ncc.core.domain.support.EntitySupport;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.util.UUID;
@@ -23,6 +26,12 @@ public class NonHostedPublisherRepository extends EntitySupport  {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq")
     @Getter
     private Long id;
+
+    // Read-only: the ca_id column is owned by NonHostedCertificateAuthority#publisherRepositories
+    @Getter
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ca_id", insertable = false, updatable = false)
+    private NonHostedCertificateAuthority certificateAuthority;
 
     @Getter
     @Basic(optional = false)

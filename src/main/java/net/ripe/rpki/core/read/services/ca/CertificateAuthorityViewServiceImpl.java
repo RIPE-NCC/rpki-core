@@ -162,9 +162,12 @@ public class CertificateAuthorityViewServiceImpl implements CertificateAuthority
     }
 
     @Override
-    public Map<UUID, PublisherRequest> findAllPublisherRequestsFromNonHostedCAs() {
-        return entityManager.createQuery("from NonHostedPublisherRepository repository", NonHostedPublisherRepository.class).getResultStream()
-                .collect(Collectors.toMap(NonHostedPublisherRepository::getPublisherHandle, NonHostedPublisherRepository::getPublisherRequest));
+    public List<NonHostedPublisherRepository> findAllPublisherRequestsFromNonHostedCAs() {
+        return entityManager.createQuery("""
+                FROM NonHostedPublisherRepository repository
+                JOIN FETCH repository.certificateAuthority
+                """, NonHostedPublisherRepository.class)
+            .getResultList();
     }
 
     @Override

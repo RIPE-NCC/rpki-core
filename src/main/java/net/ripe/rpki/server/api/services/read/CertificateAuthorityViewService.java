@@ -4,6 +4,7 @@ import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.identity.RepositoryResponse;
 import net.ripe.rpki.domain.CertificateAuthority;
 import net.ripe.rpki.domain.ManagedCertificateAuthority;
+import net.ripe.rpki.domain.NonHostedPublisherRepository;
 import net.ripe.rpki.server.api.dto.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.Instant;
@@ -74,7 +75,7 @@ public interface CertificateAuthorityViewService {
 
     Map<UUID, Pair<PublisherRequest, RepositoryResponse>> findNonHostedPublisherRepositories(X500Principal caName);
 
-    Map<UUID, PublisherRequest> findAllPublisherRequestsFromNonHostedCAs();
+    List<NonHostedPublisherRepository> findAllPublisherRequestsFromNonHostedCAs();
 
     /**
      * @return all subclass instances of {@link ManagedCertificateAuthority ManagedCertificateAuthority}

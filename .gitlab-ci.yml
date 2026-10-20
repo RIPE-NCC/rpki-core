@@ -1,5 +1,5 @@
 default:
-  image: gradle:9.8-jdk21@sha256:d5c815d1281e3edc7e986ca573b1b309639747fa0d91a2199adadf327cfdf634
+  image: gradle:9.8-jdk21@sha256:5ec5f726f14851a11a1bac6e6a5720e41062c33357053e7717eb0d189a6f1db9
   cache:
     key: "gradle-${CI_COMMIT_REF_SLUG}"
     fallback_keys:
@@ -70,7 +70,7 @@ build:
     when: always
     paths:
       - build
-      - scripts/*
+      - scripts/* 
     reports:
       junit:
         - build/test-results/**/*.xml
@@ -187,3 +187,56 @@ publish-to-github:
     - if: $CI_COMMIT_REF_NAME == "main"
       when: on_success
     - when: never
+
+nightly-rpki-commons-test:
+  stage: build
+  timeout: 60m
+  services:
+    - postgres:15
+  variables:
+    POSTGRES_DB: certdb_test
+    POSTGRES_USER: certdb
+    POSTGRES_PASSWORD: ""
+    POSTGRES_HOST: postgres
+    POSTGRES_HOST_AUTH_METHOD: trust
+    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres/certdb_test
+    SPRING_DATASOURCE_USERNAME: certdb
+    SPRING_DATASOURCE_PASSWORD: ""
+  cache:
+    key: nightly-snapshot-${CI_COMMIT_REF_SLUG}
+    paths:
+      - .gradle/caches
+      - .gradle/wrapper
+  before_script:
+    - mkdir -m 755 -p /export/bad/certification/repository/{ta,online}/published
+    - mkdir -m 755 -p /export/bad/certification/ta/{data,requests,responses}    
+    - apt-get update
+    - apt-get install --yes git maven rsync
+  script:  
+    # Pick up the latest version of rpki-commons
+    - cd .. 
+    - echo "Get the latest version of rpki-commons"
+    - rm -Rf rpki-commons/ && git clone https://github.com/RIPE-NCC/rpki-commons.git
+    - cd rpki-commons
+    - echo "Using rpki-commons version $(git rev-parse HEAD)"
+    - mvn test install 
+    - cd ../rpki-ripe-ncc/
+    - cat dependencies.gradle | sed -e "s/rpki_commons_version = .*/rpki_commons_version = '+'/g" > dependencies.gradle.tmp
+    - mv dependencies.gradle.tmp dependencies.gradle
+    - ./gradlew --refresh-dependencies  
+    - echo "Testing with latest SNAPSHOT version of rpki-commons"
+    - ./gradlew -i build integrationTest --refresh-dependencies
+    - cat build/reports/jacoco/test/html/index.html
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - build
+      - scripts/*
+    reports:
+      junit:
+        - build/test-results/**/*.xml
+  rules:
+    # Run only on scheduled pipelines (nightly)
+    - if: $CI_PIPELINE_SOURCE == "schedule"    
+  allow_failure: true

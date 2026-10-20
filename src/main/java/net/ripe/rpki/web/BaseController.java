@@ -117,7 +117,7 @@ public class BaseController {
         @NotBlank
         // Regex taken from https://stackoverflow.com/a/106223
         @Pattern(
-            regexp = "\\s*(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\s*",
+            regexp = "\\s*(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.){0,10}([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\s*",
             message = "must be a valid hostname"
         )
         String name;

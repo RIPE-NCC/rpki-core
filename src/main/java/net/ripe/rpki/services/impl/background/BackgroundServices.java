@@ -96,6 +96,9 @@ public class BackgroundServices {
     @Value("${bgpsec.enabled}")
     private boolean bgpSecEnabled;
 
+    @Value("${krill.publisher.periodic.sync.enabled}")
+    private boolean krillPublisherPeriodicSyncEnabled;
+
     @Value("${certificate.expiration.service.interval.minutes:7}")
     private int certificateExpirationIntervalMinutes;
 
@@ -181,6 +184,12 @@ public class BackgroundServices {
             schedule(ROA_ALERT_BACKGROUND_SERVICE_WEEKLY,
                     futureDate(1, HOUR),
                     weeklyOnDayAndHourAndMinute(2, 23, 23));
+        }
+
+        if (krillPublisherPeriodicSyncEnabled) {
+            schedule(PUBLISHER_SYNC_SERVICE,
+                    futureDate(1, HOUR),
+                    dailyAtHourAndMinute(3, 3));
         }
     }
 

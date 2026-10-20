@@ -41,7 +41,7 @@ dependencies {
     implementation "org.thymeleaf:thymeleaf:3.1.2.RELEASE"
     implementation "org.thymeleaf:thymeleaf-spring6:3.1.3.RELEASE"
 
-    implementation platform('io.sentry:sentry-bom:8.60.0')
+    implementation platform('io.sentry:sentry-bom:8.61.0')
     implementation 'io.sentry:sentry-spring-boot-starter'
     implementation 'io.sentry:sentry-logback'
 
@@ -70,7 +70,7 @@ dependencies {
     }
 
     testImplementation "org.wiremock:wiremock-jetty12:3.13.2"
-    testImplementation 'net.jqwik:jqwik:1.10.1'
+    testImplementation 'net.jqwik:jqwik:1.10.2'
     testImplementation("net.ripe.rpki:rpki-commons:$rpki_commons_version:tests") {
         exclude group: "net.sf.saxon", module: "Saxon-HE"
     }

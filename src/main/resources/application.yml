@@ -185,3 +185,6 @@ rfc6492:
 
 renew.identity:
     update.interval.hours: 24
+
+krill.publisher.periodic.sync.enabled: false
+

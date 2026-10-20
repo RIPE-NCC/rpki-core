@@ -5,20 +5,23 @@ import net.ripe.rpki.commons.provisioning.identity.PublisherRequest;
 import net.ripe.rpki.commons.provisioning.x509.ProvisioningIdentityCertificate;
 import net.ripe.rpki.server.api.ports.NonHostedPublisherRepositoryService;
 import net.ripe.rpki.server.api.services.read.CertificateAuthorityViewService;
+import net.ripe.rpki.domain.NonHostedCertificateAuthority;
+import net.ripe.rpki.domain.NonHostedPublisherRepository;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import javax.security.auth.x500.X500Principal;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -51,14 +54,17 @@ public class PublisherSyncDelegateBeanTest {
     @Test
     public void shouldReprovisionThoseOnlyOnCore() throws NonHostedPublisherRepositoryService.DuplicateRepositoryException {
         when(nonHostedPublisherRepositoryService.listPublishers()).thenReturn(Collections.emptySet());
-        Map<UUID, PublisherRequest> corePublishers = new HashMap<>();
-
         UUID publisherHandle = UUID.randomUUID();
         PublisherRequest publisherRequest =  new PublisherRequest(Optional.empty(), publisherHandle.toString(), identityCertificate, Optional.empty());
 
-        corePublishers.put(publisherHandle, publisherRequest);
+        NonHostedCertificateAuthority ca = mock(NonHostedCertificateAuthority.class);
+        when(ca.getName()).thenReturn(new X500Principal("CN=non-hosted"));
+        NonHostedPublisherRepository repository = mock(NonHostedPublisherRepository.class);
+        when(repository.getPublisherHandle()).thenReturn(publisherHandle);
+        when(repository.getPublisherRequest()).thenReturn(publisherRequest);
+        when(repository.getCertificateAuthority()).thenReturn(ca);
 
-        when(certificateAuthorityViewService.findAllPublisherRequestsFromNonHostedCAs()).thenReturn(corePublishers);
+        when(certificateAuthorityViewService.findAllPublisherRequestsFromNonHostedCAs()).thenReturn(List.of(repository));
 
         subject.runService();
 
@@ -73,7 +79,7 @@ public class PublisherSyncDelegateBeanTest {
         Set<UUID> krillPublishers = new HashSet<>();
         krillPublishers.add(publisherHandle);
         when(nonHostedPublisherRepositoryService.listPublishers()).thenReturn(krillPublishers);
-        when(certificateAuthorityViewService.findAllPublisherRequestsFromNonHostedCAs()).thenReturn(Collections.emptyMap());
+        when(certificateAuthorityViewService.findAllPublisherRequestsFromNonHostedCAs()).thenReturn(List.of());
 
         subject.runService();
 

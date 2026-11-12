@@ -1,5 +1,6 @@
 package net.ripe.rpki.domain.naming;
 
+import com.google.common.hash.Hashing;
 import net.ripe.ipresource.Asn;
 import net.ripe.rpki.commons.crypto.util.KeyPairUtil;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
@@ -8,8 +9,10 @@ import net.ripe.rpki.domain.OutgoingResourceCertificate;
 import org.apache.commons.lang.Validate;
 
 import javax.security.auth.x500.X500Principal;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.PublicKey;
+import java.util.Base64;
 import java.util.function.ToLongFunction;
 
 public class UuidRepositoryObjectNamingStrategy implements RepositoryObjectNamingStrategy {
@@ -36,11 +39,13 @@ public class UuidRepositoryObjectNamingStrategy implements RepositoryObjectNamin
 
     @Override
     public String bgpSecFilename(X509ResourceCertificate caCertificate, X509RouterCertificate bgpSecCertificate, Asn asn, Long routerId) {
-        return getDashSafeEncodedPublicKeyHash(caCertificate.getPublicKey()) + "-" +
-                getDashSafeEncodedPublicKeyHash(bgpSecCertificate.getPublicKey()) + "-bgpsec"
-                + asNamePart(asn, Asn::longValue, "-")
-                + asNamePart(routerId, v -> v, "-")
-                + "." + CERTIFICATE_FILE_EXTENSION;
+        var s = getDashSafeEncodedPublicKeyHash(caCertificate.getPublicKey()) + "-" +
+                getDashSafeEncodedPublicKeyHash(bgpSecCertificate.getPublicKey()) + "-"
+                + asn + "-" + routerId;
+        var hash = Hashing.sha256().hashString(s, StandardCharsets.UTF_8).asBytes();
+        // It is sometimes useful to quickly distinguish between CA and BGPSec certificates
+        // Also, we want to avoid filenames starting with "-", it might be a problem for CLI tools
+        return "bs-" + Base64.getUrlEncoder().withoutPadding().encodeToString(hash) + "." + CERTIFICATE_FILE_EXTENSION;
     }
 
     @Override

@@ -1,5 +1,5 @@
 default:
-  image: gradle:9.8-jdk21@sha256:5ec5f726f14851a11a1bac6e6a5720e41062c33357053e7717eb0d189a6f1db9
+  image: gradle:9.8-jdk21@sha256:844f46cc1e85cd8de51a70b57d9a1012459a530c0bf7b49e456b56e556529dc9
   cache:
     key: "gradle-${CI_COMMIT_REF_SLUG}"
     fallback_keys:
@@ -50,7 +50,7 @@ build:
   # slow builds in augusts 2023
   timeout: 60m
   services:
-    - postgres:15.19@sha256:c961aa287d8698297cb26cdfadfbe9fd2cbaf77e53cfffe9636e8d8a1e4d842c
+    - postgres:15.19@sha256:64b99032e218b66b1d1a6334995056e1aa57f50a0c522cc856e72dff0e4b0d63
   variables:
       POSTGRES_DB: certdb_test
       POSTGRES_USER: certdb
@@ -103,7 +103,7 @@ sonarqube:
     - if: $CI_COMMIT_REF_NAME == "next"
 
 control/run-on-staging:
-  image: node:25-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4
+  image: node:26-alpine@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94
   stage: compliance
   script:
     - ./scripts/gitlab-deploy-check
@@ -169,7 +169,7 @@ pilot:
 
 publish-to-github:
   stage: publish
-  image: alpine:latest@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
+  image: alpine:latest@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
   needs:
     - production
   before_script:
@@ -192,7 +192,7 @@ nightly-rpki-commons-test:
   stage: build
   timeout: 60m
   services:
-    - postgres:15
+    - postgres:15@sha256:64b99032e218b66b1d1a6334995056e1aa57f50a0c522cc856e72dff0e4b0d63
   variables:
     POSTGRES_DB: certdb_test
     POSTGRES_USER: certdb

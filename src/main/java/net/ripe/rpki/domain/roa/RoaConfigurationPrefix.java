@@ -7,9 +7,11 @@ import net.ripe.ipresource.IpRange;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.commons.validation.roa.AnnouncedRoute;
 import net.ripe.rpki.ripencc.support.persistence.AsnPersistenceConverter;
+import net.ripe.rpki.ripencc.support.persistence.FullHashBigIntegerJavaType;
 import net.ripe.rpki.server.api.dto.RoaConfigurationPrefixData;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
+import org.hibernate.annotations.JavaType;
 
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -30,7 +32,9 @@ public class RoaConfigurationPrefix {
         @Column(name = "asn", nullable = false)
         @Convert(converter = AsnPersistenceConverter.class)
         private Asn asn;
+        @JavaType(FullHashBigIntegerJavaType.class)
         private BigInteger prefixStart;
+        @JavaType(FullHashBigIntegerJavaType.class)
         private BigInteger prefixEnd;
         @Column(name = "prefix_type_id", nullable = false)
         private IpResourceType prefixType;
@@ -43,10 +47,12 @@ public class RoaConfigurationPrefix {
 
     @Id
     @Column(name = "prefix_start", nullable = false)
+    @JavaType(FullHashBigIntegerJavaType.class)
     private BigInteger prefixStart;
 
     @Id
     @Column(name = "prefix_end", nullable = false)
+    @JavaType(FullHashBigIntegerJavaType.class)
     private BigInteger prefixEnd;
 
     @Id
